@@ -94,9 +94,17 @@ class Metadata:
         self.interface = None
         self.alt = None
         self.text = None
+        self.range = []
         self.param = OrderedDict()
         self.retval = OrderedDict()
 
+    @property
+    def is_input(self):
+        return self.input or not self.output
+
+    @property
+    def is_output(self):
+        return self.output
 
 class BaseType:
     def __init__(self, type):
@@ -156,8 +164,14 @@ class BuiltinInteger(Intrinsic):
 
 
 class String(Intrinsic):
+    def __init__(self, std=False, cc=False):
+        Intrinsic.__init__(self, "std::string" if std else "ccstring" if cc else "string")
+        self.is_cc = cc
+
+
+class CCString(Intrinsic):
     def __init__(self, std=False):
-        Intrinsic.__init__(self, "std::string" if std else "string")
+        Intrinsic.__init__(self, "ccstring")
 
 
 class Nullptr_t(Fundamental):
@@ -195,7 +209,7 @@ class Integer(Fundamental):
             self.size = " ".join(self.type.split()[1:])
 
     def IsFixed(self):
-        return self.size != "int"
+        return self.size != "int" and not self.type.endswith(" int") and type != "char" and not self.type.endswith(" char")
 
 
 class Float(Fundamental):
@@ -208,7 +222,8 @@ class Identifier():
     def __init__(self, parent_block, parent, string, valid_specifiers, tags_allowed=True):
         self.parent = parent_block
         self.meta = Metadata()
-        parent.specifiers = []
+        if parent:
+            parent.specifiers = []
         self.name = ""
         type = ["?"] # indexing safety
         type_found = False
@@ -274,28 +289,49 @@ class Identifier():
                     if tags_allowed:
                         self.meta.input = True
                     else:
-                        raise ParserError("in/out tags not allowed on return value")
+                        raise ParserError("in/out tags not allowed here")
                 elif token[1:] == "OUT":
                     if tags_allowed:
                         self.meta.output = True
                     else:
-                        raise ParserError("in/out tags not allowed on return value")
+                        raise ParserError("in/out tags not allowed here")
                 elif token[1:] == "INDEX":
                     if tags_allowed:
                         self.meta.is_index = True
                     else:
-                        raise ParserError("@index tag not allowed on return value")
+                        raise ParserError("@index tag not allowed here")
                 elif token[1:] == "LENGTH":
                     self.meta.length = string[i + 1]
                     skip = 1
-                    continue
                 elif token[1:] == "MAXLENGTH":
                     if tags_allowed:
                         self.meta.maxlength = string[i + 1]
                     else:
-                        raise ParserError("@maxlength tag not allowed on return value")
+                        raise ParserError("@maxlength tag not allowed here")
                     skip = 1
-                    continue
+                elif token[1:] == "RESTRICT":
+                    if tags_allowed:
+                        self.meta.range = []
+                        for s in "".join(string[i + 1]).split(".."):
+                            try:
+                                if '.' not in s:
+                                    v = eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024"))
+                                else:
+                                    v = eval(s)
+                                self.meta.range.append(int(v))
+                            except:
+                                raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
+                        if len(self.meta.range) == 2:
+                            if self.meta.range[0] > self.meta.range[1]:
+                                raise ParserError("invalid range in @restrict: %s > %s" % (self.meta.range[0], self.meta.range[1]))
+                        elif len(self.meta.range) == 1:
+                            self.meta.range.append(self.meta.range[0])
+                            self.meta.range[0] = 0
+                        else:
+                            raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
+                    else:
+                        raise ParserError("@restrict tag not allowed here")
+                    skip = 1
                 elif token[1:] == "INTERFACE":
                     self.meta.interface = string[i + 1]
                     skip = 1
@@ -360,7 +396,8 @@ class Identifier():
 
             elif token in ["const", "volatile", "constexpr"]:
                 if token == "constexpr":
-                    parent.specifiers.append("constexpr")
+                    if parent:
+                        parent.specifiers.append("constexpr")
                     token = "const"
 
                 # put qualifiers in order
@@ -373,7 +410,8 @@ class Identifier():
 
             # include valid specifiers
             elif token in valid_specifiers:
-                parent.specifiers.append(token)
+                if parent:
+                    parent.specifiers.append(token)
 
             elif not type_found and not array:
                 # handle primitive type combinations...
@@ -439,7 +477,7 @@ class Identifier():
                 qualifiedT = "::" + T
 
                 # need full qualification if the class is a subclass
-                if tree.full_name.startswith(parent.full_name + "::"):
+                if parent and tree.full_name.startswith(parent.full_name + "::"):
                     if T.count("::") != tree.full_name.replace(parent.full_name, "").count("::"):
                         return
 
@@ -505,6 +543,8 @@ class Identifier():
                     self.type[i] = Type(Void())
                 elif type == "string":
                     self.type[i] = Type(String())
+                elif type == "ccstring":
+                    self.type[i] = Type(String(cc=True))
                 elif type == "std::string":
                     self.type[i] = Type(String(True))
                 elif type == "__stubgen_integer":
@@ -553,6 +593,9 @@ class Identifier():
 
     def Proto(self):
         return str(self.Type())
+
+    def Signature(self):
+        return (self.Proto() + " " + self.name)
 
 
 def Evaluate(identifiers_):
@@ -617,7 +660,10 @@ def Evaluate(identifiers_):
         try:
             value = eval("".join(val))
         except:
-            value = val
+            try:
+                value = " ".join(val)
+            except:
+                value = val
 
     return value
 
@@ -702,6 +748,9 @@ class Type:
         self.type = basetype
         self.ref = Ref.VALUE
 
+    def IsVoid(self):
+        return (isinstance(self.type, Void) and not self.IsPointer() and not self.IsPointerToPointer())
+
     def IsConst(self):
         return (self.ref & Ref.CONST) != 0
 
@@ -762,6 +811,9 @@ class Type:
     def TypeName(self):
         return self.type.Proto()
 
+    def TypeNameCV(self):
+        return self.type.Proto()
+
     def Resolve(self, ref = 0):
         if self.IsPointerToPointer() and ref & Ref.POINTER:
             raise ParserError("Too many pointers %s" % self)
@@ -774,21 +826,32 @@ class Type:
             type.ref |= ref
         return type
 
-    def CVString(self):
-        str = "const" if self.IsConst() else ""
-        str += " " if self.IsConst() and self.IsVolatile() else ""
-        str += "volatile" if self.IsVolatile() else ""
-        return str
+    def CVString(self, mask=""):
+        _str = "const " if (self.IsConst() and not self.IsPointer() and "nocv" not in mask) or (self.IsPointerToConst() and "nopcv" not in mask) else ""
+        _str += "volatile " if (self.IsVolatile() and not self.IsPointer() and "nocv" not in mask) or (self.IsPointerToVolatile() and "nopcv" not in mask) else ""
+        return _str.strip()
 
-    def Proto(self):
-        _str = "const " if ((self.IsConst() and not self.IsPointer()) or self.IsPointerToConst()) else ""
-        _str += "volatile " if (self.IsVolatile() and not self.IsPointer()) or self.IsPointerToVolatile() else ""
-        _str += self.TypeName()
-        _str += "*" if self.IsPointer() else ""
+    def PointerString(self, mask=""):
+        _str = "*" if self.IsPointer() else ""
         _str += "*" if self.IsPointerToPointer() else ""
-        _str += " const" if self.IsConstPointer() else ""
-        _str += " volatile" if self.IsVolatilePointer() else ""
-        _str += "&" if self.IsReference() else "&&" if self.IsRvalueReference() else ""
+        if "nocv" not in mask:
+            _str += " const" if self.IsConstPointer() else ""
+            _str += " volatile" if self.IsVolatilePointer() else ""
+        return _str
+
+    def ReferenceString(self):
+        _str = "&" if self.IsReference() else "&&" if self.IsRvalueReference() else ""
+        return _str
+
+    def Proto(self, mask=""):
+        _str = ""
+        _str += self.CVString(mask)
+        _str += " " if _str else ""
+        _str += self.TypeName()
+        if "noptr" not in mask:
+            _str += self.PointerString(mask)
+        if "noref" not in mask:
+            _str += self.ReferenceString()
         return _str
 
     def __str__(self):
@@ -799,7 +862,7 @@ class Type:
 
 
 def TypeStr(s):
-    return str(Undefined(s, "/* undefined */ ")) if not isinstance(s, Type) else str(s)
+    return str(Undefined(s, "/* undefined type  */")) if not isinstance(s, Type) else str(s)
 
 
 def ValueStr(s):
@@ -836,7 +899,6 @@ class Typedef(Identifier, Name):
     def __repr__(self):
         return "typedef %s [= %s]" % (self.full_name, TypeStr(self.type.type))
 
-
 # Holds structs and classes
 class Class(Identifier, Block):
     def __init__(self, parent_block, name):
@@ -860,6 +922,15 @@ class Class(Identifier, Block):
         self.sourcelocation = None
         self.type_name = name
         self.parent.classes.append(self)
+
+    def IsAbstract(self):
+        return any([m.IsPureVirtual() for m in self.methods])
+
+    def IsVirtual(self):
+        return any([m.IsVirtual() for m in self.methods])
+
+    def Inherits(self, class_name):
+        return any([(class_name == str(base[0])) for base in self.ancestors])
 
     def Proto(self):
         return self.full_name
@@ -963,15 +1034,33 @@ class Function(Block, Name):
 
 
 # Holds variables and constants
+class Temporary(Identifier, Name):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
+        Identifier.__init__(self, parent_block, self, string, valid_specifiers)
+        Name.__init__(self, parent_block, self.name)
+        self.value = Evaluate(value) if value else None
+
+    def Proto(self):
+        return TypeStr(self.type)
+
+    def __str__(self):
+        return self.Proto()
+
+    def __repr__(self):
+        value = ValueStr(self.value) if self.value else None
+        return "variable %s %s '%s'%s" % (str(self.specifiers), TypeStr(self.type), str(self.name),
+                                          (" = " + value) if value else "")
+
 class Variable(Identifier, Name):
     def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value) if value else None
-        self.parent.vars.append(self)
+        if self.parent:
+            self.parent.vars.append(self)
 
     def Proto(self):
-        return "%s %s" % (TypeStr(self.type), self.name)
+        return TypeStr(self.type)
 
     def __str__(self):
         return self.Proto()
@@ -1013,6 +1102,9 @@ class Method(Function):
     def IsPureVirtual(self):
         return "pure-virtual" in self.specifiers
 
+    def IsDestructor(self):
+        return isinstance(self, Destructor)
+
     def IsConst(self):
         return "const" in self.qualifiers
 
@@ -1035,8 +1127,16 @@ class Method(Function):
         _str += " = 0" if self.IsPureVirtual() else ""
         return _str
 
+    def Signature(self):
+        _str = "static " if self.IsStatic() else ""
+        _str += TypeStr(self.retval.type) if self.retval.type else ""
+        _str += (" " if str(self.retval) else "") + self.name
+        _str += "(%s)" % (", ".join([str(v) for v in self.vars]))
+        _str += " " + self.CVString() if self.CVString() else ""
+        return _str
+
     def __str__(self):
-        return self.Proto()
+        return self.Signature()
 
     def __repr__(self):
         cv = " " + self.CVString() if self.CVString() else ""
@@ -1332,7 +1432,7 @@ def __Tokenize(contents,log = None):
                 else:
                     continue
 
-            def __ParseParameterValue(string, tag, append = True):
+            def __ParseParameterValue(string, tag, mandatory = True, append = True):
                 formula = (r"(\"[^\"]+\")"
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
@@ -1342,17 +1442,18 @@ def __Tokenize(contents,log = None):
 
                 if append:
                     tagtokens.append(tag.upper())
+
                 length_str = string[string.index(tag) + len(tag):]
-                length_tokens = [
-                    s.strip() for s in re.split(formula, length_str, flags=re.MULTILINE)
-                    if isinstance(s, str) and len(s.strip())
-                ]
+                length_tokens = [s.strip() for s in re.split(formula, length_str, flags=re.MULTILINE) if isinstance(s, str) and len(s.strip())]
                 tokens = []
+
                 if len(length_tokens) > 0:
                     if length_tokens[0] == ':':
                         length_tokens = length_tokens[1:]
+
                     no_close_last = (length_tokens[0] == '(')
                     par_count = 0
+
                     for t in length_tokens:
                         if t == '(':
                             if tokens:
@@ -1372,8 +1473,13 @@ def __Tokenize(contents,log = None):
                             tokens.append(t)
                             if par_count == 0:
                                 break
+
                     if par_count != 0:
                         raise ParserError("unmatched parenthesis in %s expression" % tag)
+
+                if mandatory and not tokens:
+                    raise ParserError("Missing parameter to " + tag)
+
                 return tokens
 
             if ((token[:2] == "/*") and (token.count("/*") != token.count("*/"))):
@@ -1427,7 +1533,7 @@ def __Tokenize(contents,log = None):
                 if _find("@json:omit", token):
                     tagtokens.append("@JSON_OMIT")
                 elif _find("@json", token):
-                    tagtokens.append(__ParseParameterValue(token, "@json"))
+                    tagtokens.append(__ParseParameterValue(token, "@json", False))
                 if _find("@event", token):
                     tagtokens.append("@EVENT")
                 if _find("@extended", token):
@@ -1450,6 +1556,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ITERATOR")
                 if _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
+                if _find("@opaque", token):
+                    tagtokens.append("@OPAQUE")
                 if _find("@sourcelocation", token):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
                 if _find("@alt", token):
@@ -1460,12 +1568,12 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
                 if _find("@maxlength", token):
                     tagtokens.append(__ParseParameterValue(token, "@maxlength"))
+                if _find("@restrict", token):
+                    tagtokens.append(__ParseParameterValue(token, "@restrict"))
                 if _find("@interface", token):
                     tagtokens.append(__ParseParameterValue(token, "@interface"))
-                if _find("@opaque", token):
-                    tagtokens.append(__ParseParameterValue(token, "@opaque"))
                 if _find("@define", token):
-                    defines.append(__ParseParameterValue(token, "@define", False))
+                    defines.append(__ParseParameterValue(token, "@define", False, False))
 
                 def FindDoxyString(tag, hasParam, string, tagtokens):
                     def EndOfTag(string, start):
@@ -1536,7 +1644,7 @@ current_file = "undefined"
 
 
 def CurrentFile():
-    if i > 0:
+    if i > 0 and i < len(files):
         # error during c++ parsing
         return files[i]
     else:
@@ -1545,7 +1653,7 @@ def CurrentFile():
 
 
 def CurrentLine():
-    if i > 0:
+    if i > 0 and i < len(line_numbers):
         # error during c++ parsing
         return line_numbers[i]
     else:
@@ -1723,7 +1831,7 @@ def Parse(contents,log = None):
                 event_next = False
             if not isinstance(typedef.type, Type) and typedef.type[0] == "enum":
                 # To be removed
-                log.Warn("Support for typedefs to anonymous enums is deprecated, (%s(%i)" % (CurrentFile(), CurrentLine()))
+                log.Warn("support for typedefs to anonymous enums is deprecated, (%s(%i)" % (CurrentFile(), CurrentLine()))
                 in_typedef = True
                 i += 1
             elif not isinstance(typedef.type, Type) and (not isinstance(typedef.type, list) or typedef.type[0] in ["struct", "class", "union"]):
@@ -1897,7 +2005,10 @@ def Parse(contents,log = None):
                 i += 1
 
             new_enum = Enum(current_block[-1], enum_name, is_scoped, enum_type, enum_bitmask)
-            next_block = new_enum
+            if tokens[i] != ';':
+                next_block = new_enum
+            else:
+                i += 1
 
         # Parse class access specifier...
         elif isinstance(current_block[-1], Class) and tokens[i] == ':':
@@ -2038,7 +2149,7 @@ def Parse(contents,log = None):
         # Handle closing a compound block/composite type
         elif tokens[i] == '}':
             if isinstance(current_block[-1], Class) and (tokens[i + 1] != ';'):
-                raise ParserError("definitions following a class declaration is not supported (%s)" %
+                raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" %
                                   current_block[-1].full_name)
             if len(current_block) > 1:
                 current_block.pop()
@@ -2088,7 +2199,7 @@ def Parse(contents,log = None):
             enum = current_block[-1]
             j = i
             while True:
-                if tokens[i] in ['}', ',']:
+                if tokens[i] in ['}', ',', ';']:
 
                     # disentangle @text tag and enumerator value (if any)
                     value = None
