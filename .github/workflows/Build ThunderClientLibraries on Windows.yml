@@ -1,0 +1,14 @@
+name: Build ThunderTools on Windows
+
+# CHANGE TO MASTER
+on:
+  push:
+    branches: ["development/actions"]
+  pull_request:
+    branches: ["master"]
+ 
+# CHANGE TO RDKCENTRAL
+# CHANGE TO MASTER
+jobs:
+  ThunderClientLibraries:
+    uses: VeithMetro/ThunderClientLibraries/.github/workflows/Build ThunderClientLibraries on Windows.yml@development/actions-tools
