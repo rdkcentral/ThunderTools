@@ -1,0 +1,11 @@
+name: Build ThunderTools on Windows
+
+on:
+  push:
+    branches: ["master"]
+  pull_request:
+    branches: ["master"]
+ 
+jobs:
+  ThunderClientLibraries:
+    uses: rdkcentral/ThunderClientLibraries/.github/workflows/Build ThunderClientLibraries on Windows.yml@master
