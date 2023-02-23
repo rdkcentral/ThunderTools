@@ -1560,7 +1560,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     if retval.is_hresult:
                         emit.Line("return (%s{0x80000000 | Core::ERROR_UNAVAILABLE});" % retval.type_name)
                     else:
-                        emit.Line("return ((%s){});" % retval.proto_no_cv)
+                        emit.Line("return (%s{});" % retval.proto_no_cv)
 
             emit.IndentDec()
             emit.Line("}")
