@@ -1032,6 +1032,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     prepared_params = [PrepareParams(method, interface) for method in emit_methods]
                     announce_list[interface_name] = [emit_methods, stub_methods_name, stub_name, proxy_name, interface, prepared_params]
 
+        emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
+        emit.Line()
+
         #
         # EMIT STUB CODE
         #
@@ -1602,6 +1605,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         if BE_VERBOSE:
             log.Print("Emitting stub registration code...")
 
+
+        emit.Line("POP_WARNING()")
+        emit.Line()
 
         #
         # EMIT REGISTRATION CODE
