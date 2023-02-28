@@ -100,7 +100,7 @@ class JsonType():
         self.schema = schema
         self.parent = parent
         self.name = name
-        self.original_name = schema.get("original_name")
+        self.original_name = schema.get("@originalname")
         self.description = schema.get("description")
         self.iterator = schema.get("iterator")
         self.original_type = schema.get("original_type")
@@ -676,9 +676,6 @@ class JsonMethod(JsonObject):
         if '.' in name:
             log.Warn("'%s': method names containing full designator are deprecated" % name)
             name = name.rsplit(".", 1)[1]
-        elif "original_name" in schema:
-            # In case of a method always take the original name if available
-            name = schema["original_name"].lower()
 
         # Mimic a JSON object to fit rest of the parsing...
         self.errors = schema["errors"] if "errors" in schema else OrderedDict()
@@ -687,8 +684,8 @@ class JsonMethod(JsonObject):
         props["result"] = schema["result"] if "result" in schema else {"type": "null"}
         method_schema = {"type": "object", "properties": props}
 
-        if "original_name" in schema:
-            method_schema["original_name"] = schema["original_name"]
+        if "@originalname" in schema:
+            method_schema["@originalname"] = schema["@originalname"]
 
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
@@ -1019,7 +1016,7 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
 
                         if cpp_obj:
                             parent[parent_name] = copy.deepcopy(cpp_obj)
-                            parent[parent_name]["@ref"] = "@" + json_path + "/" + cpp_obj["original_name"]
+                            parent[parent_name]["@ref"] = "@" + json_path + "/" + cpp_obj["@originalname"]
 
                             if "description" in schema:
                                 parent[parent_name]["description"] = schema["description"]

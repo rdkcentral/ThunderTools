@@ -425,9 +425,9 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
 
                         if is_readable:
                             if encode:
-                                emit.Line("Core::FromString(%s, %s, %s, nullptr);" % (cpp_name, arg.TempName(), length_var.TempName()))
+                                emit.Line("Core::FromString(%s, %s, %s, nullptr);" % (cpp_name, arg.TempName(), length.TempName()))
                             elif is_writeable:
-                                emit.Line("::memcpy(%s, %s.Value().data(), %s);" % (arg.TempName(), cpp_name, length_var.TempName()))
+                                emit.Line("::memcpy(%s, %s.Value().data(), %s);" % (arg.TempName(), cpp_name, length.TempName()))
 
                         if is_writeable or encode:
                             emit.Unindent()
