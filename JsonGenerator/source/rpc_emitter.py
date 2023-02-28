@@ -201,11 +201,14 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototy
             emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, source_file))
 
     emit.Line()
-    emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
-    emit.Line()
-    emit.Line("namespace %s {" % config.INTERFACE_NAMESPACE.split("::")[-1])
-    emit.Indent()
-    emit.Line()
+
+    for i, ns in enumerate(config.INTERFACE_NAMESPACE.split("::")):
+        if ns:
+            emit.Line("namespace %s {" % ns)
+            if i >= 2:
+                emit.Indent()
+            emit.Line()
+
     namespace = root.json_name
 
     if "info" in root.schema and "namespace" in root.schema["info"]:
@@ -229,10 +232,12 @@ def _EmitRpcEpilogue(root, emit):
         emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
         emit.Line()
 
-    emit.Unindent()
-    emit.Line("} // namespace %s" % config.INTERFACE_NAMESPACE.split("::")[-1])
-    emit.Line()
-    emit.Line("}")
+    for i, ns in reversed(list(enumerate(config.INTERFACE_NAMESPACE.split("::")))):
+        if ns:
+            if i >= 2:
+                emit.Unindent()
+            emit.Line("} // namespace %s" % ns)
+            emit.Line()
 
     emit.Line()
 
@@ -250,7 +255,13 @@ def _EmitVersionCode(emit, version):
 def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
     json_source = source_file.endswith(".json")
 
-    emit.Indent()
+    for i, ns in enumerate(config.INTERFACE_NAMESPACE.split("::")):
+        if ns and i >= 2:
+            emit.Indent()
+
+    if "info" in root.schema and "namespace" in root.schema["info"]:
+        emit.Indent()
+
     emit.Indent()
 
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
