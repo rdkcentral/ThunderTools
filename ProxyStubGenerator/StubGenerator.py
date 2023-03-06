@@ -51,9 +51,8 @@ PROXYSTUB_CPP_NAME = "ProxyStubs_%s.cpp"
 
 ENABLE_CUSTOM_ALLOCATOR = False
 ENABLE_INSTANCE_VERIFICATION = False
-ENABLE_RESTRICT = False
+ENABLE_SECURE = False
 
-MIN_INTERFACE_ID = 64
 INSTANCE_ID = "Core::instance_id"
 HRESULT = "Core::hresult"
 
@@ -531,7 +530,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
         emit.Line("//")
 
-        if ENABLE_RESTRICT:
+        if ENABLE_SECURE:
             emit.Line("// secure code enabled")
             emit.Line("//")
 
@@ -564,8 +563,10 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         class AuxIdentifier():
             def __init__(self, type, qualifiers, name, value=None):
                 self.type = CppParser.Type(type)
+                self.kind = self.type.Type()
                 self.type.ref = qualifiers
                 self.name = name
+                self.type_name = self.type.TypeName()
                 self.proto_no_cv = self.type.Proto("nocv|noref")
                 self.proto = self.type.Proto("noref")
                 self.value = value
@@ -585,6 +586,13 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
             @property
             def as_rvalue(self):
                 return self.value if self.value else self.name
+
+            @property
+            def storage_size(self):
+                if isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                    return "sizeof(%s)" % self.type_name
+                else:
+                    Unreachable()
 
         class EmitIdentifier():
             def __init__(self, index, interface, identifier, override_name=None, suppress_type=False):
@@ -640,12 +648,16 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
                 is_const_length_of = (index == -2)
                 is_variable_length_of = (index == -1)
+                no_length_warnings = is_variable_length_of
+                is_return_value = (override_name == "result")
 
                 self.identifier = identifier
                 self.identifier_type = type_
                 self.identifier_kind = self.identifier_type.Type()
-                self.is_output = (identifier.meta.output or (override_name == "result"))
-                self.is_input = (identifier.meta.input or not self.is_output)
+                self.is_output = (identifier.meta.output or is_return_value)
+                self.is_input = ((identifier.meta.input or not self.is_output) and not is_return_value)
+                self.is_input_only = not identifier.meta.output
+                self.is_output_only = (identifier.meta.output and not identifier.meta.input)
 
                 # Declare input parameters 'const' even if 'const' is not on the original signature
                 self.is_const = not identifier.meta.output
@@ -688,6 +700,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 name = (override_name or ("_" + self.identifier.name).replace("__unnamed_", ""))
                 self.value = self.identifier.value
 
+                self.is_string = isinstance(self.kind, CppParser.String)
+                self.is_ccstring = (isinstance(self.kind, CppParser.String) and self.kind.is_cc)
+
                 self.interface_id = _FindLength(self.identifier.meta.interface, (name[1:] + "IntefaceId"))
 
                 # Is it  a buffer?
@@ -702,13 +717,11 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     raise TypenameError(self.identifier, "'%s': an output-only raw buffer requires a @maxlength tag" % self.trace_proto)
 
                 self.is_buffer = ((self.length or self.max_length) and is_buffer)
-                if self.is_buffer:
-                    pass
 
                 # If have a input length, assume it's a max-length parameter even if not stated explicitly
                 if (self.is_buffer and not self.max_length and self.length.is_input):
                     self.max_length = self.length
-                    if self.is_output and not self.is_input and not self.length.is_output:
+                    if self.is_output_only and not self.length.is_output:
                         # It appears it should've been @maxlength instead of @length... Fix this
                         self.length = None
                         log.WarnLine(self.identifier, "'%s': this buffer is output-only, hence expected @maxlength here, not @length" % self.trace_proto)
@@ -766,8 +779,79 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         self.interface_id = AuxIdentifier(CppParser.Integer("uint32_t"), \
                                 (CppParser.Ref.VALUE | CppParser.Ref.CONST), "id", (self.type_name + "::ID"))
 
+                # Used with PODs
+                self.suppress_type = suppress_type
+
+                # Now do some more sanity checking on what we've got!...
+                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference()):
+                    raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
+
+                if self.is_compound and self.type.IsPointer():
+                    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
+
+                if self.length:
+                    if not self.is_buffer:
+                        raise TypenameError(self.identifier, "'%s': @length tag only allowed for raw buffers" % self.trace_proto)
+
+                if self.max_length:
+                    if not self.is_buffer:
+                        raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers" % self.trace_proto)
+
+                if self.length_of and not no_length_warnings:
+                    if not self.is_input:
+                        raise TypenameError(self.identifier, "'%s': a length parameter must not be write-only" % self.trace_proto)
+                    elif not isinstance(self.kind, CppParser.Integer) or self.is_buffer:
+                        raise TypenameError(self.identifier, "'%s': this type cannot be a buffer length carrying parameter" % self.trace_proto)
+                    if self.kind.size == "long long":
+                        raise TypenameError(self.identifier, "'%s': 64-bit buffer length carrying parameter is not supported" % self.trace_proto)
+                    elif self.kind.size == "long":
+                        log.WarnLine(self.identifier, "'%s': long int buffer length is supported, but buffers up to 64 KB are recommended" % self.trace_proto)
+                    if not self.kind.fixed:
+                        raise TypenameError(self.identifier, "'%s': length parameter is not fixed-width integer, use a stdint type" % self.trace_proto)
+                    if self.kind.signed:
+                        log.WarnLine(self.identifier, "'%s': buffer length is a signed integer" % self.trace_proto)
+
+                if self.max_length_of and (self.max_length != self.length) and not no_length_warnings:
+                    if not self.is_input:
+                        raise TypenameError(self.identifier, "'%s': a max-length parameter must not be write-only" % self.trace_proto)
+                    elif not isinstance(self.kind, CppParser.Integer) or self.is_buffer:
+                        raise TypenameError(self.identifier, "'%s': this type cannot be a buffer max-length carrying parameter" % self.trace_proto)
+                    if self.kind.size == "long long":
+                        raise TypenameError(self.identifier, "'%s': 64-bit buffer max-length carrying parameter is not supported" % self.trace_proto)
+                    elif self.kind.size == "long":
+                        log.WarnLine(self.identifier, "'%s': long int buffer max-length is supported, but buffers up to 64 KB are recommended" % self.trace_proto)
+                    if not self.kind.fixed:
+                        raise TypenameError(self.identifier, "'%s': max-length parameter is not fixed-width integer, use a stdint type" % self.trace_proto)
+                    if self.kind.signed:
+                        log.WarnLine(self.identifier, "'%s': buffer max-length is a signed integer" % self.trace_proto)
+
+                if self.type.IsReference():
+                    if not self.identifier_type.IsConst() and not self.is_output:
+                        raise TypenameError(self.identifier, "'%s': non-const reference requires an @out tag" % self.trace_proto)
+                    elif self.identifier_type.IsConst() and self.is_output:
+                        raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
+                    if not self.identifier_type.IsConst() and self.is_input_only:
+                        log.WarnLine(identifier, "'%s': read-only parameter is missing a const qualifier" % self.trace_proto)
+
+                if self.is_buffer:
+                    if not self.identifier_type.IsPointerToConst() and not self.identifier.meta.input and not self.identifier.meta.output:
+                        raise TypenameError(self.identifier, "'%s': pointer to non-const data requires an @in or @out tag" % self.trace_proto)
+                    elif not self.identifier_type.IsPointerToConst() and self.is_input_only:
+                        log.WarnLine(identifier, "'%s': read-only parameter is missing a const qualifier" % self.trace_proto)
+                    elif self.identifier_type.IsPointerToConst() and self.is_output:
+                        raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
+
+                if not self.is_buffer and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
+                    if not self.kind.IsFixed():
+                        log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
+
+                if isinstance(self.kind, CppParser.Enum):
+                    if not self.kind.type.Type().IsFixed():
+                        log.WarnLine(self.identifier, "'%s': underlying type of enumeration is not fixed-width integer, use a stdint type" % self.trace_proto)
+
+                # Lastly handle restrict
                 self.restrict_range = None
-                if ENABLE_RESTRICT and self.max_length_of:
+                if ENABLE_SECURE:
                     self.restrict_range = identifier.meta.range
                     if not self.restrict_range:
                         if self.length and self.length.identifier.meta.range:
@@ -779,67 +863,24 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         elif self.max_length_of and self.max_length_of.meta.range:
                             self.restrict_range = self.max_length_of.meta.range
 
-                # Used with PODs
-                self.suppress_type = suppress_type
+                    if self.restrict_range:
+                        if isinstance(self.kind, CppParser.Integer) and not self.is_buffer:
+                            if self.restrict_range[1] > self.kind.max or self.restrict_range[0] < self.kind.min:
+                                raise TypenameError(self.identifier, "'%s': restrict range (%s..%s) is invalid for this length integer limits (%s..%s)" % \
+                                                        (self.trace_proto, self.restrict_range[0], self.restrict_range[1], self.kind.min, self.kind.max))
 
-                # Now do some more sanity checking on what we've got!...
-                if not override_name == "result" and (self.is_output and self.return_proxy and not self.type.IsReference()):
-                    raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
+                        elif (self.is_buffer or self.is_string) and self.restrict_range[0] < 0:
+                                raise TypenameError(self.identifier, "'%s': negative restrict range (%s..%s) is invalid for this type" % \
+                                                        (self.trace_proto, self.restrict_range[0], self.restrict_range[1]))
 
-                if self.is_compound and self.type.IsPointer():
-                    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
+                    aux_name = (self.name.replace(".", "_").strip("_") + "PeekedLen")
 
-                if self.length:
-                    if not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': @length tag is not allowed for this type" % self.trace_proto)
-
-                if self.length_of:
-                    if not self.is_input:
-                        raise TypenameError(self.identifier, "'%s': a length parameter must not be write-only" % self.trace_proto)
+                    if self.is_string:
+                        aux_size = ("uint32_t" if self.is_ccstring else "uint16_t")
+                        self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
                     elif self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': this type cannot be a buffer length carrying parameter" % self.trace_proto)
-
-                if self.max_length:
-                    if not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': @maxlength tag is not allowed for this type" % self.trace_proto)
-                    elif not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': this type cannot be a buffery length carrying parameter" % self.trace_proto)
-
-                if self.max_length_of:
-                    if not self.is_input:
-                        raise TypenameError(self.identifier, "'%s': a max-length parameter must not be write-only" % self.trace_proto)
-
-                if self.type.IsReference():
-                    if not self.identifier_type.IsConst() and not self.identifier.meta.output:
-                        raise TypenameError(self.identifier, "'%s': non-const reference requires an @out tag" % self.trace_proto)
-                    elif not self.identifier_type.IsConst() and self.identifier.meta.input and not self.identifier.meta.output:
-                        log.WarnLine(identifier, "'%s': read-only parameter is missing a const qualifier" % self.trace_proto)
-                    elif self.identifier_type.IsConst() and self.identifier.meta.output:
-                        raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
-
-                if self.is_buffer:
-                    if not self.identifier_type.IsPointerToConst() and not self.identifier.meta.input and not self.identifier.meta.output:
-                        raise TypenameError(self.identifier, "'%s': pointer to non-const data requires an @in or @out tag" % self.trace_proto)
-                    elif not self.identifier_type.IsPointerToConst() and self.identifier.meta.input and not self.identifier.meta.output:
-                        log.WarnLine(identifier, "'%s': read-only parameter is missing a const qualifier" % self.trace_proto)
-                    elif self.identifier_type.IsPointerToConst() and self.identifier.meta.output:
-                        raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
-
-                if self.length_of or is_const_length_of:
-                    if not isinstance(self.kind, CppParser.Integer):
-                        raise TypenameError(self.identifier, "'%s': a buffer length carrying parameter must be an integer" % self.trace_proto)
-                    elif self.kind.size == "long long":
-                        raise TypenameError(self.identifier, "'%s': 64-bit buffer length carrying parameter is not supported" % self.trace_proto)
-                    elif (index != -1) and self.kind.size == "long":
-                        log.WarnLine(self.identifier, "'%s': long int buffer length is supported, but buffers up to 64 KB are recommended" % self.trace_proto)
-
-                if is_variable_length_of and not self.is_buffer and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
-                    if not self.kind.IsFixed():
-                        log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
-
-                if isinstance(self.kind, CppParser.Enum):
-                    if not self.kind.type.Type().IsFixed():
-                        log.WarnLine(self.identifier, "'%s': underlying type of enumeration is not fixed-width integer, use a stdint type" % self.trace_proto)
+                        aux_size = (self.length.type_name if self.length else self.max_length.type_name)
+                        self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
 
             @property
             def as_rvalue(self):
@@ -871,8 +912,11 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             @property
             def read_rpc_type(self):
+                # Interfaces
                 if self.proxy_instance or self.return_proxy:
                     return "Number<%s>()" % INSTANCE_ID
+
+                # Raw buffers
                 elif self.is_buffer:
                     assert self.length or self.max_length, "Invalid type for buffer"
                     if self.length:
@@ -881,18 +925,23 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_lvalue)
                     else:
                         Unreachable()
+
+                # Strings
+                elif self.is_string:
+                    return "Text<uint32_t>()" if self.is_ccstring else "Text()"
+
+                # The integral types
                 elif isinstance(self.kind, CppParser.Integer):
                     return "Number<%s>()" % self.type_name
-                elif isinstance(self.kind, CppParser.String):
-                    return "Text<uint32_t>()" if self.kind.is_cc else "Text()"
+                elif isinstance(self.kind, CppParser.BuiltinInteger):
+                    return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
                 elif isinstance(self.kind, CppParser.Enum):
                     return "Number<%s>()" % self.type_name
-                elif isinstance(self.kind, CppParser.BuiltinInteger):
-                    return "Number<%s>()" % self.type_name
+
                 else:
-                    raise TypenameError(self.identifier, "%s: sorry, unable to deserialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: unable to deserialise this type" % self.trace_proto)
 
             @property
             def write_rpc_type(self):
@@ -901,10 +950,10 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif self.is_buffer:
                     assert self.max_length, "Invalid type for buffer " + self.name
                     return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_rvalue)
+                elif self.is_string:
+                    return "Text(%s)" % self.as_rvalue
                 elif isinstance(self.kind, CppParser.Integer):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
-                elif isinstance(self.kind, CppParser.String):
-                    return "Text(%s)" % self.as_rvalue
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
                 elif isinstance(self.kind, CppParser.Enum):
@@ -919,13 +968,20 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 if self.proxy_instance or self.return_proxy:
                     return "sizeof(%s)" % INSTANCE_ID
                 elif self.is_buffer:
-                    return "sizeof(%s)" % self.length.type_name
-                elif isinstance(self.kind, CppParser.String):
-                    return "sizeof(%s)" % ("uin32_t" if self.kind.is_cc else "uint16_t")
+                    # Minimum size
+                    if self.length:
+                        return "sizeof(%s)" % self.length.type_name
+                    elif self.max_length:
+                        return "sizeof(%s)" % self.max_length.type_name
+                    else:
+                        Unreachable()
+                elif self.is_string:
+                    # Minimum size
+                    return "sizeof(%s)" % ("uint32_t" if self.is_ccstring else "uint16_t")
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "sizeof(%s)" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
-                    return 1
+                    return 1 # always one byte
                 else:
                     Unreachable()
 
@@ -1035,6 +1091,24 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
         emit.Line()
 
+        def CheckFrame(p, by_parameter=False):
+            if ENABLE_SECURE:
+                emit.Line()
+                emit.Line("if (%s.Length() < (%s)) { return (0x80000000 | Core::ERROR_INVALID_INPUT_LENGTH); }" % \
+                            (vars["reader"], (p.as_rvalue if by_parameter else p.storage_size)))
+
+        def CheckRange(p, q = p):
+            if ENABLE_SECURE and p.restrict_range:
+                emit.Line("if (!((%s >= %s) && (%s <= %s))) { return (0x80000000 | Core::ERROR_INVALID_RANGE) }" % \
+                            (q.as_rvalue, p.restrict_range[0], q.as_rvalue, p.restrict_range[1]))
+
+        def CheckSize(p):
+            if ENABLE_SECURE:
+                emit.Line("%s = %s.PeekNumber<%s>();" % (p.peek_length.as_temporary, vars["reader"], p.peek_length.type_name))
+                CheckRange(p, p.peek_length)
+                emit.Line("if (%s.Length() < (%s + %s)) { return (0x80000000 | Core::ERROR_INVALID_INPUT_LENGTH); }" % \
+                            (vars["reader"], p.storage_size, p.peek_length.as_rvalue))
+
         #
         # EMIT STUB CODE
         #
@@ -1046,40 +1120,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                                         input_params, output_params, proxy_params, return_proxy_params):
 
             hresult = AuxIdentifier(CppParser.Integer(HRESULT), CppParser.Ref.VALUE, vars["hresult"])
-            has_restricted_parameters = False
+
+            has_restricted_parameters = any([v.restrict_range for v in input_params])
 
             output_buffers = []
             custom_buffers = []
             has_hresult = retval and retval.is_hresult
 
             def ReadParameter(p):
-                def CheckFrame(p, int_size=None):
-                    if ENABLE_RESTRICT:
-                        if not int_size:
-                            emit.Line()
-
-                        emit.Line("if (%s.Length() < (%s)) { return (Core::ERROR_INVALID_INPUT_LENGTH); }" % \
-                                    (vars["reader"], (int_size if int_size else p.storage_size)))
-
-                def CheckSize(p, peek=False, int_size="uint16_t"):
-                    nonlocal has_restricted_parameters
-                    name = p.as_lvalue
-
-                    if ENABLE_RESTRICT:
-                        if peek:
-                            emit.Line()
-                            CheckFrame(p, "sizeof(%s)" % int_size)
-                            name = (name.replace(".", "_") + "Size_")
-                            emit.Line("const %s = %s.Peek<%s>();" % (name, vars["reader"], int_size))
-
-                        if p.restrict_range:
-                            has_restricted_parameters = True
-                            emit.Line("if (!((%s >= %s) && (%s <= %s))) { return (Core::ERROR_INVALID_RANGE) }" % \
-                                            (name, p.restrict_range[0], name, p.restrict_range[1]))
-
-                        if peek:
-                            CheckFrame(p, "%s + sizeof(%s)" % (name, int_size))
-
                 if p.is_compound:
                     if not p.suppress_type:
                         emit.Line("%s{};" % p.as_temporary_no_cv)
@@ -1090,20 +1138,22 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         ReadParameter(pp)
 
                 elif p.is_buffer:
-                    CheckSize(p, True, p.length.type_name)
+                    CheckFrame(p)
+                    CheckSize(p)
                     emit.Line("%s{};" % p.as_temporary_no_cv)
                     buffer_param = "const_cast<const %s*&>(%s)" % (p.type_name, p.as_rvalue) if not p.identifier_type.IsPointerToConst() else p.as_rvalue
                     emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.as_temporary, vars["reader"], p.length.type_name, buffer_param))
                     emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
 
-                elif isinstance(p.kind, CppParser.String):
-                    CheckSize(p, True, "uint32_t" if p.kind.is_cc else "uint16_t")
+                elif p.is_string:
+                    CheckFrame(p)
+                    CheckSize(p)
                     emit.Line("%s = %s.%s;" % (p.as_temporary, vars["reader"], p.read_rpc_type))
 
                 else:
                     CheckFrame(p)
                     emit.Line("%s = %s.%s;" % (p.as_temporary, vars["reader"], p.read_rpc_type))
-                    CheckSize(p, False)
+                    CheckRange(p)
 
             def TemporaryParameter(p):
                 if p.is_buffer:
@@ -1153,7 +1203,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 if has_large_buffer or (not ENABLE_CUSTOM_ALLOCATOR and has_large_buffer_size):
                     emit.Line("ASSERT(%s <= 0x1000000);" % p.max_length.as_rvalue)
 
-                    if ENABLE_RESTRICT:
+                    if ENABLE_SECURE:
                         emit.Line("if (%s > 0x100000) { return (Core::ERROR_BAD_REQUEST); }" % p.max_length.as_rvalue)
                         emit.Line()
 
@@ -1192,7 +1242,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     emit.Line("}")
                     emit.Line()
 
-                if ENABLE_RESTRICT:
+                if ENABLE_SECURE:
                     emit.Line()
                     emit.Line("if (%s == nullptr) { return (Core::ERROR_GENERAL); }" % p.as_rvalue)
                 else:
@@ -1224,9 +1274,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 emit.Line("%s = RPC::Administrator::Instance().ProxyInstance(%s, %s, false, %s);" % \
                             (p.proxy, vars["channel"], p.name, p.proxy_instance))
 
-                if ENABLE_RESTRICT:
-                    emit.Line()
-                    emit.Line("if ((%s == nullptr) || (%s == nullptr)) { return (Core::ERROR_NOT_EXIST); }" % (p.proxy_instance, p.proxy))
+                if ENABLE_SECURE:
+                    emit.Line("if ((%s == nullptr) || (%s == nullptr)) { return (0x80000000 | Core::ERROR_NOT_EXIST); }" % (p.proxy_instance, p.proxy))
                 else:
                     emit.Line("ASSERT((%s != nullptr) && (%s != nullptr));" % (p.proxy_instance, p.proxy))
 
@@ -1254,7 +1303,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 lhs = (((retval.as_temporary if not retval.return_proxy else retval.as_temporary_no_cv) + " = ") if retval else "")
                 emit.Line("%s%s->%s(%s);" % (lhs, vars["implementation"], method.name, parameters))
 
-            if ENABLE_RESTRICT:
+            if ENABLE_SECURE:
                 emit.Line("%s = Core::ERROR_NONE;" % hresult.as_temporary)
                 emit.Line()
 
@@ -1274,14 +1323,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
             else:
                 face_name = interface_name
 
-            if ENABLE_RESTRICT:
-                emit.Line("if (%s->Parameters().Length() < ((sizeof(%s) + sizeof(uint32_t) + 1)) { return (Core::ERROR_INVALID_INPUT_LENGTH); }" % (vars["message"], INSTANCE_ID))
+            if ENABLE_SECURE:
+                emit.Line("if (%s->Parameters().Length() < (sizeof(%s) + sizeof(uint32_t) + 1)) { return (0x80000000 | Core::ERROR_INVALID_INPUT_LENGTH); }" % (vars["message"], INSTANCE_ID))
                 emit.Line()
 
             implementation_type = (method.CVString() + " " + face_name).strip()
             emit.Line("%s* %s = reinterpret_cast<%s*>(%s->Parameters().Implementation());" % (implementation_type, vars["implementation"], implementation_type, vars["message"]))
 
-            if ENABLE_RESTRICT:
+            if ENABLE_SECURE:
                 if ENABLE_INSTANCE_VERIFICATION:
                     emit.Line("if (RPC::Administrator::Instance().IsValid(%s) == false) { return (Core::ERROR_NOT_EXIST); }" % vars["implementation"])
                 else:
@@ -1343,7 +1392,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 for p in return_proxy_params:
                     RegisterInterface(p)
 
-            if ENABLE_RESTRICT:
+            if ENABLE_SECURE:
                 emit.Line()
                 emit.Line("return (Core::ERROR_NONE);")
 
@@ -1356,20 +1405,19 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
                 if has_hresult:
                     emit.Line("RPC::Data::Frame::Writer %s(%s->Response().Writer());" % (vars["writer"], vars["message"]))
-                    emit.Line("%s.Number<uint32_t>(0x80000000 | %s);" % (vars["writer"], hresult.as_rvalue))
+                    emit.Line("%s.Number<uint32_t>(%s);" % (vars["writer"], hresult.as_rvalue))
 
-                emit.Line("fprintf(stderr, \"COM-RPC outbound call failed: %%u!\\n\", %s);" % hresult.as_rvalue)
+                emit.Line("fprintf(stderr, \"COM-RPC stub 0x%%08x(%%u) failed: 0x%%08x\\n\", %s, %s, %s);" \
+                                % (Flatten(interface.obj.type) + "::ID", index, hresult.as_rvalue))
 
                 if not has_hresult:
-                    emit.Line("fprintf(stderr, \"Warning: This COM-RPC failure cannot be detected by the caller!\\n\");")
-
-                emit.Line("ASSERT(!\"COM-RPC failure\");")
+                    emit.Line("TRACE_L1(\"Warning: This COM-RPC failure will not propagate!\");")
 
                 emit.IndentDec()
                 emit.Line("}")
 
             if has_restricted_parameters and (not retval or not retval.is_hresult):
-                log.WarnLine(retval.identifier, "'%s': method is using restricted parameters but its return value type is not 'Core::hresult'" % method.name)
+                log.WarnLine(method, "'%s': method is using restricted parameters but its return value type is not 'Core::hresult'" % method.name)
 
         def EmitStubMethod(index, last, method, interface_name, interface, prepared_params):
             retval, params, input_params, output_params, proxy_params, return_proxy_params = prepared_params
@@ -1442,10 +1490,10 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 emit.Line('fprintf(stderr, "*** [%s proxy] ENTER: %s()\\n");' % (interface_name, method.name))
                 emit.Line()
 
+            hresult = AuxIdentifier(CppParser.Integer(HRESULT), (CppParser.Ref.VALUE), vars["hresult"])
+
             emit.Line("IPCMessage %s(BaseClass::Message(%s));" % (vars["message"], index))
             emit.Line()
-
-            hresult = AuxIdentifier(CppParser.Integer(HRESULT), (CppParser.Ref.VALUE), vars["hresult"])
 
             def WriteParameter(p):
                 if p.is_compound:
@@ -1459,20 +1507,28 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
             def ReadParameter(p):
                 if p.is_compound:
                     params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in p.kind.vars]
-
                     for pp in params:
                         ReadParameter(pp)
+
                 elif p.return_proxy:
                     emit.Line("%s = reinterpret_cast<%s>(Interface(%s.%s, %s));" % \
                               (p.as_lvalue, p.proto_no_cv, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
+
                 elif p.is_buffer:
+                    CheckFrame(p)
+                    CheckSize(p)
+
                     if p.length:
                         emit.Line("%s = %s.%s;" % (p.length.as_lvalue, vars["reader"], p.read_rpc_type))
                     else:
                         # No one's interested in the return length, perhaps it's sent via method's return value
                         emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
                 else:
+                    CheckFrame(p)
+                    if p.is_string:
+                        CheckSize(p)
                     emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
+                    CheckRange(p)
 
             if input_params:
                 emit.Line("RPC::Data::Frame::Writer %s(%s->Parameters().Writer());" % (vars["writer"], vars["message"]))
@@ -1482,23 +1538,32 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 emit.Line()
 
             reuse_hresult = (retval and retval.is_hresult)
-            needs_reader = ((len(output_params) > 1) or output_params[0]) or proxy_params
+            needs_reader = (((len(output_params) > 1) or output_params[0]) or proxy_params)
+            check_invoke = ((needs_reader and reuse_hresult) or ENABLE_SECURE)
 
             if not reuse_hresult and retval:
                 emit.Line("%s{};" % retval.as_temporary_no_cv)
                 emit.Line()
 
-            lhs = (("const " if not reuse_hresult else "") + hresult.as_temporary_no_cv + " = ") if needs_reader else ""
+            lhs = (("const " if (not reuse_hresult and not ENABLE_SECURE) else "") + hresult.as_temporary_no_cv + " = ") if check_invoke else ""
             emit.Line("%sProxyStub::UnknownProxyType<%s>::Invoke(%s);" % (lhs, Flatten(interface.obj.type), vars["message"]))
 
-            if needs_reader:
+            if check_invoke:
                 emit.Line("if (%s == Core::ERROR_NONE) {" % hresult.as_rvalue)
                 emit.IndentInc()
+
+                if ENABLE_SECURE:
+                    emit.Line("%s = [&]() -> %s {" % (hresult.as_lvalue, hresult.proto_no_cv))
+                    emit.IndentInc()
+
+            if needs_reader:
                 emit.Line("RPC::Data::Frame::Reader %s(%s->Response().Reader());" % (vars["reader"], vars["message"]))
 
             if retval:
                 if reuse_hresult:
+                    CheckFrame(retval)
                     emit.Line("%s = %s.%s;" % (hresult.as_lvalue, vars["reader"], retval.read_rpc_type))
+                    CheckRange(retval)
 
                     if len(output_params) > 1:
                         emit.Line("if ((%s & 0x80000000) == 0) {" % hresult.as_rvalue)
@@ -1515,18 +1580,40 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 emit.Line("}")
 
             if proxy_params:
-                emit.Line("Complete(%s);" % vars["reader"])
+                if ENABLE_SECURE:
+                    emit.Line("const uint32_t completeResult = Complete(%s);" % vars["reader"])
+                    emit.Line("if (completeResult != Core::ERROR_NONE) { return (0x80000000 | completeResult); }")
+                else:
+                    emit.Line("Complete(%s);" % vars["reader"])
 
-            if needs_reader:
+            if check_invoke:
+                if ENABLE_SECURE:
+                    emit.Line()
+                    if reuse_hresult:
+                        emit.Line("return (%s);" % hresult.as_rvalue)
+                    else:
+                        emit.Line("return (Core::ERROR_NONE);")
+                    emit.IndentDec()
+                    emit.Line("} ();")
+
                 emit.IndentDec()
-
-            if reuse_hresult:
                 emit.Line("} else {")
                 emit.IndentInc()
                 emit.Line("%s |= 0x80000000;" % hresult.as_rvalue)
                 emit.IndentDec()
+                emit.Line("}")
 
-            if needs_reader:
+            if ENABLE_SECURE:
+                emit.Line()
+                emit.Line("if ((%s & 0x80000000) != 0) {" % hresult.as_rvalue)
+                emit.IndentInc()
+                emit.Line("fprintf(stderr, \"COM-RPC call 0x%%08x(%%u) failed: 0x%%08x\\n\", %s, %s, %s);" \
+                                % (Flatten(interface.obj.type) + "::ID", index, hresult.as_rvalue))
+
+                if not reuse_hresult:
+                    emit.Line("TRACE_L1(\"Warning: This COM-RPC failure will not propagate!\");")
+
+                emit.IndentDec()
                 emit.Line("}")
 
             if EMIT_TRACES:
@@ -1754,7 +1841,7 @@ if __name__ == "__main__":
     SHOW_WARNINGS = not args.no_warnings
     BE_VERBOSE = args.verbose
     FORCE = args.force
-    ENABLE_RESTRICT = args.secure
+    ENABLE_SECURE = args.secure
     log.show_infos = BE_VERBOSE
     log.show_warnings = SHOW_WARNINGS
     INTERFACE_NAMESPACE = args.if_namespace
