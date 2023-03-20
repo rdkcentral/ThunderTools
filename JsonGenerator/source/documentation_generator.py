@@ -95,7 +95,7 @@ def Create(log, schema, path, indent_size = 4):
                             "required" in parent
                             and name not in parent["required"]) or ("required" in parent and len(parent["required"]) == 0)
 
-                name = (name if not "original_name" in obj else obj["original_name"].lower())
+                name = (name if not "@originalname" in obj else obj["@originalname"].lower())
 
                 # include information about enum values in description
                 enum = ' (must be one of the following: %s)' % (", ".join(
@@ -134,7 +134,7 @@ def Create(log, schema, path, indent_size = 4):
                         log.Warn("'%s': no 'required' field present (assuming all members optional)" % name)
 
                     for pname, props in obj["properties"].items():
-                        _TableObj(pname, props, parentName + "/" + (name if not "original_name" in props else props["original_name"].lower()), obj, prefix, False)
+                        _TableObj(pname, props, parentName + "/" + (name if not "@originalname" in props else props["@originalname"].lower()), obj, prefix, False)
                 elif obj["type"] == "array":
                     _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", optional)
 
