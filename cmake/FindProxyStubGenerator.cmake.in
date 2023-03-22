@@ -30,7 +30,7 @@ function(ProxyStubGenerator)
         message(FATAL_ERROR "ProxyStubGenerator path ${PROXYSTUB_GENERATOR} invalid.")
     endif()
 
-    set(optionsArgs SECURE TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE)
+    set(optionsArgs SECURE COHERENT TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE)
     set(oneValueArgs NAMESPACE OUTDIR)
     set(multiValueArgs INPUT INCLUDE INCLUDE_PATH)
 
@@ -46,6 +46,10 @@ function(ProxyStubGenerator)
 
     if(Argument_SECURE)
         list(APPEND _execute_command  "--secure")
+    endif()
+
+    if(Argument_COHERENT)
+        list(APPEND _execute_command  "--coherent")
     endif()
 
     if(Argument_NO_WARNINGS)

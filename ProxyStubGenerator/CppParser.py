@@ -193,23 +193,50 @@ class Integer(Fundamental):
     def __init__(self, string):
         Fundamental.__init__(self, string)
         self.signed = "unsigned" not in self.type and "uint" not in self.type
-        if self.type == "char":
+        self.fixed = False
+        self.min = 0
+        self.max = 0
+        if ("64" in self.type) or ("long long" in self.type):
+            self.size = "long long"
+            self.min = (-2**63 if self.signed else 0)
+            self.max = (2**63-1 if self.signed else 2**64-1)
+            self.fixed = True
+        elif ("32" in self.type) or ("long" in self.type):
+            self.size = "long"
+            self.min = (-2**31 if self.signed else 0)
+            self.max = (2**31-1 if self.signed else 2**32-1)
+            self.fixed = True
+        elif ("16" in self.type) or ("short" in self.type):
+            self.size = "short"
+            self.min = (-2**15 if self.signed else 0)
+            self.max = (2**15-1 if self.signed else 2**16-1)
+            self.fixed = True
+        elif ("8" in self.type):
             self.size = "char"
+            self.min = (-2**7 if self.signed else 0)
+            self.max = (2**7-1 if self.signed else 2**8-1)
+            self.fixed = True
+        elif "char" in self.type:
+            self.size = "char"
+            self.signed = ("unsigned" not in self.type) and ("signed" in self.type)
+            self.min = (-2**7 if self.signed else 0)
+            self.max = (2**7-1 if self.signed else 2**8-1)
+            self.fixed = ("signed" in self.type)
         elif self.type == "wchar_t":
             self.size = "wchar"
-        elif "8" in self.type:
-            self.size = "char"
-        elif "16" in self.type:
-            self.size = "short"
-        elif "32" in self.type:
-            self.size = "long"
-        elif "64" in self.type:
-            self.size = "long long"
+            self.signed = False
+            self.min = 0
+            self.max = 2**16-1
+            self.fixed = True
+        elif "int" in self.type:
+            self.min = (-2**31 if self.signed else 0)
+            self.max = (2**31-1 if self.signed else 2**32-1)
+            self.size = "int"
         else:
             self.size = " ".join(self.type.split()[1:])
 
     def IsFixed(self):
-        return self.size != "int" and not self.type.endswith(" int") and type != "char" and not self.type.endswith(" char")
+        return self.fixed
 
 
 class Float(Fundamental):
