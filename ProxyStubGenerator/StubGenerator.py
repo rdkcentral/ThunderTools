@@ -1864,7 +1864,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description='Generate proxy stub code out of interface header files.',
-                                        epilog='Note that --secure, --coherent and --traces will produce less performant code.',
+                                        epilog='Note that using --secure, --coherent and --traces options will produce less performant code.',
                                         formatter_class=argparse.RawTextHelpFormatter)
     argparser.add_argument('path', nargs="*", help="C++ interface file(s) or a directory(ies) with interface files")
     argparser.add_argument("--help-tags",
