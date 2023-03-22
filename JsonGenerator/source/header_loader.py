@@ -230,7 +230,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                     properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
                                 else:
                                     properties[name] = ConvertParameter(p)
-                                properties[name]["original_name"] = p.name
+                                properties[name]["@originalname"] = p.name
 
                             return "object", { "properties": properties, "required": list(properties.keys()) }
 
@@ -329,7 +329,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         properties[var_name] = ConvertParameter(var)
 
                         if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
-                            properties[var_name]["original_name"] = var.name
+                            properties[var_name]["@originalname"] = var.name
 
                         properties[var_name]["position"] = vars.index(var)
 
@@ -384,7 +384,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         properties[var_name] = ConvertParameter(var)
 
                         if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
-                           properties[var_name]["original_name"] = var.name
+                           properties[var_name]["@originalname"] = var.name
 
                         properties[var_name]["position"] = vars.index(var)
                         required.append(var_name)
@@ -424,11 +424,11 @@ def LoadInterface(file, log, all = False, includePaths = []):
             if method.retval.meta.is_property or (prefix + method_name_lower) in properties:
                 try:
                     obj = properties[prefix + method_name_lower]
-                    obj["original_name"] = method.name
                 except:
                     obj = OrderedDict()
-                    obj["original_name"] = method.name
                     properties[prefix + method_name_lower] = obj
+
+                obj["@originalname"] = method.name
 
                 indexed_property = (len(method.vars) == 2 and method.vars[0].meta.is_index)
 
@@ -541,6 +541,8 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                 if var_type and ((isinstance(var_type.Type(), CppParser.Integer) and (var_type.Type().size == "long")) or not verify):
                     obj = OrderedDict()
+                    obj["@originalname"] = method.name
+
                     params = BuildParameters(method.vars, rpc_format)
 
                     if params:
@@ -551,12 +553,10 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                 raise CppParseError(method, "parameters must not use the same name as the method")
 
                     obj["result"] = BuildResult(method.vars)
-                    obj["original_name"] = method_name
                     methods[prefix + method_name_lower] = obj
 
                     if method.retval.meta.alt:
                         methods[prefix + method.retval.meta.alt] = copy.deepcopy(obj)
-                        methods[prefix + method.retval.meta.alt]["original_name"] = method.retval.meta.alt
                         methods[prefix + method.retval.meta.alt]["deprecated"] = True
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by a reference")
@@ -593,7 +593,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                 if method.IsVirtual() and method.is_excluded == False:
                     obj = OrderedDict()
-                    obj["original_name"] = method.name
+                    obj["@originalname"] = method.name
                     varsidx = 0
 
                     if len(method.vars) > 0:
