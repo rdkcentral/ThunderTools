@@ -54,7 +54,7 @@ ENABLE_INSTANCE_VERIFICATION = ENABLE_SECURE
 ENABLE_RANGE_VERIFICATION = ENABLE_SECURE
 ENABLE_INTEGRITY_VERIFICATION = ENABLE_SECURE
 
-PARAMETER_SIZE_WARNING_THRESHOLD = 128
+PARAMETER_SIZE_WARNING_THRESHOLD = 4*1024*1024-1
 
 INSTANCE_ID = "Core::instance_id"
 HRESULT = "Core::hresult"
@@ -814,7 +814,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer length carrying parameter is not supported" % self.trace_proto)
                     elif self.kind.size == "long" and not self.identifier.meta.range:
-                        log.WarnLine(self.identifier, "'%s': long int buffer length is supported, but buffers up to %s KB are recommended" \
+                        log.WarnLine(self.identifier, "'%s': long int buffer length is supported, but buffers up to %s bytes are recommended" \
                                         % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                     if not self.kind.fixed:
                         raise TypenameError(self.identifier, "'%s': length parameter is not fixed-width integer, use a stdint type" % self.trace_proto)
@@ -829,7 +829,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer max-length carrying parameter is not supported" % self.trace_proto)
                     elif self.kind.size == "long" and not self.identifier.meta.range:
-                        log.WarnLine(self.identifier, "'%s': long int buffer max-length is supported, but buffers up to %s KB are recommended" \
+                        log.WarnLine(self.identifier, "'%s': long int buffer max-length is supported, but buffers up to %s bytes are recommended" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                     if not self.kind.fixed:
                         raise TypenameError(self.identifier, "'%s': max-length parameter is not fixed-width integer, use a stdint type" % self.trace_proto)
@@ -888,8 +888,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                             raise TypenameError(self.identifier, "'%s': negative restrict range (%s..%s) is invalid for this type" % \
                                                     (self.trace_proto, self.restrict_range[0], self.restrict_range[1]))
 
-                        elif self.restrict_range[1] > (PARAMETER_SIZE_WARNING_THRESHOLD * 1024):
-                            log.WarnLine(identifier, "'%s': parameters up to %s KB are recommended for COM-RPC, see range (%s..%s)" \
+                        elif self.restrict_range[1] > (PARAMETER_SIZE_WARNING_THRESHOLD):
+                            log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s..%s)" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range[0], self.restrict_range[1]))
 
                 aux_name = (self.name.replace(".", "_").strip("_") + "PeekedLen")
@@ -900,11 +900,11 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     elif self.restrict_range[1] >= (64*1024):
                         aux_size = "uint24_t"
                     elif self.restrict_range[1] < 256:
-                        aux_size = "uin8_t"
+                        aux_size = "uint8_t"
 
                 if self.is_string:
                     if self.is_ccstring and not self.restrict_range:
-                        log.WarnLine(identifier, "'%s': parameters up to %s KB are recommended for COM-RPC" \
+                        log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC" \
                                         % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                         aux_size = "uint32_t"
 
@@ -1130,7 +1130,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     announce_list[interface_name] = [emit_methods, stub_methods_name, stub_name, proxy_name, interface, prepared_params]
 
         emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
-        emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
+        emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
         emit.Line()
 
         def CheckFrame(p, by_parameter=False):
@@ -1141,12 +1141,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
         def CheckRange(p, val):
             if p.restrict_range:
-                emit.Line("ASSERT((%s >= %s) && (%s <= %s))"% \
-                                (val.as_rvalue, p.restrict_range[0], val.as_rvalue, p.restrict_range[1]))
+                cmp = val if isinstance(val, str) else val.as_rvalue
+
+                emit.Line("ASSERT((%s >= %s) && (%s <= %s));"% \
+                                (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
 
                 if ENABLE_RANGE_VERIFICATION:
-                    emit.Line("if (!((%s >= %s) && (%s <= %s))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE) }" % \
-                                (val.as_rvalue, p.restrict_range[0], val.as_rvalue, p.restrict_range[1]))
+                    emit.Line("if (!((%s >= %s) && (%s <= %s))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }" % \
+                                (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
 
         def CheckSize(p):
             if ENABLE_INTEGRITY_VERIFICATION:
@@ -1154,6 +1156,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 CheckRange(p, p.peek_length)
                 emit.Line("if (%s.Length() < (%s + %s)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % \
                             (vars["reader"], p.storage_size, p.peek_length.as_rvalue))
+            else:
+                CheckRange(p, "%s.PeekNumber<%s>()" % (vars["reader"], p.peek_length.type_name))
 
         #
         # EMIT STUB CODE
@@ -1600,10 +1604,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     else:
                         # No one's interested in the return length, perhaps it's sent via method's return value
                         emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
+
+                elif p.is_string:
+                    CheckFrame(p)
+                    CheckSize(p)
+                    emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
+
                 else:
                     CheckFrame(p)
-                    if p.is_string:
-                        CheckSize(p)
                     emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
                     CheckRange(p, p)
 
