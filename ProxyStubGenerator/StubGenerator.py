@@ -709,6 +709,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 name = (override_name or ("_" + self.identifier.name).replace("__unnamed_", ""))
                 self.value = self.identifier.value
 
+                self.is_integer = isinstance(self.kind, CppParser.Integer)
                 self.is_string = isinstance(self.kind, CppParser.String)
                 self.is_ccstring = (isinstance(self.kind, CppParser.String) and self.kind.is_cc)
 
@@ -743,7 +744,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     raise TypenameError(self.identifier, "'%s': can't deduce maximum length of the buffer, use @maxlength" % self.trace_proto)
 
                 if (self.is_buffer and self.max_length and not self.length):
-                    log.WarnLine(self.identifier, "'%s': actual length of returned buffer is implicit" % self.trace_proto)
+                    log.WarnLine(self.identifier, "'%s': length of returned buffer is not specified" % self.trace_proto)
 
                 # Is it a hresult?
                 self.is_hresult = self.identifier_type.TypeName().endswith("Core::hresult") \
@@ -873,17 +874,17 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         self.restrict_range = self.max_length_of.meta.range
 
                 if self.restrict_range:
-                    if isinstance(self.kind, CppParser.Integer) and not self.is_buffer:
+                    if self.is_integer and not self.is_buffer:
                         if (self.restrict_range[1] > self.kind.max) or (self.restrict_range[0] < self.kind.min):
                             raise TypenameError(self.identifier, "'%s': restrict range (%s..%s) is invalid for this length integer limits (%s..%s)" % \
                                                     (self.trace_proto, self.restrict_range[0], self.restrict_range[1], self.kind.min, self.kind.max))
-                        if no_length_warnings and (((self.restrict_range[1] < 256) and (self.kind.max > 256)) \
+                        if not no_length_warnings and (((self.restrict_range[1] < 256) and (self.kind.max > 256)) \
                                 or ((self.restrict_range[1] < (64*1024)) and (self.kind.max > (64*1024))) \
                                 or ((self.restrict_range[1] < (4*1024*1024*1024)) and (self.kind.max > (4*1024*1024*1024)))):
                             log.WarnLine(identifier, "'%s': inefficient use of type (%s) based on restrict range (%s..%s)" % \
                                             (self.trace_proto, self.proto_no_cv, self.restrict_range[0], self.restrict_range[1]))
 
-                    elif (self.is_buffer or self.is_string):
+                    elif (self.is_buffer or self.is_string or (self.is_integer and self.kind.min == 0)):
                         if self.restrict_range[0] < 0:
                             raise TypenameError(self.identifier, "'%s': negative restrict range (%s..%s) is invalid for this type" % \
                                                     (self.trace_proto, self.restrict_range[0], self.restrict_range[1]))
@@ -892,28 +893,39 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                             log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s..%s)" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range[0], self.restrict_range[1]))
 
-                aux_name = (self.name.replace(".", "_").strip("_") + "PeekedLen")
-                aux_size = "uint16_t"
-                if self.restrict_range:
-                    if self.restrict_range[1] >= (16*1024*1024):
-                        aux_size = "uint32_t"
-                    elif self.restrict_range[1] >= (64*1024):
-                        aux_size = "uint24_t"
-                    elif self.restrict_range[1] < 256:
-                        aux_size = "uint8_t"
+                if self.is_string or self.is_buffer:
+                    aux_name = (self.name.replace(".", "_").strip("_") + "PeekedLen")
+                    aux_size = "uint16_t"
+                    if self.restrict_range:
+                        if self.restrict_range[1] >= (16*1024*1024):
+                            aux_size = "uint32_t"
+                        elif self.restrict_range[1] >= (64*1024):
+                            aux_size = "Core::Frame::UInt24"
+                        elif self.restrict_range[1] < 256:
+                            aux_size = "uint8_t"
 
-                if self.is_string:
-                    if self.is_ccstring and not self.restrict_range:
-                        log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC" \
-                                        % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
-                        aux_size = "uint32_t"
+                    if self.is_string:
+                        if self.is_ccstring and not self.restrict_range:
+                            log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC" \
+                                            % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
+                            aux_size = "uint32_t"
 
-                    self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
-                elif self.is_buffer:
-                    if not self.restrict_range:
-                        aux_size = (self.length.type_name if self.length else self.max_length.type_name)
+                        self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
+                    elif self.is_buffer:
+                        if not self.restrict_range:
+                            aux_size = (self.length.type_name if self.length else self.max_length.type_name)
 
-                    self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
+                        self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
+
+                elif self.is_integer:
+                    if self.restrict_range and self.kind.size == "long":
+                        if self.kind.signed:
+                            if (((self.restrict_range[0] < (-32*1024)) and (self.restrict_range[0] >= (-8*1024*1024))) or \
+                                  ((self.restrict_range[1] >= (32*1024)) and (self.restrict_range[1] < (8*1024*1024)))):
+                                self.type_name = "Core::Frame::SInt24"
+                        else:
+                            if ((self.restrict_range[1] >= (64*1024)) and (self.restrict_range[1] < (16*1024*1024))):
+                                self.type_name = "Core::Frame::UInt24"
 
             @property
             def as_rvalue(self):
@@ -1009,18 +1021,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 if self.proxy_instance or self.return_proxy:
                     return "sizeof(%s)" % INSTANCE_ID
                 elif self.is_buffer:
-                    # Minimum size
-                    if self.length:
-                        return "sizeof(%s)" % self.length.type_name
-                    elif self.max_length:
-                        return "sizeof(%s)" % self.max_length.type_name
-                    else:
-                        Unreachable()
+                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
                 elif self.is_string:
-                    # Minimum size
-                    return "sizeof(%s)" % ("uint32_t" if self.is_ccstring else "uint16_t")
+                    if self.is_ccstring:
+                        return "(sizeof(uint32_t))"
+                    else:
+                        return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
-                    return "sizeof(%s)" % self.type_name
+                    return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return 1 # always one byte
                 else:
