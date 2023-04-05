@@ -337,27 +337,24 @@ class Identifier():
                         raise ParserError("@maxlength tag not allowed here")
                     skip = 1
                 elif token[1:] == "RESTRICT":
-                    if tags_allowed:
-                        self.meta.range = []
-                        for s in "".join(string[i + 1]).split(".."):
-                            try:
-                                if '.' not in s:
-                                    v = eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024"))
-                                else:
-                                    v = eval(s)
-                                self.meta.range.append(int(v))
-                            except:
-                                raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
-                        if len(self.meta.range) == 2:
-                            if self.meta.range[0] > self.meta.range[1]:
-                                raise ParserError("invalid range in @restrict: %s > %s" % (self.meta.range[0], self.meta.range[1]))
-                        elif len(self.meta.range) == 1:
-                            self.meta.range.append(self.meta.range[0])
-                            self.meta.range[0] = 0
-                        else:
-                            raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
+                    self.meta.range = []
+                    for s in "".join(string[i + 1]).split(".."):
+                        try:
+                            if '.' not in s:
+                                v = eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024"))
+                            else:
+                                v = eval(s)
+                            self.meta.range.append(int(v))
+                        except:
+                            raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
+                    if len(self.meta.range) == 2:
+                        if self.meta.range[0] > self.meta.range[1]:
+                            raise ParserError("invalid range in @restrict: %s > %s" % (self.meta.range[0], self.meta.range[1]))
+                    elif len(self.meta.range) == 1:
+                        self.meta.range.append(self.meta.range[0])
+                        self.meta.range[0] = 0
                     else:
-                        raise ParserError("@restrict tag not allowed here")
+                        raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
                     skip = 1
                 elif token[1:] == "INTERFACE":
                     self.meta.interface = string[i + 1]
