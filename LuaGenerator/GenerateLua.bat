@@ -20,6 +20,7 @@
 @rem
 @rem Typical usage:
 @rem    GenerateLua.bat [<Thunder_dir> <ThunderInterfaces_dir> <ThunderClientLibraries_dir>]
+@rem    GenerateLua.bat
 @rem    GenerateLua.bat ..\..\Thunder ..\..\ThunderInterfaces ..\..\ThunderClientLibraries
 @rem
 
@@ -34,8 +35,8 @@ set THUNDER_DIR=..\..\Thunder
 set INTERFACES_DIR=..\..\ThunderInterfaces
 set CLIENTLIBRARIES_DIR=..\..\ThunderClientLibraries
 
-set files=%THUNDER_DIR%\Source\com\ICOM.h %THUNDER_DIR%\Source\com\ITrace.h
-set files=%files% %THUNDER_DIR%\Source\plugins\IPlugin.h %THUNDER_DIR%\Source\plugins\IShell.h %THUNDER_DIR%\Source\plugins\IStateControl.h %THUNDER_DIR%\Source\plugins\ISubSystem.h
+set files=%THUNDER_DIR%\Source\com\ICOM.h
+set files=%files% %THUNDER_DIR%\Source\plugins\IController.h %THUNDER_DIR%\Source\plugins\IPlugin.h %THUNDER_DIR%\Source\plugins\IShell.h %THUNDER_DIR%\Source\plugins\IStateControl.h %THUNDER_DIR%\Source\plugins\ISubSystem.h
 set files=%files% %INTERFACES_DIR%\interfaces\I*.h
 set files=%files% %CLIENTLIBRARIES_DIR%\Source\cryptography\I*.h
 rem add more interface files if needed..
