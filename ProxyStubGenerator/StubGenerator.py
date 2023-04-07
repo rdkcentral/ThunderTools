@@ -272,7 +272,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
         emit.Line("%s[%s] = \"%s\"" % (interfaces_var_name, id_value, iface_name))
         emit.Line("%s[%s] = {" % (methods_var_name, id_value))
         emit.IndentInc()
-        emit_methods = [m for m in iface.obj.methods if m.IsPureVirtual()]
+        emit_methods = [m for m in iface.obj.methods if m.IsVirtual() and not m.IsDestructor() and not m.omit]
 
         for idx, m in enumerate(emit_methods):
             name = "name = \"%s\"" % m.name
