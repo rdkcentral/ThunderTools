@@ -134,7 +134,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
             if isinstance(event.sendif_type, JsonInteger):
                 conv_index_var = "_designatorIdAsInt"
-                emit.Line("%s %s{};" % (sendif_type.cpp_native_type, conv_index_var))
+                emit.Line("%s %s{};" % (event.sendif_type.cpp_native_type, conv_index_var))
                 emit.Line("return ((Core::FromString(%s, %s) == true) && (%s == %s));" % (designator_var, index_var, filter_var, conv_index_var))
 
             elif isinstance(event.sendif_type, JsonEnum):
@@ -741,8 +741,7 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                 emit.Indent()
                 emit.Line("[&%s](const string& client, const JSONRPC::Status status) {" % (impl_var))
                 emit.Indent()
-                emit.Line("const string id = client.substr(0, client.find('.'));")
-                emit.Line("%s.On%sEventRegistration(id, status);" % (impl_var, event.function_name))
+                emit.Line("%s.On%sEventRegistration(client, status);" % (impl_var, event.function_name))
                 emit.Unindent()
                 emit.Line("});")
                 emit.Unindent()
