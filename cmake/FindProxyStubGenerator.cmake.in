@@ -44,11 +44,11 @@ function(ProxyStubGenerator)
 
     set(_execute_command ${PROXYSTUB_GENERATOR})
 
-    if(Argument_SECURE)
+    if(Argument_SECURE OR @PROXYSTUB_GENERATOR_ENABLE_SECURITY@)
         list(APPEND _execute_command  "--secure")
     endif()
 
-    if(Argument_COHERENT)
+    if(Argument_COHERENT OR @PROXYSTUB_GENERATOR_ENABLE_COHERENCY@)
         list(APPEND _execute_command  "--coherent")
     endif()
 
