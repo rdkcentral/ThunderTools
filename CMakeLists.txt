@@ -21,6 +21,9 @@ project(Generators)
 
 set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/sbin")
 
+option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
+option(PROXYSTUB_GENERATOR_ENABLE_COHERENCY "Globally enable frame coherency checks in proxystubs" OFF)
+
 if(NOT DEFINED GENERIC_CMAKE_MODULE_PATH)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../src/bridge")
         set(NAMESPACE bridge)
