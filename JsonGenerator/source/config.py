@@ -42,6 +42,8 @@ INTERFACES_SECTION = True
 INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
 NO_INCLUDES = False
+NO_VERSIONING = False
+NO_PUSH_WARNING = False
 DEFAULT_INTERFACE_SOURCE_REVISION = "main"
 GLOBAL_DEFINITIONS = ".." + os.sep + "global.json"
 INDENT_SIZE = 4
@@ -67,6 +69,8 @@ def Parse(cmdline):
     global INTERFACE_NAMESPACE
     global JSON_INTERFACE_PATH
     global NO_INCLUDES
+    global NO_VERSIONING
+    global NO_PUSH_WARNING
     global DEFAULT_INT_SIZE
     global INDENT_SIZE
     global DOC_ISSUES
@@ -194,6 +198,18 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help="do not emit #includes (default: include data and interface headers)")
+    data_group.add_argument(
+            "--no-versioning",
+            dest="no_versioning",
+            action="store_true",
+            default=False,
+            help= "do not emit versioning information for non-auto JSON interfaces (default: emit versioning header)")
+    data_group.add_argument(
+            "--no-push-warning",
+            dest="no_push_warning",
+            action="store_true",
+            default=False,
+            help= "do not use PUSH/POP_WARNING macros in generated code (default: use macros)")
     data_group.add_argument("--copy-ctor",
             dest="copy_ctor",
             action="store_true",
@@ -286,11 +302,12 @@ def Parse(cmdline):
         RPC_FORMAT_FORCED = True
 
     NO_INCLUDES = args.no_includes
+    NO_VERSIONING = args.no_versioning
+    NO_PUSH_WARNING = args.no_push_warning
 
     if args.if_path and args.if_path != ".":
         JSON_INTERFACE_PATH = args.if_path
     JSON_INTERFACE_PATH = posixpath.normpath(JSON_INTERFACE_PATH) + os.sep
-
 
     if args.if_dir:
         args.if_dir = os.path.abspath(os.path.normpath(args.if_dir))
