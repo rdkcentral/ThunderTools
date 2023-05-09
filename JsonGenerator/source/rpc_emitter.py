@@ -786,8 +786,10 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
         emit.Line("namespace Event {")
         emit.Indent()
         emit.Line()
-        emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
-        emit.Line()
+
+        if not config.NO_PUSH_WARNING:
+            emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
+            emit.Line()
 
         for event in events:
             EmitEvent(emit, root, event, "object")
@@ -798,8 +800,10 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
 
                 EmitEvent(emit, root, event, "native")
 
-        emit.Line("POP_WARNING()")
-        emit.Line()
+        if not config.NO_PUSH_WARNING:
+            emit.Line("POP_WARNING()")
+            emit.Line()
+
         emit.Unindent()
         emit.Line("} // namespace Event")
         emit.Line()

@@ -101,7 +101,7 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
                         pass
 
             # Also emit version if source was json meta file in manual mode
-            if (rpcObj.schema.get("mode") != "auto"):
+            if (rpcObj.schema.get("mode") != "auto") and not config.NO_VERSIONING:
                 output_filename = os.path.join(directory, "J" + filename + ".h")
 
                 if not config.FORCE and (os.path.exists(output_filename) and (os.path.getmtime(source_file) < os.path.getmtime(output_filename))):
