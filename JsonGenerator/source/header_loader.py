@@ -201,7 +201,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                 if enum_values[i - 1] != enum_values[i]:
                                     raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
-                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var.type.Type().scoped  }
+                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
                         enum_spec["ids"] = [e.name for e in cppType.items]
                         enum_spec["hint"] = var.type.Type().name
 
@@ -215,26 +215,35 @@ def LoadInterface(file, log, all = False, includePaths = []):
                             result = ["array", { "items": enum_spec } ]
                         else:
                             result = ["string", enum_spec]
+
+                        if isinstance(var.type.Type(), CppParser.Typedef):
+                            result[1]["@register"] = False
+
                     # POD objects
                     elif isinstance(cppType, CppParser.Class):
-                        def GenerateObject(ctype):
+                        def GenerateObject(ctype, was_typdef):
                             properties = dict()
 
                             for p in ctype.vars:
                                 name = p.name.lower()
 
                                 if isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
-                                    _, props = GenerateObject(ResolveTypedef(p.type).Type())
+                                    _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                     properties[name] = props
                                     properties[name]["type"] = "object"
                                     properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
                                 else:
                                     properties[name] = ConvertParameter(p)
+
                                 properties[name]["@originalname"] = p.name
+
+                                if was_typdef:
+                                    properties[name]["@register"] = False
 
                             return "object", { "properties": properties, "required": list(properties.keys()) }
 
-                        result = GenerateObject(cppType)
+                        result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
+
                     # All other types are not supported
                     else:
                         raise CppParseError(var, "unable to convert C++ type to JSON type: %s" % cppType.type)
