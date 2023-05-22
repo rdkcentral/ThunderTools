@@ -78,5 +78,5 @@ if __name__ == "__main__":
         json2 = ordered(json.load(json_file_2)) if args.ignoreorder else json.load(json_file_2)
 
     if json1 != json2:
-        log.Error(f"JSON Input files are not identical")
+        log.Warn(f"JSON Input files are not identical")
         sys.exit(1)
