@@ -51,7 +51,7 @@ def EmitEnumRegs(root, emit, header_file, if_file):
     count = 0
 
     for obj in trackers.enum_tracker.objects:
-        if not obj.is_duplicate and not obj.included_from:
+        if not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
             emit.Line()
             _EmitEnumRegistration(root, obj)
             count += 1
