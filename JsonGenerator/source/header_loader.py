@@ -195,11 +195,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     elif isinstance(cppType, CppParser.Enum):
 
                         if len(cppType.items) > 1:
-                            enum_values = [e.auto_value for e in cppType.items]
-
-                            for i, e in enumerate(cppType.items, 0):
-                                if enum_values[i - 1] != enum_values[i]:
-                                    raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
+                            autos = [e.auto_value for e in cppType.items].count(True)
+                            if autos != 0 and (autos != len(cppType.items)):
+                               raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
                         enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
                         enum_spec["ids"] = [e.name for e in cppType.items]
@@ -414,13 +412,19 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
             if method.is_excluded:
                 if event_params:
-                    log.WarnLine(method, "'%s()': @json:omit is redundant for notification registration methods" % method.name)
+                    log.WarnLine(method, "'%s': @json:omit is redundant for notification registration methods" % method.name)
 
                 continue
 
             prefix = (face.obj.parent.name.lower() + "_") if face.obj.parent.full_name != config.INTERFACE_NAMESPACE else ""
             method_name = method.retval.meta.text if method.retval.meta.text else method.name
             method_name_lower = method_name.lower()
+
+            if method.retval.meta.alt == method_name_lower:
+                log.WarnLine(method, "%s': alternative name is same as original name" % method.name)
+
+            if method.retval.meta.text == method_name_lower:
+                log.WarnLine(method, "%s': changed function name is same as original name" % method.name)
 
             for e in event_params:
                 exists = any(x.obj.type == e.type.type for x in event_interfaces)
@@ -542,6 +546,11 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(method.vars[value], "property setter method must have one input parameter")
+
+                    if method.retval.meta.alt:
+                        properties[prefix + method.retval.meta.alt] = copy.deepcopy(obj)
+                        properties[prefix + method.retval.meta.alt]["deprecated"] = True
+
                 else:
                     raise CppParseError(method, "property method must have one parameter")
 
