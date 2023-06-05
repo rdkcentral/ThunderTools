@@ -1033,12 +1033,21 @@ class Function(Block, Name):
         self.omit = False
         self.stub = False
         self.is_excluded = False
-        self.parent.methods.append(self)
+
         for method in self.parent.methods:
             if method.name == self.name:
-                if method.retval.meta.is_property:
-                    self.retval.meta.is_property = True
+                if self.parent.is_json:
+                    if method.retval.meta.is_property:
+                        if method.retval.meta.text:
+                            self.retval.meta.text = method.retval.meta.text
+                        if method.retval.meta.alt:
+                            self.retval.meta.alt = method.retval.meta.alt
+                    elif not method.omit and not method.is_excluded and not method.retval.meta.text:
+                        raise ParserError("'%s': JSON-RPC name clash detected, resolve with @text tag" % method.name)
+
                 break
+
+        self.parent.methods.append(self)
 
     def Proto(self):
         _str = "static " if self.IsStatic() else ""
