@@ -43,9 +43,6 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
         else:
             return None
 
-    trackers.object_tracker.Reset()
-    trackers.enum_tracker.Reset()
-
     directory = os.path.dirname(path)
     filename = (schema["info"]["namespace"]) if "info" in schema and "namespace" in schema["info"] else ""
     filename += (schema["info"]["class"]) if "info" in schema and "class" in schema["info"] else ""

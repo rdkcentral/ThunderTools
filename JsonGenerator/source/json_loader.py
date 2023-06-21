@@ -110,7 +110,7 @@ class JsonType():
 
         # Do some sanity check on the type name
         if parent and not isinstance(parent, JsonArray):
-            if not is_generated:
+            if not is_generated and not self.original_name:
                 if not self.name.replace("_", "").isalnum():
                     raise JsonParseError("Invalid characters in identifier name: '%s'" % self.print_name)
 
@@ -728,7 +728,7 @@ class JsonMethod(JsonObject):
             return self.cpp_name
 
     def Headline(self):
-        return "%s%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
+        return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
                            " (DEPRECATED)" if self.deprecated else " (OBSOLETE)" if self.obsolete else "")
 
 

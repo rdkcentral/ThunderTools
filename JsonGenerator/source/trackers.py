@@ -253,7 +253,7 @@ class EnumTracker(ObjectTracker):
 
                     return obj
 
-            return None
+        return None
 
     def CommonObjects(self):
         return SortByDependency(filter(lambda obj: ((obj.RefCount() > 1) or self._IsTopmost(obj)), self.objects))

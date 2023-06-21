@@ -31,7 +31,7 @@ def Create(log, schema, path, indent_size = 4):
     input_basename = os.path.basename(path)
     output_path = os.path.dirname(path) + os.sep + input_basename.replace(".json", "") + ".md"
 
-    with Emitter(output_path, config.INDENT_SIZE) as emit:
+    with Emitter(output_path, config.INDENT_SIZE, 10000) as emit:
         def bold(string):
             return "**%s**" % string
 
