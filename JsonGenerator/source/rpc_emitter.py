@@ -269,7 +269,7 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
     module_var = "_module_"
     impl_var = "_impl_"
     struct = "J" + root.json_name
-    face = "I" + root.json_name
+    face = root.info["interface"] if "interface" in root.info else ("I" + root.json_name)
 
     has_listeners = any((isinstance(m, JsonNotification) and m.is_status_listener) for m in root.properties)
 

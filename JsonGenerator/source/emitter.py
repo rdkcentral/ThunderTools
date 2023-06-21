@@ -16,11 +16,11 @@
 # limitations under the License.
 
 class Emitter():
-    def __init__(self, file_name, indent_size):
+    def __init__(self, file_name, indent_size, max_line_length = 160):
         self.file = open(file_name, "w") if file_name else None
         self.indent_size = indent_size
         self.indent = 0
-        self.threshold = 160
+        self.threshold = max_line_length
         self.lines = []
 
     def __del__(self):

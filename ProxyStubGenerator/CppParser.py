@@ -25,6 +25,10 @@ import re, uuid, sys, copy, hashlib, random, os
 from collections import OrderedDict
 from enum import IntEnum
 
+
+sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir + os.sep))
+import ProxyStubGenerator.Log as Log
+
 class ParserError(RuntimeError):
     def __init__(self, msg):
         msg = "%s(%s): parse error: %s" % (CurrentFile(), CurrentLine(), msg)
@@ -938,6 +942,7 @@ class Class(Identifier, Block):
         self.stub = False
         self.is_json = False
         self.json_version = ""
+        self.json_prefix = ""
         self.is_event = False
         self.is_extended = False
         self.is_collapsed = False
@@ -1288,8 +1293,9 @@ class InstantiatedTemplateClass(Class):
     def __str__(self):
         s = []
         for i, _ in enumerate(self.params):
-            s.append(self.params[i].name + " = " + str(self.args[i]))
-        _str = "/* instantiated */ template class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
+            rhs = ("".join(self.resolvedArgs[i].type) if isinstance(self.resolvedArgs[i].type, list) else self.resolvedArgs[i].type.Proto())
+            s.append(self.params[i].name + " = " + rhs)
+        _str = "class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
         _str += " [with %s]" % (", ".join(s))
         return _str
 
@@ -1346,6 +1352,7 @@ class TemplateClass(Class):
         instance.specifiers = self.specifiers
         instance.is_json = self.is_json
         instance.json_version = self.json_version
+        instance.json_prefix = self.json_prefix
         instance.is_extended = self.is_extended
         instance.is_collapsed = self.is_collapsed
         instance.is_compliant = self.is_compliant
@@ -1569,6 +1576,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@json", False))
                 if _find("@event", token):
                     tagtokens.append("@EVENT")
+                if _find("@prefix", token):
+                    tagtokens.append(__ParseParameterValue(token, "@prefix", False))
                 if _find("@extended", token):
                     tagtokens.append("@EXTENDED")
                     log.Warn("@extended keyword is deprecated, use @uncompliant:extended instead", ("%s(%i)" % (CurrentFile(), CurrentLine())))
@@ -1739,6 +1748,8 @@ def Parse(contents,log = None):
     stub_next = False
     json_next = False
     json_version = ""
+    prefix_next = False
+    prefix_string = ""
     exclude_next = False
     event_next = False
     extended_next = False
@@ -1776,11 +1787,18 @@ def Parse(contents,log = None):
             json_next = True
             json_version = " ".join(tokens[i+1])
             tokens[i] = ";"
+            tokens[i+1] = ";"
+            i += 2
+        elif tokens[i] == "@PREFIX":
+            prefix_next = True
+            prefix_string = " ".join(tokens[i+1])
+            tokens[i] = ";"
+            tokens[i+1] = ";"
             i += 2
         elif tokens[i] == "@JSON_OMIT":
             exclude_next = True
             json_next = False
-            tokens[i] = ';'
+            tokens[i] = ";"
             i += 1
         elif tokens[i] == "@EVENT":
             event_next = True
@@ -1801,6 +1819,8 @@ def Parse(contents,log = None):
             i += 1
         elif tokens[i] == "@SOURCELOCATION":
             sourcelocation_next = tokens[i + 1][0]
+            tokens[i] = ";"
+            tokens[i+1] = ";"
             i += 2
         elif tokens[i] == "@ITERATOR":
             iterator_next = True
@@ -1816,6 +1836,8 @@ def Parse(contents,log = None):
             stub_next = False
             json_next = False
             json_version = ""
+            prefix_next = False
+            prefix_string = ""
             event_next = False
             extended_next = False
             collapsed_next = False
@@ -1944,6 +1966,8 @@ def Parse(contents,log = None):
             if json_next:
                 new_class.is_json = True
                 new_class.json_version = json_version
+            if prefix_next:
+                new_class.json_prefix = prefix_string
             if event_next:
                 new_class.is_event = True
             if iterator_next:
@@ -1965,6 +1989,9 @@ def Parse(contents,log = None):
                     raise ParserError("@compliant and @uncompliant used together")
 
             json_next = False
+            json_version = ""
+            prefix_next = False
+            prefix_string = ""
             event_next = False
             iterator_next = False
             extended_next = False
@@ -2381,7 +2408,7 @@ def DumpTree(tree, ind=0):
 # entry point
 
 if __name__ == "__main__":
-    tree = ParseFiles(["default.h", sys.argv[1]], sys.argv[2:])
+    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], sys.argv[2:], Log.Log("debug", True, True))
     if isinstance(tree, Namespace):
         DumpTree(tree)
     else:
