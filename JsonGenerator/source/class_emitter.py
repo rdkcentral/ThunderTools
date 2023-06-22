@@ -54,6 +54,7 @@ def EmitEnumRegs(root, emit, header_file, if_file):
         if not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
             emit.Line()
             _EmitEnumRegistration(root, obj)
+            obj.schema["@register"] = False
             count += 1
 
     emit.Line()

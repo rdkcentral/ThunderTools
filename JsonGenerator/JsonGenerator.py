@@ -60,6 +60,10 @@ if __name__ == "__main__":
                 files.append(p)
 
         for path in files:
+
+            trackers.object_tracker.Reset()
+            trackers.enum_tracker.Reset()
+
             try:
                 log.Header(path)
 

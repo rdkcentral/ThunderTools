@@ -41,7 +41,15 @@ class CppParseError(RuntimeError):
         else:
             super(CppParseError, self).__init__(msg)
 
+
 def LoadInterface(file, log, all = False, includePaths = []):
+
+    def StripFrameworkNamespace(identifier):
+        return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
+
+    def StripInterfaceNamespace(identifier):
+        return str(identifier).replace(config.INTERFACE_NAMESPACE + "::", "")
+
     try:
         tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
                     posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
@@ -88,15 +96,12 @@ def LoadInterface(file, log, all = False, includePaths = []):
         info["format"] = rpc_format.value
 
         if not face.obj.parent.full_name.endswith(config.INTERFACE_NAMESPACE):
-            info["namespace"] = face.obj.parent.name
+            info["namespace"] = face.obj.parent.name[1:] if (face.obj.parent.name[0] == "I" and face.obj.parent.name[1].isupper()) else face.obj.parent.name[1:]
 
         info["class"] = face.obj.name[1:] if face.obj.name[0] == "I" else face.obj.name
         scoped_face = face.obj.full_name.split("::")[1:]
 
-        if scoped_face[0] == config.FRAMEWORK_NAMESPACE:
-            scoped_face = scoped_face[1:]
-
-        info["interface"] = "::".join(scoped_face)
+        info["interface"] = StripInterfaceNamespace("::" + "::".join(scoped_face))
         info["sourcefile"] = os.path.basename(file)
 
         if face.obj.sourcelocation:
@@ -118,12 +123,6 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
             def ResolveTypedef(type):
                 return type.Resolve()
-
-            def StripFrameworkNamespace(identifier):
-                return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
-
-            def StripInterfaceNamespace(identifier):
-                return str(identifier).replace(config.INTERFACE_NAMESPACE + "::", "").replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
             def ConvertType(var):
                 var_type = ResolveTypedef(var.type)
@@ -213,6 +212,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                             result = ["array", { "items": enum_spec } ]
                         else:
                             result = ["string", enum_spec]
+
 
                         if isinstance(var.type.Type(), CppParser.Typedef):
                             result[1]["@register"] = False
@@ -416,7 +416,13 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                 continue
 
-            prefix = (face.obj.parent.name.lower() + "_") if face.obj.parent.full_name != config.INTERFACE_NAMESPACE else ""
+            if face.obj.json_prefix:
+                prefix = (face.obj.json_prefix + "::")
+            elif face.obj.parent.full_name != config.INTERFACE_NAMESPACE:
+                prefix = (face.obj.parent.name.lower() + "_")
+            else:
+                prefix = ""
+
             method_name = method.retval.meta.text if method.retval.meta.text else method.name
             method_name_lower = method_name.lower()
 
