@@ -247,6 +247,41 @@ if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
                     unset(persistentpathpostfix)
                 endif()
 
+               if (NOT ${webui} STREQUAL "")
+                    map_append(${plugin_config} webui ${webui})
+                    unset(webui)
+                endif()
+                
+                if (NOT ${systemrootpath} STREQUAL "")
+                    map_append(${plugin_config} systemrootpath ${systemrootpath})
+                    unset(systemrootpath)
+                endif()
+
+                if (NOT ${resumed} STREQUAL "")
+                    map_append(${plugin_config} resumed ${resumed})
+                    unset(resumed)
+                endif()
+
+                if (NOT ${volatilepathpostfix} STREQUAL "")
+                    map_append(${plugin_config} volatilepathpostfix ${volatilepathpostfix})
+                    unset(volatilepathpostfix)
+                endif()
+
+                if (NOT ${startuporder} STREQUAL "")
+                    map_append(${plugin_config} startuporder ${startuporder})
+                    unset(startuporder)
+                endif()
+
+                if (NOT ${startmode} STREQUAL "")
+                    map_append(${plugin_config} startmode ${startmode})
+                    unset(startmode)
+                endif()
+
+                if (NOT ${communicator} STREQUAL "")
+                    map_append(${plugin_config} communicator ${communicator})
+                    unset(communicator)
+                endif()
+
                 if (NOT ${configuration} STREQUAL "")
                     map_append(${plugin_config} configuration ${configuration})
                 endif()
