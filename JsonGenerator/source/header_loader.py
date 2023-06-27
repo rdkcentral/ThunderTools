@@ -96,7 +96,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
         info["format"] = rpc_format.value
 
         if not face.obj.parent.full_name.endswith(config.INTERFACE_NAMESPACE):
-            info["namespace"] = face.obj.parent.name[1:] if (face.obj.parent.name[0] == "I" and face.obj.parent.name[1].isupper()) else face.obj.parent.name[1:]
+            info["namespace"] = face.obj.parent.name[1:] if (face.obj.parent.name[0] == "I" and face.obj.parent.name[1].isupper()) else face.obj.parent.name
 
         info["class"] = face.obj.name[1:] if face.obj.name[0] == "I" else face.obj.name
         scoped_face = face.obj.full_name.split("::")[1:]
