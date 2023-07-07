@@ -415,9 +415,9 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                     if isinstance(arg, JsonString) and "length" in arg.flags:
                         length = arg.flags.get("length")
 
-                        for name, [var, _] in vars.items():
+                        for name, [var, var_type] in vars.items():
                             if name == length.local_name:
-                                initializer = (parent + var.cpp_name) if is_readable else ""
+                                initializer = (parent + var.cpp_name) if "r" in var_type else ""
                                 emit.Line("%s %s{%s};" % (var.cpp_native_type, var.TempName(), initializer))
                                 break
 
