@@ -285,7 +285,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         properties["example"] = pair[0]
                         properties["description"] = pair[1]
                     else:
-                        properties["description"] = var.meta.brief
+                        properties["description"] = var.meta.brief.strip()
 
                 return properties
 
@@ -592,7 +592,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     obj["obsolete"] = True
 
                 if method.retval.meta.brief:
-                    obj["summary"] = method.retval.meta.brief
+                    obj["summary"] = method.retval.meta.brief.strip()
 
                 if method.retval.meta.details:
                     obj["description"] = method.retval.meta.details
@@ -646,10 +646,14 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                 varsidx = 1
                             else:
                                 raise CppParseError(method.vars[0], "failed to determine type of notification id parameter")
+
                     if method.retval.meta.is_listener:
                         obj["statuslistener"] = True
 
                     params = BuildParameters(method.vars[varsidx:], rpc_format, False)
+                    retvals = BuildResult(method.vars[varsidx:])
+                    if retvals and retvals["type"] != "null":
+                        raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
 
                     if method.retval.meta.is_deprecated:
                         obj["deprecated"] = True
@@ -657,7 +661,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         obj["obsolete"] = True
 
                     if method.retval.meta.brief:
-                        obj["summary"] = method.retval.meta.brief
+                        obj["summary"] = method.retval.meta.brief.strip()
 
                     if method.retval.meta.details:
                         obj["description"] = method.retval.meta.details
