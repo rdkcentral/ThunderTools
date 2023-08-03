@@ -80,6 +80,7 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
             # Generate enum registrations...
             if not config.FORCE and (os.path.exists(enum_file) and (os.path.getmtime(source_file) < os.path.getmtime(enum_file))):
                 log.Success("skipping file %s, up-to-date" % os.path.basename(enum_file))
+                class_emitter.ProcessEnums()
             else:
                 enum_emitted = 0
 

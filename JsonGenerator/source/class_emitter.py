@@ -18,10 +18,23 @@ import config
 import trackers
 from json_loader import *
 
+def ProcessEnums(action=None):
+    count = 0
+
+    for obj in trackers.enum_tracker.objects:
+        if not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
+            obj.schema["@register"] = False
+            count += 1
+            if action:
+                action(obj)
+
+    return count
+
 def EmitEnumRegs(root, emit, header_file, if_file):
-    def _EmitEnumRegistration(root, enum):
+    def _EmitEnumRegistration(enum):
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
 
+        emit.Line()
         emit.Line("ENUM_CONVERSION_BEGIN(%s)" % name)
         emit.Indent()
 
@@ -48,20 +61,13 @@ def EmitEnumRegs(root, emit, header_file, if_file):
     emit.Line("#include \"%s_%s.h\"" % (config.DATA_NAMESPACE, header_file))
     emit.Line()
     emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
-    count = 0
 
-    for obj in trackers.enum_tracker.objects:
-        if not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
-            emit.Line()
-            _EmitEnumRegistration(root, obj)
-            obj.schema["@register"] = False
-            count += 1
+    count = ProcessEnums(_EmitEnumRegistration)
 
     emit.Line()
     emit.Line("}")
 
     return count
-
 
 def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = False):
     global emittedItems
