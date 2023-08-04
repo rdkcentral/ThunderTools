@@ -517,7 +517,7 @@ class JsonObject(JsonRefCounted, JsonType):
                     self._enums.append(new_obj)
 
         if not self.properties:
-            log.Info("No properties in object %s" % self.print_name)
+            log.Error("No properties in object %s" % self.print_name)
 
     @property
     def cpp_name(self):
