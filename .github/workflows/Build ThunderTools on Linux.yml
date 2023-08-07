@@ -7,5 +7,5 @@ on:
     branches: ["master"]
  
 jobs:
-  ThunderClientLibraries:
+  ThunderNanoServices:
     uses: rdkcentral/ThunderNanoServices/.github/workflows/Build ThunderNanoServices on Linux.yml@master
