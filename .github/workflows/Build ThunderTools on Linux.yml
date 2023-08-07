@@ -8,4 +8,4 @@ on:
  
 jobs:
   ThunderClientLibraries:
-    uses: rdkcentral/ThunderClientLibraries/.github/workflows/Build ThunderClientLibraries on Linux.yml@master
+    uses: rdkcentral/ThunderNanoServices/.github/workflows/Build ThunderNanoServices on Linux.yml@master
