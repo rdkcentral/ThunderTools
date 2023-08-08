@@ -1,4 +1,4 @@
-name: Build ThunderTools on Windows
+name: Build ThunderTools on Windows!
 
 on:
   push:
