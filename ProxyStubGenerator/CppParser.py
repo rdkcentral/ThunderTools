@@ -542,8 +542,12 @@ class Identifier():
                     else:
                         ref |= Ref.POINTER
                 elif self.type[typeIdx] == "&":
+                    if ref & Ref.POINTER:
+                        raise ParserError("pointer to a reference is not valid C++")
                     ref |= Ref.REFERENCE
                 elif self.type[typeIdx] == "&&":
+                    if ref & Ref.POINTER:
+                        raise ParserError("pointer to a reference is not valid C++")
                     ref |= Ref.RVALUE_REFERENCE
                 elif self.type[typeIdx] == "const":
                     ref |= Ref.CONST
@@ -653,6 +657,11 @@ def Evaluate(identifiers_):
                     enumerator_match = []
                     for e in tree.enums:
                         enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
+
+                        # non-scoped enums can also be called with scope
+                        if not e.scoped:
+                            enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
+
 
                     template_match = []
                     if (isinstance(tree, TemplateClass)):
@@ -1039,18 +1048,22 @@ class Function(Block, Name):
         self.stub = False
         self.is_excluded = False
 
-        for method in self.parent.methods:
-            if method.name == self.name:
-                if self.parent.is_json:
-                    if method.retval.meta.is_property:
-                        if method.retval.meta.text:
-                            self.retval.meta.text = method.retval.meta.text
-                        if method.retval.meta.alt:
-                            self.retval.meta.alt = method.retval.meta.alt
-                    elif not method.omit and not method.is_excluded and not method.retval.meta.text:
-                        raise ParserError("'%s': JSON-RPC name clash detected, resolve with @text tag" % method.name)
+    def Append(self):
+        if not self.is_excluded and not self.omit:
+            test_name = self.retval.meta.text if self.retval.meta.text else self.name
+            for method in self.parent.methods:
+                name = method.retval.meta.text if method.retval.meta.text else method.name
+                if name == test_name:
+                    if self.parent.is_json:
+                        if method.retval.meta.is_property:
+                            if method.retval.meta.text:
+                                self.retval.meta.text = method.retval.meta.text
+                            if method.retval.meta.alt:
+                                self.retval.meta.alt = method.retval.meta.alt
+                        elif not method.omit and not method.is_excluded:
+                            raise ParserError("'%s': JSON-RPC name clash detected, resolve with @text tag" % name)
 
-                break
+                    break
 
         self.parent.methods.append(self)
 
@@ -1236,6 +1249,7 @@ class Enumerator(Identifier, Name):
         if isinstance(self.value, (int)):
             self.parent.SetValue(self.value)
         self.parent.items.append(self)
+        self.full_name_scoped = parent_block.full_name + "::" + self.name
 
     def Proto(self):
         return self.full_name
@@ -1987,6 +2001,8 @@ def Parse(contents,log = None):
                     raise ParserError("@compliant used without @json")
                 if collapsed_next or extended_next:
                     raise ParserError("@compliant and @uncompliant used together")
+            if exclude_next:
+                raise ParserError("@json:omit is invalid here (applies to methods only)")
 
             json_next = False
             json_version = ""
@@ -2132,6 +2148,8 @@ def Parse(contents,log = None):
             if last_template_def:
                 method.specifiers.append(" ".join(last_template_def))
                 last_template_def = []
+
+            method.Append()
 
             # try to detect a function/macro call
             function_call = not ret_type and ((name != current_block[-1].name) and (name !=
