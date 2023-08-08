@@ -658,6 +658,11 @@ def Evaluate(identifiers_):
                     for e in tree.enums:
                         enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
 
+                        # non-scoped enums can also be called with scope
+                        if not e.scoped:
+                            enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
+
+
                     template_match = []
                     if (isinstance(tree, TemplateClass)):
                         template_match = [t for t in tree.arguments if t.full_name.endswith(T)]
@@ -1244,6 +1249,7 @@ class Enumerator(Identifier, Name):
         if isinstance(self.value, (int)):
             self.parent.SetValue(self.value)
         self.parent.items.append(self)
+        self.full_name_scoped = parent_block.full_name + "::" + self.name
 
     def Proto(self):
         return self.full_name
