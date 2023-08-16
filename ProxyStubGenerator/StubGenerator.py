@@ -1874,6 +1874,44 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
     return interfaces
 
+def GenerateIdentification(name):
+    if not os.path.exists(name):
+        with open(name, "w") as file:
+            emit = Emitter(file, INDENT_SIZE)
+            emit.Line("//")
+            emit.Line("// generated automatically")
+            emit.Line()
+            emit.Line("#include \"Module.h\"")
+            emit.Line("#include <com/ProxyStubs.h>")
+            emit.Line()
+            emit.Line("extern \"C\" {")
+            emit.Line()
+
+            options = []
+
+            # These should always go together...
+            assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
+
+            if ENABLE_INSTANCE_VERIFICATION:
+                options.append("PROXYSTUBS_OPTIONS_SECURE")
+            if ENABLE_INTEGRITY_VERIFICATION:
+                options.append("PROXYSTUBS_OPTIONS_COHERENT")
+            if not options:
+                options.append("0")
+
+            emit.Line("proxystubs_options_t proxystubs_options()")
+            emit.Line("{")
+            emit.IndentInc()
+            emit.Line("return (static_cast<proxystubs_options_t>(%s));" % " & ".join(options))
+            emit.IndentDec()
+            emit.Line("}")
+            emit.IndentDec()
+            emit.Line()
+            emit.Line("}")
+            emit.Line()
+
+            log.Print("created file %s" % os.path.basename(name))
+
 
 # -------------------------------------------------------------------------
 # entry point
@@ -1908,6 +1946,11 @@ if __name__ == "__main__":
                            action="store_true",
                            default=False,
                            help="emit additional frame coherency verification (default: no extra verification)")
+    argparser.add_argument("--no-identify",
+                           dest="noidentify",
+                           action="store_true",
+                           default=False,
+                           help="do not emit additional file with identification code (default: emit identification code)")
     argparser.add_argument("--traces",
                            dest="traces",
                            action="store_true",
@@ -2009,8 +2052,9 @@ if __name__ == "__main__":
         print("   @bitmask               - indicates that enumerator lists should be packed into into a bit mask")
         print("   @index                 - indicates that a parameter in a JSON-RPC property or event is an index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
-        print("   @alt {name}            - provides an alternative name a method can by called by")
-        print("   @text {name}           - sets a different name for a parameter, enumerator, struct or method")
+        print("   @prefix {name}         - prefixes all JSON-RPC methods names in an interface with a string")
+        print("   @alt {name}            - provides an alternative name a JSON-RPC method can by called by")
+        print("   @text {name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method")
         print("")
         print("JSON-RPC documentation-related parameters:")
         print("   @sourcelocation {lnk}  - sets source location link to be used in the documentation")
@@ -2053,6 +2097,7 @@ if __name__ == "__main__":
 
         faces = []
         skipped = []
+
         if interface_files:
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
@@ -2060,6 +2105,15 @@ if __name__ == "__main__":
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
                 lua_enums = dict()
+
+            if args.code and not args.noidentify:
+                output_file = os.path.join(os.path.dirname(interface_files[0]) if not OUTDIR else OUTDIR, "ProxyStubsMetadata.cpp")
+
+                out_dir = os.path.dirname(output_file)
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+
+                GenerateIdentification(output_file)
 
             for source_file in interface_files:
                 try:
