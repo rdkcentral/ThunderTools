@@ -1,4 +1,4 @@
-name: Build ThunderTools on Windows
+name: Build ThunderTools on Windows!
 
 on:
   push:
@@ -7,5 +7,5 @@ on:
     branches: ["master"]
  
 jobs:
-  ThunderClientLibraries:
-    uses: rdkcentral/ThunderClientLibraries/.github/workflows/Build ThunderClientLibraries on Windows.yml@master
+  ThunderNanoServices:
+    uses: rdkcentral/ThunderNanoServices/.github/workflows/Build ThunderNanoServices on Windows.yml@master
