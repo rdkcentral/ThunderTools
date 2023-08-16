@@ -257,11 +257,6 @@ if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
                     unset(systemrootpath)
                 endif()
 
-                if (NOT ${resumed} STREQUAL "")
-                    map_append(${plugin_config} resumed ${resumed})
-                    unset(resumed)
-                endif()
-
                 if (NOT ${volatilepathpostfix} STREQUAL "")
                     map_append(${plugin_config} volatilepathpostfix ${volatilepathpostfix})
                     unset(volatilepathpostfix)
