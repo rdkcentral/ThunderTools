@@ -2107,7 +2107,13 @@ if __name__ == "__main__":
                 lua_enums = dict()
 
             if args.code and not args.noidentify:
-                GenerateIdentification(os.path.join(os.path.dirname(interface_files[0]) if not OUTDIR else OUTDIR, "ProxyStubsMetadata.cpp"))
+                output_file = os.path.join(os.path.dirname(interface_files[0]) if not OUTDIR else OUTDIR, "ProxyStubsMetadata.cpp")
+
+                out_dir = os.path.dirname(output_file)
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+
+                GenerateIdentification(output_file)
 
             for source_file in interface_files:
                 try:
