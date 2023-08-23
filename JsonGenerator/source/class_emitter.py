@@ -42,7 +42,7 @@ def EmitEnumRegs(root, emit, header_file, if_file):
             emit.Line("{ %s::%s, _TXT(\"%s\") }," % (name, enum.cpp_enumerators[i], enum.enumerators[i]))
 
         emit.Unindent()
-        emit.Line("ENUM_CONVERSION_END(%s);" % name)
+        emit.Line("ENUM_CONVERSION_END(%s)" % name)
 
     emit.Line()
     emit.Line("// Enumeration code for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
@@ -75,7 +75,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
     def _EmitEnumConversionHandler(root, enum):
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
-        emit.Line("ENUM_CONVERSION_HANDLER(%s);" % name)
+        emit.Line("ENUM_CONVERSION_HANDLER(%s)" % name)
 
     def _EmitEnum(enum):
         global emittedItems
