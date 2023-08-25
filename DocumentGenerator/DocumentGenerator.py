@@ -28,6 +28,7 @@ import time
 
 
 THUNDER_REPO_URL = "https://github.com/rdkcentral/Thunder"
+THUNDER_TOOLS_REPO_URL = "https://github.com/rdkcentral/ThunderTools"
 THUNDER_INTERFACE_REPO_URL = "https://github.com/rdkcentral/ThunderInterfaces"
 THUNDER_PLUGINS_REPO_URL = "https://github.com/rdkcentral/ThunderNanoServices.git"
 RDK_PLUGINS_REPO_URL = "https://github.com/WebPlatformForEmbedded/ThunderNanoServicesRDK.git"
@@ -115,8 +116,9 @@ markdown_extensions:
 
 class DocumentGenerator():
     _yaml_generator = None
-    def __init__(self, thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, docs_path):
+    def __init__(self, thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, docs_path, thunder_tools_path):
         self.thunder_path = thunder_path
+        self.thunder_tools_path = thunder_tools_path
         self.thunder_interface_path = thunder_interface_path
         self.thunder_plugins_path = thunder_plugins_path
         self.rdk_plugins_path = rdk_plugins_path
@@ -129,6 +131,8 @@ class DocumentGenerator():
     def clean_all_repos_dir(self):
         if os.path.exists(self.thunder_path):
             shutil.rmtree(self.thunder_path)
+        if os.path.exists(self.thunder_tools_path):
+            shutil.rmtree(self.thunder_tools_path)
         if os.path.exists(self.thunder_interface_path):
             shutil.rmtree(self.thunder_interface_path)
         if os.path.exists(self.thunder_plugins_path):
@@ -141,6 +145,7 @@ class DocumentGenerator():
 
     def clone_all_repos(self):
         self.thunder_commit_id, self.thunder_commit_date = self.clone_repo(THUNDER_REPO_URL, self.thunder_path)
+        self.thunder_tools_commit_id, self.thunder_tools_commit_date = self.clone_repo(THUNDER_TOOLS_REPO_URL, self.thunder_tools_path)
         self.thunder_interfaces_commit_id, self.thunder_interfaces_commit_date = self.clone_repo(THUNDER_INTERFACE_REPO_URL, self.thunder_interface_path)
         self.thunder_plugins_commit_id, self.thunder_plugins_commit_date = self.clone_repo(THUNDER_PLUGINS_REPO_URL, self.thunder_plugins_path)
         self.rdk_plugins_commit_id, self.rdk_plugins_commit_date = self.clone_repo(RDK_PLUGINS_REPO_URL, self.rdk_plugins_path)
@@ -249,16 +254,18 @@ if __name__ == "__main__":
     thunder_plugins_path = clone_path + "/thunder_nano_services/"
     rdk_plugins_path = clone_path + "/thunder_nano_services_rdk/"
     thunder_path = clone_path + "/thunder/"
+    thunder_tools_path = clone_path + "/thundertools/"
     docs_path = clone_path + "/Documentation/"
     log.Info("Interface path: {} ".format( thunder_interface_path))
     log.Info("Plugin path: {}".format( thunder_plugins_path))
     log.Info("RDKPlugin path: {}".format( rdk_plugins_path))
     log.Info("Thunder path: {}".format( thunder_path))
+    log.Info("Thunder Tools path: {}".format( thunder_tools_path))
     log.Info("Documentation path: {}".format( docs_path))
 
 
-    document_generator = DocumentGenerator(thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, docs_path)
-    os.chdir(thunder_path + "/Tools/JsonGenerator/")
+    document_generator = DocumentGenerator(thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, docs_path, thunder_tools_path)
+    os.chdir(thunder_tools_path + "/JsonGenerator/")
 
     log.Info("Adding Interface Documentation")
     document_generator.add_topic("Interface Documentation")
