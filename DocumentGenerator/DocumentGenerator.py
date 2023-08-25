@@ -151,7 +151,6 @@ class DocumentGenerator():
         self.rdk_plugins_commit_id, self.rdk_plugins_commit_date = self.clone_repo(RDK_PLUGINS_REPO_URL, self.rdk_plugins_path)
         self.docs_commit_id, self.docs_commit_date = self.clone_repo(DOCS_REPO_URL, self.docs_path)
 
-
     def clone_repo(self, repo_url, local_path):
         repo = Repo.clone_from(repo_url, local_path)
         headcommit = repo.head.commit
@@ -180,24 +179,27 @@ This section contains the documentation created from plugins\n\n
         index_file.write(index_file_interface_contents)
         index_file.write(index_file_contents_plugins)
 
-        return
-
     def generate_document(self, schemas):
         # output_path = "/Users/ksomas586/testPrgs/MarkDown/documentation/out/"
         output_path = self.docs_path + "/docs/"
-        for schema in schemas:
-            if schema:
-                warnings = JsonGenerator.GENERATED_JSON
-                JsonGenerator.GENERATED_JSON = "dorpc" in schema
+        for schemas_ in schemas:
+          for schema in schemas_:
+            if schema and "info" in schema:
+                warnings = JsonGenerator.config.GENERATED_JSON
+                JsonGenerator.config.GENERATED_JSON = "dorpc" in schema
                 title = schema["info"]["title"] if "title" in schema["info"] \
                                     else schema["info"]["class"] if "class" in schema["info"] \
                                     else os.path.basename(output_path)
+
+                if "namespace" in schema["info"]:
+                    title = schema["info"]["namespace"] + title
+
                 try:
                     path = os.path.join(os.path.dirname(output_path), title.replace(" ", ""))
                     filename = os.path.basename(os.path.dirname(path) + "/" + os.path.basename(path).replace(".json", "") + ".md")
                     self._yaml_generator.create_subtopics(title, filename)
-                    JsonGenerator.CreateDocument(schema, path)
-                    JsonGenerator.GENERATED_JSON = warnings
+                    JsonGenerator.documentation_generator.Create(log, schema, path)
+                    JsonGenerator.config.GENERATED_JSON = warnings
                 except RuntimeError as err:
                     log.Error("Error : {}".format( str(err)))
                 except Exception as err:
@@ -209,7 +211,7 @@ This section contains the documentation created from plugins\n\n
 
     def header_to_markdown(self, path):
         for file in glob.glob(path):
-            schemas = JsonGenerator.LoadInterface(file, [self.thunder_path + "/Source/"])
+            schemas = JsonGenerator.header_loader.LoadInterface(file, log, includePaths=[self.thunder_path + "/Source/"])
             self.generate_document(schemas)
         return
 
@@ -217,7 +219,7 @@ This section contains the documentation created from plugins\n\n
         for file in glob.glob(path):
             if file.endswith("common.json"):
                 continue
-            schemas = [JsonGenerator.LoadSchema(file, thunder_interface_path + "/jsonrpc/", thunder_interface_path + "/interfaces/", [thunder_path + "/Source/"])]
+            schemas = JsonGenerator.json_loader.LoadSchema(file, thunder_interface_path + "/jsonrpc/", thunder_interface_path + "/interfaces/", [thunder_path + "/Source/"])
             self.generate_document(schemas)
         return
     
