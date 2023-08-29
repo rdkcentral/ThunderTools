@@ -37,7 +37,7 @@ SHOW_WARNINGS = True
 DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "WPEFramework"
-INTERFACE_NAMESPACE = FRAMEWORK_NAMESPACE + "::Exchange"
+INTERFACE_NAMESPACE = "::" + FRAMEWORK_NAMESPACE + "::Exchange"
 INTERFACES_SECTION = True
 INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
@@ -286,7 +286,9 @@ def Parse(cmdline):
     DUMP_JSON = args.dump_json
     FORCE = args.force
     DEFAULT_DEFINITIONS_FILE = args.extra_include
-    INTERFACE_NAMESPACE = "::" + args.if_namespace if args.if_namespace.find("::") != 0 else args.if_namespace
+    INTERFACE_NAMESPACE = args.if_namespace
+    if not INTERFACE_NAMESPACE.startswith("::"):
+        INTERFACE_NAMESPACE += "::"
     INTERFACES_SECTION = not args.no_interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
