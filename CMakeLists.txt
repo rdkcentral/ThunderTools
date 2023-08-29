@@ -19,7 +19,9 @@ cmake_minimum_required(VERSION 3.3)
 
 project(Generators)
 
-set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/sbin")
+if (NOT DEFINED GENERATOR_INSTALL_PATH)
+    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/sbin" CACHE PATH "Path where the python scripts will be called from the cmake entries")
+endif()
 
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
 option(PROXYSTUB_GENERATOR_ENABLE_COHERENCY "Globally enable frame coherency checks in proxystubs" OFF)
