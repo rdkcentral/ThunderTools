@@ -86,7 +86,7 @@ class MkdocsYamlFileGenerator():
         if self._topic_dict[self._current_topic] != None and isinstance(self._topic_dict[self._current_topic], list):
             self._topic_dict[self._current_topic].append((sub_topic_name, markdown_filename))
         return
-    
+
     def create_file(self):
         self._fd = open(self._yamlfile_path, "w")
         self.create_site_details(self._site_name, self._site_url)
@@ -99,6 +99,7 @@ class MkdocsYamlFileGenerator():
                 self.add_subtopic(subtopic[0], subtopic[1])
         self._fd.close()
         self._fd = None
+        log.Info("Created %s" % self._yamlfile_path)
         return
 
     def add_theme_info(self):
@@ -222,20 +223,19 @@ This section contains the documentation created from plugins\n\n
             schemas = JsonGenerator.json_loader.LoadSchema(file, thunder_interface_path + "/jsonrpc/", thunder_interface_path + "/interfaces/", [thunder_path + "/Source/"])
             self.generate_document(schemas)
         return
-    
+
     def complete_yaml_creation(self):
         self._yaml_generator.create_file()
-
-    #def __del__(self):
-    #    self.clean_all_repos_dir()
 
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         description='Generate API and plugin documentation.',
         formatter_class=argparse.RawTextHelpFormatter)
+
     docs_repo_url = os.environ.get("DOCS_REPO_URL")
     if docs_repo_url != None:
         DOCS_REPO_URL = docs_repo_url
+
     argparser.add_argument("--deploy",
                             dest="github_deploy",
                             action="store_true",
@@ -265,7 +265,6 @@ if __name__ == "__main__":
     log.Info("Thunder Tools path: {}".format( thunder_tools_path))
     log.Info("Documentation path: {}".format( docs_path))
 
-
     document_generator = DocumentGenerator(thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, docs_path, thunder_tools_path)
     os.chdir(thunder_tools_path + "/JsonGenerator/")
 
@@ -278,15 +277,12 @@ if __name__ == "__main__":
     document_generator.json_to_markdown(thunder_plugins_path + "/*/*Plugin.json")
     document_generator.json_to_markdown(rdk_plugins_path + "/*/*Plugin.json")
     document_generator.complete_yaml_creation()
+
     if deploy_docs:
         # unless DOCS_REPO_URL is changed the documentation will be deployed in this location https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/
         os.chdir(docs_path)
         try:
-
             ret_val = subprocess.run(["mkdocs", "gh-deploy"])
             log.Info("mkdocs exit code: {} ".format( ret_val.returncode))
         except subprocess.CalledProcessError as err:
             log.Error("Error in deploying: {}".format( str(err)))
-    document_generator.clean_all_repos_dir()
-
-
