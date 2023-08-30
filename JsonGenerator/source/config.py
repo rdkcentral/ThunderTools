@@ -288,7 +288,7 @@ def Parse(cmdline):
     DEFAULT_DEFINITIONS_FILE = args.extra_include
     INTERFACE_NAMESPACE = args.if_namespace
     if not INTERFACE_NAMESPACE.startswith("::"):
-        INTERFACE_NAMESPACE += "::"
+        INTERFACE_NAMESPACE = "::" + INTERFACE_NAMESPACE
     INTERFACES_SECTION = not args.no_interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
