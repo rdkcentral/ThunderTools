@@ -1,8 +1,8 @@
-name: Build ThunderTools on Windows!
+name: Build ThunderTools on Windows
 
 on:
   push:
-    branches: ["master"]
+    branches: ["development/actions-windows-bridge"] # CHANGE TO MASTER
   pull_request:
     branches: ["master"]
  
