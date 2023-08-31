@@ -2,7 +2,7 @@ name: Build ThunderTools on Windows
 
 on:
   push:
-    branches: ["development/actions-windows-bridge"] # CHANGE TO MASTER
+    branches: ["master"]
   pull_request:
     branches: ["master"]
   workflow_call:
@@ -145,7 +145,7 @@ jobs:
     - name: Install jsonref
       run: pip install jsonref
 
-    - name: Build ThunderNanoServices
+    - name: Build ThunderTools
       shell: cmd
       run: |
         cd ThunderOnWindows
