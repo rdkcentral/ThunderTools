@@ -19,7 +19,9 @@ cmake_minimum_required(VERSION 3.3)
 
 project(Generators)
 
-set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/sbin")
+if (NOT DEFINED GENERATOR_INSTALL_PATH)
+    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/sbin" CACHE PATH "Path where the python scripts will be called from the cmake entries")
+endif()
 
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
 option(PROXYSTUB_GENERATOR_ENABLE_COHERENCY "Globally enable frame coherency checks in proxystubs" OFF)
@@ -37,17 +39,17 @@ if(NOT DEFINED GENERIC_CMAKE_MODULE_PATH)
     endif()
 endif()
 
-configure_file( "${CMAKE_SOURCE_DIR}/cmake/FindProxyStubGenerator.cmake.in"
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindProxyStubGenerator.cmake.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/FindProxyStubGenerator.cmake"
                 @ONLY
 )
 
-configure_file( "${CMAKE_SOURCE_DIR}/cmake/FindJsonGenerator.cmake.in"
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindJsonGenerator.cmake.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/FindJsonGenerator.cmake"
                 @ONLY
 )
 
-configure_file( "${CMAKE_SOURCE_DIR}/cmake/FindConfigGenerator.cmake.in"
+configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindConfigGenerator.cmake.in"
     "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
                 @ONLY
 )
@@ -71,9 +73,9 @@ install(FILES
 
 
 install(DIRECTORY 
-        "${CMAKE_SOURCE_DIR}/ProxyStubGenerator"
-        "${CMAKE_SOURCE_DIR}/JsonGenerator"
-        "${CMAKE_SOURCE_DIR}/ConfigGenerator"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ProxyStubGenerator"
+        "${CMAKE_CURRENT_SOURCE_DIR}/JsonGenerator"
+        "${CMAKE_CURRENT_SOURCE_DIR}/ConfigGenerator"
     DESTINATION ${GENERATOR_INSTALL_PATH}
     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
 )
