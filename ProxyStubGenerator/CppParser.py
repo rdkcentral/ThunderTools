@@ -2329,7 +2329,8 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
                     idx = file_content.find("@insert", pos)
                 if idx != -1:
                     pos = idx + 1
-                    match = re.search(r' \"(.+?)\"', file_content[idx:])
+                    line = file_content[idx:].split("\n", 1)[0]
+                    match = re.search(r' \"(.+?)\"', line)
                     if match:
                         if match.group(1) != os.path.basename(os.path.realpath(source_file)):
                             tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
@@ -2343,7 +2344,7 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
                         else:
                             raise LoaderError(source_file, "can't recursively include self")
                     else:
-                        match = re.search(r' <(.+?)>', file_content[idx:])
+                        match = re.search(r' <(.+?)>', line)
                         if match:
                             found = False
                             for ipath in includePaths:
