@@ -325,8 +325,10 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
 
                     if param.IsPointer():
                         parsed = ParseLength(param, meta.length if meta.length else meta.maxlength, vars)
+
                         if parsed[1]:
                             length_param = parsed[1]
+
                         value = "BUFFER" + parsed[0]
                     else:
                         if paramtype.type.TypeName().endswith(HRESULT):
@@ -342,6 +344,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                                 value = "INT32"
                             elif p.size == "long long":
                                 value = "INT64"
+
                             if not p.signed:
                                 value = "U" + value
 
@@ -358,6 +361,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                                         break
 
                     rvalue = ["type = Type." + value]
+
                     if length_param:
                         rvalue.append("length_param = \"%s\"" % length_param)
 
@@ -369,18 +373,28 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                 elif isinstance(p, CppParser.Bool):
                     return ["type = Type.BOOL"]
 
+                elif isinstance(p, CppParser.Float):
+                    print(p)
+                    if p.type == "float":
+                        return ["type = Type.FLOAT32"]
+                    elif p.type == "double":
+                        return ["type = Type.FLOAT64"]
+
                 elif isinstance(p, CppParser.Class):
                     if param.IsPointer():
                         return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName())]
                     else:
                         value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name)]
                         pod_params = []
+
                         for v in p.vars:
                             param_info = Convert(v, None, p.vars)
                             text = []
                             text.append("name = " + v.name)
+
                             if param_info:
                                 text.extend(param_info)
+
                             pod_params.append("{ %s }" % ", ".join(text))
 
                         if pod_params:
@@ -391,14 +405,17 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                 elif isinstance(p, CppParser.Enum):
                     value = "32"
                     signed = "U"
+
                     if p.type.Type().size == "char":
                         value = "8"
                     elif p.type.Type().size == "short":
                         value = "16"
+
                     if p.type.Type().signed:
                         signed = ""
 
                     name = Flatten(param.type.full_name)
+
                     if name not in enums_list:
                         data = dict()
                         for e in p.items:
