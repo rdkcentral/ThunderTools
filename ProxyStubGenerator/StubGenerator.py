@@ -598,7 +598,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             @property
             def storage_size(self):
-                if isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                if isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "sizeof(%s)" % self.type_name
                 else:
                     Unreachable()
@@ -927,6 +927,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                             if ((self.restrict_range[1] >= (64*1024)) and (self.restrict_range[1] < (16*1024*1024))):
                                 self.type_name = "Core::Frame::UInt24"
 
+                if isinstance(self.kind, CppParser.Fundamental) and self.type.IsReference() and self.is_input_only:
+                    log.WarnLine(self.identifier, "%s: input-only fundamental type passed by reference" % self.trace_proto)
+
             @property
             def as_rvalue(self):
                 def maybe_cast(expr):
@@ -985,8 +988,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif isinstance(self.kind, CppParser.Enum):
                     return "Number<%s>()" % self.type_name
 
+                # Floating point types
+                elif isinstance(self.kind, CppParser.Float):
+                    if "long" not in self.type_name:
+                        return "Number<%s>()" % self.type_name
+                    else:
+                        raise TypenameError(self.identifier, "long double type is not supported (see '%s')" % (self.trace_proto))
                 else:
-                    raise TypenameError(self.identifier, "%s: unable to deserialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: unable to deserialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def write_rpc_type(self):
@@ -1013,8 +1022,15 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif isinstance(self.kind, CppParser.BuiltinInteger):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
 
+                # Floating point types
+                elif isinstance(self.kind, CppParser.Float):
+                    if "long" not in self.type_name:
+                        return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                    else:
+                        raise TypenameError(self.identifier, "long double is not supported (see '%s')" % (self.trace_proto))
+
                 else:
-                    raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def storage_size(self):
@@ -1027,7 +1043,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         return "(sizeof(uint32_t))"
                     else:
                         return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return 1 # always one byte
