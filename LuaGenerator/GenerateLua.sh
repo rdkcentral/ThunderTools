@@ -21,22 +21,20 @@
 # Generates interface data in lua
 #
 # Typical usage:
-#   ./GenerateLua.sh [<Thunder_dir> <ThunderInterfaces_dir> <ThunderClientLibraries_dir>]
+#   ./GenerateLua.sh [<Thunder_dir> <ThunderInterfaces_dir>]
 #   ./GenerateLua.sh
-#   ./GenerateLua.sh ../../Thunder ../../ThunderInterfaces ../../ThunderClientLibraries
-#   ./GenerateLua.sh ~/work/Thunder ~/work/ThunderInterfaces ~/work/ThunderClientLibraries
+#   ./GenerateLua.sh ../../Thunder ../../ThunderInterfaces
+#   ./GenerateLua.sh ~/work/Thunder ~/work/ThunderInterfaces
 #
 
 command -v ../ProxyStubGenerator/StubGenerator.py >/dev/null 2>&1 || { echo >&2 "StubGenerator.py is not available. Aborting."; exit 1; }
 
 THUNDER_DIR="${1:-../../Thunder}"
 INTERFACES_DIR="${2:-../../ThunderInterfaces}"
-CLIENTLIBRARIES_DIR="${3:-../../ThunderClientLibraries}"
 
 files="$THUNDER_DIR/Source/com/ICOM.h"
-files="$files $THUNDER_DIR/Source/plugins/IController.h $THUNDER_DIR/Source/plugins/IPlugin.h $THUNDER_DIR/Source/plugins/IShell.h $THUNDER_DIR/Source/plugins/IStateControl.h $THUNDER_DIR/Source/plugins/ISubSystem.h"
+files="$files $THUNDER_DIR/Source/plugins/IController.h $THUNDER_DIR/Source/plugins/IPlugin.h $THUNDER_DIR/Source/plugins/IShell.h $THUNDER_DIR/Source/plugins/IStateControl.h $THUNDER_DIR/Source/plugins/ISubSystem.h $THUNDER_DIR/Source/plugins/IDispatcher.h"
 files="$files $INTERFACES_DIR/interfaces/I*.h"
-files="$files $CLIENTLIBRARIES_DIR/Source/cryptography/I*.h"
 # add more interface files if needed..
 
 echo "Generating lua data file..."
