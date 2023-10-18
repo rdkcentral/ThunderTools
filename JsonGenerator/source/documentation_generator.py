@@ -109,7 +109,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 if name or prefix:
                     if "type" not in obj:
-                        raise DocumentationError("missing 'type' for object %s" % (parentName + "/" + name))
+                        raise DocumentationError("'%s': missing 'type' for this object" % (parentName + "/" + name))
 
                     row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
 
@@ -126,6 +126,11 @@ def Create(log, schema, path, indent_size = 4):
 
                     if optional and "default" in obj:
                         row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
+
+                    if obj["type"] == "number":
+                        # correct number to integer
+                        if ("float" not in obj or not obj["float"]) and ("example" not in obj or '.' not in str(obj["example"])):
+                            obj["type"] = "integer"
 
                     MdRow([prefix, "opaque object" if obj.get("opaque") else obj["type"], row])
 
@@ -172,9 +177,18 @@ def Create(log, schema, path, indent_size = 4):
 
             if obj_type == "string":
                 json_data += "{  }" if obj.get("opaque") else ('"%s"' % (default if default else "..."))
-            elif obj_type in ["integer", "number"]:
+            elif obj_type == "integer":
+                if default and not str(default).isnumeric():
+                    raise DocumentationError("'%s': invalid example syntax for this integer type (see '%s')" % (name, default))
+
                 json_data += '%s' % (default if default else 0)
-            elif obj_type in ["float", "double"]:
+            elif obj_type == "number":
+                if default and not str(default).replace('.','').isnumeric():
+                    raise DocumentationError("'%s': invalid example syntax for this numeric (floating-point) type (see '%s')" % (name, default))
+
+                if default and '.' not in str(default):
+                    default = default * 1.0
+
                 json_data += '%s' % (default if default else 0.0)
             elif obj_type == "boolean":
                 json_data += '%s' % str(default if default else False).lower()
@@ -192,7 +206,7 @@ def Create(log, schema, path, indent_size = 4):
 
         def MethodDump(method, props, classname, section, is_notification=False, is_property=False, include=None):
             method = (method.rsplit(".", 1)[1] if "." in method else method)
-            type =  "property" if is_property else "event" if is_notification else "method"
+            type = "property" if is_property else "event" if is_notification else "method"
 
             log.Info("Emitting documentation for %s '%s'..." % (type, method))
 
@@ -252,7 +266,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 if "index" in props:
                     if "name" not in props["index"] or "example" not in props["index"]:
-                        raise DocumentationError("in %s: index field needs 'name' and 'example' properties" % method)
+                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
 
                     extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. *%s.1.%s@%s*.%s" % (
                         props["index"]["name"].lower(), classname, method, props["index"]["example"],
@@ -276,7 +290,7 @@ def Create(log, schema, path, indent_size = 4):
                 if is_notification:
                     if "id" in props:
                         if "name" not in props["id"] or "example" not in props["id"]:
-                            raise DocumentationError("in %s: id field needs 'name' and 'example' properties" % method)
+                            raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
 
                         MdParagraph("> The *%s* argument shall be passed within the designator, e.g. *%s.client.events.1*." %
                                     (props["id"]["name"], props["id"]["example"]))
@@ -333,7 +347,7 @@ def Create(log, schema, path, indent_size = 4):
                                                     object_pairs_hook=OrderedDict), indent=2)
                         MdCode(jsonResponse, "json")
                     elif "noresult" not in props or not props["noresult"]:
-                        raise DocumentationError("missing 'result' in %s" % method)
+                        raise DocumentationError("'%s': missing 'result' in this method" % method)
 
                 if is_property:
                     MdHeader("Set Response", 4)
@@ -421,7 +435,7 @@ def Create(log, schema, path, indent_size = 4):
         elif status == "production" or status == "prod":
             rating = 3
         else:
-            raise DocumentationError("invalid status")
+            raise DocumentationError("invalid status (see '%s')" % status)
 
         plugin_class = None
 

@@ -12,7 +12,7 @@ class Log:
         self.name = name
         self.file = ""
         if os.name == "posix":
-            self.info      = "\033[0mINFO"
+            self.cinfo     = "\033[36mINFO"
             self.cwarn     = "\033[33mWARNING"
             self.cerror    = "\033[31mERROR"
             self.cdocissue = "\033[37mDOCUMENTATION"
@@ -30,7 +30,7 @@ class Log:
     def Info(self, text, file=""):
         if self.show_infos:
             if not file: file = self.file
-            self.infos.append("%s: %s: %s%s%s" % (self.name, self.info, file, ": " if file else "", text))
+            self.infos.append("%s: %s%s: %s%s%s" % (self.name, self.cinfo, self.creset, file, ": " if file else "", text))
             self.__Print(self.infos[-1])
 
     def DocIssue(self, text, file=""):

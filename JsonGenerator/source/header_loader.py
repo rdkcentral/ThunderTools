@@ -186,7 +186,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         result = [ "integer", { "size": size, "signed": cppType.signed } ]
                     # Float
                     elif isinstance(cppType, CppParser.Float):
-                        result = [ "float", { "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
+                        result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
                     # Null
                     elif isinstance(cppType, CppParser.Void):
                         result = [ "null", {} ]

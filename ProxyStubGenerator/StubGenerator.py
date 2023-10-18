@@ -325,8 +325,10 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
 
                     if param.IsPointer():
                         parsed = ParseLength(param, meta.length if meta.length else meta.maxlength, vars)
+
                         if parsed[1]:
                             length_param = parsed[1]
+
                         value = "BUFFER" + parsed[0]
                     else:
                         if paramtype.type.TypeName().endswith(HRESULT):
@@ -342,6 +344,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                                 value = "INT32"
                             elif p.size == "long long":
                                 value = "INT64"
+
                             if not p.signed:
                                 value = "U" + value
 
@@ -358,6 +361,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                                         break
 
                     rvalue = ["type = Type." + value]
+
                     if length_param:
                         rvalue.append("length_param = \"%s\"" % length_param)
 
@@ -369,18 +373,28 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                 elif isinstance(p, CppParser.Bool):
                     return ["type = Type.BOOL"]
 
+                elif isinstance(p, CppParser.Float):
+                    print(p)
+                    if p.type == "float":
+                        return ["type = Type.FLOAT32"]
+                    elif p.type == "double":
+                        return ["type = Type.FLOAT64"]
+
                 elif isinstance(p, CppParser.Class):
                     if param.IsPointer():
                         return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName())]
                     else:
                         value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name)]
                         pod_params = []
+
                         for v in p.vars:
                             param_info = Convert(v, None, p.vars)
                             text = []
                             text.append("name = " + v.name)
+
                             if param_info:
                                 text.extend(param_info)
+
                             pod_params.append("{ %s }" % ", ".join(text))
 
                         if pod_params:
@@ -391,14 +405,17 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                 elif isinstance(p, CppParser.Enum):
                     value = "32"
                     signed = "U"
+
                     if p.type.Type().size == "char":
                         value = "8"
                     elif p.type.Type().size == "short":
                         value = "16"
+
                     if p.type.Type().signed:
                         signed = ""
 
                     name = Flatten(param.type.full_name)
+
                     if name not in enums_list:
                         data = dict()
                         for e in p.items:
@@ -598,7 +615,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             @property
             def storage_size(self):
-                if isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                if isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "sizeof(%s)" % self.type_name
                 else:
                     Unreachable()
@@ -927,6 +944,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                             if ((self.restrict_range[1] >= (64*1024)) and (self.restrict_range[1] < (16*1024*1024))):
                                 self.type_name = "Core::Frame::UInt24"
 
+                if isinstance(self.kind, CppParser.Fundamental) and self.type.IsReference() and self.is_input_only:
+                    log.WarnLine(self.identifier, "%s: input-only fundamental type passed by reference" % self.trace_proto)
+
             @property
             def as_rvalue(self):
                 def maybe_cast(expr):
@@ -985,8 +1005,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif isinstance(self.kind, CppParser.Enum):
                     return "Number<%s>()" % self.type_name
 
+                # Floating point types
+                elif isinstance(self.kind, CppParser.Float):
+                    if "long" not in self.type_name:
+                        return "Number<%s>()" % self.type_name
+                    else:
+                        raise TypenameError(self.identifier, "long double type is not supported (see '%s')" % (self.trace_proto))
                 else:
-                    raise TypenameError(self.identifier, "%s: unable to deserialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: unable to deserialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def write_rpc_type(self):
@@ -1013,8 +1039,15 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif isinstance(self.kind, CppParser.BuiltinInteger):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
 
+                # Floating point types
+                elif isinstance(self.kind, CppParser.Float):
+                    if "long" not in self.type_name:
+                        return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                    else:
+                        raise TypenameError(self.identifier, "long double is not supported (see '%s')" % (self.trace_proto))
+
                 else:
-                    raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def storage_size(self):
@@ -1027,7 +1060,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         return "(sizeof(uint32_t))"
                     else:
                         return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return 1 # always one byte
