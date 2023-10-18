@@ -2,7 +2,7 @@ name: Build ThunderTools on Windows
 
 on:
   push:
-    # branches: ["master"] (REMOVE BRACKETS)
+    branches: ["master"]
   pull_request:
     branches: ["master"]
   workflow_call:
