@@ -1124,7 +1124,8 @@ class Variable(Identifier, Name):
 
 class Parameter(Variable):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[]):
-        Variable.__init__(self, parent_block, string, value, valid_specifiers)
+        Variable.__init__(self, parent_block, string, None, valid_specifiers)
+        self.def_value = Evaluate(value) if value else None
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
 
@@ -1135,7 +1136,7 @@ class Parameter(Variable):
         return "%s %s" % (self.Proto(), self.name)
 
     def __repr__(self):
-        value = ValueStr(self.value) if self.value else None
+        value = ValueStr(self.def_value) if self.def_value else None
         return "param %s '%s'%s" % (TypeStr(self.type), str(self.name), (" = " + value) if value else "")
 
 
