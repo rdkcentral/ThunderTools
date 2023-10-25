@@ -97,6 +97,8 @@ class Metadata:
         self.maxlength = None
         self.interface = None
         self.alt = None
+        self.alt_is_deprecated = None
+        self.alt_is_obsolete = None
         self.text = None
         self.range = []
         self.param = OrderedDict()
@@ -396,6 +398,14 @@ class Identifier():
                     skip = 1
                 elif token[1:] == "ALT":
                     self.meta.alt = "".join(string[i + 1])
+                    skip = 1
+                elif token[1:] == "ALT:OBSOLETE" or token[1:] == "ALT-OBSOLETE":
+                    self.meta.alt = "".join(string[i + 1])
+                    self.meta.alt_is_obsolete = True
+                    skip = 1
+                elif token[1:] == "ALT:DEPRECATED" or token[1:] == "ALT-DEPRECATED":
+                    self.meta.alt = "".join(string[i + 1])
+                    self.meta.alt_is_deprecated = True
                     skip = 1
                 else:
                     raise ParserError("invalid tag: " + token)
@@ -1049,22 +1059,6 @@ class Function(Block, Name):
         self.is_excluded = False
 
     def Append(self):
-        if not self.is_excluded and not self.omit:
-            test_name = self.retval.meta.text if self.retval.meta.text else self.name
-            for method in self.parent.methods:
-                name = method.retval.meta.text if method.retval.meta.text else method.name
-                if name == test_name:
-                    if self.parent.is_json:
-                        if method.retval.meta.is_property:
-                            if method.retval.meta.text:
-                                self.retval.meta.text = method.retval.meta.text
-                            if method.retval.meta.alt:
-                                self.retval.meta.alt = method.retval.meta.alt
-                        elif not method.omit and not method.is_excluded:
-                            raise ParserError("'%s': JSON-RPC name clash detected, resolve with @text tag" % name)
-
-                    break
-
         self.parent.methods.append(self)
 
     def Proto(self):
@@ -1619,6 +1613,14 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
                 if _find("@alt", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt"))
+                if _find("@alt:deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt:deprecated"))
+                if _find("@alt-deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
+                if _find("@alt:obsolete", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt:obsolete"))
+                if _find("@alt-obsolete", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-obsolete"))
                 if _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
                 if _find("@length", token):

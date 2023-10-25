@@ -694,6 +694,7 @@ class JsonMethod(JsonObject):
 
         JsonObject.__init__(self, name, parent, method_schema, included=included)
 
+        self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
         self.obsolete = schema.get("obsolete")
@@ -743,6 +744,16 @@ class JsonNotification(JsonMethod):
 
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
         self.is_status_listener = schema.get("statuslistener")
+
+        if "alt" in schema:
+            self.alternative = schema.get("alt")
+
+            if not self.alternative.islower():
+                log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
+            elif "_" in self.alternative:
+                log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
+        else:
+            self.alternative = None
 
         self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
 

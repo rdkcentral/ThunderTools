@@ -127,39 +127,58 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 emit.Line("if (%s == nullptr) {" % sendiffn_var)
                 emit.Indent()
 
-            # Use stock send-if function
-            emit.Line('%sNotify(%s, [%s](const string& %s) -> bool {' % (prefix, ", ".join(parameters), filter_var, designator_var))
-            emit.Indent()
-            emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (index_var, designator_var, designator_var))
+            def Emit(parameters):
+                # Use stock send-if function
+                emit.Line('%sNotify(%s, [%s](const string& %s) -> bool {' % (prefix, ", ".join(parameters), filter_var, designator_var))
+                emit.Indent()
+                emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (index_var, designator_var, designator_var))
 
-            if isinstance(event.sendif_type, JsonInteger):
-                conv_index_var = "_designatorIdAsInt"
-                emit.Line("%s %s{};" % (event.sendif_type.cpp_native_type, conv_index_var))
-                emit.Line("return ((Core::FromString(%s, %s) == true) && (%s == %s));" % (designator_var, index_var, filter_var, conv_index_var))
+                if isinstance(event.sendif_type, JsonInteger):
+                    conv_index_var = "_designatorIdAsInt"
+                    emit.Line("%s %s{};" % (event.sendif_type.cpp_native_type, conv_index_var))
+                    emit.Line("return ((Core::FromString(%s, %s) == true) && (%s == %s));" % (designator_var, index_var, filter_var, conv_index_var))
 
-            elif isinstance(event.sendif_type, JsonEnum):
-                conv_index_var = "_designatorIdAsEnum"
-                emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (event.sendif_type.cpp_native_type, conv_index_var, index_var))
-                emit.Line("return (_value.IsSet() == true) && (%s == %s));" % (filter_var, conv_index_var))
+                elif isinstance(event.sendif_type, JsonEnum):
+                    conv_index_var = "_designatorIdAsEnum"
+                    emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (event.sendif_type.cpp_native_type, conv_index_var, index_var))
+                    emit.Line("return (_value.IsSet() == true) && (%s == %s));" % (filter_var, conv_index_var))
 
-            else:
-                emit.Line("return (%s == %s);" % (filter_var, index_var))
+                else:
+                    emit.Line("return (%s == %s);" % (filter_var, index_var))
 
-            emit.Unindent()
-            emit.Line("});")
+                emit.Unindent()
+                emit.Line("});")
+
+            Emit(parameters)
+
+            if event.alternative:
+                Emit([Tstring(event.alternative)] + parameters[1:])
 
             if not legacy:
                 emit.Unindent()
                 emit.Line("} else {")
 
+                def Emit(parameters):
+                    emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + [sendiffn_var])))
+
                 # Use supplied custom send-if function
                 emit.Indent()
-                emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + [sendiffn_var])))
+                Emit(parameters)
+
+                if event.alternative:
+                    Emit([Tstring(event.alternative)] + parameters[1:])
+
                 emit.Unindent()
                 emit.Line("}")
         else:
             # No send-if
-            emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + ([sendiffn_var] if event.is_status_listener else []))))
+            def Emit(parameters):
+                emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + ([sendiffn_var] if event.is_status_listener else []))))
+
+            Emit(parameters)
+
+            if event.alternative:
+                Emit([Tstring(event.alternative)] + parameters[1:])
 
     emit.Unindent()
     emit.Line("}")
