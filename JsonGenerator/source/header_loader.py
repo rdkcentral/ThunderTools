@@ -186,7 +186,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         result = [ "integer", { "size": size, "signed": cppType.signed } ]
                     # Float
                     elif isinstance(cppType, CppParser.Float):
-                        result = [ "float", { "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
+                        result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
                     # Null
                     elif isinstance(cppType, CppParser.Void):
                         result = [ "null", {} ]
@@ -285,7 +285,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         properties["example"] = pair[0]
                         properties["description"] = pair[1]
                     else:
-                        properties["description"] = var.meta.brief
+                        properties["description"] = var.meta.brief.strip()
 
                 return properties
 
@@ -423,14 +423,38 @@ def LoadInterface(file, log, all = False, includePaths = []):
             else:
                 prefix = ""
 
+            method_name = method.name
+            method_name_lower = method_name.lower()
+
+            if method.retval.meta.text == method_name_lower:
+                log.WarnLine(method, "%s': changed function name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+
+            # Copy over @text tag to the other method of a property
+            if method.retval.meta.text and method.retval.meta.is_property:
+                for mm in face.obj.methods:
+                    if mm != method and mm.name == method.name:
+                        mm.retval.meta.text = method.retval.meta.text
+                        break
+
             method_name = method.retval.meta.text if method.retval.meta.text else method.name
             method_name_lower = method_name.lower()
 
-            if method.retval.meta.alt == method_name_lower:
-                log.WarnLine(method, "%s': alternative name is same as original name" % method.name)
+            if method.parent.is_json:
+                if method.retval.meta.alt == method_name_lower:
+                    log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
 
-            if method.retval.meta.text == method_name_lower:
-                log.WarnLine(method, "%s': changed function name is same as original name" % method.name)
+                for mm in methods:
+                    if mm == prefix + method_name_lower:
+                        raise CppParseError(method, "JSON-RPC name clash detected ('%s')" % (prefix + method_name_lower))
+                    if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
+                        raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name_lower))
+
+                for mm in properties:
+                    if properties[mm]["@originalname"] != method.name:
+                        if mm == prefix + method_name_lower:
+                            raise CppParseError(method, "JSON-RPC name clash detected ('%s')x" % (prefix + method_name_lower))
+                        if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
+                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name_lower))
 
             for e in event_params:
                 exists = any(x.obj.type == e.type.type for x in event_interfaces)
@@ -439,15 +463,18 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     event_interfaces.add(CppInterface.Interface(ResolveTypedef(e).type, 0, file))
 
             obj = None
+            property_second_method = False
 
             if method.retval.meta.is_property or (prefix + method_name_lower) in properties:
                 try:
                     obj = properties[prefix + method_name_lower]
+                    property_second_method = True
                 except:
                     obj = OrderedDict()
                     properties[prefix + method_name_lower] = obj
 
                 obj["@originalname"] = method.name
+                method.retval.meta.is_property = True
 
                 indexed_property = (len(method.vars) == 2 and method.vars[0].meta.is_index)
 
@@ -552,11 +579,6 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(method.vars[value], "property setter method must have one input parameter")
-
-                    if method.retval.meta.alt:
-                        properties[prefix + method.retval.meta.alt] = copy.deepcopy(obj)
-                        properties[prefix + method.retval.meta.alt]["deprecated"] = True
-
                 else:
                     raise CppParseError(method, "property method must have one parameter")
 
@@ -579,9 +601,6 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     obj["result"] = BuildResult(method.vars)
                     methods[prefix + method_name_lower] = obj
 
-                    if method.retval.meta.alt:
-                        methods[prefix + method.retval.meta.alt] = copy.deepcopy(obj)
-                        methods[prefix + method.retval.meta.alt]["deprecated"] = True
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by a reference")
 
@@ -592,7 +611,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     obj["obsolete"] = True
 
                 if method.retval.meta.brief:
-                    obj["summary"] = method.retval.meta.brief
+                    obj["summary"] = method.retval.meta.brief.strip()
 
                 if method.retval.meta.details:
                     obj["description"] = method.retval.meta.details
@@ -608,6 +627,32 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                     if errors:
                         obj["errors"] = errors
+
+                upd = properties if method.retval.meta.is_property else methods
+
+                if method.retval.meta.alt:
+                    idx = prefix + method.retval.meta.alt
+                    upd[idx] = copy.deepcopy(obj)
+                    upd[idx]["alt"] = prefix + method_name_lower
+                    obj["alt"] = idx
+
+                    if "deprecated" in upd[idx]:
+                        del upd[idx]["deprecated"]
+                    if "obsolete" in upd[idx]:
+                        del upd[idx]["obsolete"]
+
+                    if method.retval.meta.alt_is_deprecated:
+                        upd[idx]["deprecated"] = True
+                    elif method.retval.meta.alt_is_obsolete:
+                        upd[idx]["obsolete"] = True
+
+                elif "alt" in obj:
+                    o = upd[obj["alt"]]
+                    if "readonly" in o and "readonly" not in obj:
+                        del o["readonly"]
+                    if "writeonly" in o and "writeonly" not in obj:
+                        del o["writeonly"]
+
 
         for f in event_interfaces:
             rpc_format = _EvaluateRpcFormat(f.obj)
@@ -646,10 +691,14 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                 varsidx = 1
                             else:
                                 raise CppParseError(method.vars[0], "failed to determine type of notification id parameter")
+
                     if method.retval.meta.is_listener:
                         obj["statuslistener"] = True
 
                     params = BuildParameters(method.vars[varsidx:], rpc_format, False)
+                    retvals = BuildResult(method.vars[varsidx:])
+                    if retvals and retvals["type"] != "null":
+                        raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
 
                     if method.retval.meta.is_deprecated:
                         obj["deprecated"] = True
@@ -657,7 +706,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         obj["obsolete"] = True
 
                     if method.retval.meta.brief:
-                        obj["summary"] = method.retval.meta.brief
+                        obj["summary"] = method.retval.meta.brief.strip()
 
                     if method.retval.meta.details:
                         obj["description"] = method.retval.meta.details
@@ -665,8 +714,22 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     if params:
                         obj["params"] = params
 
-                    method_name = method.retval.meta.text if method.retval.meta.text else method.name
-                    events[prefix + method_name.lower()] = obj
+                    method_name = (method.retval.meta.text if method.retval.meta.text else method.name).lower()
+
+                    for mm in events:
+                        if mm == prefix + method_name:
+                            raise CppParseError(method, "JSON-RPC name clash detected ('%s')" % (prefix + method_name))
+                        if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
+                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name))
+                        if events[mm].get("alt") == method_name:
+                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' with '%s' alternative)" % ((prefix + method_name), mm))
+
+                    if method.retval.meta.alt:
+                        obj["alt"] = method.retval.meta.alt
+                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
+
+                    events[prefix + method_name] = obj
 
         if methods:
             schema["methods"] = methods

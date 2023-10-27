@@ -325,8 +325,10 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
 
                     if param.IsPointer():
                         parsed = ParseLength(param, meta.length if meta.length else meta.maxlength, vars)
+
                         if parsed[1]:
                             length_param = parsed[1]
+
                         value = "BUFFER" + parsed[0]
                     else:
                         if paramtype.type.TypeName().endswith(HRESULT):
@@ -342,6 +344,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                                 value = "INT32"
                             elif p.size == "long long":
                                 value = "INT64"
+
                             if not p.signed:
                                 value = "U" + value
 
@@ -358,6 +361,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                                         break
 
                     rvalue = ["type = Type." + value]
+
                     if length_param:
                         rvalue.append("length_param = \"%s\"" % length_param)
 
@@ -369,18 +373,28 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                 elif isinstance(p, CppParser.Bool):
                     return ["type = Type.BOOL"]
 
+                elif isinstance(p, CppParser.Float):
+                    print(p)
+                    if p.type == "float":
+                        return ["type = Type.FLOAT32"]
+                    elif p.type == "double":
+                        return ["type = Type.FLOAT64"]
+
                 elif isinstance(p, CppParser.Class):
                     if param.IsPointer():
                         return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName())]
                     else:
                         value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name)]
                         pod_params = []
+
                         for v in p.vars:
                             param_info = Convert(v, None, p.vars)
                             text = []
                             text.append("name = " + v.name)
+
                             if param_info:
                                 text.extend(param_info)
+
                             pod_params.append("{ %s }" % ", ".join(text))
 
                         if pod_params:
@@ -391,14 +405,17 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                 elif isinstance(p, CppParser.Enum):
                     value = "32"
                     signed = "U"
+
                     if p.type.Type().size == "char":
                         value = "8"
                     elif p.type.Type().size == "short":
                         value = "16"
+
                     if p.type.Type().signed:
                         signed = ""
 
                     name = Flatten(param.type.full_name)
+
                     if name not in enums_list:
                         data = dict()
                         for e in p.items:
@@ -598,7 +615,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             @property
             def storage_size(self):
-                if isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                if isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "sizeof(%s)" % self.type_name
                 else:
                     Unreachable()
@@ -927,6 +944,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                             if ((self.restrict_range[1] >= (64*1024)) and (self.restrict_range[1] < (16*1024*1024))):
                                 self.type_name = "Core::Frame::UInt24"
 
+                if isinstance(self.kind, CppParser.Fundamental) and self.type.IsReference() and self.is_input_only:
+                    log.WarnLine(self.identifier, "%s: input-only fundamental type passed by reference" % self.trace_proto)
+
             @property
             def as_rvalue(self):
                 def maybe_cast(expr):
@@ -985,8 +1005,14 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif isinstance(self.kind, CppParser.Enum):
                     return "Number<%s>()" % self.type_name
 
+                # Floating point types
+                elif isinstance(self.kind, CppParser.Float):
+                    if "long" not in self.type_name:
+                        return "Number<%s>()" % self.type_name
+                    else:
+                        raise TypenameError(self.identifier, "long double type is not supported (see '%s')" % (self.trace_proto))
                 else:
-                    raise TypenameError(self.identifier, "%s: unable to deserialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: unable to deserialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def write_rpc_type(self):
@@ -1013,8 +1039,15 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 elif isinstance(self.kind, CppParser.BuiltinInteger):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
 
+                # Floating point types
+                elif isinstance(self.kind, CppParser.Float):
+                    if "long" not in self.type_name:
+                        return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                    else:
+                        raise TypenameError(self.identifier, "long double is not supported (see '%s')" % (self.trace_proto))
+
                 else:
-                    raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type" % self.trace_proto)
+                    raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def storage_size(self):
@@ -1027,7 +1060,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                         return "(sizeof(uint32_t))"
                     else:
                         return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return 1 # always one byte
@@ -1874,6 +1907,44 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
     return interfaces
 
+def GenerateIdentification(name):
+    if not os.path.exists(name):
+        with open(name, "w") as file:
+            emit = Emitter(file, INDENT_SIZE)
+            emit.Line("//")
+            emit.Line("// generated automatically")
+            emit.Line()
+            emit.Line("#include \"Module.h\"")
+            emit.Line("#include <com/ProxyStubs.h>")
+            emit.Line()
+            emit.Line("extern \"C\" {")
+            emit.Line()
+
+            options = []
+
+            # These should always go together...
+            assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
+
+            if ENABLE_INSTANCE_VERIFICATION:
+                options.append("PROXYSTUBS_OPTIONS_SECURE")
+            if ENABLE_INTEGRITY_VERIFICATION:
+                options.append("PROXYSTUBS_OPTIONS_COHERENT")
+            if not options:
+                options.append("0")
+
+            emit.Line("EXTERNAL proxystubs_options_t proxystubs_options()")
+            emit.Line("{")
+            emit.IndentInc()
+            emit.Line("return (static_cast<proxystubs_options_t>(%s));" % " & ".join(options))
+            emit.IndentDec()
+            emit.Line("}")
+            emit.IndentDec()
+            emit.Line()
+            emit.Line("}")
+            emit.Line()
+
+            log.Print("created file %s" % os.path.basename(name))
+
 
 # -------------------------------------------------------------------------
 # entry point
@@ -1908,6 +1979,11 @@ if __name__ == "__main__":
                            action="store_true",
                            default=False,
                            help="emit additional frame coherency verification (default: no extra verification)")
+    argparser.add_argument("--no-identify",
+                           dest="noidentify",
+                           action="store_true",
+                           default=False,
+                           help="do not emit additional file with identification code (default: emit identification code)")
     argparser.add_argument("--traces",
                            dest="traces",
                            action="store_true",
@@ -1998,27 +2074,31 @@ if __name__ == "__main__":
         print("                            e.g.: @length:bufferSize @length:(width*height*4), @length:(sizeof(uint64_t)), @length:void")
         print("")
         print("JSON-RPC-related parameters:")
-        print("   @json                  - takes a class in for JSON-RPC generation")
-        print("   @json:omit             - leaves a method out from a class intended for JSON-RPC generation")
+        print("   @json                  - takes a C++ class in for JSON-RPC generation")
+        print("   @json:omit             - leaves out a method, property or notification from a class intended for JSON-RPC generation")
         print("   @compliant             - tags a class to be generated in JSON-RPC compliant format (default)")
         print("   @uncompliant:extended  - tags a class to be generated in the obsolete 'extended' format")
         print("   @uncompliant:collapsed - tags a class to be generated in the obsolete 'collapsed' format")
-        print("   @event                 - takes a class in to be generated as an JSON-RPC event")
-        print("   @property              - tags method to be generated as a JSON-RPC property")
-        print("   @iterator              - tags a class to be generated as an JSON-RPC interator")
+        print("   @event                 - takes a class in to be generated as an JSON-RPC notification")
+        print("   @property              - tags C++ method to be generated as a JSON-RPC property")
+        print("   @iterator              - tags a C++ class to be generated as an JSON-RPC interator")
         print("   @bitmask               - indicates that enumerator lists should be packed into into a bit mask")
-        print("   @index                 - indicates that a parameter in a JSON-RPC property or event is an index")
+        print("   @index                 - indicates that a parameter in a JSON-RPC property or notification is an index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
-        print("   @alt {name}            - provides an alternative name a method can by called by")
-        print("   @text {name}           - sets a different name for a parameter, enumerator, struct or method")
+        print("   @prefix {name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
+        print("   @text {name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, property or notification")
+        print("   @alt {name}            - provides an alternative name a JSON-RPC method or property can by called by")
+        print("                            (for a notification it provides an additional name to send out)")
+        print("   @alt:deprecated {name} - provides an alternative deprecated name a JSON-RPC method can by called by")
+        print("   @alt:obsolete {name}   - provides an alternative obsolete name a JSON-RPC method can by called by")
         print("")
         print("JSON-RPC documentation-related parameters:")
         print("   @sourcelocation {lnk}  - sets source location link to be used in the documentation")
-        print("   @deprecated            - outlines a JSON-RPC method, property or event as deprecated")
-        print("   @obsolete              - outlines a JSON-RPC method, property or event as osbsolete")
-        print("   @brief {desc}          - sets a brief description for a JSON-RPC method, property or event")
-        print("   @details {desc}        - sets a detailed description for a JSON-RPC method, property or event")
-        print("   @param {name} {desc}   - sets a description for a parameter of a JSON-RPC method or event")
+        print("   @deprecated            - outlines a JSON-RPC method, property or notification as deprecated")
+        print("   @obsolete              - outlines a JSON-RPC method, property or notification as osbsolete")
+        print("   @brief {desc}          - sets a brief description for a JSON-RPC method, property or notification")
+        print("   @details {desc}        - sets a detailed description for a JSON-RPC method, property or notification")
+        print("   @param {name} {desc}   - sets a description for a parameter of a JSON-RPC method or notification")
         print("   @retval {desc}         - sets a description for a return value of a JSON-RPC method")
         print("")
         print("Tags shall be placed inside C++ comments.")
@@ -2053,6 +2133,7 @@ if __name__ == "__main__":
 
         faces = []
         skipped = []
+
         if interface_files:
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
@@ -2060,6 +2141,15 @@ if __name__ == "__main__":
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
                 lua_enums = dict()
+
+            if args.code and not args.noidentify:
+                output_file = os.path.join(os.path.dirname(interface_files[0]) if not OUTDIR else OUTDIR, "ProxyStubsMetadata.cpp")
+
+                out_dir = os.path.dirname(output_file)
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+
+                GenerateIdentification(output_file)
 
             for source_file in interface_files:
                 try:

@@ -97,6 +97,8 @@ class Metadata:
         self.maxlength = None
         self.interface = None
         self.alt = None
+        self.alt_is_deprecated = None
+        self.alt_is_obsolete = None
         self.text = None
         self.range = []
         self.param = OrderedDict()
@@ -345,10 +347,10 @@ class Identifier():
                     for s in "".join(string[i + 1]).split(".."):
                         try:
                             if '.' not in s:
-                                v = eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024"))
+                                v = int(eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024")))
                             else:
                                 v = eval(s)
-                            self.meta.range.append(int(v))
+                            self.meta.range.append(v)
                         except:
                             raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
                     if len(self.meta.range) == 2:
@@ -396,6 +398,14 @@ class Identifier():
                     skip = 1
                 elif token[1:] == "ALT":
                     self.meta.alt = "".join(string[i + 1])
+                    skip = 1
+                elif token[1:] == "ALT:OBSOLETE" or token[1:] == "ALT-OBSOLETE":
+                    self.meta.alt = "".join(string[i + 1])
+                    self.meta.alt_is_obsolete = True
+                    skip = 1
+                elif token[1:] == "ALT:DEPRECATED" or token[1:] == "ALT-DEPRECATED":
+                    self.meta.alt = "".join(string[i + 1])
+                    self.meta.alt_is_deprecated = True
                     skip = 1
                 else:
                     raise ParserError("invalid tag: " + token)
@@ -542,8 +552,12 @@ class Identifier():
                     else:
                         ref |= Ref.POINTER
                 elif self.type[typeIdx] == "&":
+                    if ref & Ref.POINTER:
+                        raise ParserError("pointer to a reference is not valid C++")
                     ref |= Ref.REFERENCE
                 elif self.type[typeIdx] == "&&":
+                    if ref & Ref.POINTER:
+                        raise ParserError("pointer to a reference is not valid C++")
                     ref |= Ref.RVALUE_REFERENCE
                 elif self.type[typeIdx] == "const":
                     ref |= Ref.CONST
@@ -653,6 +667,11 @@ def Evaluate(identifiers_):
                     enumerator_match = []
                     for e in tree.enums:
                         enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
+
+                        # non-scoped enums can also be called with scope
+                        if not e.scoped:
+                            enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
+
 
                     template_match = []
                     if (isinstance(tree, TemplateClass)):
@@ -1039,19 +1058,7 @@ class Function(Block, Name):
         self.stub = False
         self.is_excluded = False
 
-        for method in self.parent.methods:
-            if method.name == self.name:
-                if self.parent.is_json:
-                    if method.retval.meta.is_property:
-                        if method.retval.meta.text:
-                            self.retval.meta.text = method.retval.meta.text
-                        if method.retval.meta.alt:
-                            self.retval.meta.alt = method.retval.meta.alt
-                    elif not method.omit and not method.is_excluded and not method.retval.meta.text:
-                        raise ParserError("'%s': JSON-RPC name clash detected, resolve with @text tag" % method.name)
-
-                break
-
+    def Append(self):
         self.parent.methods.append(self)
 
     def Proto(self):
@@ -1111,7 +1118,8 @@ class Variable(Identifier, Name):
 
 class Parameter(Variable):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[]):
-        Variable.__init__(self, parent_block, string, value, valid_specifiers)
+        Variable.__init__(self, parent_block, string, None, valid_specifiers)
+        self.def_value = Evaluate(value) if value else None
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
 
@@ -1122,7 +1130,7 @@ class Parameter(Variable):
         return "%s %s" % (self.Proto(), self.name)
 
     def __repr__(self):
-        value = ValueStr(self.value) if self.value else None
+        value = ValueStr(self.def_value) if self.def_value else None
         return "param %s '%s'%s" % (TypeStr(self.type), str(self.name), (" = " + value) if value else "")
 
 
@@ -1236,6 +1244,7 @@ class Enumerator(Identifier, Name):
         if isinstance(self.value, (int)):
             self.parent.SetValue(self.value)
         self.parent.items.append(self)
+        self.full_name_scoped = parent_block.full_name + "::" + self.name
 
     def Proto(self):
         return self.full_name
@@ -1604,6 +1613,14 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
                 if _find("@alt", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt"))
+                if _find("@alt:deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt:deprecated"))
+                if _find("@alt-deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
+                if _find("@alt:obsolete", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt:obsolete"))
+                if _find("@alt-obsolete", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-obsolete"))
                 if _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
                 if _find("@length", token):
@@ -1987,6 +2004,8 @@ def Parse(contents,log = None):
                     raise ParserError("@compliant used without @json")
                 if collapsed_next or extended_next:
                     raise ParserError("@compliant and @uncompliant used together")
+            if exclude_next:
+                raise ParserError("@json:omit is invalid here (applies to methods only)")
 
             json_next = False
             json_version = ""
@@ -2132,6 +2151,8 @@ def Parse(contents,log = None):
             if last_template_def:
                 method.specifiers.append(" ".join(last_template_def))
                 last_template_def = []
+
+            method.Append()
 
             # try to detect a function/macro call
             function_call = not ret_type and ((name != current_block[-1].name) and (name !=
@@ -2311,7 +2332,8 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
                     idx = file_content.find("@insert", pos)
                 if idx != -1:
                     pos = idx + 1
-                    match = re.search(r' \"(.+?)\"', file_content[idx:])
+                    line = file_content[idx:].split("\n", 1)[0]
+                    match = re.search(r' \"(.+?)\"', line)
                     if match:
                         if match.group(1) != os.path.basename(os.path.realpath(source_file)):
                             tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
@@ -2325,7 +2347,7 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
                         else:
                             raise LoaderError(source_file, "can't recursively include self")
                     else:
-                        match = re.search(r' <(.+?)>', file_content[idx:])
+                        match = re.search(r' <(.+?)>', line)
                         if match:
                             found = False
                             for ipath in includePaths:

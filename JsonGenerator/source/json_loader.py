@@ -252,26 +252,25 @@ class JsonBoolean(JsonNative, JsonType):
         return "bool"
 
 
-class JsonNumber(JsonNative, JsonType):
+class JsonInteger(JsonNative, JsonType):
     def __init__(self, name, parent, schema, size = config.DEFAULT_INT_SIZE, signed = False):
         JsonType.__init__(self, name, parent, schema)
         self.size = schema["size"] if "size" in schema else size
+
+        if self.size != 8 and self.size != 16 and self.size != 32 and self.size != 64:
+            raise JsonParseError("Invalid integer number size: '%s'" % self.print_name)
+
         self.signed = schema["signed"] if "signed" in schema else signed
-        self._cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size))
-        self._cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
+        self.__cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size))
+        self.__cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
 
     @property
     def cpp_class(self):
-        return self._cpp_class
+        return self.__cpp_class
 
     @property
     def cpp_native_type(self):
-        return self._cpp_native_type
-
-
-class JsonInteger(JsonNumber):
-    # Identical as Number
-    pass
+        return self.__cpp_native_type
 
 
 class AuxJsonInteger(JsonInteger):
@@ -288,24 +287,27 @@ class AuxJsonAuto(JsonInteger):
         return "auto"
 
 
-class JsonFloat(JsonNative, JsonType):
+class JsonNumber(JsonNative, JsonType):
+    def __init__(self, name, parent, schema):
+        JsonType.__init__(self, name, parent, schema)
+        self.size = schema["size"] if "size" in schema else 32
+
+        if self.size > 64:
+            raise JsonParseError("Floating point numbers over 64 bits are not supported: '%s'" % self.print_name)
+
+        if self.size != 32 and self.size != 64:
+            raise JsonParseError("Invalid floating point number size: '%s'" % self.print_name)
+
+        self.__cpp_class = CoreJson("Float") if self.size == 32 else CoreJson("Double")
+        self.__cpp_native_type = "float" if self.size == 32 else "double"
+
     @property
     def cpp_class(self):
-        return CoreJson("Float")
+        return self.__cpp_class
 
     @property
     def cpp_native_type(self):
-        return "float"
-
-
-class JsonDouble(JsonNative, JsonType):
-    @property
-    def cpp_class(self):
-        return CoreJson("Double")
-
-    @property
-    def cpp_native_type(self):
-        return "double"
+        return self.__cpp_native_type
 
 
 class JsonString(JsonNative, JsonType):
@@ -517,7 +519,7 @@ class JsonObject(JsonRefCounted, JsonType):
                     self._enums.append(new_obj)
 
         if not self.properties:
-            log.Info("No properties in object %s" % self.print_name)
+            log.Error("No properties in object %s" % self.print_name)
 
     @property
     def cpp_name(self):
@@ -692,6 +694,7 @@ class JsonMethod(JsonObject):
 
         JsonObject.__init__(self, name, parent, method_schema, included=included)
 
+        self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
         self.obsolete = schema.get("obsolete")
@@ -741,6 +744,16 @@ class JsonNotification(JsonMethod):
 
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
         self.is_status_listener = schema.get("statuslistener")
+
+        if "alt" in schema:
+            self.alternative = schema.get("alt")
+
+            if not self.alternative.islower():
+                log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
+            elif "_" in self.alternative:
+                log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
+        else:
+            self.alternative = None
 
         self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
 
@@ -876,12 +889,15 @@ def JsonItem(name, parent, schema, included=None):
         elif schema["type"] == "integer":
             return JsonInteger(name, parent, schema)
         elif schema["type"] == "number":
-            return JsonNumber(name, parent, schema)
-        elif schema["type"] == "float":
-            return JsonFloat(name, parent, schema)
-        elif schema["type"] == "double":
-            return JsonDouble(name, parent, schema)
+            if ("float" in schema and schema["float"]) or ("example" in schema and '.' in str(schema["example"])):
+                return JsonNumber(name, parent, schema)
+            else:
+                log.Info("'%s': type is 'number' but assuming integer value" % name)
+                return JsonInteger(name, parent, schema)
         else:
+            if schema["type"] == "float":
+                log.Print("For floating point type use '\"type\": \"number\"' with '\"float\": True' or with \"example\" using a decimal point")
+
             raise JsonParseError("unsupported JSON type: '%s'" % schema["type"])
     else:
         raise JsonParseError("missing 'type' for item: '%s'" % name)
