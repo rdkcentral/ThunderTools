@@ -983,7 +983,7 @@ class Class(Identifier, Block):
     def Proto(self):
         return self.full_name
 
-    def _Merge(self, vars, methods, virtual=False):
+    def _Merge(self, vars, methods, do_methods=False, virtual=False):
         for a in self.ancestors:
             if isinstance(a[0].type, Class):
                 access = a[1]
@@ -991,11 +991,11 @@ class Class(Identifier, Block):
                 is_virtual = "virtual" in a[2]
 
                 if access == "public":
-                    kind._Merge(vars, methods, is_virtual)
+                    kind._Merge(vars, methods, do_methods, is_virtual)
                 else:
                     raise ParserError("public inheritance of %s is required" % kind.full_name)
 
-        def Populate(array):
+        def Populate(array, are_methods=False):
             for v in array:
                 if v.access == "public":
                     found = list(filter(lambda x: x.name == v.name, vars))
@@ -1005,16 +1005,18 @@ class Class(Identifier, Block):
                         vars.append(v)
                         v._virtual = virtual
                     elif not found[0]._virtual or not virtual:
-                        raise ParserError("ambiguous attribute %s (use virtual inhertiance?)" % v.full_name)
+                        raise ParserError("ambiguous %s %s (use virtual inhertiance?)" % ("method" if are_methods else "attributes", v.full_name))
                 else:
                     raise ParserError("all members are reqired to be public, non-public member %s" % v.full_name)
 
         Populate(self.vars)
-        Populate(self.methods)
 
-    def Merge(self):
+        if do_methods:
+            Populate(self.methods, True)
+
+    def Merge(self, do_methods=False):
         new_class = Class(self.parent, self.name)
-        result = self._Merge(new_class.vars, new_class.methods)
+        result = self._Merge(new_class.vars, new_class.methods, do_methods)
         return new_class
 
     def __str__(self):
