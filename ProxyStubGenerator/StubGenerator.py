@@ -374,7 +374,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                     return ["type = Type.BOOL"]
 
                 elif isinstance(p, CppParser.Float):
-                    print(p)
                     if p.type == "float":
                         return ["type = Type.FLOAT32"]
                     elif p.type == "double":
@@ -387,8 +386,10 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                         value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name)]
                         pod_params = []
 
-                        for v in p.vars:
-                            param_info = Convert(v, None, p.vars)
+                        kind = p.vars.Merge()
+
+                        for v in kind.vars:
+                            param_info = Convert(v, None, kind.vars)
                             text = []
                             text.append("name = " + v.name)
 
@@ -1220,10 +1221,11 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             def ReadParameter(p):
                 if p.is_compound:
+                    kind = p.kind.Merge()
                     if not p.suppress_type:
                         emit.Line("%s{};" % p.as_temporary_no_cv)
 
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in p.kind.vars]
+                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
 
                     for pp in params:
                         ReadParameter(pp)
@@ -1349,7 +1351,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             def WriteParameter(p):
                 if p.is_compound:
-                    params = [EmitParam(interface, v, (p.name + "." + v.name)) for v in p.kind.vars]
+                    kind = p.kind.Merge()
+                    params = [EmitParam(interface, v, (p.name + "." + v.name)) for v in kind.vars]
                     for pp in params:
                         WriteParameter(pp)
                 else:
@@ -1619,7 +1622,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             def WriteParameter(p):
                 if p.is_compound:
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in p.kind.vars]
+                    kind = p.kind.Merge()
+                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
 
                     for pp in params:
                         WriteParameter(pp)
@@ -1628,7 +1632,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             def ReadParameter(p):
                 if p.is_compound:
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in p.kind.vars]
+                    kind = p.kind.Merge()
+                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
                     for pp in params:
                         ReadParameter(pp)
 

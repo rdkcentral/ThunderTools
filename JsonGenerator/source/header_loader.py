@@ -42,7 +42,7 @@ class CppParseError(RuntimeError):
             super(CppParseError, self).__init__(msg)
 
 
-def LoadInterface(file, log, all = False, includePaths = []):
+def LoadInterfaceInternal(file, log, all = False, includePaths = []):
 
     def StripFrameworkNamespace(identifier):
         return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
@@ -50,11 +50,8 @@ def LoadInterface(file, log, all = False, includePaths = []):
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(config.INTERFACE_NAMESPACE + "::", "")
 
-    try:
-        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
-    except CppParser.ParserError as ex:
-        raise CppParseError(None, str(ex))
+    tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
 
     interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, config.INTERFACE_NAMESPACE, file) if (i.obj.is_json or (all and not i.obj.is_event))]
 
@@ -222,7 +219,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         def GenerateObject(ctype, was_typdef):
                             properties = dict()
 
-                            for p in ctype.vars:
+                            kind = ctype.Merge()
+
+                            for p in kind.vars:
                                 name = p.name.lower()
 
                                 if isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
@@ -758,3 +757,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
         log.Info("No interfaces found")
 
     return schemas, []
+
+def LoadInterface(file, log, all = False, includePaths = []):
+    try:
+        return LoadInterfaceInternal(file, log, all, includePaths)
+    except CppParser.ParserError as ex:
+        raise CppParseError(None, str(ex))
