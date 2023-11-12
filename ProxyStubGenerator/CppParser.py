@@ -983,6 +983,42 @@ class Class(Identifier, Block):
     def Proto(self):
         return self.full_name
 
+    def _Merge(self, vars, methods, do_methods=False, virtual=False):
+        for a in self.ancestors:
+            if isinstance(a[0].type, Class):
+                access = a[1]
+                kind = a[0].type
+                is_virtual = "virtual" in a[2]
+
+                if access == "public":
+                    kind._Merge(vars, methods, do_methods, is_virtual)
+                else:
+                    raise ParserError("public inheritance of %s is required" % kind.full_name)
+
+        def Populate(array, are_methods=False):
+            for v in array:
+                if v.access == "public":
+                    found = list(filter(lambda x: x.name == v.name, vars))
+                    assert(len(found)<=1)
+
+                    if not found:
+                        vars.append(v)
+                        v._virtual = virtual
+                    elif not found[0]._virtual or not virtual:
+                        raise ParserError("ambiguous %s %s (use virtual inhertiance?)" % ("method" if are_methods else "attributes", v.full_name))
+                else:
+                    raise ParserError("all members are reqired to be public, non-public member %s" % v.full_name)
+
+        Populate(self.vars)
+
+        if do_methods:
+            Populate(self.methods, True)
+
+    def Merge(self, do_methods=False):
+        new_class = Class(self.parent, self.name)
+        result = self._Merge(new_class.vars, new_class.methods, do_methods)
+        return new_class
+
     def __str__(self):
         return "class " + self.Proto()
 
@@ -1467,7 +1503,7 @@ def __Tokenize(contents,log = None):
         r"|([\r\n\t ])"                                                 # whitespace
     )
 
-    tokens = [s.strip() for s in re.split(formula, contents, flags=(re.MULTILINE)) if s]
+    tokens = [s.strip() for s in re.split(formula, contents, flags=(re.MULTILINE)) if s and s.strip()]
 
     tagtokens = []
     # check for special metadata within comments
@@ -2035,14 +2071,14 @@ def Parse(contents,log = None):
             if tokens[i + 1] == ':':
                 i += 1
                 parent_class = ""
-                parent_access = "private"
+                parent_access = new_class._current_access
                 specifiers = []
                 while True:
                     if tokens[i + 1] in ['{', ',']:
                         # try to find a reference to an already found type
                         parent_ref = Identifier(current_block[-1], current_block[-1], [parent_class], [])
                         new_class.ancestors.append([parent_ref.type, parent_access, specifiers])
-                        parent_access = "private"
+                        parent_class = ""
                         if tokens[i + 1] == '{':
                             break
                     elif tokens[i + 1] in ["public", "private", "protected"]:
