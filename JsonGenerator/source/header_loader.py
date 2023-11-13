@@ -435,6 +435,13 @@ def LoadInterfaceInternal(file, log, all = False, includePaths = []):
                         mm.retval.meta.text = method.retval.meta.text
                         break
 
+            # Copy over @alt tag to the other method of a property
+            if method.retval.meta.alt and method.retval.meta.is_property:
+                for mm in face.obj.methods:
+                    if mm != method and mm.name == method.name:
+                        mm.retval.meta.alt = method.retval.meta.alt
+                        break
+
             method_name = method.retval.meta.text if method.retval.meta.text else method.name
             method_name_lower = method_name.lower()
 
