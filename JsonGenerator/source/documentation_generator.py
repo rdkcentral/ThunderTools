@@ -88,6 +88,7 @@ def Create(log, schema, path, indent_size = 4):
                 optional = parentOptional or (obj["optional"] if "optional" in obj else False)
                 deprecated = obj["deprecated"] if "deprecated" in obj else False
                 obsolete = obj["obsolete"] if "obsolete" in obj else False
+                restricted = obj.get("range")
 
                 if parent and not optional:
                     if parent["type"] == "object":
@@ -106,10 +107,25 @@ def Create(log, schema, path, indent_size = 4):
 
                 prefix += name
                 description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else ""
+                if description and description[0].islower():
+                    description = description[0].upper() + description[1:]
 
                 if name or prefix:
                     if "type" not in obj:
                         raise DocumentationError("'%s': missing 'type' for this object" % (parentName + "/" + name))
+
+                    d = obj
+                    is_buffer = False
+
+                    if obj["type"] == "string":
+                        if "range" in obj:
+                            d = obj
+                        elif "length" in obj:
+                            is_buffer = True
+                            if "range" in parent["properties"][obj.get("length")]:
+                                d = parent["properties"][obj.get("length")]
+
+                    restricted = "range" in d
 
                     row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
 
@@ -132,7 +148,20 @@ def Create(log, schema, path, indent_size = 4):
                         if ("float" not in obj or not obj["float"]) and ("example" not in obj or '.' not in str(obj["example"])):
                             obj["type"] = "integer"
 
-                    MdRow([prefix, "opaque object" if obj.get("opaque") else obj["type"], row])
+                    if restricted:
+                        if row:
+                            row += "<br>"
+
+                        if d["type"] == "string" or is_buffer:
+                            str_text = "Decoded data" if d.get("encode") else "String"
+                            if d["range"][0]:
+                                row += italics("%s length must be in range [%s..%s] bytes." % (str_text, d["range"][0], d["range"][1]))
+                            else:
+                                row += italics("%s length must be at most %s bytes." % (str_text, d["range"][1]))
+                        else:
+                            row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
+
+                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
 
                 if obj["type"] == "object":
                     if "required" not in obj and name and len(obj["properties"]) > 1:
@@ -286,9 +315,12 @@ def Create(log, schema, path, indent_size = 4):
                             props["params"]["description"] = props["summary"]
 
                     ParamTable("(property)", props["params"])
-                elif "result" in props:
+
+                if "result" in props:
                     if not "description" in props["result"]:
-                        if "summary" in props:
+                        if "description" in props["params"]:
+                            props["result"]["description"] = props["params"]["description"]
+                        elif "summary" in props:
                             props["result"]["description"] = props["summary"]
 
                 if "index" in props:
