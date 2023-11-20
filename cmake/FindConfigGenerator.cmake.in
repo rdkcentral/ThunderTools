@@ -21,17 +21,6 @@ if(NOT PYTHON_EXECUTABLE)
     find_package(PythonInterp 3.5 REQUIRED QUIET)
 endif()
 
-if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
-macro(IncludeConfig)
-    if(NOT COMMAND map)
-        ## includes all cmake files of cmakepp to write json files
-        include("${MODULE_BASE_DIR}/config/core/require.cmake")
-        require("${MODULE_BASE_DIR}/config/*.cmake")
-    endif()
-endmacro()
-endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
-
-
 # ----------------------------------------------------------------------------------------
 # write_config
 # ----------------------------------------------------------------------------------------
@@ -50,7 +39,7 @@ endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
 #    INSTALL_NAME Overrule the default file name
 # ----------------------------------------------------------------------------------------
 function(write_config)
-    set(optionsArgs SKIP_COMPARE DISABLE_LEGACY_GENERATOR SKIP_CLASSNAME SKIP_LOCATOR)
+    set(optionsArgs SKIP_COMPARE SKIP_CLASSNAME SKIP_LOCATOR)
     set(oneValueArgs CLASSNAME LOCATOR COMPONENT INSTALL_PATH INSTALL_NAME CUSTOM_PARAMS_WHITELIST)
     set(multiValueArgs PLUGINS)
 
@@ -149,18 +138,10 @@ function(write_config)
         set(COMPARE OFF)
     endif(ARG_SKIP_COMPARE)
 
-    if(ARG_DISABLE_LEGACY_GENERATOR)
-        set(LEGACY_CONFIG_GENERATOR OFF)
-    endif(ARG_DISABLE_LEGACY_GENERATOR)
-
-if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
-    IncludeConfig()
-endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
-
     foreach(plugin ${_plugins})
         set(config_generated "N")
         if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/${plugin}.conf.in")
-            message(STATUS "Writing configuration for ${plugin} using config_generator")
+            message(STATUS "Writing configuration for ${plugin}")
 
             set(_execute_command "${CONFIG_GENERATOR}")
 
@@ -194,130 +175,9 @@ endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
             endif()
             set(config_generated "Y")
         else()
-            if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.20.0 OR NOT LEGACY_CONFIG_GENERATOR)
-                message(SEND_ERROR "Missing config template:\n\'${CMAKE_CURRENT_LIST_DIR}/${plugin}.conf.in\'\n environment: CMAKE_VERSION=v${CMAKE_VERSION}, LEGACY_CONFIG_GENERATOR=${LEGACY_CONFIG_GENERATOR}")
-            endif()
+                message(SEND_ERROR "Missing config template:\n\'${CMAKE_CURRENT_LIST_DIR}/${plugin}.conf.in\'")
         endif()
        
-if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
-        if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR
-                "${config_generated}" STREQUAL "N")
-
-            message(STATUS "Writing configuration for ${plugin} using Legacy Config writer")
-
-            map()
-            kv(locator ${_locator})
-            kv(classname ${_classname})
-            end()
-            ans(plugin_config) # default configuration
-            
-            if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/${plugin}.config")
-                include(${CMAKE_CURRENT_LIST_DIR}/${plugin}.config)
-
-                list(LENGTH preconditions number_preconditions)
-                if (number_preconditions GREATER 0)
-                    map_append(${plugin_config} precondition ___array___)
-                    foreach(entry ${preconditions})
-                        map_append(${plugin_config} precondition ${entry})
-                    endforeach()
-                endif()
-
-                list(LENGTH terminations number_terminations)
-                if (number_terminations GREATER 0)
-                    map_append(${plugin_config} termination ___array___)
-                    foreach(entry ${terminations})
-                        map_append(${plugin_config} termination ${entry})
-                    endforeach()
-                endif()
-
-                if (NOT ${callsign} STREQUAL "")
-                    map_append(${plugin_config} callsign ${callsign})
-                endif()
-
-                if (NOT ${autostart} STREQUAL "")
-                    map_append(${plugin_config} autostart ${autostart})
-                endif()
-
-                if (NOT ${resumed} STREQUAL "")
-                    map_append(${plugin_config} resumed ${resumed})
-                endif()
-
-                if (NOT ${persistentpathpostfix} STREQUAL "")
-                    map_append(${plugin_config} persistentpathpostfix ${persistentpathpostfix})
-                    unset(persistentpathpostfix)
-                endif()
-
-               if (NOT ${webui} STREQUAL "")
-                    map_append(${plugin_config} webui ${webui})
-                    unset(webui)
-                endif()
-                
-                if (NOT ${systemrootpath} STREQUAL "")
-                    map_append(${plugin_config} systemrootpath ${systemrootpath})
-                    unset(systemrootpath)
-                endif()
-
-                if (NOT ${volatilepathpostfix} STREQUAL "")
-                    map_append(${plugin_config} volatilepathpostfix ${volatilepathpostfix})
-                    unset(volatilepathpostfix)
-                endif()
-
-                if (NOT ${startuporder} STREQUAL "")
-                    map_append(${plugin_config} startuporder ${startuporder})
-                    unset(startuporder)
-                endif()
-
-                if (NOT ${startmode} STREQUAL "")
-                    map_append(${plugin_config} startmode ${startmode})
-                    unset(startmode)
-                endif()
-
-                if (NOT ${communicator} STREQUAL "")
-                    map_append(${plugin_config} communicator ${communicator})
-                    unset(communicator)
-                endif()
-
-                if (NOT ${configuration} STREQUAL "")
-                    map_append(${plugin_config} configuration ${configuration})
-                endif()
-            endif()
-
-            if ("${config_generated}" STREQUAL "N")
-                json_write("${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}.json" ${plugin_config})
-            endif()
-
-            if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" AND
-                    "${config_generated}" STREQUAL "Y" AND COMPARE)
-
-                json_write("${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}_legacy.json" ${plugin_config})
-
-                if(EXISTS "${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}_legacy.json" AND 
-                        EXISTS ${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}.json)
-
-                    set(_execute_command "${CONFIG_COMPARE}")
-                    list(APPEND _execute_command  "-i")
-                    list(APPEND _execute_command  "${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}_legacy.json" "${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}.json")
-
-                    execute_process(COMMAND ${PYTHON_EXECUTABLE} ${_execute_command} RESULT_VARIABLE compare_result)
-
-                    if(compare_result EQUAL 0)
-                        message(STATUS "config json files generated using legacy method and Python ConfigGenerator are identical") 
-                    elseif( compare_result EQUAL 1)
-                        message(AUTHOR_WARNING " Comparing the config json files generated using legacy method and Python ConfigGenerator: \n"
-                                            " ${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}_legacy.json and ${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}.json are not identical \n"
-                                            " This could mean one of the following: \n"
-                                            "    1. Parameters are out of order \n"
-                                            "    2. Parameters are spelled incorrectly  \n")
-                    else()
-                        message(STATUS "Error while comparing the config json files generated using legacy method and Python ConfigGenerator")
-                    endif()
-                else()
-                    message(STATUS "Failed to compare the config json files generated using legacy method and Python ConfigGenerator - missing")
-                endif()
-            endif()
-        endif()
-endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
-
         set(_install_filename "${${_install_var_filename}}${extenstion}")       
 
         install(
