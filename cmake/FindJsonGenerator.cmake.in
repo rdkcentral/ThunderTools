@@ -31,8 +31,8 @@ function(JsonGenerator)
     endif()
 
     set(optionsArgs CODE STUBS DOCS NO_INCLUDES NO_STYLE_WARNINGS COPY_CTOR NO_REF_NAMES NO_INTERFACES_SECTION VERBOSE FORCE_GENERATE)
-    set(oneValueArgs OUTPUT IFDIR CPPIFDIR INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT NAMESPACE)
-    set(multiValueArgs INPUT INCLUDE_PATH)
+    set(oneValueArgs OUTPUT IFDIR CPPIFDIR INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT)
+    set(multiValueArgs INPUT INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 

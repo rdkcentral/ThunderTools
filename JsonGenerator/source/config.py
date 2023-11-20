@@ -37,7 +37,7 @@ SHOW_WARNINGS = True
 DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "WPEFramework"
-INTERFACE_NAMESPACE = "::" + FRAMEWORK_NAMESPACE + "::Exchange"
+INTERFACE_NAMESPACES = ["::WPEFramework::Exchange"]
 INTERFACES_SECTION = True
 INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
@@ -66,7 +66,7 @@ RPC_FORMAT_FORCED = False
 
 def Parse(cmdline):
     global DEFAULT_DEFINITIONS_FILE
-    global INTERFACE_NAMESPACE
+    global INTERFACE_NAMESPACES
     global JSON_INTERFACE_PATH
     global NO_INCLUDES
     global NO_VERSIONING
@@ -169,12 +169,11 @@ def Parse(cmdline):
             default=DEFAULT_DEFINITIONS_FILE,
             help="include a C++ header file with common types (default: include '%s')" % DEFAULT_DEFINITIONS_FILE)
     cpp_group.add_argument("--namespace",
-            dest="if_namespace",
+            dest="if_namespaces",
             metavar="NS",
-            type=str,
-            action="store",
-            default=INTERFACE_NAMESPACE,
-            help="set namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACE)
+            action="append",
+            default=[],
+            help="set namespace to look for interfaces in (default: %s)" % [INTERFACE_NAMESPACES])
     cpp_group.add_argument("--format",
             dest="format",
             type=str,
@@ -286,12 +285,16 @@ def Parse(cmdline):
     DUMP_JSON = args.dump_json
     FORCE = args.force
     DEFAULT_DEFINITIONS_FILE = args.extra_include
-    INTERFACE_NAMESPACE = args.if_namespace
-    if not INTERFACE_NAMESPACE.startswith("::"):
-        INTERFACE_NAMESPACE = "::" + INTERFACE_NAMESPACE
     INTERFACES_SECTION = not args.no_interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
+
+    if args.if_namespaces:
+        INTERFACE_NAMESPACES = args.if_namespaces
+
+    for i, ns in enumerate(INTERFACE_NAMESPACES):
+        if not ns.startswith("::"):
+            INTERFACE_NAMESPACES[i] = "::" + ns
 
     if RpcFormat.EXTENDED.value in args.format:
         RPC_FORMAT = RpcFormat.EXTENDED

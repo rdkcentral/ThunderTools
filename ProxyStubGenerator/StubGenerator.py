@@ -44,7 +44,7 @@ FORCE = False
 EMIT_COMMENT_WITH_PROTOTYPE = True
 EMIT_COMMENT_WITH_STUB_ORDER = True
 STUB_NAMESPACE = "::WPEFramework::ProxyStubs"
-INTERFACE_NAMESPACE = "::WPEFramework"
+INTERFACE_NAMESPACES = ["::WPEFramework"]
 CLASS_IUNKNOWN = "::WPEFramework::Core::IUnknown"
 PROXYSTUB_CPP_NAME = "ProxyStubs_%s.cpp"
 
@@ -123,14 +123,14 @@ class Interface():
 
 
 # Looks for interface classes (ie. classes inheriting from Core::Unknown and specifying ID enum).
-def FindInterfaceClasses(tree):
+def FindInterfaceClasses(tree, namespace):
     interfaces = []
 
-    def __Traverse(tree, faces):
+    def __Traverse(tree, interface_namespace, faces):
         if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
             for c in tree.classes:
                 if not isinstance(c, CppParser.TemplateClass):
-                    if (c.full_name.startswith(INTERFACE_NAMESPACE + "::")):
+                    if (c.full_name.startswith(interface_namespace + "::")):
                         inherits_iunknown = False
                         for a in c.ancestors:
                             if CLASS_IUNKNOWN in str(a[0]):
@@ -151,21 +151,19 @@ def FindInterfaceClasses(tree):
                             if not has_id and not c.omit:
                                 log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
-                    elif not c.omit:
-                        log.Info("class %s not in %s namespace" % (c.full_name, INTERFACE_NAMESPACE), source_file)
-
-                __Traverse(c, faces)
+                __Traverse(c, interface_namespace, faces)
 
         if isinstance(tree, CppParser.Namespace):
             for n in tree.namespaces:
-                __Traverse(n, faces)
+                __Traverse(n, namespace, faces)
 
-    __Traverse(tree, interfaces)
+    __Traverse(tree, namespace, interfaces)
+
     return interfaces
 
 
 # Cut out scope resolution operators from all identifiers found in a string
-def Flatten(identifier, scope=INTERFACE_NAMESPACE):
+def Flatten(identifier, scope):
     assert scope.startswith("::")
     split = scope.replace(" ", "").split("::")
     split[0] = ("::" + split[1])
@@ -189,12 +187,15 @@ def Flatten(identifier, scope=INTERFACE_NAMESPACE):
 
 
 # Generate interface information in lua
-def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths = [], defaults = "", extra_includes = []):
+def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=None, ns=None):
 
     if not source_file:
+        assert(tree==None)
+        assert(ns==None)
+
         emit.Line("-- enums")
 
-        for k,v in lua_enums.items():
+        for k,v in enums_list.items():
             emit.Line("ENUMS[\"%s\"] = {" % k)
             emit.IndentInc()
             text = []
@@ -211,22 +212,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
 
         return
 
-    files = []
-
-    if defaults:
-        files.append(defaults)
-
-    files.extend(extra_includes)
-    files.append(source_file)
-
-    tree = CppParser.ParseFiles(files, includePaths, log)
-
-    if not isinstance(tree, CppParser.Namespace):
-        raise SkipFileError(source_file)
-
-    interfaces = FindInterfaceClasses(tree)
+    interfaces = FindInterfaceClasses(tree, ns)
     if not interfaces:
-        raise NoInterfaceError(source_file)
+        return []
 
     if not interfaces_list:
         emit.Line("-- Interfaces definition data file")
@@ -237,18 +225,18 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
 
     emit.Line("--  %s" % os.path.basename(source_file))
 
-    iface_namespace_l = INTERFACE_NAMESPACE.split("::")
+    iface_namespace_l = ns.split("::")
     iface_namespace = iface_namespace_l[-1]
 
     for iface in interfaces:
-        iface_name = Flatten(iface.obj.type)
+        iface_name = Flatten(iface.obj.type, ns)
 
         interfaces_var_name = "INTERFACES"
         methods_var_name = "METHODS"
 
         assume_hresult = iface.obj.is_json
 
-        if not iface.obj.full_name.startswith(INTERFACE_NAMESPACE):
+        if not iface.obj.full_name.startswith(ns):
             continue # interface in other namespace
 
         if iface.obj.omit:
@@ -381,12 +369,12 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
 
                 elif isinstance(p, CppParser.Class):
                     if param.IsPointer():
-                        return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName())]
+                        return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName(), ns)]
                     else:
-                        value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name)]
+                        value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name, ns)]
                         pod_params = []
 
-                        kind = p.vars.Merge()
+                        kind = p.Merge()
 
                         for v in kind.vars:
                             param_info = Convert(v, None, kind.vars)
@@ -415,7 +403,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
                     if p.type.Type().signed:
                         signed = ""
 
-                    name = Flatten(param.type.full_name)
+                    name = Flatten(param.type.full_name, ns)
 
                     if name not in enums_list:
                         data = dict()
@@ -507,12 +495,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file, includePaths
         emit.Line("}")
         emit.Line()
 
+def Parse(source_file, includePaths = [], defaults = "", extra_includes = []):
 
-def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", extra_includes = [], scan_only=False):
-    log.Info("Parsing '%s'..." % source_file)
-
-    if not FORCE and (os.path.exists(output_file) and (os.path.getmtime(source_file) < os.path.getmtime(output_file))):
-        raise NotModifiedException(output_file)
+    log.Info("Parsing %s..." % source_file)
 
     files = []
 
@@ -526,16 +511,24 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
     if not isinstance(tree, CppParser.Namespace):
         raise SkipFileError(source_file)
 
-    interfaces = FindInterfaceClasses(tree)
+    return tree
+
+def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
+    log.Info("Scanning '%s' (in %s)..." % (source_file, ns))
+
+    if not FORCE and (os.path.exists(output_file) and (os.path.getmtime(source_file) < os.path.getmtime(output_file))):
+        raise NotModifiedException(output_file)
+
+    interfaces = FindInterfaceClasses(tree, ns)
     if not interfaces:
-        raise NoInterfaceError(source_file)
+        return []
 
     if scan_only:
         return interfaces
 
     interface_header_name = os.path.basename(source_file)
 
-    interface_namespace = INTERFACE_NAMESPACE.split("::")[-1]
+    interface_namespace = ns.split("::")[-1]
 
     with open(output_file, "w") as file:
         emit = Emitter(file, INDENT_SIZE)
@@ -547,7 +540,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
         for face in interfaces:
             if not face.obj.omit:
-                emit.Line("//   - %s" % Flatten(str(face.obj)))
+                emit.Line("//   - %s" % Flatten(str(face.obj), ns))
 
         emit.Line("//")
 
@@ -667,7 +660,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 if not isinstance(identifier.type, CppParser.Type):
                     undefined = CppParser.Type(CppParser.Undefined(identifier.type))
                     if not identifier.parent.stub and not identifier.parent.omit:
-                        raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type))))
+                        raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type)), ns))
                     else:
                         type_ = undefined
                 else:
@@ -690,7 +683,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 self.is_const = not identifier.meta.output
 
                 # Yields identifier name as in the soruce code, meaningful for a human
-                self.trace_proto = Flatten(self.identifier.Signature())
+                self.trace_proto = Flatten(self.identifier.Signature(), ns)
 
                 if not self.identifier.name.startswith("__unnamed") and \
                         (self.identifier.name.startswith("_") or self.identifier.name.endswith("_")):
@@ -761,8 +754,8 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 if (self.is_buffer and self.is_output and not self.max_length):
                     raise TypenameError(self.identifier, "'%s': can't deduce maximum length of the buffer, use @maxlength" % self.trace_proto)
 
-                if (self.is_buffer and self.max_length and not self.length):
-                    log.WarnLine(self.identifier, "'%s': length of returned buffer is not specified" % self.trace_proto)
+                #if (self.is_buffer and self.max_length and not self.length):
+                #    log.WarnLine(self.identifier, "'%s': length of returned buffer is not specified" % self.trace_proto)
 
                 # Is it a hresult?
                 self.is_hresult = self.identifier_type.TypeName().endswith("Core::hresult") \
@@ -785,13 +778,13 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
                 if has_proxy:
                     # Have to use instance_id instead of the class name
-                    self.type_name = Flatten(self.identifier_type.TypeName())
+                    self.type_name = Flatten(self.identifier_type.TypeName(), ns)
                     self.proto = (("const " if self.is_const else "") + INSTANCE_ID).strip()
                     self.proto_no_cv = INSTANCE_ID
                 else:
-                    self.type_name = Flatten(self.identifier_type.TypeName())
-                    self.proto = Flatten(self.identifier_type.Proto("noref"))
-                    self.proto_no_cv = Flatten(self.identifier_type.Proto("nocv|noref"))
+                    self.type_name = Flatten(self.identifier_type.TypeName(), ns)
+                    self.proto = Flatten(self.identifier_type.Proto("noref"), ns)
+                    self.proto_no_cv = Flatten(self.identifier_type.Proto("nocv|noref"), ns)
 
                 if has_proxy:
                     self.name = ("%sImplementation" % name[1:])
@@ -1087,7 +1080,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 emit.Line("// Methods:")
 
                 for index, method in enumerate(methods):
-                    emit.Line("//  (%i) %s" % (index, Flatten(method.Proto())))
+                    emit.Line("//  (%i) %s" % (index, Flatten(method.Proto(), ns)))
 
                 emit.Line("//")
 
@@ -1146,12 +1139,12 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         # Build the announce list upfront
         for interface in interfaces:
             obj = interface.obj
-            interface_name = Flatten(obj.full_name)
+            interface_name = Flatten(obj.full_name, ns)
 
-            log.Info("Processing '%s' interface data..." % Flatten(obj.type))
+            log.Info("Processing '%s' interface data..." % Flatten(obj.type, ns))
 
-            if not obj.full_name.startswith(INTERFACE_NAMESPACE + "::"):
-                log.Info("class %s not in requested namespace (%s)" % (obj.full_name, INTERFACE_NAMESPACE))
+            if not obj.full_name.startswith(ns + "::"):
+                log.Info("class %s not in requested namespace (%s)" % (obj.full_name, ns))
             elif obj.omit:
                 log.Info("omitting class %s" % interface_name)
             else:
@@ -1407,10 +1400,10 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             if interface.obj.is_iterator:
                 face_name = vars["interface"]
-                emit.Line("using %s = %s;" % (vars["interface"], Flatten(interface.obj.type)))
+                emit.Line("using %s = %s;" % (vars["interface"], Flatten(interface.obj.type, ns)))
                 emit.Line()
             else:
-                face_name = Flatten(interface.obj.type)
+                face_name = Flatten(interface.obj.type, ns)
 
             if ENABLE_INTEGRITY_VERIFICATION:
                 emit.Line("if (%s->Parameters().Length() < (sizeof(%s) + sizeof(uint32_t) + 1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % (vars["message"], INSTANCE_ID))
@@ -1497,7 +1490,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                     emit.Line("%s.Number<uint32_t>(%s);" % (vars["writer"], hresult.as_rvalue))
 
                 emit.Line("fprintf(stderr, \"COM-RPC stub 0x%%08x(%%u) failed: 0x%%08x\\n\", %s, %s, %s);" \
-                                % (Flatten(interface.obj.type) + "::ID", index, hresult.as_rvalue))
+                                % (Flatten(interface.obj.type, ns) + "::ID", index, hresult.as_rvalue))
 
                 if not has_hresult:
                     emit.Line("TRACE_L1(\"Warning: This COM-RPC failure will not propagate!\");")
@@ -1513,7 +1506,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
             channel = "/* channel */" if method.stub or (not proxy_params and not return_proxy_params and not ENABLE_INSTANCE_VERIFICATION) else vars["channel"]
             message = "/* message */" if method.stub else vars["message"]
-            emit.Line("// (%i) %s" % (index, Flatten(method.Proto())))
+            emit.Line("// (%i) %s" % (index, Flatten(method.Proto(), ns)))
             emit.Line("//")
             emit.Line("[](Core::ProxyType<Core::IPCChannel>& %s, Core::ProxyType<RPC::InvokeMessage>& %s) {" % (channel, message))
             emit.IndentInc()
@@ -1537,7 +1530,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
         def EmitStub(interface_name, methods, stub_methods_name, interface, prepared_params):
             if BE_VERBOSE:
-                log.Print("Emitting stub code for interface %s..." % Flatten(interface.obj.type))
+                log.Print("Emitting stub code for interface %s..." % Flatten(interface.obj.type, ns))
 
             # Emit class summary
             emit.Line("//")
@@ -1751,7 +1744,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 emit.Line("if ((%s & COM_ERROR) != 0) {" % hresult.as_rvalue)
                 emit.IndentInc()
                 emit.Line("fprintf(stderr, \"COM-RPC call 0x%%08x(%%u) failed: 0x%%08x\\n\", %s, %s, %s);" \
-                                % (Flatten(interface.obj.type) + "::ID", index, hresult.as_rvalue))
+                                % (Flatten(interface.obj.type, ns) + "::ID", index, hresult.as_rvalue))
 
                 if not reuse_hresult:
                     emit.Line("TRACE_L1(\"Warning: This COM-RPC failure will not propagate!\");")
@@ -1775,9 +1768,9 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         def EmitProxyMethod(index, method, interface_name, interface, prepared_params):
             retval, params, input_params, output_params, proxy_params, return_proxy_params = prepared_params
 
-            method_type = ((Flatten(retval.identifier.Proto()) + " ") if retval else "void ")
+            method_type = ((Flatten(retval.identifier.Proto(), ns) + " ") if retval else "void ")
             method_qualifiers = ((" const" if "const" in method.qualifiers else "") + " override")
-            params_list = [(Flatten(p.identifier.Proto()) + ((" " + p.as_in_prototype) if not method.stub else "")) for p in params]
+            params_list = [(Flatten(p.identifier.Proto(), ns) + ((" " + p.as_in_prototype) if not method.stub else "")) for p in params]
             emit.Line("%s%s(%s)%s" % (method_type, method.name, ", ".join(params_list), method_qualifiers))
             emit.Line("{")
             emit.IndentInc()
@@ -1805,7 +1798,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
 
         def EmitProxy(interface_name, methods, proxy_name, interface, prepared_params):
             if BE_VERBOSE:
-                log.Print("Emitting proxy code for interface %s..." % Flatten(interface.obj.type))
+                log.Print("Emitting proxy code for interface %s..." % Flatten(interface.obj.type, ns))
 
             # Emit class summary
             emit.Line("//")
@@ -1815,7 +1808,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
             emit.Line()
 
             # Emit proxy class definition
-            emit.Line("class %s final : public ProxyStub::UnknownProxyType<%s> {" % (proxy_name, Flatten(interface.obj.type)))
+            emit.Line("class %s final : public ProxyStub::UnknownProxyType<%s> {" % (proxy_name, Flatten(interface.obj.type, ns)))
             emit.Line("public:")
             emit.IndentInc()
 
@@ -1859,7 +1852,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         emit.Line()
 
         for _, [_, methods, stub, _, interface, _ ] in announce_list.items():
-            emit.Line("typedef ProxyStub::UnknownStubType<%s, %s> %s;" % (Flatten(interface.obj.type), methods, stub))
+            emit.Line("typedef ProxyStub::UnknownStubType<%s, %s> %s;" % (Flatten(interface.obj.type, ns), methods, stub))
 
         emit.Line()
 
@@ -1871,13 +1864,13 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         emit.IndentInc()
 
         if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type))
+            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
 
         for _, [_, _, stub, proxy, interface, _ ]  in announce_list.items():
-            emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>();" % (Flatten(interface.obj.type), proxy, stub))
+            emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>();" % (Flatten(interface.obj.type, ns), proxy, stub))
 
         if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type))
+            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
 
         emit.IndentDec()
         emit.Line("}")
@@ -1887,13 +1880,13 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
         emit.IndentInc()
 
         if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Recalling %s interface methods...\\n\");" % Flatten(interface.obj.type))
+            emit.Line("fprintf(stderr, \"*** Recalling %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
 
         for _, [_, _, _, _, interface, _ ]  in announce_list.items():
-            emit.Line("RPC::Administrator::Instance().Recall<%s>();" % (Flatten(interface.obj.type)))
+            emit.Line("RPC::Administrator::Instance().Recall<%s>();" % (Flatten(interface.obj.type, ns)))
 
         if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type))
+            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
 
         emit.IndentDec()
         emit.Line("}")
@@ -1995,12 +1988,11 @@ if __name__ == "__main__":
                            default=False,
                            help="emit additional debug traces (default: no extra traces)")
     argparser.add_argument("--namespace",
-                           dest="if_namespace",
+                           dest="if_namespaces",
                            metavar="NS",
-                           type=str,
-                           action="store",
-                           default=INTERFACE_NAMESPACE,
-                           help="set the namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACE)
+                           action="append",
+                           default=[],
+                           help="set a namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACES[0])
     argparser.add_argument("--outdir",
                            dest="outdir",
                            metavar="DIR",
@@ -2046,14 +2038,17 @@ if __name__ == "__main__":
     ENABLE_SECURE = ENABLE_INSTANCE_VERIFICATION or ENABLE_RANGE_VERIFICATION or ENABLE_INTEGRITY_VERIFICATION
     log.show_infos = BE_VERBOSE
     log.show_warnings = SHOW_WARNINGS
-    INTERFACE_NAMESPACE = args.if_namespace
     OUTDIR = args.outdir
     EMIT_TRACES = args.traces
     scan_only = False
     keep_incomplete = args.keep_incomplete
 
-    if INTERFACE_NAMESPACE[0:2] != "::":
-        INTERFACE_NAMESPACE = "::" + INTERFACE_NAMESPACE
+    if args.if_namespaces:
+        INTERFACE_NAMESPACES = args.if_namespaces
+
+    for i, ns in enumerate(INTERFACE_NAMESPACES):
+        if not ns.startswith("::"):
+            INTERFACE_NAMESPACES[i] = "::" + ns
 
     if args.help_tags:
         print("The following special tags are supported:")
@@ -2161,6 +2156,10 @@ if __name__ == "__main__":
                     _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), IDS_DEFINITIONS_FILE) ]
                     _extra_includes.extend(args.extra_includes)
 
+                    tree = Parse(source_file, args.includePaths,
+                                    os.path.join("@" + os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE),
+                                    _extra_includes)
+
                     if args.code:
                         log.Header(source_file)
 
@@ -2171,14 +2170,17 @@ if __name__ == "__main__":
                         if not os.path.exists(out_dir):
                             os.makedirs(out_dir)
 
-                        output = GenerateStubs2(
-                            output_file, source_file,
-                            args.includePaths,
-                            os.path.join("@" + os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE),
-                            _extra_includes,
-                            scan_only)
+                        new_faces = []
 
-                        faces += output
+                        for ns in INTERFACE_NAMESPACES:
+                            output = GenerateStubs2(output_file, source_file, tree, ns, scan_only)
+
+                            new_faces += output
+
+                        if not new_faces:
+                            raise NoInterfaceError
+
+                        faces += new_faces
 
                         log.Print("created file %s" % os.path.basename(output_file))
 
@@ -2189,9 +2191,9 @@ if __name__ == "__main__":
 
                     if args.lua_code:
                         log.Print("(lua generator) Scanning %s..." % os.path.basename(source_file))
-                        GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, source_file, args.includePaths,
-                            os.path.join("@" + os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE),
-                            _extra_includes)
+
+                        for ns in INTERFACE_NAMESPACES:
+                            GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, source_file, tree, ns)
 
                 except NotModifiedException as err:
                     log.Print("skipped file %s, up-to-date" % os.path.basename(output_file))
@@ -2200,7 +2202,7 @@ if __name__ == "__main__":
                     log.Print("skipped file %s" % os.path.basename(output_file))
                     skipped.append(source_file)
                 except NoInterfaceError as err:
-                    log.Warn("no interface classes found in %s" % (INTERFACE_NAMESPACE), os.path.basename(source_file))
+                    log.Warn("no interface classes found")
                 except TypenameError as err:
                     log.Error(err)
                     if not keep_incomplete and os.path.isfile(output_file):
@@ -2241,8 +2243,9 @@ if __name__ == "__main__":
 
             if args.lua_code:
                 # Epilogue
-                GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, None)
-                log.Print("Created %s (%s interfaces, %s enums)" % (lua_file.name, len(lua_interfaces), len(lua_enums)))
+                for ns in INTERFACE_NAMESPACES:
+                    GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums)
+                    log.Print("Created %s (%s interfaces, %s enums)" % (lua_file.name, len(lua_interfaces), len(lua_enums)))
 
         else:
             log.Print("Nothing to do")
