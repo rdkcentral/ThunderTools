@@ -31,8 +31,8 @@ function(ProxyStubGenerator)
     endif()
 
     set(optionsArgs SECURE COHERENT TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE)
-    set(oneValueArgs NAMESPACE OUTDIR)
-    set(multiValueArgs INPUT INCLUDE INCLUDE_PATH)
+    set(oneValueArgs OUTDIR)
+    set(multiValueArgs INPUT INCLUDE INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 
