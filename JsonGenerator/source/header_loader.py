@@ -42,18 +42,15 @@ class CppParseError(RuntimeError):
             super(CppParseError, self).__init__(msg)
 
 
-def LoadInterfaceInternal(file, log, all = False, includePaths = []):
+def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
     def StripFrameworkNamespace(identifier):
         return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
     def StripInterfaceNamespace(identifier):
-        return str(identifier).replace(config.INTERFACE_NAMESPACE + "::", "")
+        return str(identifier).replace(ns + "::", "")
 
-    tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
-
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, config.INTERFACE_NAMESPACE, file) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file) if (i.obj.is_json or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
@@ -77,6 +74,7 @@ def LoadInterfaceInternal(file, log, all = False, includePaths = []):
         schema["$schema"] = "interface.json.schema"
         schema["jsonrpc"] = "2.0"
         schema["@generated"] = True
+        schema["namespace"] = ns
 
         if face.obj.is_json:
             schema["mode"] = "auto"
@@ -92,7 +90,7 @@ def LoadInterfaceInternal(file, log, all = False, includePaths = []):
         info = dict()
         info["format"] = rpc_format.value
 
-        if not face.obj.parent.full_name.endswith(config.INTERFACE_NAMESPACE):
+        if not face.obj.parent.full_name.endswith(ns):
             info["namespace"] = face.obj.parent.name[1:] if (face.obj.parent.name[0] == "I" and face.obj.parent.name[1].isupper()) else face.obj.parent.name
 
         info["class"] = face.obj.name[1:] if face.obj.name[0] == "I" else face.obj.name
@@ -423,7 +421,7 @@ def LoadInterfaceInternal(file, log, all = False, includePaths = []):
 
             if face.obj.json_prefix:
                 prefix = (face.obj.json_prefix + "::")
-            elif face.obj.parent.full_name != config.INTERFACE_NAMESPACE:
+            elif face.obj.parent.full_name != ns:
                 prefix = (face.obj.parent.name.lower() + "_")
             else:
                 prefix = ""
@@ -766,13 +764,26 @@ def LoadInterfaceInternal(file, log, all = False, includePaths = []):
             schema = Build(face)
             if schema:
                 schemas.append(schema)
-    else:
-        log.Info("No interfaces found")
 
     return schemas, []
 
 def LoadInterface(file, log, all = False, includePaths = []):
     try:
-        return LoadInterfaceInternal(file, log, all, includePaths)
+        schemas = []
+        includes = []
+
+        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
+
+        for ns in config.INTERFACE_NAMESPACES:
+            s, i = LoadInterfaceInternal(file, tree, ns, log, all, includePaths)
+            schemas.extend(s)
+            includes.extend(i)
+
+        if not schemas:
+            log.Info("No interfaces found")
+
+        return schemas, includes
+
     except CppParser.ParserError as ex:
         raise CppParseError(None, str(ex))

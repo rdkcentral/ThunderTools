@@ -186,7 +186,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     emit.Line()
 
 
-def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototypes = []):
+def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, prototypes = []):
     json_source = source_file.endswith(".json")
 
     emit.Line()
@@ -222,9 +222,9 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototy
 
     emit.Line()
 
-    for i, ns in enumerate(config.INTERFACE_NAMESPACE.split("::")):
-        if ns:
-            emit.Line("namespace %s {" % ns)
+    for i, ns_ in enumerate(ns.split("::")):
+        if ns_:
+            emit.Line("namespace %s {" % ns_)
             if i >= 2:
                 emit.Indent()
             emit.Line()
@@ -242,7 +242,7 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototy
     emit.Indent()
     emit.Line()
 
-def _EmitRpcEpilogue(root, emit):
+def _EmitRpcEpilogue(root, emit, ns):
     emit.Unindent()
     emit.Line("} // namespace %s" % ("J" + root.json_name))
     emit.Line()
@@ -252,11 +252,11 @@ def _EmitRpcEpilogue(root, emit):
         emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
         emit.Line()
 
-    for i, ns in reversed(list(enumerate(config.INTERFACE_NAMESPACE.split("::")))):
-        if ns:
+    for i, ns_ in reversed(list(enumerate(ns.split("::")))):
+        if ns_:
             if i >= 2:
                 emit.Unindent()
-            emit.Line("} // namespace %s" % ns)
+            emit.Line("} // namespace %s" % ns_)
             emit.Line()
 
     emit.Line()
@@ -272,11 +272,11 @@ def _EmitVersionCode(emit, version):
     emit.Unindent()
     emit.Line("} // namespace Version")
 
-def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
+def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     json_source = source_file.endswith(".json")
 
-    for i, ns in enumerate(config.INTERFACE_NAMESPACE.split("::")):
-        if ns and i >= 2:
+    for i, ns_ in enumerate(ns.split("::")):
+        if ns_ and i >= 2:
             emit.Indent()
 
     if "info" in root.schema and "namespace" in root.schema["info"]:
@@ -881,15 +881,21 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
     return prototypes
 
 def EmitRpcCode(root, emit, header_file, source_file, data_emitted):
-    prototypes = _EmitRpcCode(root, emit, header_file, source_file, data_emitted)
+
+    ns = root.schema["namespace"] if "namespace" in root.schema else "::WPEFramework::Exchange"
+
+    prototypes = _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted)
 
     with emitter.Emitter(None, config.INDENT_SIZE) as prototypes_emitter:
-        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, data_emitted, prototypes)
+        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, ns, data_emitted, prototypes)
         emit.Prepend(prototypes_emitter)
 
-    _EmitRpcEpilogue(root, emit)
+    _EmitRpcEpilogue(root, emit, ns)
 
 def EmitRpcVersionCode(root, emit, header_file, source_file, data_emitted):
-    _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted)
+
+    ns = root.schema["namespace"] if "namespace" in root.schema else "::WPEFramework::Exchange"
+
+    _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted)
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
-    _EmitRpcEpilogue(root, emit)
+    _EmitRpcEpilogue(root, emit, ns)
