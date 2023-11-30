@@ -140,6 +140,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                         props["encode"] = cppType.type != "char"
 
+                        if var.meta.range:
+                            props["range"] = var.meta.range
+
                         return "string", props if props else None
                     # Special case for iterators, that will be converted to JSON arrays
                     elif is_iterator and len(cppType.args) == 2:
@@ -252,6 +255,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     if var_type.IsPointerToConst():
                         result[1]["ptrtoconst"] = True
 
+                    if var.meta.range:
+                        result[1]["range"] = var.meta.range
+
                     return result
 
             def ExtractExample(var):
@@ -340,7 +346,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                         required.append(var_name)
 
                         if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
-                            log.WarnLine(var, "'%s': passing string by value (forgot &?)" % var.name)
+                            log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
                 params["properties"] = properties
                 params["required"] = required

@@ -24,15 +24,15 @@ class Emitter():
         self.lines = []
 
     def __del__(self):
-        if self.file:
-            self.Flush()
-            self.file.close()
+        pass
 
     def __enter__(self):
         return self
 
     def __exit__(self, exc_type, exc_value, traceback):
-        pass
+        if self.file:
+            self.Flush()
+            self.file.close()
 
     def Line(self, text = ""):
         if text != "":

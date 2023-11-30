@@ -22,6 +22,7 @@ import config
 import emitter
 import rpc_version
 from json_loader import *
+from class_emitter import AppendTest
 
 
 def EmitEvent(emit, root, event, params_type, legacy = False):
@@ -434,10 +435,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     if isinstance(arg, JsonString) and "length" in arg.flags:
                         length = arg.flags.get("length")
 
+                        tests = []
+
                         for name, [var, var_type] in vars.items():
                             if name == length.local_name:
                                 initializer = (parent + var.cpp_name) if "r" in var_type else ""
                                 emit.Line("%s %s{%s};" % (var.cpp_native_type, var.TempName(), initializer))
+                                AppendTest(tests, length, reverse=True)
                                 break
 
                         encode = arg.schema.get("encode")
@@ -448,7 +452,17 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         else:
                             emit.Line("%s* %s = nullptr;" % (arg.original_type, arg.TempName()))
                             emit.Line()
-                            emit.Line("if (%s != 0) {" % length.TempName())
+
+                            if not tests:
+                                AppendTest(tests, arg, length, reverse=True)
+
+                            if len(tests) < 2:
+                                tests.insert(0, ("(%s != 0)" % length.TempName()))
+
+                            if len(tests) < 2:
+                                tests.append("(%s <= 0x400000)" % length.TempName()) # some sanity!
+
+                            emit.Line("if (%s) {" % " && ".join(tests))
                             emit.Indent()
                             emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (arg.TempName(), arg.original_type, length.TempName()))
                             emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
@@ -462,6 +476,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if is_writeable or encode:
                             emit.Unindent()
                             emit.Line("}")
+                            emit.Line("else {")
+                            emit.Indent()
+                            emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.TempName())
+                            emit.Unindent()
+                            emit.Line("}")
+
+                        emit.Line()
 
                     # Special case for iterators
                     elif isinstance(arg, JsonArray):
@@ -510,6 +531,22 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if json_source else arg.cpp_native_type, arg.TempName(), initializer))
 
+                tests = []
+                for _, [arg, arg_type] in sorted(vars.items(), key=lambda x: x[1][0].schema["position"]):
+                    if arg.flags.get("isbufferlength"):
+                        continue
+
+                    AppendTest(tests, arg)
+
+                if tests:
+                    emit.Line()
+                    emit.Line("if (%s) {" % (" || ".join(tests)))
+
+                    emit.Indent()
+                    emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.TempName())
+                    emit.Unindent()
+                    emit.Line("}")
+
                 emit.Line()
 
                 # Emit call to the implementation
@@ -541,7 +578,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     if not conditions:
                         emit.Line()
 
+                    if tests:
+                        emit.Line("if (%s == Core::ERROR_NONE) {" % error_code.TempName())
+                        emit.Indent()
+
                     emit.Line("%s = %s->%s(%s);" % (error_code.TempName(), implementation_object, m.cpp_name, ", ".join(function_params)))
+
+                    if tests:
+                        emit.Unindent()
+                        emit.Line("}")
 
                     if conditions:
                         for _, _record in vars.items():
@@ -662,7 +707,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             emit.Indent()
             error_code = AuxJsonInteger("errorCode_", 32)
-            emit.Line("%s %s%s;" % (error_code.cpp_native_type, error_code.TempName(), " = Core::ERROR_NONE" if json_source else ""))
+            emit.Line("%s %s%s;" % (error_code.cpp_native_type, error_code.TempName(), " = Core::ERROR_NONE"))
             emit.Line()
 
             if isinstance(m, JsonProperty):

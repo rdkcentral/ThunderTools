@@ -18,6 +18,41 @@ import config
 import trackers
 from json_loader import *
 
+def IsObjectRestricted(argument):
+    for prop in argument.properties:
+        if isinstance(prop, JsonObject):
+            if IsObjectRestricted(prop):
+                return True
+        else:
+            if "range" in prop.schema:
+                return True
+    return False
+
+def AppendTest(tests, argument, relay=None, test_zero=False, reverse=False, override=None):
+    comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
+
+    if not relay:
+        relay = argument
+
+    if "range" in argument.schema or IsObjectRestricted(argument):
+        name = relay.TempName() if not override else override
+        range = argument.schema.get("range")
+
+        if isinstance(argument, JsonString):
+            if argument.schema["range"][0] != 0:
+                tests.append("(%s.size() %s %s)" % (name, comp[0], range[0]))
+
+            tests.append("(%s.size() %s %s)" % (name, comp[1], range[1]))
+
+        elif isinstance(argument, JsonObject):
+            tests.append("(%s.IsRestrictValid() == %s)" % (name, comp[2]))
+
+        else:
+            if argument.schema["range"][0] or argument.schema.get("signed"):
+                tests.append("(%s %s %s)" % (name, comp[0], range[0]))
+
+            tests.append("(%s %s %s)" % (name, comp[1], range[1]))
+
 def ProcessEnums(action=None):
     count = 0
 
@@ -113,11 +148,16 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
             emit.Indent()
             emit.Line(": %s()" % CoreJson("Container"))
+
             for prop in json_obj.properties:
                 if copy_ctor:
                     emit.Line(", %s(_other.%s)" % (prop.cpp_name, prop.cpp_name))
                 elif prop.cpp_def_value != '""' and prop.cpp_def_value != "":
                     emit.Line(", %s(%s)" % (prop.cpp_name, prop.cpp_def_value))
+
+            if IsObjectRestricted(json_obj):
+                emit.Line(", _valid(true)")
+
             emit.Unindent()
             emit.Line("{")
             emit.Indent()
@@ -162,7 +202,25 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             for prop in json_obj.properties:
                 emit.Line("_value.%s = %s;" % ( prop.actual_name, prop.cpp_name))
 
+
+            if IsObjectRestricted(json_obj):
+                tests = []
+
+                for prop in json_obj.properties:
+                    AppendTest(tests, prop, reverse=True, override=("_value." + prop.actual_name))
+
+                if tests:
+                    emit.Line("_valid = (%s);" % " && ".join(tests))
+
             emit.Line("return (_value);")
+            emit.Unindent()
+            emit.Line("}")
+
+        def _EmitValidator(json_obj):
+            emit.Line("bool IsRestrictValid() const")
+            emit.Line("{")
+            emit.Indent()
+            emit.Line("return (_valid);")
             emit.Unindent()
             emit.Line("}")
 
@@ -211,6 +269,10 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line()
                 _EmitConversionOperator(json_obj)
 
+            if IsObjectRestricted(json_obj):
+                emit.Line()
+                _EmitValidator(json_obj)
+
             if json_obj.is_copy_ctor_needed or ("original_type" in json_obj.schema):
                 emit.Unindent()
                 emit.Line()
@@ -236,6 +298,13 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             for prop in json_obj.properties:
                 comment = prop.print_name if isinstance(prop, JsonMethod) else prop.description
                 emit.Line("%s %s;%s" % (prop.short_cpp_type, prop.cpp_name, (" // " + comment) if comment else ""))
+
+            if IsObjectRestricted(json_obj):
+                emit.Unindent()
+                emit.Line()
+                emit.Line("private:")
+                emit.Indent()
+                emit.Line("bool _valid;")
 
             emit.Unindent()
             emit.Line("}; // class %s" % json_obj.cpp_class)
