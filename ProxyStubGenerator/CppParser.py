@@ -1503,9 +1503,25 @@ def __Tokenize(contents,log = None):
         r"|([\r\n\t ])"                                                 # whitespace
     )
 
-    tokens = [s.strip() for s in re.split(formula, contents, flags=(re.MULTILINE)) if s and s.strip()]
+    rtokens = [s.strip() for s in re.split(formula, contents, flags=(re.MULTILINE)) if s and s.strip()]
+
+    tokens = []
+
+    for i, token in enumerate(rtokens):
+        if (i > 1) and (i < len(rtokens) - 1):
+            if rtokens[i].startswith("//") and tokens[-1].startswith("//"):
+                if "@_line" in token and rtokens[i+1].startswith("//") and "@" not in rtokens[i+1]:
+                    # get rid of line tags between comments
+                    continue
+                elif "@" not in token:
+                    # join comments without any @ markers
+                    tokens[-1] += " "+ token[2:].strip()
+                    continue
+
+        tokens.append(token)
 
     tagtokens = []
+
     # check for special metadata within comments
     skipmode = False
     omit_depth = 0
