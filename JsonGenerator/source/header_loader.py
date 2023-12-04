@@ -154,6 +154,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                         result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
 
+                        if "extract" in var.meta.decorators:
+                            result[1]["extract"] = True
+
                         if var_type.IsPointerToPointer():
                             result[1]["ptr"] = True
 

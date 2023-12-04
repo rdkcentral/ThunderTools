@@ -2085,6 +2085,7 @@ if __name__ == "__main__":
         print("   @bitmask               - indicates that enumerator lists should be packed into into a bit mask")
         print("   @index                 - indicates that a parameter in a JSON-RPC property or notification is an index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
+        print("   @extract               - indicates that that if only one element is present in the array it shall be taken out of it")
         print("   @prefix {name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
         print("   @text {name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, property or notification")
         print("   @alt {name}            - provides an alternative name a JSON-RPC method or property can by called by")

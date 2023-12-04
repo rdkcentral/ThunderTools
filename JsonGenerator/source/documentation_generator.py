@@ -161,6 +161,11 @@ def Create(log, schema, path, indent_size = 4):
                         else:
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
+                    if obj.get("extract"):
+                        if row:
+                            row += "<br>"
+                        row += italics("If only one element is present the array will be omitted.")
+
                     MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
 
                 if obj["type"] == "object":
