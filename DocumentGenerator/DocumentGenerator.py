@@ -23,16 +23,10 @@ import os
 import glob
 import subprocess
 import shutil
-from git import Repo
 import time
+import re
+from git import Repo
 
-
-THUNDER_REPO_URL = "https://github.com/rdkcentral/Thunder"
-THUNDER_TOOLS_REPO_URL = "https://github.com/rdkcentral/ThunderTools"
-THUNDER_INTERFACE_REPO_URL = "https://github.com/rdkcentral/ThunderInterfaces"
-THUNDER_PLUGINS_REPO_URL = "https://github.com/rdkcentral/ThunderNanoServices.git"
-RDK_PLUGINS_REPO_URL = "https://github.com/WebPlatformForEmbedded/ThunderNanoServicesRDK.git"
-DOCS_REPO_URL = "https://github.com/WebPlatformForEmbedded/ServicesInterfaceDocumentation.git"
 sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir))
 import JsonGenerator.JsonGenerator as JsonGenerator
 import ProxyStubGenerator.Log as Log
@@ -41,12 +35,21 @@ NAME = "DocumentGenerator"
 VERBOSE = True
 SHOW_WARNINGS = True
 DOC_ISSUES = False
-
 log = Log.Log(NAME, VERBOSE, SHOW_WARNINGS, DOC_ISSUES)
+
+DOCS_REPO_URL = "git@github.com:WebPlatformForEmbedded/ServicesInterfaceDocumentation.git"
+THUNDER_REPO_URL = "https://github.com/rdkcentral/Thunder"
+THUNDER_TOOLS_REPO_URL = "https://github.com/rdkcentral/ThunderTools"
+THUNDER_INTERFACE_REPO_URL = "https://github.com/rdkcentral/ThunderInterfaces"
+THUNDER_PLUGINS_REPO_URL = "https://github.com/rdkcentral/ThunderNanoServices.git"
+RDK_PLUGINS_REPO_URL = "https://github.com/WebPlatformForEmbedded/ThunderNanoServicesRDK.git"
+
+VERSION_PATTERN = re.compile(r'^R\d+\.\d+(\.\d+)?$')
+
 
 class MkdocsYamlFileGenerator():
     def __init__(self, docs_path, site_name, site_url):
-        self._yamlfile_path = docs_path + "mkdocs.yml"
+        self._yamlfile_path = docs_path + "/mkdocs.yml"
         self._site_name = site_name
         self._site_url = site_url
         self._current_topic = ""
@@ -115,6 +118,7 @@ markdown_extensions:
         self._fd.write(theme_info + "\n")
         return
 
+
 class DocumentGenerator():
     _yaml_generator = None
     def __init__(self, thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, docs_path, thunder_tools_path):
@@ -124,10 +128,17 @@ class DocumentGenerator():
         self.thunder_plugins_path = thunder_plugins_path
         self.rdk_plugins_path = rdk_plugins_path
         self.docs_path = docs_path
+        self.is_branch_name_valid()
         self.clean_all_repos_dir()
         self.clone_all_repos()
-        self._yaml_generator = MkdocsYamlFileGenerator(self.docs_path, "Documentation", "")
+        self._yaml_generator = MkdocsYamlFileGenerator(docs_path=self.docs_path, site_name=branch_name, site_url="")
         self.mkdocs_create_index_file()
+
+    def is_branch_name_valid(self):
+        if not VERSION_PATTERN.fullmatch(branch_name):
+            log.Error("Branch name must be RX.X or RX.X.X where X represents semantic versioning for major.minor or major.minor.patch)")
+            sys.exit()
+        return
 
     def clean_all_repos_dir(self):
         if os.path.exists(self.thunder_path):
@@ -145,21 +156,130 @@ class DocumentGenerator():
         return
 
     def clone_all_repos(self):
+        self.docs_commit_id, self.docs_commit_date = self.clone_repo(DOCS_REPO_URL, self.docs_path)
         self.thunder_commit_id, self.thunder_commit_date = self.clone_repo(THUNDER_REPO_URL, self.thunder_path)
         self.thunder_tools_commit_id, self.thunder_tools_commit_date = self.clone_repo(THUNDER_TOOLS_REPO_URL, self.thunder_tools_path)
         self.thunder_interfaces_commit_id, self.thunder_interfaces_commit_date = self.clone_repo(THUNDER_INTERFACE_REPO_URL, self.thunder_interface_path)
         self.thunder_plugins_commit_id, self.thunder_plugins_commit_date = self.clone_repo(THUNDER_PLUGINS_REPO_URL, self.thunder_plugins_path)
         self.rdk_plugins_commit_id, self.rdk_plugins_commit_date = self.clone_repo(RDK_PLUGINS_REPO_URL, self.rdk_plugins_path)
-        self.docs_commit_id, self.docs_commit_date = self.clone_repo(DOCS_REPO_URL, self.docs_path)
+        
 
     def clone_repo(self, repo_url, local_path):
-        repo = Repo.clone_from(repo_url, local_path)
+        if repo_url == DOCS_REPO_URL:
+            repo = Repo.clone_from(repo_url, local_path, branch="gh-pages")
+            versions = self.collect_existing_versions()
+            sorted_versions = sorted(versions, key=lambda x: list(map(int, x[1:].split('.'))), reverse=True)
+            self.create_root_index(sorted_versions, local_path)
+
+
+        else:
+            # Change . with _ as we use underscore for branch names
+            _branch_name = branch_name
+            pattern = re.compile(r'^R\d+\.\d$')
+            if pattern.fullmatch(branch_name):
+                _branch_name = branch_name.replace('.', '_')
+            repo = Repo.clone_from(repo_url, local_path, branch=_branch_name, depth=1)
+            
         headcommit = repo.head.commit
         headcommit_sha = headcommit.hexsha
         headcommit_date = time.strftime("%a, %d %b %Y %H:%M", time.gmtime(headcommit.committed_date))
         log.Info("Repo head: {} ".format( headcommit.hexsha))
         log.Info("Repo commit date: {}".format( headcommit_date))
         return (headcommit_sha, headcommit_date)
+    
+    def collect_existing_versions(self):
+        versions = [d for d in os.listdir(docs_path) if os.path.isdir(os.path.join(docs_path, d)) and VERSION_PATTERN.fullmatch(d)]
+        if branch_name in versions:
+            log.Info("{} has already documented! Do you want to override?".format(branch_name))
+            override = input("Type 'yes' or 'no': ").lower() == "yes"
+            if override:
+                shutil.rmtree(docs_path + "/{}".format(branch_name))
+
+            else:
+                log.Info("Script terminated by user request!")
+                sys.exit()
+            
+        else:
+            versions.append(branch_name)
+
+        return versions
+
+    
+    def create_root_index(self, versions, path):
+        
+        html_content = '''
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>Documents</title>
+            <style>
+                body {
+                    background-color: #000000;
+                    margin: 0;
+                    padding: 0;
+                    display: flex;
+                    height: 100vh;
+                }
+
+                .container {
+                    text-align: left;
+                    margin-top: 10px;
+                }
+
+                select {
+                    padding: 5px;
+                    font-size: 16px;
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                    margin-left: 10px;
+                    margin-bottom: 10px;
+                }
+
+                iframe {
+                    width: 100vw;
+                    height: 95vh;
+                    border: 1px solid #ccc;
+                }
+
+            </style>
+        </head>
+        <body>
+            <div class="container">
+                <select id="versionDropdown" onchange="updateFrame()">
+                    <option value="" selected disabled>Select Version</option>
+        '''
+
+        # Populate dropdown options
+        for version in versions:
+            html_content += f'            <option value={version}>{version}</option>\n'
+
+        html_content += '''
+                </select>
+
+                <iframe id="versionFrame" name="versionFrame" src="" frameborder="0"></iframe>
+
+                <script>
+                    document.getElementById("versionDropdown").selectedIndex = 1;
+                    function updateFrame() {
+                        var dropdown = document.getElementById("versionDropdown");
+                        var selectedValue = dropdown.options[dropdown.selectedIndex].value;
+                        var frame = document.getElementById("versionFrame");
+                        frame.src = selectedValue;
+                    }
+                window.onload = updateFrame;
+                </script>
+            </div>
+        </body>
+        </html>
+        '''
+
+        with open('{}/index.html'.format(path), 'w') as file:
+            file.write(html_content)
+        
+        return
+
 
     def mkdocs_create_index_file(self):
         if not os.path.exists(self.docs_path + "/docs"):
@@ -181,7 +301,6 @@ This section contains the documentation created from plugins\n\n
         index_file.write(index_file_contents_plugins)
 
     def generate_document(self, schemas):
-        # output_path = "/Users/ksomas586/testPrgs/MarkDown/documentation/out/"
         output_path = self.docs_path + "/docs/"
         for schemas_ in schemas:
           for schema in schemas_:
@@ -248,17 +367,24 @@ if __name__ == "__main__":
                             metavar="DIR",
                             required=True,
                             help="Local path for cloning necessary repositories")
+    argparser.add_argument("--branch",
+                            dest="branch_name",
+                            action="store",
+                            default="master",
+                            help="Branch name for repositories")
 
     args = argparser.parse_args(sys.argv[1:])
     clone_path = args.clone_path
     deploy_docs = args.github_deploy
+    branch_name = args.branch_name
     thunder_interface_path = clone_path + "/interface/"
     thunder_plugins_path = clone_path + "/thunder_nano_services/"
     rdk_plugins_path = clone_path + "/thunder_nano_services_rdk/"
     thunder_path = clone_path + "/thunder/"
     thunder_tools_path = clone_path + "/thundertools/"
     docs_path = clone_path + "/Documentation/"
-    log.Info("Interface path: {} ".format( thunder_interface_path))
+    log.Info("Branch: {}".format( branch_name))
+    log.Info("Interface path: {}".format( thunder_interface_path))
     log.Info("Plugin path: {}".format( thunder_plugins_path))
     log.Info("RDKPlugin path: {}".format( rdk_plugins_path))
     log.Info("Thunder path: {}".format( thunder_path))
@@ -281,8 +407,18 @@ if __name__ == "__main__":
     if deploy_docs:
         # unless DOCS_REPO_URL is changed the documentation will be deployed in this location https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/
         os.chdir(docs_path)
+        
         try:
-            ret_val = subprocess.run(["mkdocs", "gh-deploy"])
+            ret_val = subprocess.run(["mkdocs", "build", "-d{}".format(branch_name)])
             log.Info("mkdocs exit code: {} ".format( ret_val.returncode))
         except subprocess.CalledProcessError as err:
             log.Error("Error in deploying: {}".format( str(err)))
+        
+        log.Info("Pushing changes to remote!")
+        repo = Repo(docs_path)
+        repo.git.add("index.html")
+        repo.git.add("{}".format(branch_name))
+        repo.index.commit("{} Documentation for ".format(branch_name))
+        repo.remote().push()
+        log.Info("Script Completed Successfully")
+          
