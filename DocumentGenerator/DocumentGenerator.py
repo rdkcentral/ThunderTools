@@ -49,7 +49,7 @@ VERSION_PATTERN = re.compile(r'^R\d+\.\d+(\.\d+)?$')
 
 class MkdocsYamlFileGenerator():
     def __init__(self, docs_path, site_name, site_url):
-        self._yamlfile_path = docs_path + "/mkdocs.yml"
+        self._yamlfile_path = docs_path + "mkdocs.yml"
         self._site_name = site_name
         self._site_url = site_url
         self._current_topic = ""
