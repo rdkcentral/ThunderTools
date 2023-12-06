@@ -670,6 +670,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                                 emit.Indent()
                                 emit.Line("%s %s{};" % (arg.items.cpp_native_type, item_name))
                                 emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (arg.TempName(), item_name, cpp_name, item_name))
+                                if arg.schema.get("extract"):
+                                    emit.Line("%s.SetExtractOnSingle(true);" % (cpp_name))
                                 emit.Line("%s->Release();" % arg.TempName())
                                 emit.Unindent()
                                 emit.Line("}")

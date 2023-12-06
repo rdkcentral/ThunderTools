@@ -367,6 +367,8 @@ class Identifier():
                     skip = 1
                 elif token[1:] == "OPAQUE":
                     self.meta.decorators.append("opaque")
+                elif token[1:] == "EXTRACT":
+                    self.meta.decorators.append("extract")
                 elif token[1:] == "PROPERTY":
                     self.meta.is_property = True
                 elif token[1:] == "BRIEF":
@@ -1661,6 +1663,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@BITMASK")
                 if _find("@opaque", token):
                     tagtokens.append("@OPAQUE")
+                if _find("@extract", token):
+                    tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
                 if _find("@alt", token):
