@@ -54,6 +54,7 @@ JSON_INTERFACE_PATH = CPP_INTERFACE_PATH + "json"  + os.sep
 DUMP_JSON = False
 FORCE = False
 GENERATED_JSON = False
+LEGACY_ALT = False
 
 class RpcFormat(Enum):
     COMPLIANT = "compliant"
@@ -85,6 +86,7 @@ def Parse(cmdline):
     global ALWAYS_EMIT_COPY_CTOR
     global KEEP_EMPTY
     global CLASSNAME_FROM_REF
+    global LEGACY_ALT
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -173,7 +175,7 @@ def Parse(cmdline):
             metavar="NS",
             action="append",
             default=[],
-            help="set namespace to look for interfaces in (default: %s)" % [INTERFACE_NAMESPACES])
+            help="add namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACES[0])
     cpp_group.add_argument("--format",
             dest="format",
             type=str,
@@ -203,6 +205,11 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "do not emit versioning information for non-auto JSON interfaces (default: emit versioning header)")
+    data_group.add_argument("--legacy-alt",
+            dest="legacy_alt",
+            action="store_true",
+            default=False,
+            help="do not use framework's alt support (default: use framework alt support)")
     data_group.add_argument(
             "--no-push-warning",
             dest="no_push_warning",
@@ -284,6 +291,7 @@ def Parse(cmdline):
     DEFAULT_INT_SIZE = args.def_int_size
     DUMP_JSON = args.dump_json
     FORCE = args.force
+    LEGACY_ALT = args.legacy_alt
     DEFAULT_DEFINITIONS_FILE = args.extra_include
     INTERFACES_SECTION = not args.no_interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location

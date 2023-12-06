@@ -121,6 +121,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
             def ConvertType(var):
                 var_type = ResolveTypedef(var.type)
+                if isinstance(var_type, str):
+                    raise CppParseError(var, "%s: undefined type" % var_type)
+
+
                 cppType = var_type.Type()
                 is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
 
@@ -476,7 +480,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     event_interfaces.add(CppInterface.Interface(ResolveTypedef(e).type, 0, file))
 
             obj = None
-            property_second_method = False
 
             if method.retval.meta.is_property or (prefix + method_name_lower) in properties:
                 try:
@@ -641,30 +644,36 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     if errors:
                         obj["errors"] = errors
 
-                upd = properties if method.retval.meta.is_property else methods
+                if config.LEGACY_ALT:
+                    upd = properties if method.retval.meta.is_property else methods
 
                 if method.retval.meta.alt:
                     idx = prefix + method.retval.meta.alt
-                    upd[idx] = copy.deepcopy(obj)
-                    upd[idx]["alt"] = prefix + method_name_lower
                     obj["alt"] = idx
 
-                    if "deprecated" in upd[idx]:
-                        del upd[idx]["deprecated"]
-                    if "obsolete" in upd[idx]:
-                        del upd[idx]["obsolete"]
+                    if config.LEGACY_ALT:
+                        idx = prefix + method.retval.meta.alt
+                        upd[idx] = copy.deepcopy(obj)
+                        upd[idx]["alt"] = prefix + method_name_lower
+                        obj["alt"] = idx
 
-                    if method.retval.meta.alt_is_deprecated:
-                        upd[idx]["deprecated"] = True
-                    elif method.retval.meta.alt_is_obsolete:
-                        upd[idx]["obsolete"] = True
+                        if "deprecated" in upd[idx]:
+                            del upd[idx]["deprecated"]
+                        if "obsolete" in upd[idx]:
+                            del upd[idx]["obsolete"]
+
+                        if method.retval.meta.alt_is_deprecated:
+                            upd[idx]["deprecated"] = True
+                        elif method.retval.meta.alt_is_obsolete:
+                            upd[idx]["obsolete"] = True
 
                 elif "alt" in obj:
-                    o = upd[obj["alt"]]
-                    if "readonly" in o and "readonly" not in obj:
-                        del o["readonly"]
-                    if "writeonly" in o and "writeonly" not in obj:
-                        del o["writeonly"]
+                    if config.LEGACY_ALT:
+                        o = upd[obj["alt"]]
+                        if "readonly" in o and "readonly" not in obj:
+                            del o["readonly"]
+                        if "writeonly" in o and "writeonly" not in obj:
+                            del o["writeonly"]
 
 
         for f in event_interfaces:
