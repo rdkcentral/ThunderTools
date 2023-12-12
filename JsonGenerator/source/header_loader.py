@@ -120,10 +120,16 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                 return type.Resolve()
 
             def ConvertType(var):
+                if isinstance(var.type, str):
+                    raise CppParseError(var, "%s: undefined type" % var.type)
+                elif isinstance(var.type, list):
+                    raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
+
                 var_type = ResolveTypedef(var.type)
                 if isinstance(var_type, str):
-                    raise CppParseError(var, "%s: undefined type" % var_type)
-
+                    raise CppParseError(var.type, "%s: undefined type" % var_type)
+                elif isinstance(var_type, list):
+                    raise CppParseError(var.type, "%s: undefined type" % " ".join(var_type))
 
                 cppType = var_type.Type()
                 is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
@@ -148,6 +154,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                             props["range"] = var.meta.range
 
                         return "string", props if props else None
+
                     # Special case for iterators, that will be converted to JSON arrays
                     elif is_iterator and len(cppType.args) == 2:
                         # Take element type from return value of the Current() method
@@ -189,6 +196,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                         size = 8 if cppType.size == "char" else 16 if cppType.size == "short" else \
                             32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
                         result = [ "integer", { "size": size, "signed": cppType.signed } ]
+                    # Instance ID
+                    elif isinstance(cppType, CppParser.InstanceId):
+                        result = [ "instanceid", {} ]
                     # Float
                     elif isinstance(cppType, CppParser.Float):
                         result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
@@ -200,12 +210,17 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                         if len(cppType.items) > 1:
                             autos = [e.auto_value for e in cppType.items].count(True)
-                            if autos != 0 and (autos != len(cppType.items)):
-                               raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
+                            #if autos != 0 and (autos != len(cppType.items)):
+                            #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
                         enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
                         enum_spec["ids"] = [e.name for e in cppType.items]
                         enum_spec["hint"] = var.type.Type().name
+
+                        for e in cppType.items:
+                            if "endmarker" in e.meta.decorators:
+                                enum_spec["endmarker"] = e.name
+                                break;
 
                         if not cppType.items[0].auto_value:
                             enum_spec["values"] = [e.value for e in cppType.items]
@@ -218,7 +233,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                         else:
                             result = ["string", enum_spec]
 
-
                         if isinstance(var.type.Type(), CppParser.Typedef):
                             result[1]["@register"] = False
 
@@ -229,10 +243,16 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                             kind = ctype.Merge()
 
+                            required = []
+
                             for p in kind.vars:
                                 name = p.name.lower()
 
-                                if isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
+                                if isinstance(p.type, list):
+                                    raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
+                                if isinstance(p.type, str):
+                                    raise CppParseError(p, "%s: undefined type" % p.type)
+                                elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
                                     _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                     properties[name] = props
                                     properties[name]["type"] = "object"
@@ -245,7 +265,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                                 if was_typdef:
                                     properties[name]["@register"] = False
 
-                            return "object", { "properties": properties, "required": list(properties.keys()) }
+                                if "optional" not in p.meta.decorators:
+                                    required.append(name)
+
+                            return "object", { "properties": properties, "required": required }
 
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
 
@@ -350,7 +373,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                         properties[var_name]["position"] = vars.index(var)
 
-                        required.append(var_name)
+                        if "optional" not in var.meta.decorators:
+                            required.append(var_name)
+                        else:
+                            properties[var_name]["optional"] = True
 
                         if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
@@ -404,7 +430,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                            properties[var_name]["@originalname"] = var.name
 
                         properties[var_name]["position"] = vars.index(var)
-                        required.append(var_name)
+
+                        if "optional" not in var.meta.decorators:
+                            required.append(var_name)
 
                 params["properties"] = properties
 

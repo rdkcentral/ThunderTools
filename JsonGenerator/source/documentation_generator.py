@@ -99,8 +99,17 @@ def Create(log, schema, path, indent_size = 4):
                 name = (name if not "@originalname" in obj else obj["@originalname"].lower())
 
                 # include information about enum values in description
-                enum = ' (must be one of the following: %s)' % (", ".join(
-                    '*{0}*'.format(w) for w in obj["enum"])) if "enum" in obj else ""
+                enum = ""
+                if "enum" in obj:
+                    enums = []
+                    endmarker = obj.get("endmarker")
+                    for i,e in enumerate(obj["ids"]):
+                        if e == endmarker:
+                            break;
+                        enums.append(obj["enum"][i])
+
+                    if enums:
+                        enum = ' (must be one of the following: %s)' % (", ".join(enums))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
@@ -228,6 +237,8 @@ def Create(log, schema, path, indent_size = 4):
                 json_data += '%s' % str(default if default else False).lower()
             elif obj_type == "null":
                 json_data += 'null'
+            elif obj_type == "instanceid":
+                json_data += default if default else '"0x..."'
             elif obj_type == "array":
                 json_data += str(default if default else ('[ %s ]' % (ExampleObj("", obj["items"]))))
             elif obj_type == "object":
