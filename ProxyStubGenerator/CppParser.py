@@ -168,6 +168,12 @@ class BuiltinInteger(Intrinsic):
     def IsFixed(self):
         return self.fixed
 
+class InstanceId(BuiltinInteger):
+    def __init__(self):
+        BuiltinInteger.__init__(self, "instance_id")
+
+    def IsFixed(self):
+        return self.fixed
 
 class String(Intrinsic):
     def __init__(self, std=False, cc=False):
@@ -367,8 +373,12 @@ class Identifier():
                     skip = 1
                 elif token[1:] == "OPAQUE":
                     self.meta.decorators.append("opaque")
+                elif token[1:] == "OPTIONAL":
+                    self.meta.decorators.append("optional")
                 elif token[1:] == "EXTRACT":
                     self.meta.decorators.append("extract")
+                elif token[1:] == "END":
+                    self.meta.decorators.append("endmarker")
                 elif token[1:] == "PROPERTY":
                     self.meta.is_property = True
                 elif token[1:] == "BRIEF":
@@ -595,6 +605,8 @@ class Identifier():
                     self.type[i] = Type(BuiltinInteger(True))
                 elif type == "__stubgen_undetermined_integer":
                     self.type[i] = Type(BuiltinInteger(False))
+                elif type == "__stubgen_instance_id":
+                    self.type[i] = Type(InstanceId())
                 else:
                     found = []
                     __Search(global_namespace, found, self.type[i])
@@ -1540,7 +1552,7 @@ def __Tokenize(contents,log = None):
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
                            r"|(\+\+)|(--)|(\+=)|(-=)|(/=)|(\*=)|(%=)|(^=)|(&=)|(\|=)|(~=)"
-                           r"|([,:;~!?=^/*%-\+&<>\{\}\(\)\[\]])"
+                           r"|([,:;~?=^/*%-\+&<>\{\}\(\)\[\]])"
                            r"|([\r\n\t ])")
 
                 if append:
@@ -1661,8 +1673,12 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ITERATOR")
                 if _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
+                if _find("@end", token):
+                    tagtokens.append("@END")
                 if _find("@opaque", token):
                     tagtokens.append("@OPAQUE")
+                if _find("@optional", token):
+                    tagtokens.append("@OPTIONAL")
                 if _find("@extract", token):
                     tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):

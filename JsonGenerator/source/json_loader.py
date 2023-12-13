@@ -319,6 +319,15 @@ class JsonString(JsonNative, JsonType):
     def cpp_native_type(self):
         return "string"
 
+class JsonInstanceId(JsonNative, JsonType):
+    @property
+    def cpp_class(self):
+        return CoreJson("InstanceId")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::instnance_id"
+
 
 class JsonRefCounted():
     def __init__(self):
@@ -884,6 +893,8 @@ def JsonItem(name, parent, schema, included=None):
             return JsonBoolean(name, parent, schema)
         elif "enum" in schema:
             return JsonEnum(name, parent, schema, schema["type"], included)
+        elif schema["type"] == "instanceid":
+            return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":
             return JsonString(name, parent, schema)
         elif schema["type"] == "integer":

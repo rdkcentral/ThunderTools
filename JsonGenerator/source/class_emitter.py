@@ -87,6 +87,7 @@ def EmitEnumRegs(root, emit, header_file, if_file):
     # Enumeration conversion code
     emit.Line("#include <core/Enumerate.h>")
     emit.Line()
+
     emit.Line("#include \"definitions.h\"")
 
     if not config.NO_INCLUDES:
@@ -137,6 +138,8 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         def EmitInit(json_object):
             for prop in json_obj.properties:
                 emit.Line("Add(%s, &%s);" % (Tstring(prop.json_name), prop.cpp_name))
+                if isinstance(prop, JsonString) and prop.schema.get("opaque"):
+                    emit.Line("%s.SetQuoted(false);" % prop.cpp_name)
 
         def EmitCtor(json_obj, no_init_code=False, copy_ctor=False, conversion_ctor=False):
             if copy_ctor:
@@ -187,7 +190,22 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 if copy_ctor:
                     emit.Line("%s = _rhs.%s;" % (prop.cpp_name, prop.cpp_name))
                 elif conversion_ctor:
+                    optional = False
+                    if prop.schema.get("opaque") or ("required" in prop.parent.schema and prop.json_name not in prop.parent.schema["required"]):
+                        if isinstance(prop, JsonString):
+                            emit.Line("if (_rhs.%s.empty() == false)" % prop.actual_name)
+                            optional = True
+                        elif isinstance(prop, JsonInteger):
+                            emit.Line("if (_rhs.%s != 0)" % prop.actual_name)
+                            optional = True
+
+                    if optional:
+                        emit.Indent()
+
                     emit.Line("%s = _rhs.%s;" % (prop.cpp_name, prop.actual_name))
+
+                    if optional:
+                        emit.Unindent()
 
             emit.Line("return (*this);")
             emit.Unindent()

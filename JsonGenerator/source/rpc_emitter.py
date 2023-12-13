@@ -679,7 +679,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         elif isinstance(arg, JsonArray):
                             item_name = arg.items.TempName("item_")
                             if arg.iterator:
-                                emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
+                                # emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
                                 emit.Line()
                                 emit.Line("if (%s != nullptr) {" % arg.TempName())
                                 emit.Indent()
@@ -736,7 +736,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         index_converted = True
                         emit.Line("%s %s{};" % (m.index.cpp_native_type, m.index.TempName("converted_")))
                         emit.Line()
-                        emit.Line("if (Core::FromString(%s, %s) == false) {" % (m.index.TempName("_"), m.index.TempName("converted_")))
+
+                        if m.schema.get("optional"):
+                            emit.Line("if (Core::FromString(%s, %s) == false) {" % (m.index.TempName("_"), m.index.TempName("converted_")))
+                        else:
+                            emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (m.index.TempName("_"), m.index.TempName("_"), m.index.TempName("converted_")))
+
                         emit.Indent()
                         emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.TempName())
 
@@ -760,6 +765,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Unindent()
                         emit.Line("} else {")
                         emit.Indent()
+                    else:
+                        if m.schema.get("optional"):
+                            index_converted = True
+                            emit.Line("if (%s.empty() == true) {")
+                            emit.Indent()
+                            emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.TempName())
+
+                            if not m.writeonly and not m.readonly:
+                                emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+
+                            emit.Unindent()
+                            emit.Line("} else {")
+                            emit.Indent()
 
                 if not m.readonly and not m.writeonly:
                     emit.Line("if (%s.IsSet() == false) {" % (params.local_name))
