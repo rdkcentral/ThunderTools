@@ -103,8 +103,8 @@ if __name__ == "__main__":
 
                             name = os.path.basename(path).replace(".h", "").replace(".json", "")
 
-                            if "@generated" in schema and name[0] == "I":
-                                name = name[1:]
+                            # if "@generated" in schema and name[0] == "I":
+                            #     name = name[1:]
 
                             if headers:
                                 if name not in joint_headers:
