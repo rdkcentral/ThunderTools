@@ -178,7 +178,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
             Emit(parameters)
 
-            if event.alternative:
+            if config.LEGACY_ALT and event.alternative:
                 Emit([Tstring(event.alternative)] + parameters[1:])
 
     emit.Unindent()
@@ -311,7 +311,22 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     emit.Line("%s.RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (module_var, Tstring(struct)))
     emit.Line()
 
-    events = []
+    events = [e for e in root.properties if isinstance(e, JsonNotification)]
+
+    if events and not config.LEGACY_ALT:
+        alt_events = [event for event in events if event.alternative]
+    else:
+        alt_events = []
+
+    if alt_events:
+        emit.Line("// Register alternative notification names...")
+
+        for event in alt_events:
+            emit.Line("%s.RegisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
+
+        emit.Line("")
+
+
     method_count = 0
 
     emit.Line("// Register methods and properties...")
@@ -664,7 +679,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         elif isinstance(arg, JsonArray):
                             item_name = arg.items.TempName("item_")
                             if arg.iterator:
-                                emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
+                                # emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
                                 emit.Line()
                                 emit.Line("if (%s != nullptr) {" % arg.TempName())
                                 emit.Indent()
@@ -721,7 +736,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         index_converted = True
                         emit.Line("%s %s{};" % (m.index.cpp_native_type, m.index.TempName("converted_")))
                         emit.Line()
-                        emit.Line("if (Core::FromString(%s, %s) == false) {" % (m.index.TempName("_"), m.index.TempName("converted_")))
+
+                        if m.schema.get("optional"):
+                            emit.Line("if (Core::FromString(%s, %s) == false) {" % (m.index.TempName("_"), m.index.TempName("converted_")))
+                        else:
+                            emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (m.index.TempName("_"), m.index.TempName("_"), m.index.TempName("converted_")))
+
                         emit.Indent()
                         emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.TempName())
 
@@ -745,6 +765,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Unindent()
                         emit.Line("} else {")
                         emit.Indent()
+                    else:
+                        if m.schema.get("optional"):
+                            index_converted = True
+                            emit.Line("if (%s.empty() == true) {")
+                            emit.Indent()
+                            emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.TempName())
+
+                            if not m.writeonly and not m.readonly:
+                                emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+
+                            emit.Unindent()
+                            emit.Line("} else {")
+                            emit.Indent()
 
                 if not m.readonly and not m.writeonly:
                     emit.Line("if (%s.IsSet() == false) {" % (params.local_name))
@@ -790,10 +823,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Unindent()
             emit.Line()
 
-            method_count += 1
+            if not config.LEGACY_ALT and m.alternative:
+                emit.Line()
+                emit.Line("%s.Register(%s, %s);" % (module_var, Tstring(m.alternative), Tstring(m.name)))
+                emit.Line()
 
-        elif isinstance(m, JsonNotification):
-            events.append(m)
+            method_count += 1
 
     # Emit event status registrations
 
@@ -831,6 +866,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         for m in root.properties:
             if isinstance(m, JsonMethod) and not isinstance(m, JsonNotification):
                 emit.Line("%s.Unregister(%s);" % (module_var, Tstring(m.json_name)))
+
+                if not config.LEGACY_ALT and m.alternative:
+                    emit.Line("%s.Unregister(%s);" % (module_var, Tstring(m.alternative)))
+
+    if alt_events:
+        emit.Line("")
+        emit.Line("// Unegister alternative notification names...")
+
+        for event in alt_events:
+            emit.Line("%s.UnregisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
 
     # Emit event status deregistrations
 

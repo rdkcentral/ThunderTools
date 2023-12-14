@@ -319,6 +319,15 @@ class JsonString(JsonNative, JsonType):
     def cpp_native_type(self):
         return "string"
 
+class JsonInstanceId(JsonNative, JsonType):
+    @property
+    def cpp_class(self):
+        return CoreJson("InstanceId")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::instnance_id"
+
 
 class JsonRefCounted():
     def __init__(self):
@@ -711,6 +720,16 @@ class JsonMethod(JsonObject):
         elif (self.rpc_format == config.RpcFormat.COLLAPSED) and isinstance(self.params, JsonObject) and (len(self.params.properties) == 1):
             log.Warn("'%s': with 'collapsed' format methods and events with one parameter should not have an outer object" % self.print_name)
 
+        if "alt" in schema:
+            self.alternative = schema.get("alt")
+
+            if not self.alternative.islower():
+                log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
+            elif "_" in self.alternative:
+                log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
+        else:
+            self.alternative = None
+
     @property
     def rpc_format(self):
         return self.root.rpc_format
@@ -744,16 +763,6 @@ class JsonNotification(JsonMethod):
 
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
         self.is_status_listener = schema.get("statuslistener")
-
-        if "alt" in schema:
-            self.alternative = schema.get("alt")
-
-            if not self.alternative.islower():
-                log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-            elif "_" in self.alternative:
-                log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
-        else:
-            self.alternative = None
 
         self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
 
@@ -884,6 +893,8 @@ def JsonItem(name, parent, schema, included=None):
             return JsonBoolean(name, parent, schema)
         elif "enum" in schema:
             return JsonEnum(name, parent, schema, schema["type"], included)
+        elif schema["type"] == "instanceid":
+            return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":
             return JsonString(name, parent, schema)
         elif schema["type"] == "integer":

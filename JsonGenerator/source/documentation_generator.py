@@ -99,8 +99,17 @@ def Create(log, schema, path, indent_size = 4):
                 name = (name if not "@originalname" in obj else obj["@originalname"].lower())
 
                 # include information about enum values in description
-                enum = ' (must be one of the following: %s)' % (", ".join(
-                    '*{0}*'.format(w) for w in obj["enum"])) if "enum" in obj else ""
+                enum = ""
+                if "enum" in obj:
+                    enums = []
+                    endmarker = obj.get("endmarker")
+                    for i,e in enumerate(obj["ids"]):
+                        if e == endmarker:
+                            break;
+                        enums.append(obj["enum"][i])
+
+                    if enums:
+                        enum = ' (must be one of the following: %s)' % (", ".join(enums))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
@@ -228,6 +237,8 @@ def Create(log, schema, path, indent_size = 4):
                 json_data += '%s' % str(default if default else False).lower()
             elif obj_type == "null":
                 json_data += 'null'
+            elif obj_type == "instanceid":
+                json_data += default if default else '"0x..."'
             elif obj_type == "array":
                 json_data += str(default if default else ('[ %s ]' % (ExampleObj("", obj["items"]))))
             elif obj_type == "object":
@@ -257,7 +268,8 @@ def Create(log, schema, path, indent_size = 4):
                     alt_status = sen2 if props.get("altisobsolete") else sen1 if props.get("altisdeprecated") else ""
             else:
                 if is_alt:
-                    alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
+                    if config.LEGACY_ALT:
+                        alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
 
             orig_method = method
             method = props["alt"] if main_status and not alt_status else method
@@ -323,7 +335,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 if "result" in props:
                     if not "description" in props["result"]:
-                        if "description" in props["params"]:
+                        if "params" in props and "description" in props["params"]:
                             props["result"]["description"] = props["params"]["description"]
                         elif "summary" in props:
                             props["result"]["description"] = props["summary"]
@@ -814,17 +826,18 @@ def Create(log, schema, path, indent_size = 4):
                             if "alt" in contents and contents["alt"]:
                                 alt_tags = ""
 
-                                if not event:
-                                    if interface[section][contents["alt"]].get("obsolete"):
-                                        alt_tags += " <sup>obsolete</sup> "
+                                if config.LEGACY_ALT:
+                                    if not event:
+                                        if interface[section][contents["alt"]].get("obsolete"):
+                                            alt_tags += " <sup>obsolete</sup> "
 
-                                    if interface[section][contents["alt"]].get("deprecated"):
-                                        alt_tags += " <sup>deprecated</sup> "
-                                else:
-                                    if contents.get("altisobsolete"):
-                                        alt_tags += " <sup>obsolete</sup> "
-                                    if contents.get("altisdeprecated"):
-                                        alt_tags += " <sup>deprecated</sup> "
+                                        if interface[section][contents["alt"]].get("deprecated"):
+                                            alt_tags += " <sup>deprecated</sup> "
+                                    else:
+                                        if contents.get("altisobsolete"):
+                                            alt_tags += " <sup>obsolete</sup> "
+                                        if contents.get("altisdeprecated"):
+                                            alt_tags += " <sup>deprecated</sup> "
 
                                 if not alt_tags and tags:
                                     line = link(header + "." + contents["alt"]) + alt_tags
