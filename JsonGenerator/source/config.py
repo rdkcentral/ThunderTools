@@ -122,6 +122,13 @@ def Parse(cmdline):
             default=None,
             help="output directory, absolute path or directory relative to output file (default: output in the same directory as the source file)")
     argparser.add_argument(
+            "--cpp-output",
+            dest="cpp_output_dir",
+            metavar="DIR",
+            action="store",
+            default=None,
+            help="output directory for cpp files, absolute path or directory relative to output file")
+    argparser.add_argument(
             "--force",
             dest="force",
             action="store_true",

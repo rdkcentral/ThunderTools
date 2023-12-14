@@ -59,6 +59,8 @@ if __name__ == "__main__":
             else:
                 files.append(p)
 
+        joint_headers = {}
+
         for path in files:
 
             trackers.object_tracker.Reset()
@@ -74,20 +76,41 @@ if __name__ == "__main__":
                         warnings = config.GENERATED_JSON
                         config.GENERATED_JSON = "@generated" in schema
 
-                        output_path = path
-
                         if args.output_dir:
                             if (args.output_dir[0]) == os.sep:
-                                output_path = os.path.join(args.output_dir, os.path.basename(output_path))
+                                output_path = os.path.normpath(args.output_dir)
                             else:
-                                dir = os.path.join(os.path.dirname(output_path), args.output_dir)
-                                if not os.path.exists(dir):
-                                    os.makedirs(dir)
+                                output_path = os.path.join(os.path.dirname(path), os.path.normpath(args.output_dir))
 
-                                output_path = os.path.join(dir, os.path.basename(output_path))
+                            if not os.path.exists(output_path):
+                                os.makedirs(output_path)
+                        else:
+                            output_path = os.path.dirname(path)
+
+                        if args.cpp_output_dir:
+                            if (args.cpp_output_dir[0]) == os.sep:
+                                cpp_output_path = os.path.normpath(args.cpp_output_dir)
+                            else:
+                                cpp_output_path = os.path.join(os.path.dirname(path), os.path.normpath(args.cpp_output_dir))
+
+                            if not os.path.exists(cpp_output_path):
+                                os.makedirs(cpp_output_path)
+                        else:
+                            cpp_output_path = output_path
 
                         if args.code or args.stubs:
-                            code_generator.Create(log, schema, path, output_path, additional_includes, args.code, args.stubs, args.code)
+                            headers = code_generator.Create(log, schema, path, [output_path, cpp_output_path], additional_includes, args.code, args.stubs, args.code)
+
+                            name = os.path.basename(path).replace(".h", "").replace(".json", "")
+
+                            if "@generated" in schema and name[0] == "I":
+                                name = name[1:]
+
+                            if headers:
+                                if name not in joint_headers:
+                                    joint_headers[name] = []
+
+                                joint_headers[name].extend(headers)
 
                         if args.docs:
                             if "$schema" in schema:
@@ -103,6 +126,9 @@ if __name__ == "__main__":
                                 log.Warn("Skiping file; not a JSON-RPC definition file")
 
                         config.GENERATED_JSON = warnings
+
+                for n in joint_headers:
+                    code_generator.CreateApiHeader(log, n, output_path, joint_headers[n])
 
             except json_loader.JsonParseError as err:
                 log.Error(str(err))

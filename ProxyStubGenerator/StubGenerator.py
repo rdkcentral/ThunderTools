@@ -1930,7 +1930,7 @@ def GenerateIdentification(name):
             if not options:
                 options.append("0")
 
-            emit.Line("EXTERNAL proxystubs_options_t proxystubs_options()")
+            emit.Line("EXTERNAL_EXPORT proxystubs_options_t proxystubs_options()")
             emit.Line("{")
             emit.IndentInc()
             emit.Line("return (static_cast<proxystubs_options_t>(%s));" % " | ".join(options))
