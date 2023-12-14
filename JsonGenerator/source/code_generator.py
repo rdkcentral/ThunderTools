@@ -26,6 +26,24 @@ import class_emitter
 from emitter import Emitter
 from json_loader import *
 
+def CreateApiHeader(log, source_name, path, headers):
+    assert(headers)
+
+    header_file = os.path.join(path, "json_" + source_name + ".h")
+    with Emitter(header_file, config.INDENT_SIZE) as emitter:
+        emitter.Line("// %s JSON-RPC API" % os.path.basename(source_name))
+        emitter.Line("// Generated automatically. DO NOT EDIT.")
+        emitter.Line()
+        emitter.Line("#pragma once")
+        emitter.Line()
+
+        sorted = [_h for _h in headers if config.DATA_NAMESPACE in _h]
+        sorted.extend([_h for _h in headers if config.DATA_NAMESPACE not in _h])
+
+        for h in sorted:
+            emitter.Line("#include \"%s\"" % os.path.basename(h))
+
+        log.Success("JSON-RPC API header generated in %s" % (os.path.basename(emitter.FileName())))
 
 def Create(log, schema, source_file, path, additional_includes, generate_classes, generate_stubs, generate_rpc):
     def _ParseJsonRpcSchema(schema):
@@ -43,17 +61,21 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
         else:
             return None
 
-    directory = os.path.dirname(path)
+    headers = []
+
+    directory = path[0]
+    cpp_directory = path[1]
+
     filename = (schema["info"]["namespace"]) if "info" in schema and "namespace" in schema["info"] else ""
     filename += (schema["info"]["class"]) if "info" in schema and "class" in schema["info"] else ""
 
     if len(filename) == 0:
-        filename = os.path.basename(path.replace("Plugin", "").replace(".json", "").replace(".h", ""))
+        filename = os.path.basename(source_file.replace("Plugin", "").replace(".json", "").replace(".h", ""))
 
     rpcObj = _ParseJsonRpcSchema(schema)
     if rpcObj:
         header_file = os.path.join(directory, config.DATA_NAMESPACE + "_" + filename + ".h")
-        enum_file = os.path.join(directory, "JsonEnum_" + filename + ".cpp")
+        enum_file = os.path.join(cpp_directory, "JsonEnum_" + filename + ".cpp")
 
         data_emitted = 0
 
@@ -68,6 +90,7 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
 
                     if data_emitted:
                         log.Success("JSON data classes generated in %s" % os.path.basename(emitter.FileName()))
+                        headers.append(header_file)
                     else:
                         log.Info("No JSON data classes generated for %s" % os.path.basename(filename))
 
@@ -108,10 +131,12 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
                     with Emitter(output_filename, config.INDENT_SIZE) as emitter:
                         rpc_emitter.EmitRpcVersionCode(rpcObj, emitter, filename, os.path.basename(source_file), data_emitted)
                         log.Success("JSON-RPC version information generated in %s" % os.path.basename(emitter.FileName()))
+                        headers.append(output_filename)
+
 
         # Generate manual stub code...
         if generate_stubs:
-            with Emitter(os.path.join(directory, filename + "JsonRpc.cpp"), config.INDENT_SIZE) as emitter:
+            with Emitter(os.path.join(cpp_directory, filename + "JsonRpc.cpp"), config.INDENT_SIZE) as emitter:
                 stub_emitter.EmitHelperCode(log, rpcObj, emitter, os.path.basename(header_file))
                 log.Success("JSON-RPC stubs generated in %s" % os.path.basename(emitter.FileName()))
 
@@ -124,9 +149,11 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
             else:
                 with Emitter(output_filename, config.INDENT_SIZE) as emitter:
                     rpc_emitter.EmitRpcCode(rpcObj, emitter, filename, os.path.basename(source_file), data_emitted)
-
-                log.Success("JSON-RPC implementation generated in %s" % os.path.basename(emitter.FileName()))
+                    log.Success("JSON-RPC implementation generated in %s" % os.path.basename(emitter.FileName()))
+                    headers.append(output_filename)
 
     else:
         log.Info("No code to generate.")
+
+    return headers
 
