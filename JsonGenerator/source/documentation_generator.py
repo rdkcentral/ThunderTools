@@ -100,7 +100,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 # include information about enum values in description
                 enum = ""
-                if "enum" in obj:
+                if "enum" in obj and "ids" in obj:
                     enums = []
                     endmarker = obj.get("endmarker")
                     for i,e in enumerate(obj["ids"]):
@@ -272,7 +272,7 @@ def Create(log, schema, path, indent_size = 4):
                         alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
 
             orig_method = method
-            method = props["alt"] if main_status and not alt_status else method
+            method = props["alt"] if main_status and not alt_status and "alt" in props else method
 
             MdHeader(method, 2, type, section)
 
@@ -391,16 +391,31 @@ def Create(log, schema, path, indent_size = 4):
             if "id" in props and "example" in props["id"]:
                 method = props["id"]["example"] + "." + method
 
+            jsonError = "Failed to generate JSON example"
+            jsonResponse = jsonError
+            jsonRequest = jsonError
+
             if is_property:
                 if not writeonly:
                     MdHeader("Get Request", 4)
-                    jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method,
-                                                        object_pairs_hook=OrderedDict), indent=2)
+                    try:
+                        jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method,
+                                                            object_pairs_hook=OrderedDict), indent=2)
+                    except:
+                        jsonRequest = jsonError
+                        log.Error(jsonError)
+
                     MdCode(jsonRequest, "json")
                     MdHeader("Get Response", 4)
+
                     parameters = (props["result"] if "result" in props else (props["params"] if "params" in props else None))
-                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", parameters, True),
-                                                         object_pairs_hook=OrderedDict), indent=2)
+                    try:
+                        jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", parameters, True),
+                                                            object_pairs_hook=OrderedDict), indent=2)
+                    except:
+                        jsonResponse = jsonError
+                        log.Error(jsonError)
+
                     MdCode(jsonResponse, "json")
 
             if not readonly:
@@ -410,25 +425,40 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         MdHeader("Request", 4)
 
-                jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
-                                                    ('"id": 42, ' if not is_notification else "", method,
-                                                    (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
-                                                    object_pairs_hook=OrderedDict), indent=2)
+                try:
+                    jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
+                                                        ('"id": 42, ' if not is_notification else "", method,
+                                                        (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
+                                                        object_pairs_hook=OrderedDict), indent=2)
+                except:
+                    jsonRequest = jsonError
+                    log.Error(jsonError)
+
                 MdCode(jsonRequest, "json")
 
                 if not is_notification and not is_property:
                     if "result" in props:
                         MdHeader("Response", 4)
-                        jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
-                                                    object_pairs_hook=OrderedDict), indent=2)
+                        try:
+                            jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
+                                                        object_pairs_hook=OrderedDict), indent=2)
+                        except:
+                            jsonResponse = jsonError
+                            log.Error(jsonError)
+
                         MdCode(jsonResponse, "json")
                     elif "noresult" not in props or not props["noresult"]:
                         raise DocumentationError("'%s': missing 'result' in this method" % method)
 
                 if is_property:
                     MdHeader("Set Response", 4)
-                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "result": "null" }',
-                                                object_pairs_hook=OrderedDict), indent=4)
+                    try:
+                        jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "result": "null" }',
+                                                    object_pairs_hook=OrderedDict), indent=4)
+                    except:
+                        jsonResponse = jsonError
+                        log.Error(jsonError)
+
                     MdCode(jsonResponse, "json")
 
             return props["alt"] if is_alt and not is_notification else ""
