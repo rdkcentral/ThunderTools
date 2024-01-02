@@ -508,7 +508,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                                 emit.Line("while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }")
                                 emit.Line()
                                 impl = arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + "<%s>" % arg.iterator
-                                initializer = "Core::Service<%s>::Create<%s>(_elements)" % (impl, arg.iterator)
+                                initializer = "Core::ServiceType<%s>::Create<%s>(_elements)" % (impl, arg.iterator)
                                 emit.Line("%s* const %s{%s};" % (arg.iterator, arg.TempName(), initializer))
                                 arg.flags["release"] = True
 
