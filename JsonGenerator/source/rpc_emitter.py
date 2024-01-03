@@ -24,7 +24,6 @@ import rpc_version
 from json_loader import *
 from class_emitter import AppendTest
 
-
 def EmitEvent(emit, root, event, params_type, legacy = False):
     module_var = "_module_"
     filter_var = "_id_"
