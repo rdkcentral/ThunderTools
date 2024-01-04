@@ -31,18 +31,22 @@ def convert_string(s):
     String will be returned
     """
     if isinstance(s, str):
-        try:
-            val = ast.literal_eval(s)
-            if not isinstance(val, (int, float, str, object)):
-                val = s
-        except:
-            # Let's try if it is JSON Bool values
-            bool_lits = {"true": True, "false": False}
-            if s in bool_lits:
-                val = bool_lits[s]
-            else:
-                val = s
-        return val
+        if s == 'null':
+            val = None
+            return val
+        else:
+            try:
+                val = ast.literal_eval(s)
+                if not isinstance(val, (int, float, str, object)):
+                    val = s
+            except:
+                # Let's try if it is JSON Bool values
+                bool_lits = {"true": True, "false": False}
+                if s in bool_lits:
+                    val = bool_lits[s]
+                else:
+                    val = s
+            return val
     else:
         return s
 
