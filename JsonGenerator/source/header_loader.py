@@ -455,8 +455,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                 continue
 
             if face.obj.json_prefix:
-                prefix = (face.obj.json_prefix + "::")
-            elif face.obj.parent.full_name != ns:
+                prefix = (face.obj.json_prefix + ("::" if not face.obj.json_prefix.endswith("_") else ""))
+            elif config.AUTO_PREFIX and (face.obj.parent.full_name != ns):
                 prefix = (face.obj.parent.name.lower() + "_")
             else:
                 prefix = ""

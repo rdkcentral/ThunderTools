@@ -55,6 +55,7 @@ DUMP_JSON = False
 FORCE = False
 GENERATED_JSON = False
 LEGACY_ALT = False
+AUTO_PREFIX = False
 
 class RpcFormat(Enum):
     COMPLIANT = "compliant"
@@ -87,6 +88,7 @@ def Parse(cmdline):
     global KEEP_EMPTY
     global CLASSNAME_FROM_REF
     global LEGACY_ALT
+    global AUTO_PREFIX
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -212,6 +214,12 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "do not emit versioning information for non-auto JSON interfaces (default: emit versioning header)")
+    data_group.add_argument(
+            "--auto-prefix",
+            dest="auto_prefix",
+            action="store_true",
+            default=False,
+            help= "prefix JSON-RPC endpoints with C++ namespace (default: no prefix)")
     data_group.add_argument("--legacy-alt",
             dest="legacy_alt",
             action="store_true",
@@ -303,6 +311,7 @@ def Parse(cmdline):
     INTERFACES_SECTION = not args.no_interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
+    AUTO_PREFIX = args.auto_prefix
 
     if args.if_namespaces:
         INTERFACE_NAMESPACES = args.if_namespaces
