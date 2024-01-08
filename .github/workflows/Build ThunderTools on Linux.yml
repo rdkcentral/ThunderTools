@@ -11,4 +11,4 @@ jobs:
     uses: rdkcentral/ThunderNanoServices/.github/workflows/Build ThunderNanoServices on Linux.yml@master
 
   ThunderNanoServicesRDK:
-    uses: WebPlatformForEmbedded/ThunderNanoServicesRDK/.github/workflows/Build ThunderNanoServicesRDK on Linux.yml@master
+    uses: VeithMetro/ThunderNanoServicesRDK/.github/workflows/Build ThunderNanoServicesRDK on Linux.yml@master
