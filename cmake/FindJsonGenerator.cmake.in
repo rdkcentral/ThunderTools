@@ -30,7 +30,7 @@ function(JsonGenerator)
         message(FATAL_ERROR "JsonGenerator path ${JSON_GENERATOR} invalid.")
     endif()
 
-    set(optionsArgs CODE STUBS DOCS LEGACY_ALT NO_INCLUDES NO_STYLE_WARNINGS COPY_CTOR NO_REF_NAMES NO_INTERFACES_SECTION VERBOSE FORCE_GENERATE)
+    set(optionsArgs CODE STUBS DOCS LEGACY_ALT AUTO_PREFIX NO_INCLUDES NO_STYLE_WARNINGS COPY_CTOR NO_REF_NAMES NO_INTERFACES_SECTION VERBOSE FORCE_GENERATE)
     set(oneValueArgs OUTPUT CPP_OUTPUT IFDIR CPPIFDIR INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT)
     set(multiValueArgs INPUT INCLUDE_PATH NAMESPACE)
 
@@ -58,6 +58,10 @@ function(JsonGenerator)
 
     if(Argument_LEGACY_ALT)
         list(APPEND _execute_command  "--legacy-alt")
+    endif()
+
+    if(Argument_AUTO_PREFIX)
+        list(APPEND _execute_command  "--auto-prefix")
     endif()
 
     if(Argument_NO_INCLUDES)
