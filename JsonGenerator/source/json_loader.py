@@ -102,6 +102,12 @@ class JsonType():
         self.name = name
         self.original_name = schema.get("@originalname")
         self.description = schema.get("description")
+
+        if not self.description:
+            # Copy over the summary from the property
+            if parent and parent.parent and isinstance(parent.parent, JsonProperty) and parent.parent.summary:
+                self.description = parent.parent.summary
+
         self.iterator = schema.get("iterator")
         self.original_type = schema.get("original_type")
         self.do_create = (self.original_type == None)
@@ -406,7 +412,9 @@ class JsonEnum(JsonRefCounted, JsonType):
                     biggest = e
 
             if same:
-                log.Warn("'%s': specified enum values are same as implicit" % self.print_name)
+                if not self.original_type:
+                    log.Warn("'%s': specified enum values are same as implicit" % self.print_name)
+
                 self.cpp_enumerator_values = []
 
             if self.bitmask and not is_bitmap:
@@ -506,7 +514,7 @@ class JsonObject(JsonRefCounted, JsonType):
                 self._properties.append(new_obj)
 
                 if not new_obj.description and not isinstance(self, JsonMethod):
-                    log.DocIssue("'%s': element missing description" % new_obj.print_name)
+                    log.DocIssue("'%s': element is missing description" % new_obj.print_name)
 
                 # Handle aggregate objects
                 if isinstance(new_obj, JsonObject):
@@ -701,12 +709,12 @@ class JsonMethod(JsonObject):
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
 
-        JsonObject.__init__(self, name, parent, method_schema, included=included)
-
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
         self.obsolete = schema.get("obsolete")
+
+        JsonObject.__init__(self, name, parent, method_schema, included=included)
 
         if not self.summary:
             log.DocIssue("'%s': method is missing summary" % self.print_name)
@@ -989,7 +997,7 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
 
         # Tags all objects that used to be $references
         if isinstance(schema, jsonref.JsonRef) and isinstance(schema, dict):
-            if "description" in schema.__reference__ or "example" in schema.__reference__ or "default" in schema.__reference__:
+            if "description" in schema.__reference__ or "example" in schema.__reference__ or "default" in schema.__reference__ or "summary" in schema.__reference__:
                 # Need a copy, there an override on one of the properites
                 if idx == None:
                     parent[parent_name] = copy.deepcopy(schema)
@@ -1002,6 +1010,9 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
 
                 if "description" in schema.__reference__:
                     new_schema["description"] = schema.__reference__["description"]
+
+                if "summary" in schema.__reference__:
+                    new_schema["summary"] = schema.__reference__["summary"]
 
                 if "example" in schema.__reference__:
                     new_schema["example"] = schema.__reference__["example"]
@@ -1047,6 +1058,9 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
 
                             if "description" in schema:
                                 parent[parent_name]["description"] = schema["description"]
+
+                            if "summary" in schema:
+                                parent[parent_name]["summary"] = schema["summary"]
 
                             if "example" in schema:
                                 parent[parent_name]["example"] = schema["example"]
