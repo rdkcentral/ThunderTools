@@ -658,7 +658,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     obj["summary"] = method.retval.meta.brief.strip()
 
                 if method.retval.meta.details:
-                    obj["description"] = method.retval.meta.details
+                    obj["description"] = method.retval.meta.details.strip()
 
                 if method.retval.meta.retval:
                     errors = []
@@ -678,6 +678,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                 if method.retval.meta.alt:
                     idx = prefix + method.retval.meta.alt
                     obj["alt"] = idx
+                    obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+                    obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     if config.LEGACY_ALT:
                         idx = prefix + method.retval.meta.alt
@@ -759,7 +761,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                         obj["summary"] = method.retval.meta.brief.strip()
 
                     if method.retval.meta.details:
-                        obj["description"] = method.retval.meta.details
+                        obj["description"] = method.retval.meta.details.strip()
 
                     if params:
                         obj["params"] = params
