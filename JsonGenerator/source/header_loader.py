@@ -681,8 +681,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                 if method.retval.meta.alt:
                     idx = prefix + method.retval.meta.alt
                     obj["alt"] = idx
-                    obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
-                    obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
+
+                    if method.retval.meta.alt_is_deprecated:
+                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+
+                    if method.retval.meta.alt_is_obsolete:
+                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     if config.LEGACY_ALT:
                         idx = prefix + method.retval.meta.alt
@@ -781,8 +785,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                     if method.retval.meta.alt:
                         obj["alt"] = method.retval.meta.alt
-                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
-                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
+
+                        if method.retval.meta.alt_is_deprecated:
+                            obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+
+                        if method.retval.meta.alt_is_obsolete:
+                            obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     events[prefix + method_name] = obj
 
