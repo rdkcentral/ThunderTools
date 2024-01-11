@@ -731,9 +731,9 @@ class JsonMethod(JsonObject):
         if "alt" in schema:
             self.alternative = schema.get("alt")
 
-            if not self.alternative.islower():
+            if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
                 log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-            elif "_" in self.alternative:
+            elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
                 log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
         else:
             self.alternative = None
