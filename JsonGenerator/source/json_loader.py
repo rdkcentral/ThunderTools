@@ -726,7 +726,11 @@ class JsonMethod(JsonObject):
         elif (self.rpc_format == config.RpcFormat.EXTENDED) and not property and not isinstance(self.params, (JsonObject, JsonArray, JsonNull)):
             raise JsonParseError("With 'extended' format parameters to a method or event need to be an object or an array: '%s'" % self.print_name)
         elif (self.rpc_format == config.RpcFormat.COLLAPSED) and isinstance(self.params, JsonObject) and (len(self.params.properties) == 1):
-            log.Warn("'%s': with 'collapsed' format methods and events with one parameter should not have an outer object" % self.print_name)
+            warning = "'%s': with 'collapsed' format methods and events with one parameter should not have an outer object" % self.print_name
+            if included:
+                log.Info(warning)
+            else:
+                log.Warn(warning)
 
         if "alt" in schema:
             self.alternative = schema.get("alt")
