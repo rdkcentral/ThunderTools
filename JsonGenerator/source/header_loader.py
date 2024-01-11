@@ -257,6 +257,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                                     properties[name] = props
                                     properties[name]["type"] = "object"
                                     properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
+
+                                    if p.meta.brief:
+                                        properties[name]["description"] = p.meta.brief
                                 else:
                                     properties[name] = ConvertParameter(p)
 
