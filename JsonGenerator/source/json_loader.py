@@ -102,11 +102,17 @@ class JsonType():
         self.name = name
         self.original_name = schema.get("@originalname")
         self.description = schema.get("description")
+        self.grand_parent = None
 
-        if not self.description:
-            # Copy over the summary from the property
-            if parent and parent.parent and isinstance(parent.parent, JsonProperty) and parent.parent.summary:
-                self.description = parent.parent.summary
+        if not isinstance(self, JsonRpcSchema):
+            self.grand_parent = self
+
+            while self.grand_parent and not isinstance(self.grand_parent, JsonMethod):
+                self.grand_parent = self.grand_parent.parent
+
+        if self.grand_parent:
+            if not self.description:
+                self.description = self.grand_parent.summary
 
         self.iterator = schema.get("iterator")
         self.original_type = schema.get("original_type")
@@ -123,17 +129,19 @@ class JsonType():
                 if self.name[0] == "_":
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
-                if not self.name.islower():
-                    log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
-                elif "_" in self.name:
-                    log.Warn("'%s': snake_case identifiers are supported, however flatcase names are recommended" % self.print_name)
+                if not self.grand_parent or not self.grand_parent.parent.legacy:
+                    if not self.name.islower():
+                        log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
+                    elif "_" in self.name:
+                        log.Warn("'%s': snake_case identifiers are supported, however flatcase names are recommended" % self.print_name)
 
             if self.original_name: # identifier comming from the C++ world
                 if self.original_name[0] == "_":
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
 
-                if "_" in self.original_name:
-                    log.Warn("'%s': snake_case identifiers are supported, however mixedCase names are recommended " % self.original_name)
+                if not self.grand_parent or not self.grand_parent.parent.legacy:
+                    if "_" in self.original_name:
+                        log.Warn("'%s': snake_case identifiers are supported, however PascalCase names are recommended " % self.original_name)
 
         # Do some sanity check on the description text
         if self.description and not isinstance(self, JsonMethod):
@@ -731,10 +739,11 @@ class JsonMethod(JsonObject):
         if "alt" in schema:
             self.alternative = schema.get("alt")
 
-            if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-            elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
+            if not self.grand_parent and self.grand_parent.parent.legacy:
+                if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
+                    log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
+                elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
+                    log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
         else:
             self.alternative = None
 
@@ -804,6 +813,7 @@ class JsonRpcSchema(JsonType):
         self.info = None
         self.base_schema = schema.get("$schema")
         self.jsonrpc_version = schema.get("jsonrpc")
+        self.legacy = False
         self.namespace = None
         self.methods = []
         self.includes = []
@@ -814,6 +824,7 @@ class JsonRpcSchema(JsonType):
 
         if "info" in schema:
             self.info = schema["info"]
+            self.legacy = schema["info"].get("legacy")
 
             self.namespace = self.info.get("namespace")
 
