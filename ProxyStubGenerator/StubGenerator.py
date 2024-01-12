@@ -637,7 +637,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if length_name:
                         if length_name[0] == "void":
                             return EmitIdentifier(-2, interface, \
-                                CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["sizeof(%s)" % self.kind], []), variable_name)
+                                CppParser.Temporary(self.identifier.parent, ["static constexpr uint8_t", variable_name], ["sizeof(%s)" % self.kind], []), variable_name)
 
                         elif length_name[0] == "return":
                             result = "result"
@@ -654,10 +654,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                             if matches:
                                 return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["sizeof(_%s)" % matches[0].name], []), variable_name)
+                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
                             else:
                                 return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["".join(length_name)], []), variable_name,)
+                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), ["".join(length_name)]), variable_name)
 
                         matches = [v for v in self.identifier.parent.vars if v.name == "".join(length_name)]
 
@@ -675,7 +675,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                                     length_type = "uint8_t"
 
                                 return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, [length_type, variable_name], [str(value)], []), variable_name)
+                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), [str(value)]), variable_name)
 
                             except (SyntaxError, NameError):
                                 raise TypenameError(self.identifier, "'%s': unable to parse this length expression ('%s')" % (self.trace_proto, "".join(length_name)))
@@ -777,7 +777,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                                 (self.trace_proto))
                     elif self.is_input_only:
                         log.InfoLine(self.identifier, "'%s': @maxlength not specified for this inbound buffer, assuming same as @length" % self.trace_proto)
-                    elif self.is_output_only and not self.length.is_output:
+                    elif self.is_output_only and not self.length.is_output and ("constexpr" not in self.length.identifier.specifiers):
                         raise TypenameError(self.identifier, "'%s': @maxlength not specified for this inbound buffer" % self.trace_proto)
 
                 if (self.is_buffer and self.is_output and not self.max_length):
