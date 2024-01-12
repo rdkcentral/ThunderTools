@@ -759,9 +759,9 @@ def Create(log, schema, path, indent_size = 4):
                     if "locator" in info:
                         commonConfig["locator"] = {"type": "string", "description": 'Library name: *%s*' % info["locator"]}
 
-                    commonConfig["autostart"] = {
-                        "type": "boolean",
-                        "description": "Determines if the plugin shall be started automatically along with the framework"
+                    commonConfig["startmode"] = {
+                        "type": "string",
+                        "description": "Determines in which state the plugin should be moved to at startup of the framework"
                     }
 
                 required = []
@@ -777,7 +777,7 @@ def Create(log, schema, path, indent_size = 4):
                 totalConfig["properties"] = commonConfig2
 
                 if "configuration" not in schema or ("nodefault" not in schema["configuration"] or not schema["configuration"]["nodefault"]):
-                    totalConfig["required"] = ["callsign", "classname", "locator", "autostart"] + required
+                    totalConfig["required"] = ["callsign", "classname", "locator", "startmode"] + required
 
                 ParamTable("", totalConfig)
 
