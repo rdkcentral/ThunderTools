@@ -257,6 +257,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                                     properties[name] = props
                                     properties[name]["type"] = "object"
                                     properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
+
+                                    if p.meta.brief:
+                                        properties[name]["description"] = p.meta.brief
                                 else:
                                     properties[name] = ConvertParameter(p)
 
@@ -658,7 +661,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     obj["summary"] = method.retval.meta.brief.strip()
 
                 if method.retval.meta.details:
-                    obj["description"] = method.retval.meta.details
+                    obj["description"] = method.retval.meta.details.strip()
 
                 if method.retval.meta.retval:
                     errors = []
@@ -678,6 +681,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                 if method.retval.meta.alt:
                     idx = prefix + method.retval.meta.alt
                     obj["alt"] = idx
+
+                    if method.retval.meta.alt_is_deprecated:
+                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+
+                    if method.retval.meta.alt_is_obsolete:
+                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     if config.LEGACY_ALT:
                         idx = prefix + method.retval.meta.alt
@@ -759,7 +768,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                         obj["summary"] = method.retval.meta.brief.strip()
 
                     if method.retval.meta.details:
-                        obj["description"] = method.retval.meta.details
+                        obj["description"] = method.retval.meta.details.strip()
 
                     if params:
                         obj["params"] = params
@@ -776,8 +785,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
                     if method.retval.meta.alt:
                         obj["alt"] = method.retval.meta.alt
-                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
-                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
+
+                        if method.retval.meta.alt_is_deprecated:
+                            obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+
+                        if method.retval.meta.alt_is_obsolete:
+                            obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     events[prefix + method_name] = obj
 

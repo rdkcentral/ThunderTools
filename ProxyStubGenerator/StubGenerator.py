@@ -637,7 +637,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if length_name:
                         if length_name[0] == "void":
                             return EmitIdentifier(-2, interface, \
-                                CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["sizeof(%s)" % self.kind], []), variable_name)
+                                CppParser.Temporary(self.identifier.parent, ["static constexpr uint8_t", variable_name], ["sizeof(%s)" % self.kind], []), variable_name)
 
                         elif length_name[0] == "return":
                             result = "result"
@@ -654,10 +654,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                             if matches:
                                 return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["sizeof(_%s)" % matches[0].name], []), variable_name)
+                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
                             else:
                                 return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["".join(length_name)], []), variable_name,)
+                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), ["".join(length_name)]), variable_name)
 
                         matches = [v for v in self.identifier.parent.vars if v.name == "".join(length_name)]
 
@@ -675,7 +675,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                                     length_type = "uint8_t"
 
                                 return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, [length_type, variable_name], [str(value)], []), variable_name)
+                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), [str(value)]), variable_name)
 
                             except (SyntaxError, NameError):
                                 raise TypenameError(self.identifier, "'%s': unable to parse this length expression ('%s')" % (self.trace_proto, "".join(length_name)))
@@ -760,10 +760,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "Len"))
 
                 if (is_buffer and not self.length and self.is_input):
-                    raise TypenameError(self.identifier, "'%s': an input raw buffer requires a @length tag" % self.trace_proto)
+                    raise TypenameError(self.identifier, "'%s': an outbound buffer requires a @length tag" % self.trace_proto)
 
                 if (is_buffer and (not self.length and not self.max_length) and self.is_output):
-                    raise TypenameError(self.identifier, "'%s': an output-only raw buffer requires a @maxlength tag" % self.trace_proto)
+                    raise TypenameError(self.identifier, "'%s': an inbound-only buffer requires a @maxlength tag" % self.trace_proto)
 
                 self.is_buffer = ((self.length or self.max_length) and is_buffer)
 
@@ -773,16 +773,16 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                     if self.is_input and self.is_output:
                         log.WarnLine(self.identifier, \
-                            "'%s': maximum length of this input/output buffer is assumed to be same as @length, use @maxlength to disambiguate" % \
+                            "'%s': maximum length of this inbound/outbound buffer is assumed to be same as @length, use @maxlength to disambiguate" % \
                                 (self.trace_proto))
-                    else:
-                        log.InfoLine(self.identifier, "'%s': @maxlength not specified, assuming same as @length" % self.trace_proto)
+                    elif self.is_output_only:
+                        log.InfoLine(self.identifier, "'%s': @maxlength not specified for this inbound buffer, assuming same as @length" % self.trace_proto)
 
                 if (self.is_buffer and self.is_output and not self.max_length):
-                    raise TypenameError(self.identifier, "'%s': can't deduce maximum length of the buffer, use @maxlength" % self.trace_proto)
+                    raise TypenameError(self.identifier, "'%s': can't deduce maximum length of this inbound buffer, use @maxlength" % self.trace_proto)
 
                 if (self.is_buffer and self.max_length and not self.length):
-                    log.WarnLine(self.identifier, "'%s': length of returned buffer is not specified; using @maxlength, but this may be inefficient" % self.trace_proto)
+                    log.WarnLine(self.identifier, "'%s': length of this inbound buffer is not specified; using @maxlength, but this may be inefficient" % self.trace_proto)
                     self.length = self.max_length
 
                 # Is it a hresult?
