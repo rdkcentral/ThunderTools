@@ -775,10 +775,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         log.WarnLine(self.identifier, \
                             "'%s': maximum length of this inbound/outbound buffer is assumed to be same as @length, use @maxlength to disambiguate" % \
                                 (self.trace_proto))
-                    elif self.is_input_only:
+                    elif self.is_output_only:
                         log.InfoLine(self.identifier, "'%s': @maxlength not specified for this inbound buffer, assuming same as @length" % self.trace_proto)
-                    elif self.is_output_only and not self.length.is_output and ("constexpr" not in self.length.identifier.specifiers):
-                        raise TypenameError(self.identifier, "'%s': @maxlength not specified for this inbound buffer" % self.trace_proto)
 
                 if (self.is_buffer and self.is_output and not self.max_length):
                     raise TypenameError(self.identifier, "'%s': can't deduce maximum length of this inbound buffer, use @maxlength" % self.trace_proto)
