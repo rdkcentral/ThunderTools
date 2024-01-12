@@ -111,7 +111,9 @@ class JsonType():
                 self.grand_parent = self.grand_parent.parent
 
         if self.grand_parent:
-            if not self.description and isinstance(parent, JsonProperty):
+            if not self.description and \
+                    (((self.root.rpc_format == config.RpcFormat.COMPLIANT) and (self.grand_parent == parent.parent)) \
+                        or (((self.root.rpc_format != config.RpcFormat.COMPLIANT) and (self.grand_parent == parent)))):
                 self.description = self.grand_parent.summary
 
         self.iterator = schema.get("iterator")
