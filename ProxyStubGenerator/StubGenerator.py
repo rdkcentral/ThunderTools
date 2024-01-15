@@ -134,28 +134,28 @@ def FindInterfaceClasses(tree, namespace):
             for c in tree.classes:
                 if c.omit:
                     omit_interface_used = True
-                else:
-                    if not isinstance(c, CppParser.TemplateClass):
-                        if (c.full_name.startswith(interface_namespace + "::")):
-                            inherits_iunknown = False
-                            for a in c.ancestors:
-                                if CLASS_IUNKNOWN in str(a[0]):
-                                    inherits_iunknown = True
-                                    break
 
-                            if inherits_iunknown:
-                                has_id = False
+                if not isinstance(c, CppParser.TemplateClass):
+                    if (c.full_name.startswith(interface_namespace + "::")):
+                        inherits_iunknown = False
+                        for a in c.ancestors:
+                            if CLASS_IUNKNOWN in str(a[0]):
+                                inherits_iunknown = True
+                                break
 
-                                for e in c.enums:
-                                    if not e.scoped:
-                                        for item in e.items:
-                                            if item.name == "ID":
-                                                faces.append(Interface(c, item.value, source_file))
-                                                has_id = True
-                                                break
+                        if inherits_iunknown:
+                            has_id = False
 
-                                if not has_id:
-                                    log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
+                            for e in c.enums:
+                                if not e.scoped:
+                                    for item in e.items:
+                                        if item.name == "ID":
+                                            faces.append(Interface(c, item.value, source_file))
+                                            has_id = True
+                                            break
+
+                            if not has_id:
+                                log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
                 __Traverse(c, interface_namespace, faces)
 
