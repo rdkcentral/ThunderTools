@@ -125,31 +125,37 @@ class Interface():
 # Looks for interface classes (ie. classes inheriting from Core::Unknown and specifying ID enum).
 def FindInterfaceClasses(tree, namespace):
     interfaces = []
+    omit_interface_used = False
 
     def __Traverse(tree, interface_namespace, faces):
+        nonlocal omit_interface_used
+
         if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
             for c in tree.classes:
-                if not isinstance(c, CppParser.TemplateClass):
-                    if (c.full_name.startswith(interface_namespace + "::")):
-                        inherits_iunknown = False
-                        for a in c.ancestors:
-                            if CLASS_IUNKNOWN in str(a[0]):
-                                inherits_iunknown = True
-                                break
+                if c.omit:
+                    omit_interface_used = True
+                else:
+                    if not isinstance(c, CppParser.TemplateClass):
+                        if (c.full_name.startswith(interface_namespace + "::")):
+                            inherits_iunknown = False
+                            for a in c.ancestors:
+                                if CLASS_IUNKNOWN in str(a[0]):
+                                    inherits_iunknown = True
+                                    break
 
-                        if inherits_iunknown:
-                            has_id = False
+                            if inherits_iunknown:
+                                has_id = False
 
-                            for e in c.enums:
-                                if not e.scoped:
-                                    for item in e.items:
-                                        if item.name == "ID":
-                                            faces.append(Interface(c, item.value, source_file))
-                                            has_id = True
-                                            break
+                                for e in c.enums:
+                                    if not e.scoped:
+                                        for item in e.items:
+                                            if item.name == "ID":
+                                                faces.append(Interface(c, item.value, source_file))
+                                                has_id = True
+                                                break
 
-                            if not has_id and not c.omit:
-                                log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
+                                if not has_id:
+                                    log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
                 __Traverse(c, interface_namespace, faces)
 
@@ -159,7 +165,7 @@ def FindInterfaceClasses(tree, namespace):
 
     __Traverse(tree, namespace, interfaces)
 
-    return interfaces
+    return interfaces, omit_interface_used
 
 
 # Cut out scope resolution operators from all identifiers found in a string
@@ -212,7 +218,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
         return
 
-    interfaces = FindInterfaceClasses(tree, ns)
+    interfaces, _ = FindInterfaceClasses(tree, ns)
     if not interfaces:
         return []
 
@@ -535,12 +541,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
     if not FORCE and (os.path.exists(output_file) and (os.path.getmtime(source_file) < os.path.getmtime(output_file))):
         raise NotModifiedException(output_file)
 
-    interfaces = FindInterfaceClasses(tree, ns)
+    interfaces, omit_interface_used = FindInterfaceClasses(tree, ns)
     if not interfaces:
-        return []
+        return [], omit_interface_used
 
     if scan_only:
-        return interfaces
+        return interfaces, omit_interface_used
 
     interface_header_name = os.path.basename(source_file)
 
@@ -1176,6 +1182,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             if not obj.full_name.startswith(ns + "::"):
                 log.Info("class %s not in requested namespace (%s)" % (obj.full_name, ns))
             elif obj.omit:
+                omit_interface_used = True
                 log.Info("omitting class %s" % interface_name)
             else:
                 # Of course consider only virtual methods
@@ -1953,7 +1960,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line()
         emit.Line("}") # // namespace %s" % STUB_NAMESPACE.split("::")[-1])
 
-    return interfaces
+    return interfaces, omit_interface_used
 
 def GenerateIdentification(name):
     if not os.path.exists(name):
@@ -2228,18 +2235,22 @@ if __name__ == "__main__":
                             os.makedirs(out_dir)
 
                         new_faces = []
+                        some_omitted = False
 
                         for ns in INTERFACE_NAMESPACES:
-                            output = GenerateStubs2(output_file, source_file, tree, ns, scan_only)
+                            output, some_omitted = GenerateStubs2(output_file, source_file, tree, ns, scan_only)
 
                             new_faces += output
 
                         if not new_faces:
-                            raise NoInterfaceError
+                            if not some_omitted:
+                                raise NoInterfaceError
+                            else:
+                                log.Info("no interface classes found")
 
-                        faces += new_faces
-
-                        log.Print("created file %s" % os.path.basename(output_file))
+                        else:
+                            faces += new_faces
+                            log.Print("created file %s" % os.path.basename(output_file))
 
                         # dump interfaces if only scanning
                         if scan_only:
