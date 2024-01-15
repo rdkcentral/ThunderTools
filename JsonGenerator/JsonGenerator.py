@@ -41,7 +41,7 @@ NAME = "JsonGenerator"
 if __name__ == "__main__":
     argparser, args = config.Parse(sys.argv)
 
-    log = logger.Create(NAME, args.verbose, not args.no_duplicates_warnings, not args.no_style_warnings)
+    log = logger.Create(NAME, args.verbose, not args.no_warnings, not args.no_style_warnings)
     trackers.SetLogger(log)
     json_loader.SetLogger(log)
 
@@ -59,8 +59,6 @@ if __name__ == "__main__":
             else:
                 files.append(p)
 
-        joint_headers = {}
-
         for path in files:
 
             trackers.object_tracker.Reset()
@@ -70,6 +68,8 @@ if __name__ == "__main__":
                 log.Header(path)
 
                 schemas, additional_includes, temp_files = json_loader.Load(log, path, args.if_dir, args.cppif_dir, args.includePaths)
+
+                joint_headers = {}
 
                 for schema in schemas:
                     if schema:
