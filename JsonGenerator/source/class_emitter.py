@@ -120,7 +120,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         log.Info("Emitting enum {}".format(enum.cpp_class))
 
         if enum.description:
-            emit.Line("// " + enum.description)
+            emit.Line("// " + enum.description.split("\n",1)[0])
 
         emit.Line("enum%s %s : uint%i_t {" % (" class" if enum.is_scoped else "", enum.cpp_class, enum.size))
         emit.Indent()
@@ -314,7 +314,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             emit.Indent()
 
             for prop in json_obj.properties:
-                comment = prop.print_name if isinstance(prop, JsonMethod) else prop.description
+                comment = prop.print_name if isinstance(prop, JsonMethod) else prop.description.split("\n",1)[0] if prop.description else ""
                 emit.Line("%s %s;%s" % (prop.short_cpp_type, prop.cpp_name, (" // " + comment) if comment else ""))
 
             if IsObjectRestricted(json_obj):

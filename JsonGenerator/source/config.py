@@ -33,7 +33,6 @@ IMPL_EVENT_PREFIX = "event_"
 # Configurables
 CLASSNAME_FROM_REF = True
 DEFAULT_INT_SIZE = 32
-SHOW_WARNINGS = True
 DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "WPEFramework"
@@ -136,6 +135,12 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "force code generation even if destination appears up-to-date (default: force disabled)")
+    argparser.add_argument(
+            "--no-warnings",
+            dest="no_warnings",
+            action="store_true",
+            default=False,
+            help= "disable all warnings (default: warnings enabled)")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -151,11 +156,11 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help="do not derive class names from $refs (default: derive class names from $ref)")
-    json_group.add_argument("--no-duplicates-warnings",
-            dest="no_duplicates_warnings",
+    json_group.add_argument("--duplicate-obj-warnings",
+            dest="duplicate_obj_warnings",
             action="store_true",
-            default=not SHOW_WARNINGS,
-            help="suppress duplicate object warnings (default: show all duplicate object warnings)")
+            default=False,
+            help="enable duplicate object warnings (default: do not show duplicate object warnings)")
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
@@ -298,7 +303,7 @@ def Parse(cmdline):
     args = argparser.parse_args(cmdline[1:])
 
     DOC_ISSUES = not args.no_style_warnings
-    NO_DUP_WARNINGS = args.no_duplicates_warnings
+    NO_DUP_WARNINGS = not args.duplicate_obj_warnings
     INDENT_SIZE = args.indent_size
     ALWAYS_EMIT_COPY_CTOR = args.copy_ctor
     KEEP_EMPTY = args.keep_empty

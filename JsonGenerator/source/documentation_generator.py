@@ -221,12 +221,12 @@ def Create(log, schema, path, indent_size = 4):
             if obj_type == "string":
                 json_data += "{  }" if obj.get("opaque") else ('"%s"' % (default if default else "..."))
             elif obj_type == "integer":
-                if default and not str(default).isnumeric():
+                if default and not str(default).lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this integer type (see '%s')" % (name, default))
 
                 json_data += '%s' % (default if default else 0)
             elif obj_type == "number":
-                if default and not str(default).replace('.','').isnumeric():
+                if default and not str(default).replace('.','').lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this numeric (floating-point) type (see '%s')" % (name, default))
 
                 if default and '.' not in str(default):
@@ -384,23 +384,25 @@ def Create(log, schema, path, indent_size = 4):
             if is_notification:
                 method = "client.events.1." + method
             elif is_property:
-                method = "%s.1.%s%s" % (classname, method, ("@" + props["index"]["example"]) if "index" in props and "example" in props["index"] else "")
+                method = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"]["example"])) if "index" in props and "example" in props["index"] else "")
             else:
                 method = "%s.1.%s" % (classname, method)
 
             if "id" in props and "example" in props["id"]:
                 method = props["id"]["example"] + "." + method
 
-            jsonError = "Failed to generate JSON example"
+            jsonError = "Failed to generate JSON example for %s" % method
             jsonResponse = jsonError
             jsonRequest = jsonError
 
             if is_property:
                 if not writeonly:
                     MdHeader("Get Request", 4)
+
+                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method
+
                     try:
-                        jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method,
-                                                            object_pairs_hook=OrderedDict), indent=2)
+                        jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
                     except:
                         jsonRequest = jsonError
                         log.Error(jsonError)
@@ -409,11 +411,12 @@ def Create(log, schema, path, indent_size = 4):
                     MdHeader("Get Response", 4)
 
                     parameters = (props["result"] if "result" in props else (props["params"] if "params" in props else None))
+                    text = '{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", parameters, True)
+
                     try:
-                        jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", parameters, True),
-                                                            object_pairs_hook=OrderedDict), indent=2)
+                        jsonResponse = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
                     except:
-                        jsonResponse = jsonError
+                        jsonResponse = jsonError 
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")
@@ -437,18 +440,18 @@ def Create(log, schema, path, indent_size = 4):
                 MdCode(jsonRequest, "json")
 
                 if not is_notification and not is_property:
-                    if "result" in props:
-                        MdHeader("Response", 4)
-                        try:
-                            jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
-                                                        object_pairs_hook=OrderedDict), indent=2)
-                        except:
-                            jsonResponse = jsonError
-                            log.Error(jsonError)
+                    if "result" not in props:
+                        props["result"] = { "type": "null" }
 
-                        MdCode(jsonResponse, "json")
-                    elif "noresult" not in props or not props["noresult"]:
-                        raise DocumentationError("'%s': missing 'result' in this method" % method)
+                    MdHeader("Response", 4)
+                    try:
+                        jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
+                                                    object_pairs_hook=OrderedDict), indent=2)
+                    except:
+                        jsonResponse = jsonError
+                        log.Error(jsonError)
+
+                    MdCode(jsonResponse, "json")
 
                 if is_property:
                     MdHeader("Set Response", 4)
