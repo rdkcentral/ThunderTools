@@ -7,5 +7,26 @@ on:
     branches: ["master"]
  
 jobs:
+  # change the user and branch name in each one after the templates are merged
+  Thunder:
+    uses: VeithMetro/Thunder/.github/workflows/Linux build template.yml@development/actions
+
+  ThunderInterfaces:
+    needs: Thunder
+    uses: VeithMetro/ThunderInterfaces/.github/workflows/Linux build template.yml@development/actions
+
+  ThunderLibraries:
+    needs: Thunder
+    uses: VeithMetro/ThunderLibraries/.github/workflows/Linux build template.yml@development/actions
+
+  ThunderClientLibraries:
+    needs: ThunderInterfaces
+    uses: VeithMetro/ThunderClientLibraries/.github/workflows/Linux build template.yml@development/actions
+
   ThunderNanoServices:
-    uses: rdkcentral/ThunderNanoServices/.github/workflows/Build ThunderNanoServices on Linux.yml@master
+    needs: ThunderInterfaces
+    uses: VeithMetro/ThunderNanoServices/.github/workflows/Linux build template.yml@development/actions
+
+  ThunderNanoServicesRDK:
+    needs: ThunderInterfaces
+    uses: VeithMetro/ThunderNanoServicesRDK/.github/workflows/Linux build template.yml@development/actions
