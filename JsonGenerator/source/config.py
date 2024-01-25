@@ -69,6 +69,7 @@ def Parse(cmdline):
     global DEFAULT_DEFINITIONS_FILE
     global INTERFACE_NAMESPACES
     global JSON_INTERFACE_PATH
+    global CPP_INTERFACE_PATH
     global NO_INCLUDES
     global NO_VERSIONING
     global NO_PUSH_WARNING
@@ -118,14 +119,14 @@ def Parse(cmdline):
     argparser.add_argument("-o",
             "--output",
             dest="output_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             default=None,
             help="output directory, absolute path or directory relative to output file (default: output in the same directory as the source file)")
     argparser.add_argument(
             "--cpp-output",
             dest="cpp_output_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             default=None,
             help="output directory for cpp files, absolute path or directory relative to output file")
@@ -145,7 +146,7 @@ def Parse(cmdline):
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
             dest="if_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             type=str,
             default=None,
@@ -165,7 +166,7 @@ def Parse(cmdline):
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
             dest="cppif_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             type=str,
             default=None,
@@ -173,7 +174,7 @@ def Parse(cmdline):
             "a directory with C++ API interfaces that will substitute the {cppinterfacedir} tag (default: same directory as source file)")
     cpp_group.add_argument('-I',
             dest="includePaths",
-            metavar="INCLUDE_DIR",
+            metavar="PATH",
             action='append',
             default=[],
             type=str,
@@ -199,14 +200,22 @@ def Parse(cmdline):
             help="select JSON-RPC data format (default: default-compliant)")
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
-    data_group.add_argument("-p",
-            "--data-path",
+    data_group.add_argument(
+            "--emit-cpp-interface-path",
+            dest="cpp_if_path",
+            metavar="PATH",
+            action="store",
+            type=str,
+            default=CPP_INTERFACE_PATH,
+            help="override emitted path when #include'ing C++ interface header file (default: 'interfaces', . for no path)")
+    data_group.add_argument(
+            "--emit-json-interface-path",
             dest="if_path",
             metavar="PATH",
             action="store",
             type=str,
             default=JSON_INTERFACE_PATH,
-            help="relative path for #include'ing JsonData header file (default: 'interfaces/json', '.' for no path)")
+            help="override emitted path when #include'ing JsonData header file (default: 'interfaces/json', . for no path)")
     data_group.add_argument(
             "--no-includes",
             dest="no_includes",
@@ -339,9 +348,8 @@ def Parse(cmdline):
     NO_VERSIONING = args.no_versioning
     NO_PUSH_WARNING = args.no_push_warning
 
-    if args.if_path and args.if_path != ".":
-        JSON_INTERFACE_PATH = args.if_path
-    JSON_INTERFACE_PATH = posixpath.normpath(JSON_INTERFACE_PATH) + os.sep
+    JSON_INTERFACE_PATH = "" if args.if_path == "." else (posixpath.normpath(args.if_path) + os.sep)
+    CPP_INTERFACE_PATH = "" if args.cpp_if_path == "." else (posixpath.normpath(args.cpp_if_path) + os.sep)
 
     if args.if_dir:
         args.if_dir = os.path.abspath(os.path.normpath(args.if_dir))
