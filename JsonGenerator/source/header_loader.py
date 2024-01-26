@@ -112,6 +112,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
         info["description"] = info["class"] + " JSON-RPC interface"
         schema["info"] = info
 
+        clash_msg = "JSON-RPC name clash detected"
+
         event_interfaces = set()
 
         for method in face.obj.methods:
@@ -464,11 +466,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
             else:
                 prefix = ""
 
-            method_name = method.name
-            method_name_lower = method_name.lower()
-
-            if method.retval.meta.text == method_name_lower:
-                log.WarnLine(method, "%s': changed function name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+            if method.retval.meta.text == method.name.lower():
+                log.WarnLine(method, "'%s': overriden method name is same as default ('%s')" % (method.name, method.retval.meta.text))
 
             # Copy over @text tag to the other method of a property
             if method.retval.meta.text and method.retval.meta.is_property:
@@ -484,25 +483,32 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
-            method_name = method.retval.meta.text if method.retval.meta.text else method.name
-            method_name_lower = method_name.lower()
+            method_name =  method.retval.meta.text if method.retval.meta.text else method.name.lower()
 
-            if method.parent.is_json:
-                if method.retval.meta.alt == method_name_lower:
-                    log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+            if method.retval.meta.alt == method_name:
+                log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
 
+            if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:
-                    if mm == prefix + method_name_lower:
-                        raise CppParseError(method, "JSON-RPC name clash detected ('%s')" % (prefix + method_name_lower))
+                    if mm == prefix + method_name:
+                        raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                     if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                        raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name_lower))
+                        raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                    if methods[mm].get("alt") == method_name:
+                        raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, methods[mm].get("alt")))
+                    if method.retval.meta.alt and (methods[mm].get("alt") == method.retval.meta.alt):
+                        raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                 for mm in properties:
                     if properties[mm]["@originalname"] != method.name:
-                        if mm == prefix + method_name_lower:
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s')x" % (prefix + method_name_lower))
+                        if mm == prefix + method_name:
+                            raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                         if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name_lower))
+                            raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                        if properties[mm].get("alt") == method_name:
+                            raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, properties[mm].get("alt")))
+                        if method.retval.meta.alt and (properties[mm].get("alt") == method.retval.meta.alt):
+                            raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
             for e in event_params:
                 exists = any(x.obj.type == e.type.type for x in event_interfaces)
@@ -512,13 +518,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
             obj = None
 
-            if method.retval.meta.is_property or (prefix + method_name_lower) in properties:
+            if method.retval.meta.is_property or (prefix + method_name) in properties:
                 try:
-                    obj = properties[prefix + method_name_lower]
-                    property_second_method = True
+                    obj = properties[prefix + method_name]
                 except:
                     obj = OrderedDict()
-                    properties[prefix + method_name_lower] = obj
+                    properties[prefix + method_name] = obj
 
                 obj["@originalname"] = method.name
                 method.retval.meta.is_property = True
@@ -646,7 +651,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                                 raise CppParseError(method, "parameters must not use the same name as the method")
 
                     obj["result"] = BuildResult(method.vars)
-                    methods[prefix + method_name_lower] = obj
+                    methods[prefix + method_name] = obj
 
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by a reference")
@@ -691,7 +696,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     if config.LEGACY_ALT:
                         idx = prefix + method.retval.meta.alt
                         upd[idx] = copy.deepcopy(obj)
-                        upd[idx]["alt"] = prefix + method_name_lower
+                        upd[idx]["alt"] = prefix + method_name
                         obj["alt"] = idx
 
                         if "deprecated" in upd[idx]:
@@ -773,15 +778,21 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
                     if params:
                         obj["params"] = params
 
-                    method_name = (method.retval.meta.text if method.retval.meta.text else method.name).lower()
+                    if method.retval.meta.text == method.name.lower():
+                        log.WarnLine(method, "'%s': overriden notification name is same as default ('%s')" % (method.name, method.retval.meta.text))
 
-                    for mm in events:
-                        if mm == prefix + method_name:
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s')" % (prefix + method_name))
-                        if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name))
-                        if events[mm].get("alt") == method_name:
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' with '%s' alternative)" % ((prefix + method_name), mm))
+                    method_name = method.retval.meta.text if method.retval.meta.text else method.name.lower()
+
+                    if method.parent.is_event: # excludes .json inlcusion of C++ headers
+                        for mm in events:
+                            if mm == prefix + method_name:
+                                raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                            if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
+                                raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                            if events[mm].get("alt") == method_name:
+                                raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, events[mm].get("alt")))
+                            if method.retval.meta.alt and (events[mm].get("alt") == method.retval.meta.alt):
+                                raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                     if method.retval.meta.alt:
                         obj["alt"] = method.retval.meta.alt
@@ -839,4 +850,6 @@ def LoadInterface(file, log, all = False, includePaths = []):
         return schemas, includes
 
     except CppParser.ParserError as ex:
+        raise CppParseError(None, str(ex))
+    except CppParser.LoaderError as ex:
         raise CppParseError(None, str(ex))
