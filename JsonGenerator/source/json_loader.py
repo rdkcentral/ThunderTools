@@ -1109,20 +1109,20 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
                             if ".json" in v:
                                 # Need to prepend with 'file:' for jsonref to load an external file..
                                 ref = v.split("#") if "#" in v else [v,""]
+
                                 if ("{interfacedir}" in ref[0]) and include_path:
                                     ref_file = ref[0].replace("{interfacedir}", include_path)
-
-                                    if os.path.exists(ref_file):
-                                        pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
-                                    else:
-                                        raise IOError("$ref file '%s' not found" % ref_file)
                                 else:
                                     ref_file = os.path.abspath(os.path.dirname(file)) + os.sep + ref[0]
 
                                     if not os.path.exists(ref_file):
-                                        ref_file = v
-                                    else:
-                                        pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
+                                        path = "." if not include_path else include_path
+                                        ref_file = os.path.abspath(path) + os.sep + ref[0]
+
+                                if os.path.exists(ref_file):
+                                    pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
+                                else:
+                                    raise IOError("$ref file '%s' not found" % ref_file)
 
                             elif v.endswith(".h") or v.endswith(".h#"):
                                 ref_file = v.replace("#", "")
