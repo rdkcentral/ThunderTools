@@ -31,7 +31,7 @@ function(JsonGenerator)
     endif()
 
     set(optionsArgs CODE STUBS DOCS LEGACY_ALT AUTO_PREFIX NO_INCLUDES NO_WARNINGS NO_STYLE_WARNINGS DUPLICATE_OBJ_WARNINGS COPY_CTOR NO_REF_NAMES NO_INTERFACES_SECTION VERBOSE FORCE_GENERATE EMIT_INTERFACE_PATH )
-    set(oneValueArgs OUTPUT CPP_OUTPUT IFDIR CPPIFDIR INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT)
+    set(oneValueArgs OUTPUT CPP_OUTPUT IFDIR CPPIFDIR INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT CPP_INTERFACE_PATH JSON_INTERFACE_PATH)
     set(multiValueArgs INPUT INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
@@ -137,9 +137,17 @@ function(JsonGenerator)
     if (Argument_DEF_INT_SIZE)
         list(APPEND _execute_command  "--def-int-size" "${Argument_DEF_INT_SIZE}")
     endif()
-
+    
     if (Argument_FORMAT)
         list(APPEND _execute_command "--format" "${Argument_FORMAT}")
+    endif()
+    
+    if (Argument_CPP_INTERFACE_PATH)
+        list(APPEND _execute_command "--emit-cpp-interface-path" "${Argument_CPP_INTERFACE_PATH}")
+    endif()
+    
+    if (Argument_JSON_INTERFACE_PATH)
+        list(APPEND _execute_command "--emit-json-interface-path" "${Argument_JSON_INTERFACE_PATH}")
     endif()
 
     if (Argument_NAMESPACE)
