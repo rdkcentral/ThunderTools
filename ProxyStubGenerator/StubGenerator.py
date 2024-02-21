@@ -1553,6 +1553,7 @@ def GenerateStubs2(output_file, source_file, includePaths = [], defaults = "", e
                 if not last:
                     emit.Line()
 
+            emit.Line(", nullptr")
             emit.IndentDec()
             emit.Line("}; // %s" % stub_methods_name)
             emit.Line()
