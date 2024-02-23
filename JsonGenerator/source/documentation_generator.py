@@ -88,6 +88,7 @@ def Create(log, schema, path, indent_size = 4):
                 optional = parentOptional or (obj["optional"] if "optional" in obj else False)
                 deprecated = obj["deprecated"] if "deprecated" in obj else False
                 obsolete = obj["obsolete"] if "obsolete" in obj else False
+                restricted = obj.get("range")
 
                 if parent and not optional:
                     if parent["type"] == "object":
@@ -98,18 +99,42 @@ def Create(log, schema, path, indent_size = 4):
                 name = (name if not "@originalname" in obj else obj["@originalname"].lower())
 
                 # include information about enum values in description
-                enum = ' (must be one of the following: %s)' % (", ".join(
-                    '*{0}*'.format(w) for w in obj["enum"])) if "enum" in obj else ""
+                enum = ""
+                if "enum" in obj and "ids" in obj:
+                    enums = []
+                    endmarker = obj.get("endmarker")
+                    for i,e in enumerate(obj["ids"]):
+                        if e == endmarker:
+                            break;
+                        enums.append(obj["enum"][i])
+
+                    if enums:
+                        enum = ' (must be one of the following: %s)' % (", ".join(enums))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
 
                 prefix += name
                 description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else ""
+                if description and description[0].islower():
+                    description = description[0].upper() + description[1:]
 
                 if name or prefix:
                     if "type" not in obj:
                         raise DocumentationError("'%s': missing 'type' for this object" % (parentName + "/" + name))
+
+                    d = obj
+                    is_buffer = False
+
+                    if obj["type"] == "string":
+                        if "range" in obj:
+                            d = obj
+                        elif "length" in obj:
+                            is_buffer = True
+                            if "range" in parent["properties"][obj.get("length")]:
+                                d = parent["properties"][obj.get("length")]
+
+                    restricted = "range" in d
 
                     row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
 
@@ -132,7 +157,25 @@ def Create(log, schema, path, indent_size = 4):
                         if ("float" not in obj or not obj["float"]) and ("example" not in obj or '.' not in str(obj["example"])):
                             obj["type"] = "integer"
 
-                    MdRow([prefix, "opaque object" if obj.get("opaque") else obj["type"], row])
+                    if restricted:
+                        if row:
+                            row += "<br>"
+
+                        if d["type"] == "string" or is_buffer:
+                            str_text = "Decoded data" if d.get("encode") else "String"
+                            if d["range"][0]:
+                                row += italics("%s length must be in range [%s..%s] bytes." % (str_text, d["range"][0], d["range"][1]))
+                            else:
+                                row += italics("%s length must be at most %s bytes." % (str_text, d["range"][1]))
+                        else:
+                            row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
+
+                    if obj.get("extract"):
+                        if row:
+                            row += "<br>"
+                        row += italics("If only one element is present the array will be omitted.")
+
+                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
 
                 if obj["type"] == "object":
                     if "required" not in obj and name and len(obj["properties"]) > 1:
@@ -178,12 +221,12 @@ def Create(log, schema, path, indent_size = 4):
             if obj_type == "string":
                 json_data += "{  }" if obj.get("opaque") else ('"%s"' % (default if default else "..."))
             elif obj_type == "integer":
-                if default and not str(default).isnumeric():
+                if default and not str(default).lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this integer type (see '%s')" % (name, default))
 
                 json_data += '%s' % (default if default else 0)
             elif obj_type == "number":
-                if default and not str(default).replace('.','').isnumeric():
+                if default and not str(default).replace('.','').lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this numeric (floating-point) type (see '%s')" % (name, default))
 
                 if default and '.' not in str(default):
@@ -194,6 +237,8 @@ def Create(log, schema, path, indent_size = 4):
                 json_data += '%s' % str(default if default else False).lower()
             elif obj_type == "null":
                 json_data += 'null'
+            elif obj_type == "instanceid":
+                json_data += default if default else '"0x..."'
             elif obj_type == "array":
                 json_data += str(default if default else ('[ %s ]' % (ExampleObj("", obj["items"]))))
             elif obj_type == "object":
@@ -223,10 +268,11 @@ def Create(log, schema, path, indent_size = 4):
                     alt_status = sen2 if props.get("altisobsolete") else sen1 if props.get("altisdeprecated") else ""
             else:
                 if is_alt:
-                    alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
+                    if config.LEGACY_ALT:
+                        alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
 
             orig_method = method
-            method = props["alt"] if main_status and not alt_status else method
+            method = props["alt"] if main_status and not alt_status and "alt" in props else method
 
             MdHeader(method, 2, type, section)
 
@@ -286,9 +332,12 @@ def Create(log, schema, path, indent_size = 4):
                             props["params"]["description"] = props["summary"]
 
                     ParamTable("(property)", props["params"])
-                elif "result" in props:
+
+                if "result" in props:
                     if not "description" in props["result"]:
-                        if "summary" in props:
+                        if "params" in props and "description" in props["params"]:
+                            props["result"]["description"] = props["params"]["description"]
+                        elif "summary" in props:
                             props["result"]["description"] = props["summary"]
 
                 if "index" in props:
@@ -335,23 +384,41 @@ def Create(log, schema, path, indent_size = 4):
             if is_notification:
                 method = "client.events.1." + method
             elif is_property:
-                method = "%s.1.%s%s" % (classname, method, ("@" + props["index"]["example"]) if "index" in props and "example" in props["index"] else "")
+                method = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"]["example"])) if "index" in props and "example" in props["index"] else "")
             else:
                 method = "%s.1.%s" % (classname, method)
 
             if "id" in props and "example" in props["id"]:
                 method = props["id"]["example"] + "." + method
 
+            jsonError = "Failed to generate JSON example for %s" % method
+            jsonResponse = jsonError
+            jsonRequest = jsonError
+
             if is_property:
                 if not writeonly:
                     MdHeader("Get Request", 4)
-                    jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method,
-                                                        object_pairs_hook=OrderedDict), indent=2)
+
+                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method
+
+                    try:
+                        jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
+                    except:
+                        jsonRequest = jsonError
+                        log.Error(jsonError)
+
                     MdCode(jsonRequest, "json")
                     MdHeader("Get Response", 4)
+
                     parameters = (props["result"] if "result" in props else (props["params"] if "params" in props else None))
-                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", parameters, True),
-                                                         object_pairs_hook=OrderedDict), indent=2)
+                    text = '{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", parameters, True)
+
+                    try:
+                        jsonResponse = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
+                    except:
+                        jsonResponse = jsonError 
+                        log.Error(jsonError)
+
                     MdCode(jsonResponse, "json")
 
             if not readonly:
@@ -361,25 +428,40 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         MdHeader("Request", 4)
 
-                jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
-                                                    ('"id": 42, ' if not is_notification else "", method,
-                                                    (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
-                                                    object_pairs_hook=OrderedDict), indent=2)
+                try:
+                    jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
+                                                        ('"id": 42, ' if not is_notification else "", method,
+                                                        (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
+                                                        object_pairs_hook=OrderedDict), indent=2)
+                except:
+                    jsonRequest = jsonError
+                    log.Error(jsonError)
+
                 MdCode(jsonRequest, "json")
 
                 if not is_notification and not is_property:
-                    if "result" in props:
-                        MdHeader("Response", 4)
+                    if "result" not in props:
+                        props["result"] = { "type": "null" }
+
+                    MdHeader("Response", 4)
+                    try:
                         jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
                                                     object_pairs_hook=OrderedDict), indent=2)
-                        MdCode(jsonResponse, "json")
-                    elif "noresult" not in props or not props["noresult"]:
-                        raise DocumentationError("'%s': missing 'result' in this method" % method)
+                    except:
+                        jsonResponse = jsonError
+                        log.Error(jsonError)
+
+                    MdCode(jsonResponse, "json")
 
                 if is_property:
                     MdHeader("Set Response", 4)
-                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "result": "null" }',
-                                                object_pairs_hook=OrderedDict), indent=4)
+                    try:
+                        jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "result": "null" }',
+                                                    object_pairs_hook=OrderedDict), indent=4)
+                    except:
+                        jsonResponse = jsonError
+                        log.Error(jsonError)
+
                     MdCode(jsonResponse, "json")
 
             return props["alt"] if is_alt and not is_notification else ""
@@ -680,9 +762,9 @@ def Create(log, schema, path, indent_size = 4):
                     if "locator" in info:
                         commonConfig["locator"] = {"type": "string", "description": 'Library name: *%s*' % info["locator"]}
 
-                    commonConfig["autostart"] = {
-                        "type": "boolean",
-                        "description": "Determines if the plugin shall be started automatically along with the framework"
+                    commonConfig["startmode"] = {
+                        "type": "string",
+                        "description": "Determines in which state the plugin should be moved to at startup of the framework"
                     }
 
                 required = []
@@ -698,7 +780,7 @@ def Create(log, schema, path, indent_size = 4):
                 totalConfig["properties"] = commonConfig2
 
                 if "configuration" not in schema or ("nodefault" not in schema["configuration"] or not schema["configuration"]["nodefault"]):
-                    totalConfig["required"] = ["callsign", "classname", "locator", "autostart"] + required
+                    totalConfig["required"] = ["callsign", "classname", "locator", "startmode"] + required
 
                 ParamTable("", totalConfig)
 
@@ -777,17 +859,18 @@ def Create(log, schema, path, indent_size = 4):
                             if "alt" in contents and contents["alt"]:
                                 alt_tags = ""
 
-                                if not event:
-                                    if interface[section][contents["alt"]].get("obsolete"):
-                                        alt_tags += " <sup>obsolete</sup> "
+                                if config.LEGACY_ALT:
+                                    if not event:
+                                        if interface[section][contents["alt"]].get("obsolete"):
+                                            alt_tags += " <sup>obsolete</sup> "
 
-                                    if interface[section][contents["alt"]].get("deprecated"):
-                                        alt_tags += " <sup>deprecated</sup> "
-                                else:
-                                    if contents.get("altisobsolete"):
-                                        alt_tags += " <sup>obsolete</sup> "
-                                    if contents.get("altisdeprecated"):
-                                        alt_tags += " <sup>deprecated</sup> "
+                                        if interface[section][contents["alt"]].get("deprecated"):
+                                            alt_tags += " <sup>deprecated</sup> "
+                                    else:
+                                        if contents.get("altisobsolete"):
+                                            alt_tags += " <sup>obsolete</sup> "
+                                        if contents.get("altisdeprecated"):
+                                            alt_tags += " <sup>deprecated</sup> "
 
                                 if not alt_tags and tags:
                                     line = link(header + "." + contents["alt"]) + alt_tags

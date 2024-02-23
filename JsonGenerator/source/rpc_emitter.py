@@ -22,7 +22,7 @@ import config
 import emitter
 import rpc_version
 from json_loader import *
-
+from class_emitter import AppendTest
 
 def EmitEvent(emit, root, event, params_type, legacy = False):
     module_var = "_module_"
@@ -177,7 +177,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
             Emit(parameters)
 
-            if event.alternative:
+            if config.LEGACY_ALT and event.alternative:
                 Emit([Tstring(event.alternative)] + parameters[1:])
 
     emit.Unindent()
@@ -185,7 +185,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     emit.Line()
 
 
-def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototypes = []):
+def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, prototypes = []):
     json_source = source_file.endswith(".json")
 
     emit.Line()
@@ -221,9 +221,9 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototy
 
     emit.Line()
 
-    for i, ns in enumerate(config.INTERFACE_NAMESPACE.split("::")):
-        if ns:
-            emit.Line("namespace %s {" % ns)
+    for i, ns_ in enumerate(ns.split("::")):
+        if ns_:
+            emit.Line("namespace %s {" % ns_)
             if i >= 2:
                 emit.Indent()
             emit.Line()
@@ -241,7 +241,7 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted, prototy
     emit.Indent()
     emit.Line()
 
-def _EmitRpcEpilogue(root, emit):
+def _EmitRpcEpilogue(root, emit, ns):
     emit.Unindent()
     emit.Line("} // namespace %s" % ("J" + root.json_name))
     emit.Line()
@@ -251,11 +251,11 @@ def _EmitRpcEpilogue(root, emit):
         emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
         emit.Line()
 
-    for i, ns in reversed(list(enumerate(config.INTERFACE_NAMESPACE.split("::")))):
-        if ns:
+    for i, ns_ in reversed(list(enumerate(ns.split("::")))):
+        if ns_:
             if i >= 2:
                 emit.Unindent()
-            emit.Line("} // namespace %s" % ns)
+            emit.Line("} // namespace %s" % ns_)
             emit.Line()
 
     emit.Line()
@@ -271,11 +271,11 @@ def _EmitVersionCode(emit, version):
     emit.Unindent()
     emit.Line("} // namespace Version")
 
-def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
+def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     json_source = source_file.endswith(".json")
 
-    for i, ns in enumerate(config.INTERFACE_NAMESPACE.split("::")):
-        if ns and i >= 2:
+    for i, ns_ in enumerate(ns.split("::")):
+        if ns_ and i >= 2:
             emit.Indent()
 
     if "info" in root.schema and "namespace" in root.schema["info"]:
@@ -310,7 +310,22 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
     emit.Line("%s.RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (module_var, Tstring(struct)))
     emit.Line()
 
-    events = []
+    events = [e for e in root.properties if isinstance(e, JsonNotification)]
+
+    if events and not config.LEGACY_ALT:
+        alt_events = [event for event in events if event.alternative]
+    else:
+        alt_events = []
+
+    if alt_events:
+        emit.Line("// Register alternative notification names...")
+
+        for event in alt_events:
+            emit.Line("%s.RegisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
+
+        emit.Line("")
+
+
     method_count = 0
 
     emit.Line("// Register methods and properties...")
@@ -434,10 +449,13 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                     if isinstance(arg, JsonString) and "length" in arg.flags:
                         length = arg.flags.get("length")
 
+                        tests = []
+
                         for name, [var, var_type] in vars.items():
                             if name == length.local_name:
                                 initializer = (parent + var.cpp_name) if "r" in var_type else ""
                                 emit.Line("%s %s{%s};" % (var.cpp_native_type, var.TempName(), initializer))
+                                AppendTest(tests, length, reverse=True)
                                 break
 
                         encode = arg.schema.get("encode")
@@ -448,7 +466,17 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                         else:
                             emit.Line("%s* %s = nullptr;" % (arg.original_type, arg.TempName()))
                             emit.Line()
-                            emit.Line("if (%s != 0) {" % length.TempName())
+
+                            if not tests:
+                                AppendTest(tests, arg, length, reverse=True)
+
+                            if len(tests) < 2:
+                                tests.insert(0, ("(%s != 0)" % length.TempName()))
+
+                            if len(tests) < 2:
+                                tests.append("(%s <= 0x400000)" % length.TempName()) # some sanity!
+
+                            emit.Line("if (%s) {" % " && ".join(tests))
                             emit.Indent()
                             emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (arg.TempName(), arg.original_type, length.TempName()))
                             emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
@@ -462,6 +490,13 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                         if is_writeable or encode:
                             emit.Unindent()
                             emit.Line("}")
+                            emit.Line("else {")
+                            emit.Indent()
+                            emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.TempName())
+                            emit.Unindent()
+                            emit.Line("}")
+
+                        emit.Line()
 
                     # Special case for iterators
                     elif isinstance(arg, JsonArray):
@@ -471,8 +506,8 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                                 emit.Line("auto _Iterator = %s.Elements();" % cpp_name)
                                 emit.Line("while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }")
                                 emit.Line()
-                                impl = arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + "<%s>" % arg.iterator
-                                initializer = "Core::Service<%s>::Create<%s>(_elements)" % (impl, arg.iterator)
+                                impl = (arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % arg.iterator))
+                                initializer = "Core::ServiceType<%s>::Create<%s>(_elements)" % (impl, arg.iterator)
                                 emit.Line("%s* const %s{%s};" % (arg.iterator, arg.TempName(), initializer))
                                 arg.flags["release"] = True
 
@@ -510,6 +545,22 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
 
                         emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if json_source else arg.cpp_native_type, arg.TempName(), initializer))
 
+                tests = []
+                for _, [arg, arg_type] in sorted(vars.items(), key=lambda x: x[1][0].schema["position"]):
+                    if arg.flags.get("isbufferlength"):
+                        continue
+
+                    AppendTest(tests, arg)
+
+                if tests:
+                    emit.Line()
+                    emit.Line("if (%s) {" % (" || ".join(tests)))
+
+                    emit.Indent()
+                    emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.TempName())
+                    emit.Unindent()
+                    emit.Line("}")
+
                 emit.Line()
 
                 # Emit call to the implementation
@@ -541,7 +592,15 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                     if not conditions:
                         emit.Line()
 
+                    if tests:
+                        emit.Line("if (%s == Core::ERROR_NONE) {" % error_code.TempName())
+                        emit.Indent()
+
                     emit.Line("%s = %s->%s(%s);" % (error_code.TempName(), implementation_object, m.cpp_name, ", ".join(function_params)))
+
+                    if tests:
+                        emit.Unindent()
+                        emit.Line("}")
 
                     if conditions:
                         for _, _record in vars.items():
@@ -619,12 +678,14 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                         elif isinstance(arg, JsonArray):
                             item_name = arg.items.TempName("item_")
                             if arg.iterator:
-                                emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
+                                # emit.Line("ASSERT(%s != nullptr);" % arg.TempName())
                                 emit.Line()
                                 emit.Line("if (%s != nullptr) {" % arg.TempName())
                                 emit.Indent()
                                 emit.Line("%s %s{};" % (arg.items.cpp_native_type, item_name))
                                 emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (arg.TempName(), item_name, cpp_name, item_name))
+                                if arg.schema.get("extract"):
+                                    emit.Line("%s.SetExtractOnSingle(true);" % (cpp_name))
                                 emit.Line("%s->Release();" % arg.TempName())
                                 emit.Unindent()
                                 emit.Line("}")
@@ -662,7 +723,7 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
 
             emit.Indent()
             error_code = AuxJsonInteger("errorCode_", 32)
-            emit.Line("%s %s%s;" % (error_code.cpp_native_type, error_code.TempName(), " = Core::ERROR_NONE" if json_source else ""))
+            emit.Line("%s %s%s;" % (error_code.cpp_native_type, error_code.TempName(), " = Core::ERROR_NONE"))
             emit.Line()
 
             if isinstance(m, JsonProperty):
@@ -674,7 +735,12 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                         index_converted = True
                         emit.Line("%s %s{};" % (m.index.cpp_native_type, m.index.TempName("converted_")))
                         emit.Line()
-                        emit.Line("if (Core::FromString(%s, %s) == false) {" % (m.index.TempName("_"), m.index.TempName("converted_")))
+
+                        if m.schema.get("optional"):
+                            emit.Line("if (Core::FromString(%s, %s) == false) {" % (m.index.TempName("_"), m.index.TempName("converted_")))
+                        else:
+                            emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (m.index.TempName("_"), m.index.TempName("_"), m.index.TempName("converted_")))
+
                         emit.Indent()
                         emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.TempName())
 
@@ -698,6 +764,19 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
                         emit.Unindent()
                         emit.Line("} else {")
                         emit.Indent()
+                    else:
+                        if m.schema.get("optional"):
+                            index_converted = True
+                            emit.Line("if (%s.empty() == true) {")
+                            emit.Indent()
+                            emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.TempName())
+
+                            if not m.writeonly and not m.readonly:
+                                emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+
+                            emit.Unindent()
+                            emit.Line("} else {")
+                            emit.Indent()
 
                 if not m.readonly and not m.writeonly:
                     emit.Line("if (%s.IsSet() == false) {" % (params.local_name))
@@ -743,10 +822,12 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
             emit.Unindent()
             emit.Line()
 
-            method_count += 1
+            if not config.LEGACY_ALT and m.alternative:
+                emit.Line()
+                emit.Line("%s.Register(%s, %s);" % (module_var, Tstring(m.alternative), Tstring(m.name)))
+                emit.Line()
 
-        elif isinstance(m, JsonNotification):
-            events.append(m)
+            method_count += 1
 
     # Emit event status registrations
 
@@ -784,6 +865,16 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
         for m in root.properties:
             if isinstance(m, JsonMethod) and not isinstance(m, JsonNotification):
                 emit.Line("%s.Unregister(%s);" % (module_var, Tstring(m.json_name)))
+
+                if not config.LEGACY_ALT and m.alternative:
+                    emit.Line("%s.Unregister(%s);" % (module_var, Tstring(m.alternative)))
+
+    if alt_events:
+        emit.Line("")
+        emit.Line("// Unegister alternative notification names...")
+
+        for event in alt_events:
+            emit.Line("%s.UnregisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
 
     # Emit event status deregistrations
 
@@ -836,15 +927,21 @@ def _EmitRpcCode(root, emit, header_file, source_file, data_emitted):
     return prototypes
 
 def EmitRpcCode(root, emit, header_file, source_file, data_emitted):
-    prototypes = _EmitRpcCode(root, emit, header_file, source_file, data_emitted)
+
+    ns = root.schema["namespace"] if "namespace" in root.schema else "::WPEFramework::Exchange"
+
+    prototypes = _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted)
 
     with emitter.Emitter(None, config.INDENT_SIZE) as prototypes_emitter:
-        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, data_emitted, prototypes)
+        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, ns, data_emitted, prototypes)
         emit.Prepend(prototypes_emitter)
 
-    _EmitRpcEpilogue(root, emit)
+    _EmitRpcEpilogue(root, emit, ns)
 
 def EmitRpcVersionCode(root, emit, header_file, source_file, data_emitted):
-    _EmitRpcPrologue(root, emit, header_file, source_file, data_emitted)
+
+    ns = root.schema["namespace"] if "namespace" in root.schema else "::WPEFramework::Exchange"
+
+    _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted)
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
-    _EmitRpcEpilogue(root, emit)
+    _EmitRpcEpilogue(root, emit, ns)

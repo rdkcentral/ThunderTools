@@ -168,6 +168,12 @@ class BuiltinInteger(Intrinsic):
     def IsFixed(self):
         return self.fixed
 
+class InstanceId(BuiltinInteger):
+    def __init__(self):
+        BuiltinInteger.__init__(self, "instance_id")
+
+    def IsFixed(self):
+        return self.fixed
 
 class String(Intrinsic):
     def __init__(self, std=False, cc=False):
@@ -367,6 +373,12 @@ class Identifier():
                     skip = 1
                 elif token[1:] == "OPAQUE":
                     self.meta.decorators.append("opaque")
+                elif token[1:] == "OPTIONAL":
+                    self.meta.decorators.append("optional")
+                elif token[1:] == "EXTRACT":
+                    self.meta.decorators.append("extract")
+                elif token[1:] == "END":
+                    self.meta.decorators.append("endmarker")
                 elif token[1:] == "PROPERTY":
                     self.meta.is_property = True
                 elif token[1:] == "BRIEF":
@@ -593,6 +605,8 @@ class Identifier():
                     self.type[i] = Type(BuiltinInteger(True))
                 elif type == "__stubgen_undetermined_integer":
                     self.type[i] = Type(BuiltinInteger(False))
+                elif type == "__stubgen_instance_id":
+                    self.type[i] = Type(InstanceId())
                 else:
                     found = []
                     __Search(global_namespace, found, self.type[i])
@@ -982,6 +996,42 @@ class Class(Identifier, Block):
 
     def Proto(self):
         return self.full_name
+
+    def _Merge(self, vars, methods, do_methods=False, virtual=False):
+        for a in self.ancestors:
+            if isinstance(a[0].type, Class):
+                access = a[1]
+                kind = a[0].type
+                is_virtual = "virtual" in a[2]
+
+                if access == "public":
+                    kind._Merge(vars, methods, do_methods, is_virtual)
+                else:
+                    raise ParserError("public inheritance of %s is required" % kind.full_name)
+
+        def Populate(array, are_methods=False):
+            for v in array:
+                if v.access == "public":
+                    found = list(filter(lambda x: x.name == v.name, vars))
+                    assert(len(found)<=1)
+
+                    if not found:
+                        vars.append(v)
+                        v._virtual = virtual
+                    elif not found[0]._virtual or not virtual:
+                        raise ParserError("ambiguous %s %s (use virtual inhertiance?)" % ("method" if are_methods else "attributes", v.full_name))
+                else:
+                    raise ParserError("all members are reqired to be public, non-public member %s" % v.full_name)
+
+        Populate(self.vars)
+
+        if do_methods:
+            Populate(self.methods, True)
+
+    def Merge(self, do_methods=False):
+        new_class = Class(self.parent, self.name)
+        result = self._Merge(new_class.vars, new_class.methods, do_methods)
+        return new_class
 
     def __str__(self):
         return "class " + self.Proto()
@@ -1467,9 +1517,25 @@ def __Tokenize(contents,log = None):
         r"|([\r\n\t ])"                                                 # whitespace
     )
 
-    tokens = [s.strip() for s in re.split(formula, contents, flags=(re.MULTILINE)) if s]
+    rtokens = [s.strip() for s in re.split(formula, contents, flags=(re.MULTILINE)) if s and s.strip()]
+
+    tokens = []
+
+    for i, token in enumerate(rtokens):
+        if (i > 1) and (i < len(rtokens) - 1):
+            if rtokens[i].startswith("//") and tokens[-1].startswith("//"):
+                if "@_line" in token and rtokens[i+1].startswith("//") and "@" not in rtokens[i+1]:
+                    # get rid of line tags between comments
+                    continue
+                elif "@" not in token:
+                    # join comments without any @ markers
+                    tokens[-1] += " "+ token[2:].strip()
+                    continue
+
+        tokens.append(token)
 
     tagtokens = []
+
     # check for special metadata within comments
     skipmode = False
     omit_depth = 0
@@ -1486,7 +1552,7 @@ def __Tokenize(contents,log = None):
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
                            r"|(\+\+)|(--)|(\+=)|(-=)|(/=)|(\*=)|(%=)|(^=)|(&=)|(\|=)|(~=)"
-                           r"|([,:;~!?=^/*%-\+&<>\{\}\(\)\[\]])"
+                           r"|([,:;~?=^/*%-\+&<>\{\}\(\)\[\]])"
                            r"|([\r\n\t ])")
 
                 if append:
@@ -1607,8 +1673,14 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ITERATOR")
                 if _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
+                if _find("@end", token):
+                    tagtokens.append("@END")
                 if _find("@opaque", token):
                     tagtokens.append("@OPAQUE")
+                if _find("@optional", token):
+                    tagtokens.append("@OPTIONAL")
+                if _find("@extract", token):
+                    tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
                 if _find("@alt", token):
@@ -2035,14 +2107,14 @@ def Parse(contents,log = None):
             if tokens[i + 1] == ':':
                 i += 1
                 parent_class = ""
-                parent_access = "private"
+                parent_access = new_class._current_access
                 specifiers = []
                 while True:
                     if tokens[i + 1] in ['{', ',']:
                         # try to find a reference to an already found type
                         parent_ref = Identifier(current_block[-1], current_block[-1], [parent_class], [])
                         new_class.ancestors.append([parent_ref.type, parent_access, specifiers])
-                        parent_access = "private"
+                        parent_class = ""
                         if tokens[i + 1] == '{':
                             break
                     elif tokens[i + 1] in ["public", "private", "protected"]:
