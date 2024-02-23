@@ -33,6 +33,22 @@ class Log:
             self.infos.append("%s: %s%s: %s%s%s" % (self.name, self.cinfo, self.creset, file, ": " if file else "", text))
             self.__Print(self.infos[-1])
 
+    def InfoLine(self, obj, text, file=""):
+        if self.show_infos:
+            if not file: file = self.file
+            try:
+                if not file: file = os.path.basename(obj.parser_file)
+                line = str(obj.parser_line)
+            except:
+                try:
+                    file = os.path.basename(obj.parent.parser_file)
+                    line = obj.parent.parser_line
+                except:
+                    file = ""
+                    line = ""
+            self.infos.append("%s: %s%s: %s%s" % (self.name, self.cinfo, self.creset, ("%s(%s): " % (file, line)) if file else "", text))
+            self.__Print(self.infos[-1])
+
     def DocIssue(self, text, file=""):
         if self.show_doc_issues:
             if not file: file = self.file

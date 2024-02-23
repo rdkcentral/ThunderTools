@@ -33,11 +33,10 @@ IMPL_EVENT_PREFIX = "event_"
 # Configurables
 CLASSNAME_FROM_REF = True
 DEFAULT_INT_SIZE = 32
-SHOW_WARNINGS = True
 DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "WPEFramework"
-INTERFACE_NAMESPACE = "::" + FRAMEWORK_NAMESPACE + "::Exchange"
+INTERFACE_NAMESPACES = ["::WPEFramework::Exchange"]
 INTERFACES_SECTION = True
 INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
@@ -54,6 +53,8 @@ JSON_INTERFACE_PATH = CPP_INTERFACE_PATH + "json"  + os.sep
 DUMP_JSON = False
 FORCE = False
 GENERATED_JSON = False
+LEGACY_ALT = False
+AUTO_PREFIX = False
 
 class RpcFormat(Enum):
     COMPLIANT = "compliant"
@@ -66,8 +67,9 @@ RPC_FORMAT_FORCED = False
 
 def Parse(cmdline):
     global DEFAULT_DEFINITIONS_FILE
-    global INTERFACE_NAMESPACE
+    global INTERFACE_NAMESPACES
     global JSON_INTERFACE_PATH
+    global CPP_INTERFACE_PATH
     global NO_INCLUDES
     global NO_VERSIONING
     global NO_PUSH_WARNING
@@ -85,6 +87,8 @@ def Parse(cmdline):
     global ALWAYS_EMIT_COPY_CTOR
     global KEEP_EMPTY
     global CLASSNAME_FROM_REF
+    global LEGACY_ALT
+    global AUTO_PREFIX
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -115,21 +119,34 @@ def Parse(cmdline):
     argparser.add_argument("-o",
             "--output",
             dest="output_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             default=None,
             help="output directory, absolute path or directory relative to output file (default: output in the same directory as the source file)")
+    argparser.add_argument(
+            "--cpp-output",
+            dest="cpp_output_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help="output directory for cpp files, absolute path or directory relative to output file")
     argparser.add_argument(
             "--force",
             dest="force",
             action="store_true",
             default=False,
             help= "force code generation even if destination appears up-to-date (default: force disabled)")
+    argparser.add_argument(
+            "--no-warnings",
+            dest="no_warnings",
+            action="store_true",
+            default=False,
+            help= "disable all warnings (default: warnings enabled)")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
             dest="if_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             type=str,
             default=None,
@@ -140,16 +157,16 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help="do not derive class names from $refs (default: derive class names from $ref)")
-    json_group.add_argument("--no-duplicates-warnings",
-            dest="no_duplicates_warnings",
+    json_group.add_argument("--duplicate-obj-warnings",
+            dest="duplicate_obj_warnings",
             action="store_true",
-            default=not SHOW_WARNINGS,
-            help="suppress duplicate object warnings (default: show all duplicate object warnings)")
+            default=False,
+            help="enable duplicate object warnings (default: do not show duplicate object warnings)")
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
             dest="cppif_dir",
-            metavar="DIR",
+            metavar="PATH",
             action="store",
             type=str,
             default=None,
@@ -157,7 +174,7 @@ def Parse(cmdline):
             "a directory with C++ API interfaces that will substitute the {cppinterfacedir} tag (default: same directory as source file)")
     cpp_group.add_argument('-I',
             dest="includePaths",
-            metavar="INCLUDE_DIR",
+            metavar="PATH",
             action='append',
             default=[],
             type=str,
@@ -169,12 +186,11 @@ def Parse(cmdline):
             default=DEFAULT_DEFINITIONS_FILE,
             help="include a C++ header file with common types (default: include '%s')" % DEFAULT_DEFINITIONS_FILE)
     cpp_group.add_argument("--namespace",
-            dest="if_namespace",
+            dest="if_namespaces",
             metavar="NS",
-            type=str,
-            action="store",
-            default=INTERFACE_NAMESPACE,
-            help="set namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACE)
+            action="append",
+            default=[],
+            help="add namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACES[0])
     cpp_group.add_argument("--format",
             dest="format",
             type=str,
@@ -184,14 +200,22 @@ def Parse(cmdline):
             help="select JSON-RPC data format (default: default-compliant)")
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
-    data_group.add_argument("-p",
-            "--data-path",
+    data_group.add_argument(
+            "--emit-cpp-interface-path",
+            dest="cpp_if_path",
+            metavar="PATH",
+            action="store",
+            type=str,
+            default=CPP_INTERFACE_PATH,
+            help="override emitted path when #include'ing C++ interface header file (default: 'interfaces', . for no path)")
+    data_group.add_argument(
+            "--emit-json-interface-path",
             dest="if_path",
             metavar="PATH",
             action="store",
             type=str,
             default=JSON_INTERFACE_PATH,
-            help="relative path for #include'ing JsonData header file (default: 'interfaces/json', '.' for no path)")
+            help="override emitted path when #include'ing JsonData header file (default: 'interfaces/json', . for no path)")
     data_group.add_argument(
             "--no-includes",
             dest="no_includes",
@@ -204,6 +228,17 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "do not emit versioning information for non-auto JSON interfaces (default: emit versioning header)")
+    data_group.add_argument(
+            "--auto-prefix",
+            dest="auto_prefix",
+            action="store_true",
+            default=False,
+            help= "prefix JSON-RPC endpoints with C++ namespace (default: no prefix)")
+    data_group.add_argument("--legacy-alt",
+            dest="legacy_alt",
+            action="store_true",
+            default=False,
+            help="do not use framework's alt support (default: use framework alt support)")
     data_group.add_argument(
             "--no-push-warning",
             dest="no_push_warning",
@@ -277,7 +312,7 @@ def Parse(cmdline):
     args = argparser.parse_args(cmdline[1:])
 
     DOC_ISSUES = not args.no_style_warnings
-    NO_DUP_WARNINGS = args.no_duplicates_warnings
+    NO_DUP_WARNINGS = not args.duplicate_obj_warnings
     INDENT_SIZE = args.indent_size
     ALWAYS_EMIT_COPY_CTOR = args.copy_ctor
     KEEP_EMPTY = args.keep_empty
@@ -285,13 +320,19 @@ def Parse(cmdline):
     DEFAULT_INT_SIZE = args.def_int_size
     DUMP_JSON = args.dump_json
     FORCE = args.force
+    LEGACY_ALT = args.legacy_alt
     DEFAULT_DEFINITIONS_FILE = args.extra_include
-    INTERFACE_NAMESPACE = args.if_namespace
-    if not INTERFACE_NAMESPACE.startswith("::"):
-        INTERFACE_NAMESPACE = "::" + INTERFACE_NAMESPACE
     INTERFACES_SECTION = not args.no_interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
+    AUTO_PREFIX = args.auto_prefix
+
+    if args.if_namespaces:
+        INTERFACE_NAMESPACES = args.if_namespaces
+
+    for i, ns in enumerate(INTERFACE_NAMESPACES):
+        if not ns.startswith("::"):
+            INTERFACE_NAMESPACES[i] = "::" + ns
 
     if RpcFormat.EXTENDED.value in args.format:
         RPC_FORMAT = RpcFormat.EXTENDED
@@ -307,9 +348,8 @@ def Parse(cmdline):
     NO_VERSIONING = args.no_versioning
     NO_PUSH_WARNING = args.no_push_warning
 
-    if args.if_path and args.if_path != ".":
-        JSON_INTERFACE_PATH = args.if_path
-    JSON_INTERFACE_PATH = posixpath.normpath(JSON_INTERFACE_PATH) + os.sep
+    JSON_INTERFACE_PATH = "" if args.if_path == "." else (posixpath.normpath(args.if_path) + os.sep)
+    CPP_INTERFACE_PATH = "" if args.cpp_if_path == "." else (posixpath.normpath(args.cpp_if_path) + os.sep)
 
     if args.if_dir:
         args.if_dir = os.path.abspath(os.path.normpath(args.if_dir))

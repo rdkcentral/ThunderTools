@@ -173,10 +173,11 @@ class ObjectTracker:
             props = newObj.schema["properties"]
             for obj in self.objects[:-1]:
                 if _CompareObject(obj.schema["properties"], props):
-                    if not config.GENERATED_JSON and not config.NO_DUP_WARNINGS and (not is_ref and not IsInRef(obj)):
+                    if not config.GENERATED_JSON and (not is_ref and not IsInRef(obj)):
                         warning = "'%s': duplicate object (same as '%s') - consider using $ref" % (newObj.print_name, obj.print_name)
+
                         if log:
-                            if len(props) > 2:
+                            if not config.NO_DUP_WARNINGS:
                                 log.Warn(warning)
                             else:
                                 log.Info(warning)
@@ -247,9 +248,13 @@ class EnumTracker(ObjectTracker):
             is_ref = IsInRef(newObj)
             for obj in self.objects[:-1]:
                 if __Compare(obj.schema, newObj.schema):
-                    if not config.GENERATED_JSON and not config.NO_DUP_WARNINGS and (not is_ref and not IsInRef(obj)):
-                        log.Warn("'%s': duplicate enums (same as '%s') - consider using $ref" %
-                                   (newObj.print_name, obj.print_name))
+                    if not config.GENERATED_JSON and (not is_ref and not IsInRef(obj)):
+                        warning = "'%s': duplicate enums (same as '%s') - consider using $ref" % (newObj.print_name, obj.print_name)
+
+                        if not config.NO_DUP_WARNINGS:
+                            log.Warn(warning)
+                        else:
+                            log.Info(warning)
 
                     return obj
 

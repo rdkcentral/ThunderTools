@@ -47,7 +47,7 @@ namespace std {
 namespace WPEFramework {
 
   namespace Core {
-    typedef __stubgen_integer instance_id;
+    typedef __stubgen_instance_id instance_id;
     typedef uint32_t hresult;
 
     struct IUnknown {

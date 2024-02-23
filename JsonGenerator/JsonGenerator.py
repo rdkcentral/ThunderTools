@@ -41,7 +41,7 @@ NAME = "JsonGenerator"
 if __name__ == "__main__":
     argparser, args = config.Parse(sys.argv)
 
-    log = logger.Create(NAME, args.verbose, not args.no_duplicates_warnings, not args.no_style_warnings)
+    log = logger.Create(NAME, args.verbose, not args.no_warnings, not args.no_style_warnings)
     trackers.SetLogger(log)
     json_loader.SetLogger(log)
 
@@ -69,25 +69,48 @@ if __name__ == "__main__":
 
                 schemas, additional_includes, temp_files = json_loader.Load(log, path, args.if_dir, args.cppif_dir, args.includePaths)
 
+                joint_headers = {}
+
                 for schema in schemas:
                     if schema:
                         warnings = config.GENERATED_JSON
                         config.GENERATED_JSON = "@generated" in schema
 
-                        output_path = path
-
                         if args.output_dir:
                             if (args.output_dir[0]) == os.sep:
-                                output_path = os.path.join(args.output_dir, os.path.basename(output_path))
+                                output_path = os.path.normpath(args.output_dir)
                             else:
-                                dir = os.path.join(os.path.dirname(output_path), args.output_dir)
-                                if not os.path.exists(dir):
-                                    os.makedirs(dir)
+                                output_path = os.path.join(os.path.dirname(path), os.path.normpath(args.output_dir))
 
-                                output_path = os.path.join(dir, os.path.basename(output_path))
+                            if not os.path.exists(output_path):
+                                os.makedirs(output_path)
+                        else:
+                            output_path = os.path.dirname(path)
+
+                        if args.cpp_output_dir:
+                            if (args.cpp_output_dir[0]) == os.sep:
+                                cpp_output_path = os.path.normpath(args.cpp_output_dir)
+                            else:
+                                cpp_output_path = os.path.join(os.path.dirname(path), os.path.normpath(args.cpp_output_dir))
+
+                            if not os.path.exists(cpp_output_path):
+                                os.makedirs(cpp_output_path)
+                        else:
+                            cpp_output_path = output_path
 
                         if args.code or args.stubs:
-                            code_generator.Create(log, schema, path, output_path, additional_includes, args.code, args.stubs, args.code)
+                            headers = code_generator.Create(log, schema, path, [output_path, cpp_output_path], additional_includes, args.code, args.stubs, args.code)
+
+                            name = os.path.basename(path).replace(".h", "").replace(".json", "")
+
+                            # if "@generated" in schema and name[0] == "I":
+                            #     name = name[1:]
+
+                            if headers:
+                                if name not in joint_headers:
+                                    joint_headers[name] = []
+
+                                joint_headers[name].extend(headers)
 
                         if args.docs:
                             if "$schema" in schema:
@@ -98,11 +121,14 @@ if __name__ == "__main__":
                                 else:
                                     title = os.path.basename(output_path)
 
-                                documentation_generator.Create(log, schema, os.path.join(os.path.dirname(output_path), title.replace(" ", "")))
+                                documentation_generator.Create(log, schema, os.path.join(output_path, title.replace(" ", "")))
                             else:
                                 log.Warn("Skiping file; not a JSON-RPC definition file")
 
                         config.GENERATED_JSON = warnings
+
+                for n in joint_headers:
+                    code_generator.CreateApiHeader(log, n, output_path, joint_headers[n])
 
             except json_loader.JsonParseError as err:
                 log.Error(str(err))

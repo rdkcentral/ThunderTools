@@ -42,21 +42,15 @@ class CppParseError(RuntimeError):
             super(CppParseError, self).__init__(msg)
 
 
-def LoadInterface(file, log, all = False, includePaths = []):
+def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
     def StripFrameworkNamespace(identifier):
         return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
     def StripInterfaceNamespace(identifier):
-        return str(identifier).replace(config.INTERFACE_NAMESPACE + "::", "")
+        return str(identifier).replace(ns + "::", "")
 
-    try:
-        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                    posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
-    except CppParser.ParserError as ex:
-        raise CppParseError(None, str(ex))
-
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, config.INTERFACE_NAMESPACE, file) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file) if (i.obj.is_json or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
@@ -80,6 +74,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
         schema["$schema"] = "interface.json.schema"
         schema["jsonrpc"] = "2.0"
         schema["@generated"] = True
+        schema["namespace"] = ns
 
         if face.obj.is_json:
             schema["mode"] = "auto"
@@ -95,7 +90,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
         info = dict()
         info["format"] = rpc_format.value
 
-        if not face.obj.parent.full_name.endswith(config.INTERFACE_NAMESPACE):
+        if not face.obj.parent.full_name.endswith(ns):
             info["namespace"] = face.obj.parent.name[1:] if (face.obj.parent.name[0] == "I" and face.obj.parent.name[1].isupper()) else face.obj.parent.name
 
         info["class"] = face.obj.name[1:] if face.obj.name[0] == "I" else face.obj.name
@@ -117,6 +112,8 @@ def LoadInterface(file, log, all = False, includePaths = []):
         info["description"] = info["class"] + " JSON-RPC interface"
         schema["info"] = info
 
+        clash_msg = "JSON-RPC name clash detected"
+
         event_interfaces = set()
 
         for method in face.obj.methods:
@@ -125,7 +122,17 @@ def LoadInterface(file, log, all = False, includePaths = []):
                 return type.Resolve()
 
             def ConvertType(var):
+                if isinstance(var.type, str):
+                    raise CppParseError(var, "%s: undefined type" % var.type)
+                elif isinstance(var.type, list):
+                    raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
+
                 var_type = ResolveTypedef(var.type)
+                if isinstance(var_type, str):
+                    raise CppParseError(var.type, "%s: undefined type" % var_type)
+                elif isinstance(var_type, list):
+                    raise CppParseError(var.type, "%s: undefined type" % " ".join(var_type))
+
                 cppType = var_type.Type()
                 is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
 
@@ -145,7 +152,11 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                         props["encode"] = cppType.type != "char"
 
+                        if var.meta.range:
+                            props["range"] = var.meta.range
+
                         return "string", props if props else None
+
                     # Special case for iterators, that will be converted to JSON arrays
                     elif is_iterator and len(cppType.args) == 2:
                         # Take element type from return value of the Current() method
@@ -155,6 +166,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
                             raise CppParseError(var, "%s does not appear to a be an @iterator type" % cppType.type)
 
                         result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
+
+                        if "extract" in var.meta.decorators:
+                            result[1]["extract"] = True
 
                         if var_type.IsPointerToPointer():
                             result[1]["ptr"] = True
@@ -184,6 +198,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         size = 8 if cppType.size == "char" else 16 if cppType.size == "short" else \
                             32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
                         result = [ "integer", { "size": size, "signed": cppType.signed } ]
+                    # Instance ID
+                    elif isinstance(cppType, CppParser.InstanceId):
+                        result = [ "instanceid", {} ]
                     # Float
                     elif isinstance(cppType, CppParser.Float):
                         result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
@@ -195,12 +212,17 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                         if len(cppType.items) > 1:
                             autos = [e.auto_value for e in cppType.items].count(True)
-                            if autos != 0 and (autos != len(cppType.items)):
-                               raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
+                            #if autos != 0 and (autos != len(cppType.items)):
+                            #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
                         enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
                         enum_spec["ids"] = [e.name for e in cppType.items]
                         enum_spec["hint"] = var.type.Type().name
+
+                        for e in cppType.items:
+                            if "endmarker" in e.meta.decorators:
+                                enum_spec["endmarker"] = e.name
+                                break;
 
                         if not cppType.items[0].auto_value:
                             enum_spec["values"] = [e.value for e in cppType.items]
@@ -213,7 +235,6 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         else:
                             result = ["string", enum_spec]
 
-
                         if isinstance(var.type.Type(), CppParser.Typedef):
                             result[1]["@register"] = False
 
@@ -222,14 +243,25 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         def GenerateObject(ctype, was_typdef):
                             properties = dict()
 
-                            for p in ctype.vars:
+                            kind = ctype.Merge()
+
+                            required = []
+
+                            for p in kind.vars:
                                 name = p.name.lower()
 
-                                if isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
+                                if isinstance(p.type, list):
+                                    raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
+                                if isinstance(p.type, str):
+                                    raise CppParseError(p, "%s: undefined type" % p.type)
+                                elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
                                     _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                     properties[name] = props
                                     properties[name]["type"] = "object"
                                     properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
+
+                                    if p.meta.brief:
+                                        properties[name]["description"] = p.meta.brief
                                 else:
                                     properties[name] = ConvertParameter(p)
 
@@ -238,7 +270,10 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                 if was_typdef:
                                     properties[name]["@register"] = False
 
-                            return "object", { "properties": properties, "required": list(properties.keys()) }
+                                if "optional" not in p.meta.decorators:
+                                    required.append(name)
+
+                            return "object", { "properties": properties, "required": required }
 
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
 
@@ -254,6 +289,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                     if var_type.IsPointerToConst():
                         result[1]["ptrtoconst"] = True
+
+                    if var.meta.range:
+                        result[1]["range"] = var.meta.range
 
                     return result
 
@@ -340,10 +378,13 @@ def LoadInterface(file, log, all = False, includePaths = []):
 
                         properties[var_name]["position"] = vars.index(var)
 
-                        required.append(var_name)
+                        if "optional" not in var.meta.decorators:
+                            required.append(var_name)
+                        else:
+                            properties[var_name]["optional"] = True
 
                         if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
-                            log.WarnLine(var, "'%s': passing string by value (forgot &?)" % var.name)
+                            log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
                 params["properties"] = properties
                 params["required"] = required
@@ -394,7 +435,9 @@ def LoadInterface(file, log, all = False, includePaths = []):
                            properties[var_name]["@originalname"] = var.name
 
                         properties[var_name]["position"] = vars.index(var)
-                        required.append(var_name)
+
+                        if "optional" not in var.meta.decorators:
+                            required.append(var_name)
 
                 params["properties"] = properties
 
@@ -417,17 +460,14 @@ def LoadInterface(file, log, all = False, includePaths = []):
                 continue
 
             if face.obj.json_prefix:
-                prefix = (face.obj.json_prefix + "::")
-            elif face.obj.parent.full_name != config.INTERFACE_NAMESPACE:
+                prefix = (face.obj.json_prefix + ("::" if not face.obj.json_prefix.endswith("_") else ""))
+            elif config.AUTO_PREFIX and (face.obj.parent.full_name != ns):
                 prefix = (face.obj.parent.name.lower() + "_")
             else:
                 prefix = ""
 
-            method_name = method.name
-            method_name_lower = method_name.lower()
-
-            if method.retval.meta.text == method_name_lower:
-                log.WarnLine(method, "%s': changed function name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+            if method.retval.meta.text == method.name.lower():
+                log.WarnLine(method, "'%s': overriden method name is same as default ('%s')" % (method.name, method.retval.meta.text))
 
             # Copy over @text tag to the other method of a property
             if method.retval.meta.text and method.retval.meta.is_property:
@@ -436,25 +476,39 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         mm.retval.meta.text = method.retval.meta.text
                         break
 
-            method_name = method.retval.meta.text if method.retval.meta.text else method.name
-            method_name_lower = method_name.lower()
+            # Copy over @alt tag to the other method of a property
+            if method.retval.meta.alt and method.retval.meta.is_property:
+                for mm in face.obj.methods:
+                    if mm != method and mm.name == method.name:
+                        mm.retval.meta.alt = method.retval.meta.alt
+                        break
 
-            if method.parent.is_json:
-                if method.retval.meta.alt == method_name_lower:
-                    log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+            method_name =  method.retval.meta.text if method.retval.meta.text else method.name.lower()
 
+            if method.retval.meta.alt == method_name:
+                log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+
+            if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:
-                    if mm == prefix + method_name_lower:
-                        raise CppParseError(method, "JSON-RPC name clash detected ('%s')" % (prefix + method_name_lower))
+                    if mm == prefix + method_name:
+                        raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                     if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                        raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name_lower))
+                        raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                    if methods[mm].get("alt") == method_name:
+                        raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, methods[mm].get("alt")))
+                    if method.retval.meta.alt and (methods[mm].get("alt") == method.retval.meta.alt):
+                        raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                 for mm in properties:
                     if properties[mm]["@originalname"] != method.name:
-                        if mm == prefix + method_name_lower:
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s')x" % (prefix + method_name_lower))
+                        if mm == prefix + method_name:
+                            raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                         if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name_lower))
+                            raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                        if properties[mm].get("alt") == method_name:
+                            raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, properties[mm].get("alt")))
+                        if method.retval.meta.alt and (properties[mm].get("alt") == method.retval.meta.alt):
+                            raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
             for e in event_params:
                 exists = any(x.obj.type == e.type.type for x in event_interfaces)
@@ -463,15 +517,13 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     event_interfaces.add(CppInterface.Interface(ResolveTypedef(e).type, 0, file))
 
             obj = None
-            property_second_method = False
 
-            if method.retval.meta.is_property or (prefix + method_name_lower) in properties:
+            if method.retval.meta.is_property or (prefix + method_name) in properties:
                 try:
-                    obj = properties[prefix + method_name_lower]
-                    property_second_method = True
+                    obj = properties[prefix + method_name]
                 except:
                     obj = OrderedDict()
-                    properties[prefix + method_name_lower] = obj
+                    properties[prefix + method_name] = obj
 
                 obj["@originalname"] = method.name
                 method.retval.meta.is_property = True
@@ -599,7 +651,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                                 raise CppParseError(method, "parameters must not use the same name as the method")
 
                     obj["result"] = BuildResult(method.vars)
-                    methods[prefix + method_name_lower] = obj
+                    methods[prefix + method_name] = obj
 
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by a reference")
@@ -614,7 +666,7 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     obj["summary"] = method.retval.meta.brief.strip()
 
                 if method.retval.meta.details:
-                    obj["description"] = method.retval.meta.details
+                    obj["description"] = method.retval.meta.details.strip()
 
                 if method.retval.meta.retval:
                     errors = []
@@ -628,30 +680,42 @@ def LoadInterface(file, log, all = False, includePaths = []):
                     if errors:
                         obj["errors"] = errors
 
-                upd = properties if method.retval.meta.is_property else methods
+                if config.LEGACY_ALT:
+                    upd = properties if method.retval.meta.is_property else methods
 
                 if method.retval.meta.alt:
                     idx = prefix + method.retval.meta.alt
-                    upd[idx] = copy.deepcopy(obj)
-                    upd[idx]["alt"] = prefix + method_name_lower
                     obj["alt"] = idx
 
-                    if "deprecated" in upd[idx]:
-                        del upd[idx]["deprecated"]
-                    if "obsolete" in upd[idx]:
-                        del upd[idx]["obsolete"]
-
                     if method.retval.meta.alt_is_deprecated:
-                        upd[idx]["deprecated"] = True
-                    elif method.retval.meta.alt_is_obsolete:
-                        upd[idx]["obsolete"] = True
+                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+
+                    if method.retval.meta.alt_is_obsolete:
+                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
+
+                    if config.LEGACY_ALT:
+                        idx = prefix + method.retval.meta.alt
+                        upd[idx] = copy.deepcopy(obj)
+                        upd[idx]["alt"] = prefix + method_name
+                        obj["alt"] = idx
+
+                        if "deprecated" in upd[idx]:
+                            del upd[idx]["deprecated"]
+                        if "obsolete" in upd[idx]:
+                            del upd[idx]["obsolete"]
+
+                        if method.retval.meta.alt_is_deprecated:
+                            upd[idx]["deprecated"] = True
+                        elif method.retval.meta.alt_is_obsolete:
+                            upd[idx]["obsolete"] = True
 
                 elif "alt" in obj:
-                    o = upd[obj["alt"]]
-                    if "readonly" in o and "readonly" not in obj:
-                        del o["readonly"]
-                    if "writeonly" in o and "writeonly" not in obj:
-                        del o["writeonly"]
+                    if config.LEGACY_ALT:
+                        o = upd[obj["alt"]]
+                        if "readonly" in o and "readonly" not in obj:
+                            del o["readonly"]
+                        if "writeonly" in o and "writeonly" not in obj:
+                            del o["writeonly"]
 
 
         for f in event_interfaces:
@@ -709,25 +773,35 @@ def LoadInterface(file, log, all = False, includePaths = []):
                         obj["summary"] = method.retval.meta.brief.strip()
 
                     if method.retval.meta.details:
-                        obj["description"] = method.retval.meta.details
+                        obj["description"] = method.retval.meta.details.strip()
 
                     if params:
                         obj["params"] = params
 
-                    method_name = (method.retval.meta.text if method.retval.meta.text else method.name).lower()
+                    if method.retval.meta.text == method.name.lower():
+                        log.WarnLine(method, "'%s': overriden notification name is same as default ('%s')" % (method.name, method.retval.meta.text))
 
-                    for mm in events:
-                        if mm == prefix + method_name:
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s')" % (prefix + method_name))
-                        if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' alternative)" % (prefix + method_name))
-                        if events[mm].get("alt") == method_name:
-                            raise CppParseError(method, "JSON-RPC name clash detected ('%s' with '%s' alternative)" % ((prefix + method_name), mm))
+                    method_name = method.retval.meta.text if method.retval.meta.text else method.name.lower()
+
+                    if method.parent.is_event: # excludes .json inlcusion of C++ headers
+                        for mm in events:
+                            if mm == prefix + method_name:
+                                raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                            if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
+                                raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                            if events[mm].get("alt") == method_name:
+                                raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, events[mm].get("alt")))
+                            if method.retval.meta.alt and (events[mm].get("alt") == method.retval.meta.alt):
+                                raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                     if method.retval.meta.alt:
                         obj["alt"] = method.retval.meta.alt
-                        obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
-                        obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
+
+                        if method.retval.meta.alt_is_deprecated:
+                            obj["altisdeprecated"] = method.retval.meta.alt_is_deprecated
+
+                        if method.retval.meta.alt_is_obsolete:
+                            obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     events[prefix + method_name] = obj
 
@@ -754,7 +828,28 @@ def LoadInterface(file, log, all = False, includePaths = []):
             schema = Build(face)
             if schema:
                 schemas.append(schema)
-    else:
-        log.Info("No interfaces found")
 
     return schemas, []
+
+def LoadInterface(file, log, all = False, includePaths = []):
+    try:
+        schemas = []
+        includes = []
+
+        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
+                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
+
+        for ns in config.INTERFACE_NAMESPACES:
+            s, i = LoadInterfaceInternal(file, tree, ns, log, all, includePaths)
+            schemas.extend(s)
+            includes.extend(i)
+
+        if not schemas:
+            log.Info("No interfaces found")
+
+        return schemas, includes
+
+    except CppParser.ParserError as ex:
+        raise CppParseError(None, str(ex))
+    except CppParser.LoaderError as ex:
+        raise CppParseError(None, str(ex))
