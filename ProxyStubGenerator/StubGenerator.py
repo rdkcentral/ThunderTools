@@ -1602,6 +1602,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if not last:
                     emit.Line()
 
+            emit.Line(", nullptr")
             emit.IndentDec()
             emit.Line("}; // %s" % stub_methods_name)
             emit.Line()
