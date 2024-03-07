@@ -31,8 +31,8 @@ function(JsonGenerator)
     endif()
 
     set(optionsArgs CODE STUBS DOCS LEGACY_ALT AUTO_PREFIX NO_INCLUDES NO_WARNINGS NO_STYLE_WARNINGS DUPLICATE_OBJ_WARNINGS COPY_CTOR NO_REF_NAMES NO_INTERFACES_SECTION VERBOSE FORCE_GENERATE EMIT_INTERFACE_PATH )
-    set(oneValueArgs OUTPUT CPP_OUTPUT IFDIR CPPIFDIR INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT CPP_INTERFACE_PATH JSON_INTERFACE_PATH)
-    set(multiValueArgs INPUT INCLUDE_PATH NAMESPACE)
+    set(oneValueArgs OUTPUT CPP_OUTPUT INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT CPP_INTERFACE_PATH JSON_INTERFACE_PATH)
+    set(multiValueArgs INPUT IFDIR CPPIFDIR INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
 
@@ -108,13 +108,13 @@ function(JsonGenerator)
         list(APPEND _execute_command  "-p" "${Argument_PATH}")
     endif()
 
-    if (Argument_IFDIR)
-        list(APPEND _execute_command  "-i" "${Argument_IFDIR}")
-    endif()
+    foreach(_include_path ${Argument_IFDIR})
+        list(APPEND _execute_command  "-i" "${_include_path}")
+    endforeach(_include_path)
 
-    if (Argument_CPPIFDIR)
-        list(APPEND _execute_command  "-j" "${Argument_CPPIFDIR}")
-    endif()
+    foreach(_include_path ${Argument_CPPIFDIR})
+        list(APPEND _execute_command  "-j" "${_include_path}")
+    endforeach(_include_path)
 
     if (Argument_OUTPUT)
         file(MAKE_DIRECTORY "${Argument_OUTPUT}")

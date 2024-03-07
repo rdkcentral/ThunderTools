@@ -145,13 +145,13 @@ def Parse(cmdline):
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
-            dest="if_dir",
+            dest="if_dirs",
             metavar="PATH",
-            action="store",
+            action="append",
             type=str,
-            default=None,
+            default=[],
             help=
-            "a directory with JSON API interfaces that will substitute the {interfacedir} tag (default: same directory as source file)")
+            "a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
     json_group.add_argument("--no-ref-names",
             dest="no_ref_names",
             action="store_true",
@@ -165,15 +165,14 @@ def Parse(cmdline):
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
-            dest="cppif_dir",
+            dest="cpp_if_dirs",
             metavar="PATH",
-            action="store",
+            action="append",
             type=str,
-            default=None,
-            help=
-            "a directory with C++ API interfaces that will substitute the {cppinterfacedir} tag (default: same directory as source file)")
+            default=[],
+            help="a directory with C++ API interfaces that will substitute the {cppinterfacedir} tag (can be used multiple times)")
     cpp_group.add_argument('-I',
-            dest="includePaths",
+            dest="include_paths",
             metavar="PATH",
             action='append',
             default=[],
@@ -351,9 +350,9 @@ def Parse(cmdline):
     JSON_INTERFACE_PATH = "" if args.if_path == "." else (posixpath.normpath(args.if_path) + os.sep)
     CPP_INTERFACE_PATH = "" if args.cpp_if_path == "." else (posixpath.normpath(args.cpp_if_path) + os.sep)
 
-    if args.if_dir:
-        args.if_dir = os.path.abspath(os.path.normpath(args.if_dir))
-    if args.cppif_dir:
-        args.cppif_dir = os.path.abspath(os.path.normpath(args.cppif_dir))
+    if args.if_dirs:
+        args.if_dirs = [os.path.abspath(os.path.normpath(dir)) for dir in args.if_dirs]
+    if args.cpp_if_dirs:
+        args.cpp_if_dirs = [os.path.abspath(os.path.normpath(dir)) for dir in args.cpp_if_dirs]
 
     return argparser, args
