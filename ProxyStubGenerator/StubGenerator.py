@@ -154,7 +154,7 @@ def FindInterfaceClasses(tree, namespace):
                                             has_id = True
                                             break
 
-                            if not has_id:
+                            if not has_id and not c.omit:
                                 log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
                 __Traverse(c, interface_namespace, faces)
