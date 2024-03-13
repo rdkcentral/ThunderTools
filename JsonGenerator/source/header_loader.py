@@ -42,7 +42,7 @@ class CppParseError(RuntimeError):
             super(CppParseError, self).__init__(msg)
 
 
-def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
+def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
     def StripFrameworkNamespace(identifier):
         return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
@@ -831,16 +831,16 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, includePaths = []):
 
     return schemas, []
 
-def LoadInterface(file, log, all = False, includePaths = []):
+def LoadInterface(file, log, all = False, include_paths = []):
     try:
         schemas = []
         includes = []
 
         tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], includePaths, log)
+                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
-            s, i = LoadInterfaceInternal(file, tree, ns, log, all, includePaths)
+            s, i = LoadInterfaceInternal(file, tree, ns, log, all, include_paths)
             schemas.extend(s)
             includes.extend(i)
 
