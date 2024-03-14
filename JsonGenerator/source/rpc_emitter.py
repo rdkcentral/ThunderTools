@@ -296,6 +296,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     emit.Line("using JSONRPC = PluginHost::JSONRPC%s;" % ("SupportsEventStatus" if has_listeners else ""))
     emit.Line()
 
+    if not config.NO_PUSH_WARNING:
+        emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
+        emit.Line()
+    else:
+        emit.Line("#if defined(__GNUC__) || defined(__clang__)")
+        emit.Line('#pragma GCC diagnostic ignored "-Wunused-function"')
+        emit.Line("#endif")
+        emit.Line()
+
     if json_source:
         emit.Line("template<typename IMPLEMENTATION>")
 
@@ -849,6 +858,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 prototypes.append(["void On%sEventRegistration(const string& client, const %s::JSONRPC::Status status)" % (event.function_name, struct), None])
 
+
+    if not method_count and not has_listeners:
+        emit.Line("(void) %s;" % impl_var)
+
     emit.Unindent()
     emit.Line("}")
     emit.Line()
@@ -868,6 +881,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 if not config.LEGACY_ALT and m.alternative:
                     emit.Line("%s.Unregister(%s);" % (module_var, Tstring(m.alternative)))
+
+    else:
+        emit.Line("(void) %s;" % module_var);
+
 
     if alt_events:
         emit.Line("")
@@ -897,15 +914,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Indent()
         emit.Line()
 
-        if not config.NO_PUSH_WARNING:
-            emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
-            emit.Line()
-        else:
-            emit.Line("#if defined(__GNUC__) || defined(__clang__)")
-            emit.Line('#pragma GCC diagnostic ignored "-Wunused-function"')
-            emit.Line("#endif")
-            emit.Line()
-
         for event in events:
             EmitEvent(emit, root, event, "object")
 
@@ -913,14 +921,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if isinstance(event.params, JsonObject):
                     EmitEvent(emit, root, event, "json")
 
-                EmitEvent(emit, root, event, "native")
-
-        if not config.NO_PUSH_WARNING:
-            emit.Line("POP_WARNING()")
-            emit.Line()
+                if not isinstance(event.params, JsonArray):
+                    EmitEvent(emit, root, event, "native")
 
         emit.Unindent()
         emit.Line("} // namespace Event")
+        emit.Line()
+
+    if not config.NO_PUSH_WARNING:
+        emit.Line("POP_WARNING()")
         emit.Line()
 
     # Return collected signatures, so the emited file can be prepended with
