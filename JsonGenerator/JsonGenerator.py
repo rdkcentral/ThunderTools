@@ -61,7 +61,6 @@ if __name__ == "__main__":
 
         for path in files:
 
-            trackers.object_tracker.Reset()
             trackers.enum_tracker.Reset()
 
             try:
@@ -72,6 +71,8 @@ if __name__ == "__main__":
                 joint_headers = {}
 
                 for schema in schemas:
+                    trackers.object_tracker.Reset()
+
                     if schema:
                         warnings = config.GENERATED_JSON
                         config.GENERATED_JSON = "@generated" in schema

@@ -34,8 +34,6 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
     prefix = ("%s." % module_var) if not legacy else ""
 
-    emit.Line("// Event: %s" % (event.Headline()))
-
     params = event.params
 
     # Build parameter list for the prototype
@@ -55,6 +53,9 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
         elif params_type == "json":
             if params.properties and params.do_create:
                 for p in params.properties:
+                    if p.properties:
+                        return
+
                     parameters.append("const %s& %s" % (p.cpp_type, p.local_name))
             else:
                 parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
@@ -77,6 +78,8 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     if event.included_from:
         line += " /* %s */" % event.included_from
 
+
+    emit.Line("// Event: %s" % (event.Headline()))
     emit.Line(line)
     emit.Line("{")
     emit.Indent()
