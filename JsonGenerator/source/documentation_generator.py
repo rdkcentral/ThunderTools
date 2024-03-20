@@ -109,13 +109,13 @@ def Create(log, schema, path, indent_size = 4):
                         enums.append(obj["enum"][i])
 
                     if enums:
-                        enum = ' (must be one of the following: %s)' % (", ".join(enums))
+                        enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
 
                 prefix += name
-                description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else ""
+                description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else "*...*"
                 if description and description[0].islower():
                     description = description[0].upper() + description[1:]
 
@@ -171,9 +171,7 @@ def Create(log, schema, path, indent_size = 4):
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
                     if obj.get("extract"):
-                        if row:
-                            row += "<br>"
-                        row += italics("If only one element is present the array will be omitted.")
+                        row += " " + italics("(if only one element is present then the array will be omitted)")
 
                     MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
 
@@ -264,12 +262,12 @@ def Create(log, schema, path, indent_size = 4):
 
             if is_notification:
                 element = ["notification", "events"]
-                if is_alt:
+
+            if is_alt:
+                if config.LEGACY_ALT:
+                    alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
+                else:
                     alt_status = sen2 if props.get("altisobsolete") else sen1 if props.get("altisdeprecated") else ""
-            else:
-                if is_alt:
-                    if config.LEGACY_ALT:
-                        alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
 
             orig_method = method
             method = props["alt"] if main_status and not alt_status and "alt" in props else method
@@ -298,6 +296,7 @@ def Create(log, schema, path, indent_size = 4):
                 elif "writeonly" in props and props["writeonly"]:
                     writeonly = True
                     MdParagraph("> This property is **write-only**.")
+
 
             if alt_status == main_status:
                 if main_status:
@@ -835,10 +834,10 @@ def Create(log, schema, path, indent_size = 4):
                             tags = ""
 
                             if "obsolete" in contents and contents["obsolete"]:
-                                tags += " <sup>obsolete</sup> "
+                                tags += " <sup>obsolete</sup>"
 
-                            if "deprecated" in contents and contents["deprecated"]:
-                                tags += " <sup>deprecated</sup> "
+                            elif "deprecated" in contents and contents["deprecated"]:
+                                tags += " <sup>deprecated</sup>"
 
                             descr = ""
 
@@ -854,33 +853,36 @@ def Create(log, schema, path, indent_size = 4):
                                 descr = descr.split(".", 1)[0] if "." in descr else descr
 
                             ln = header + "." + (method.rsplit(".", 1)[1] if "." in method else method)
-                            line = link(ln) + tags
+                            line = link(ln)
 
                             if "alt" in contents and contents["alt"]:
                                 alt_tags = ""
 
                                 if config.LEGACY_ALT:
-                                    if not event:
-                                        if interface[section][contents["alt"]].get("obsolete"):
-                                            alt_tags += " <sup>obsolete</sup> "
-
-                                        if interface[section][contents["alt"]].get("deprecated"):
-                                            alt_tags += " <sup>deprecated</sup> "
-                                    else:
-                                        if contents.get("altisobsolete"):
-                                            alt_tags += " <sup>obsolete</sup> "
-                                        if contents.get("altisdeprecated"):
-                                            alt_tags += " <sup>deprecated</sup> "
+                                    if interface[section][contents["alt"]].get("obsolete"):
+                                        alt_tags += " <sup>obsolete</sup>"
+                                    elif interface[section][contents["alt"]].get("deprecated"):
+                                        alt_tags += " <sup>deprecated</sup>"
+                                else:
+                                    if contents.get("altisobsolete"):
+                                        alt_tags += " <sup>obsolete</sup>"
+                                    elif contents.get("altisdeprecated"):
+                                        alt_tags += " <sup>deprecated</sup>"
 
                                 if not alt_tags and tags:
-                                    line = link(header + "." + contents["alt"]) + alt_tags
-                                    line += " / " + link(header + "." + contents["alt"], method.rsplit(".", 1)[1] if "." in method else method) + tags
-                                else:
-                                    line += " / " + link(ln, contents["alt"]) + alt_tags
+                                    line = link(header + "." + contents["alt"])
+                                    line += " / " + link(header + "." + contents["alt"], method.rsplit(".", 1)[1] if "." in method else method)
+                                elif alt_tags and not tags:
+                                    line += " / " + link(ln, contents["alt"])
+                                elif alt_tags and alt_tags == tags:
+                                    line += " / " + link(ln, contents["alt"]) + tags
 
                                 skip_list.append(contents["alt"])
+                            else:
+                                line += tags
 
                             line += access
+                            print(line)
 
                             MdRow([line, descr])
                             emitted = True
