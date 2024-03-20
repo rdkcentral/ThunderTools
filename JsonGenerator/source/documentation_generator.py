@@ -188,11 +188,11 @@ def Create(log, schema, path, indent_size = 4):
             MdBr()
 
         def ErrorTable(obj):
-            MdTableHeader(["Code", "Message", "Description"])
+            MdTableHeader(["Message", "Description"])
 
             for err in obj:
                 description = err["description"] if "description" in err else ""
-                MdRow([err["code"] if "code" in err else "", "```" + err["message"] + "```", description])
+                MdRow(["```" + err["message"] + "```", description])
 
             MdBr()
 
@@ -872,10 +872,10 @@ def Create(log, schema, path, indent_size = 4):
                                 if not alt_tags and tags:
                                     line = link(header + "." + contents["alt"])
                                     line += " / " + link(header + "." + contents["alt"], method.rsplit(".", 1)[1] if "." in method else method)
-                                elif alt_tags and not tags:
-                                    line += " / " + link(ln, contents["alt"])
                                 elif alt_tags and alt_tags == tags:
                                     line += " / " + link(ln, contents["alt"]) + tags
+                                else:
+                                    line += " / " + link(ln, contents["alt"])
 
                                 skip_list.append(contents["alt"])
                             else:
