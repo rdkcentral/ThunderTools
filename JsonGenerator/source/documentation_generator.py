@@ -814,7 +814,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 if section in interface:
                     for method, contents in interface[section].items():
-                        if contents and method not in skip_list:
+                        if contents and method not in skip_list and "#" not in method:
                             ns = interface["info"]["namespace"] if "namespace" in interface["info"] else ""
 
                             if not head:
@@ -911,7 +911,7 @@ def Create(log, schema, path, indent_size = 4):
             for interface in interfaces:
                 if section in interface:
                     for method, props in interface[section].items():
-                        if props and method not in skip_list:
+                        if props and method not in skip_list and "#" not in method:
                             to_skip = MethodDump(method, props, plugin_class, section_name, header, event, prop)
 
                             if to_skip:
