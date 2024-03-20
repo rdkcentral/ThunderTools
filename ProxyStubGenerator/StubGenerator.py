@@ -1193,7 +1193,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     log.Info("omitting method %s::%s()" % (interface_name, method.name))
 
                 if not emit_methods:
-                    log.Warn("no virtual methods in class %s" % interface_name)
+                    log.Info("no virtual methods in class %s" % interface_name)
                 else:
                     stub_methods_name = CreateName(interface_name) + "StubMethods"
                     proxy_name = CreateName(interface_name) + "Proxy"
