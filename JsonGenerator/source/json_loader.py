@@ -523,7 +523,7 @@ class JsonObject(JsonRefCounted, JsonType):
                 idx += 1
                 self._properties.append(new_obj)
 
-                if not new_obj.description and not isinstance(self, JsonMethod):
+                if not new_obj.description and not isinstance(self, JsonMethod) and "#" not in new_obj.print_name:
                     log.DocIssue("'%s': element is missing description" % new_obj.print_name)
 
                 # Handle aggregate objects
@@ -602,7 +602,7 @@ class JsonObject(JsonRefCounted, JsonType):
 
     @property
     def json_name(self):
-        return self.name
+        return self.name.strip("#")
 
     @property
     def cpp_type(self):
@@ -726,7 +726,7 @@ class JsonMethod(JsonObject):
 
         JsonObject.__init__(self, name, parent, method_schema, included=included)
 
-        if not self.summary:
+        if not self.summary and "#" not in self.print_name:
             log.DocIssue("'%s': method is missing summary" % self.print_name)
 
         self.endpoint_name = (config.IMPL_ENDPOINT_PREFIX + super().json_name)

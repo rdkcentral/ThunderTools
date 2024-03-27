@@ -116,340 +116,351 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
         event_interfaces = set()
 
-        for method in face.obj.methods:
+        for interface in face.obj.classes:
+            if interface.is_event:
+                event_interfaces.add(CppInterface.Interface(interface, 0, file))
 
-            def ResolveTypedef(type):
-                return type.Resolve()
+        def ResolveTypedef(type):
+            return type.Resolve()
 
-            def ConvertType(var):
-                if isinstance(var.type, str):
-                    raise CppParseError(var, "%s: undefined type" % var.type)
-                elif isinstance(var.type, list):
-                    raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
+        def ConvertType(var):
+            if isinstance(var.type, str):
+                raise CppParseError(var, "%s: undefined type" % var.type)
+            elif isinstance(var.type, list):
+                raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
 
-                var_type = ResolveTypedef(var.type)
-                if isinstance(var_type, str):
-                    raise CppParseError(var.type, "%s: undefined type" % var_type)
-                elif isinstance(var_type, list):
-                    raise CppParseError(var.type, "%s: undefined type" % " ".join(var_type))
+            var_type = ResolveTypedef(var.type)
+            if isinstance(var_type, str):
+                raise CppParseError(var.type, "%s: undefined type" % var_type)
+            elif isinstance(var_type, list):
+                raise CppParseError(var.type, "%s: undefined type" % " ".join(var_type))
 
-                cppType = var_type.Type()
-                is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
+            cppType = var_type.Type()
+            is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
 
-                # Pointers
-                if var_type.IsPointer() and (is_iterator or (var.meta.length and var.meta.length != ["void"])):
-                    # Special case for serializing C-style buffers, that will be converted to base64 encoded strings
-                    if isinstance(cppType, CppParser.Integer) and cppType.size == "char":
-                        props = dict()
+            # Pointers
+            if var_type.IsPointer() and (is_iterator or (var.meta.length and var.meta.length != ["void"])):
+                # Special case for serializing C-style buffers, that will be converted to base64 encoded strings
+                if isinstance(cppType, CppParser.Integer) and cppType.size == "char":
+                    props = dict()
 
-                        if var.meta.maxlength:
-                            props["length"] = " ".join(var.meta.maxlength)
-                        elif var.meta.length:
-                            props["length"] = " ".join(var.meta.length)
+                    if var.meta.maxlength:
+                        props["length"] = " ".join(var.meta.maxlength)
+                    elif var.meta.length:
+                        props["length"] = " ".join(var.meta.length)
 
-                        if "length" in props:
-                            props["original_type"] = cppType.type
+                    if "length" in props:
+                        props["original_type"] = cppType.type
 
-                        props["encode"] = cppType.type != "char"
-
-                        if var.meta.range:
-                            props["range"] = var.meta.range
-
-                        return "string", props if props else None
-
-                    # Special case for iterators, that will be converted to JSON arrays
-                    elif is_iterator and len(cppType.args) == 2:
-                        # Take element type from return value of the Current() method
-                        currentMethod = next((x for x in cppType.methods if x.name == "Current"), None)
-
-                        if currentMethod == None:
-                            raise CppParseError(var, "%s does not appear to a be an @iterator type" % cppType.type)
-
-                        result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
-
-                        if "extract" in var.meta.decorators:
-                            result[1]["extract"] = True
-
-                        if var_type.IsPointerToPointer():
-                            result[1]["ptr"] = True
-
-                        if var_type.IsPointerToConst():
-                            raise CppParseError(var, "passed iterators must not be constant")
-
-                        return result
-                    # All other pointer types are not supported
-                    else:
-                        raise CppParseError(var, "unable to convert C++ type to JSON type: %s - input pointer allowed only on interator or C-style buffer" % cppType.type)
-                # Primitives
-                else:
-                    result = None
-
-                    # String
-                    if isinstance(cppType, CppParser.String):
-                        if "opaque" in var.meta.decorators :
-                            result = [ "string", { "opaque": True } ]
-                        else:
-                            result = [ "string", {} ]
-                    # Boolean
-                    elif isinstance(cppType, CppParser.Bool):
-                        result = ["boolean", {} ]
-                    # Integer
-                    elif isinstance(cppType, CppParser.Integer):
-                        size = 8 if cppType.size == "char" else 16 if cppType.size == "short" else \
-                            32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
-                        result = [ "integer", { "size": size, "signed": cppType.signed } ]
-                    # Instance ID
-                    elif isinstance(cppType, CppParser.InstanceId):
-                        result = [ "instanceid", {} ]
-                    # Float
-                    elif isinstance(cppType, CppParser.Float):
-                        result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
-                    # Null
-                    elif isinstance(cppType, CppParser.Void):
-                        result = [ "null", {} ]
-                    # Enums
-                    elif isinstance(cppType, CppParser.Enum):
-
-                        if len(cppType.items) > 1:
-                            autos = [e.auto_value for e in cppType.items].count(True)
-                            #if autos != 0 and (autos != len(cppType.items)):
-                            #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
-
-                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
-                        enum_spec["ids"] = [e.name for e in cppType.items]
-                        enum_spec["hint"] = var.type.Type().name
-
-                        for e in cppType.items:
-                            if "endmarker" in e.meta.decorators:
-                                enum_spec["endmarker"] = e.name
-                                break;
-
-                        if not cppType.items[0].auto_value:
-                            enum_spec["values"] = [e.value for e in cppType.items]
-
-                        if "bitmask" in var.meta.decorators or "bitmask" in var.type.Type().meta.decorators:
-                            enum_spec["bitmask"] = True
-                            enum_spec["type"] = "string"
-                            enum_spec["original_type"] = StripFrameworkNamespace(var.type.Type().full_name)
-                            result = ["array", { "items": enum_spec } ]
-                        else:
-                            result = ["string", enum_spec]
-
-                        if isinstance(var.type.Type(), CppParser.Typedef):
-                            result[1]["@register"] = False
-
-                    # POD objects
-                    elif isinstance(cppType, CppParser.Class):
-                        def GenerateObject(ctype, was_typdef):
-                            properties = dict()
-
-                            kind = ctype.Merge()
-
-                            required = []
-
-                            for p in kind.vars:
-                                name = p.name.lower()
-
-                                if isinstance(p.type, list):
-                                    raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
-                                if isinstance(p.type, str):
-                                    raise CppParseError(p, "%s: undefined type" % p.type)
-                                elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
-                                    _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
-                                    properties[name] = props
-                                    properties[name]["type"] = "object"
-                                    properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
-
-                                    if p.meta.brief:
-                                        properties[name]["description"] = p.meta.brief
-                                else:
-                                    properties[name] = ConvertParameter(p)
-
-                                properties[name]["@originalname"] = p.name
-
-                                if was_typdef:
-                                    properties[name]["@register"] = False
-
-                                if "optional" not in p.meta.decorators:
-                                    required.append(name)
-
-                            return "object", { "properties": properties, "required": required }
-
-                        result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
-
-                    # All other types are not supported
-                    else:
-                        raise CppParseError(var, "unable to convert C++ type to JSON type: %s" % cppType.type)
-
-                    if var_type.IsPointer():
-                        result[1]["ptr"] = True
-
-                    if var_type.IsReference():
-                        result[1]["ref"] = True
-
-                    if var_type.IsPointerToConst():
-                        result[1]["ptrtoconst"] = True
+                    props["encode"] = cppType.type != "char"
 
                     if var.meta.range:
-                        result[1]["range"] = var.meta.range
+                        props["range"] = var.meta.range
+
+                    return "string", props if props else None
+
+                # Special case for iterators, that will be converted to JSON arrays
+                elif is_iterator and len(cppType.args) == 2:
+                    # Take element type from return value of the Current() method
+                    currentMethod = next((x for x in cppType.methods if x.name == "Current"), None)
+
+                    if currentMethod == None:
+                        raise CppParseError(var, "%s does not appear to a be an @iterator type" % cppType.type)
+
+                    result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
+
+                    if "extract" in var.meta.decorators:
+                        result[1]["extract"] = True
+
+                    if var_type.IsPointerToPointer():
+                        result[1]["ptr"] = True
+
+                    if var_type.IsPointerToConst():
+                        raise CppParseError(var, "passed iterators must not be constant")
 
                     return result
-
-            def ExtractExample(var):
-                egidx = var.meta.brief.index("(e.g.") if "(e.g." in var.meta.brief else None
-
-                if egidx != None and ")" in var.meta.brief[egidx + 1:]:
-                    example = var.meta.brief[egidx + 5:var.meta.brief.rfind(")")].strip()
-                    description = var.meta.brief[0:egidx].strip()
-                    return [example, description]
+                # All other pointer types are not supported
                 else:
-                    return None
+                    raise CppParseError(var, "unable to convert C++ type to JSON type: %s - input pointer allowed only on interator or C-style buffer" % cppType.type)
+            # Primitives
+            else:
+                result = None
 
-            def ConvertParameter(var):
-                jsonType, args = ConvertType(var)
-                properties = {"type": jsonType}
-
-                if args != None:
-                    properties.update(args)
-                    try:
-                        properties["original_type"] = StripFrameworkNamespace(var.type.Type().full_name)
-                    except:
-                        pass
-
-                if var.meta.brief:
-                    # Also attempt to craft some description
-                    pair = ExtractExample(var)
-                    if pair:
-                        properties["example"] = pair[0]
-                        properties["description"] = pair[1]
+                # String
+                if isinstance(cppType, CppParser.String):
+                    if "opaque" in var.meta.decorators :
+                        result = [ "string", { "opaque": True } ]
                     else:
-                        properties["description"] = var.meta.brief.strip()
+                        result = [ "string", {} ]
+                # Boolean
+                elif isinstance(cppType, CppParser.Bool):
+                    result = ["boolean", {} ]
+                # Integer
+                elif isinstance(cppType, CppParser.Integer):
+                    size = 8 if cppType.size == "char" else 16 if cppType.size == "short" else \
+                        32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
+                    result = [ "integer", { "size": size, "signed": cppType.signed } ]
+                # Instance ID
+                elif isinstance(cppType, CppParser.InstanceId):
+                    result = [ "instanceid", {} ]
+                # Float
+                elif isinstance(cppType, CppParser.Float):
+                    result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
+                # Null
+                elif isinstance(cppType, CppParser.Void):
+                    result = [ "null", {} ]
+                # Enums
+                elif isinstance(cppType, CppParser.Enum):
 
-                return properties
+                    if len(cppType.items) > 1:
+                        autos = [e.auto_value for e in cppType.items].count(True)
+                        #if autos != 0 and (autos != len(cppType.items)):
+                        #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
-            def EventParameters(vars):
-                events = []
-                for var in vars:
-                    def ResolveTypedef(resolved, events, type):
-                        if not isinstance(type, list):
-                            if isinstance(type.Type(), CppParser.Typedef):
-                                if type.Type().is_event:
-                                    events.append(type)
-                                ResolveTypedef(resolved, events, type.Type())
+                    enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
+                    enum_spec["ids"] = [e.name for e in cppType.items]
+                    enum_spec["hint"] = var.type.Type().name
+
+                    for e in cppType.items:
+                        if "endmarker" in e.meta.decorators:
+                            enum_spec["endmarker"] = e.name
+                            break;
+
+                    if not cppType.items[0].auto_value:
+                        enum_spec["values"] = [e.value for e in cppType.items]
+
+                    if "bitmask" in var.meta.decorators or "bitmask" in var.type.Type().meta.decorators:
+                        enum_spec["bitmask"] = True
+                        enum_spec["type"] = "string"
+                        enum_spec["original_type"] = StripFrameworkNamespace(var.type.Type().full_name)
+                        result = ["array", { "items": enum_spec } ]
+                    else:
+                        result = ["string", enum_spec]
+
+                    if isinstance(var.type.Type(), CppParser.Typedef):
+                        result[1]["@register"] = False
+
+                # POD objects
+                elif isinstance(cppType, CppParser.Class):
+                    def GenerateObject(ctype, was_typdef):
+                        properties = dict()
+
+                        kind = ctype.Merge()
+
+                        required = []
+
+                        for p in kind.vars:
+                            name = p.name.lower()
+
+                            if isinstance(p.type, list):
+                                raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
+                            if isinstance(p.type, str):
+                                raise CppParseError(p, "%s: undefined type" % p.type)
+                            elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
+                                _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
+                                properties[name] = props
+                                properties[name]["type"] = "object"
+                                properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
+
+                                if p.meta.brief:
+                                    properties[name]["description"] = p.meta.brief
                             else:
-                                if isinstance(type.Type(), CppParser.Class) and type.Type().is_event:
-                                    events.append(type)
-                        else:
-                            raise CppParseError(var, "undefined type: '%s'" % " ".join(type))
+                                properties[name] = ConvertParameter(p)
 
-                        resolved.append(type)
-                        return events
+                            properties[name]["@originalname"] = p.name
 
-                    resolved = []
-                    events = ResolveTypedef(resolved, events, var.type)
-                return events
+                            if was_typdef:
+                                properties[name]["@register"] = False
 
-            def BuildParameters(vars, rpc_format, is_property=False, test=False):
-                params = {"type": "object"}
-                properties = OrderedDict()
-                required = []
+                            if "optional" not in p.meta.decorators:
+                                required.append(name)
 
-                for var in vars:
-                    if var.meta.input or not var.meta.output:
-                        if verify:
-                            if not var.type.IsConst() and (var.type.IsPointer() and not var.type.IsPointerToConst()):
-                                if not var.meta.input:
-                                    if var.type.IsPointer():
-                                        raise CppParseError(var, "ambiguous non-const pointer parameter without @in/@out tag (forgot 'const'?)")
-                                    else:
-                                        log.WarnLine(var, "'%s': non-const parameter assumed to be input (forgot 'const'?)" % var.name)
-                                elif not var.meta.output:
-                                    log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
+                        return "object", { "properties": properties, "required": required }
 
-                        var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
+                    result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
 
-                        if var_name.startswith("__unnamed") and not test:
-                            raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
-
-                        properties[var_name] = ConvertParameter(var)
-
-                        if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
-                            properties[var_name]["@originalname"] = var.name
-
-                        properties[var_name]["position"] = vars.index(var)
-
-                        if "optional" not in var.meta.decorators:
-                            required.append(var_name)
-                        else:
-                            properties[var_name]["optional"] = True
-
-                        if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
-                            log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
-
-                params["properties"] = properties
-                params["required"] = required
-
-                if is_property and ((rpc_format == config.RpcFormat.EXTENDED) or (rpc_format == config.RpcFormat.COLLAPSED)):
-                    if len(properties) == 1:
-                        return list(properties.values())[0]
-                    elif len(properties) > 1:
-                        params["required"] = required
-                        return params
-                    else:
-                        return None
+                # All other types are not supported
                 else:
-                    if (len(properties) == 0):
-                        return None
-                    elif (len(properties) == 1) and (rpc_format == config.RpcFormat.COLLAPSED):
-                        # collapsed format: if only one parameter present then omit the outer object
-                        return list(properties.values())[0]
+                    raise CppParseError(var, "unable to convert C++ type to JSON type: %s" % cppType.type)
+
+                if var_type.IsPointer():
+                    result[1]["ptr"] = True
+
+                if var_type.IsReference():
+                    result[1]["ref"] = True
+
+                if var_type.IsPointerToConst():
+                    result[1]["ptrtoconst"] = True
+
+                if var.meta.range:
+                    result[1]["range"] = var.meta.range
+
+                return result
+
+        def ExtractExample(var):
+            egidx = var.meta.brief.index("(e.g.") if "(e.g." in var.meta.brief else None
+
+            if egidx != None and ")" in var.meta.brief[egidx + 1:]:
+                example = var.meta.brief[egidx + 5:var.meta.brief.rfind(")")].strip()
+                description = var.meta.brief[0:egidx].strip()
+                return [example, description]
+            else:
+                return None
+
+        def ConvertParameter(var):
+            jsonType, args = ConvertType(var)
+            properties = {"type": jsonType}
+
+            if args != None:
+                properties.update(args)
+                try:
+                    properties["original_type"] = StripFrameworkNamespace(var.type.Type().full_name)
+                except:
+                    pass
+
+            if var.meta.brief:
+                # Also attempt to craft some description
+                pair = ExtractExample(var)
+                if pair:
+                    properties["example"] = pair[0]
+                    properties["description"] = pair[1]
+                else:
+                    properties["description"] = var.meta.brief.strip()
+
+            return properties
+
+        def EventParameters(vars):
+            events = []
+            for var in vars:
+                def ResolveTypedef(resolved, events, type):
+                    if not isinstance(type, list):
+                        if isinstance(type.Type(), CppParser.Typedef):
+                            if type.Type().is_event:
+                                events.append(type)
+                            ResolveTypedef(resolved, events, type.Type())
+                        else:
+                            if isinstance(type.Type(), CppParser.Class) and type.Type().is_event:
+                                events.append(type)
                     else:
-                        return params
+                        raise CppParseError(var, "undefined type: '%s'" % " ".join(type))
 
-            def BuildIndex(var, test=False):
-                return BuildParameters([var], rpc_format.COLLAPSED, True, test)
+                    resolved.append(type)
+                    return events
 
-            def BuildResult(vars, is_property=False):
-                params = {"type": "object"}
-                properties = OrderedDict()
-                required = []
+                resolved = []
+                events = ResolveTypedef(resolved, events, var.type)
+            return events
 
-                for var in vars:
-                    var_type = ResolveTypedef(var.type)
+        def BuildParameters(vars, rpc_format, is_property=False, test=False):
+            params = {"type": "object"}
+            properties = OrderedDict()
+            required = []
 
-                    if var.meta.output:
-                        if var_type.IsValue():
-                            raise CppParseError(var, "parameter marked with @out tag must be either a reference or a pointer")
+            for var in vars:
+                if var.meta.input or not var.meta.output:
+                    if verify:
+                        if not var.type.IsConst() and (var.type.IsPointer() and not var.type.IsPointerToConst()):
+                            if not var.meta.input:
+                                if var.type.IsPointer():
+                                    raise CppParseError(var, "ambiguous non-const pointer parameter without @in/@out tag (forgot 'const'?)")
+                                else:
+                                    log.WarnLine(var, "'%s': non-const parameter assumed to be input (forgot 'const'?)" % var.name)
+                            elif not var.meta.output:
+                                log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                        if var_type.IsConst():
-                            raise CppParseError(var, "parameter marked with @out tag must not be const")
+                    var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
 
-                        var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
+                    if var_name.startswith("__unnamed") and not test:
+                        raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
 
-                        if var_name.startswith("__unnamed"):
-                            raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
+                    properties[var_name] = ConvertParameter(var)
 
-                        properties[var_name] = ConvertParameter(var)
+                    if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
+                        properties[var_name]["@originalname"] = var.name
 
-                        if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
-                           properties[var_name]["@originalname"] = var.name
+                    properties[var_name]["position"] = vars.index(var)
 
-                        properties[var_name]["position"] = vars.index(var)
+                    if "optional" not in var.meta.decorators:
+                        required.append(var_name)
+                    else:
+                        properties[var_name]["optional"] = True
 
-                        if "optional" not in var.meta.decorators:
-                            required.append(var_name)
+                    if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
+                        log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
-                params["properties"] = properties
+            params["properties"] = properties
+            params["required"] = required
 
+            if is_property and ((rpc_format == config.RpcFormat.EXTENDED) or (rpc_format == config.RpcFormat.COLLAPSED)):
                 if len(properties) == 1:
                     return list(properties.values())[0]
                 elif len(properties) > 1:
                     params["required"] = required
                     return params
                 else:
-                    void = {"type": "null"}
-                    void["description"] = "Always null"
-                    return void
+                    return None
+            else:
+                if (len(properties) == 0):
+                    return None
+                elif (len(properties) == 1) and (rpc_format == config.RpcFormat.COLLAPSED):
+                    # collapsed format: if only one parameter present then omit the outer object
+                    return list(properties.values())[0]
+                else:
+                    return params
+
+        def BuildIndex(var, test=False):
+            return BuildParameters([var], rpc_format.COLLAPSED, True, test)
+
+        def BuildResult(vars, is_property=False):
+            params = {"type": "object"}
+            properties = OrderedDict()
+            required = []
+
+            for var in vars:
+                var_type = ResolveTypedef(var.type)
+
+                if var.meta.output:
+                    if var_type.IsValue():
+                        raise CppParseError(var, "parameter marked with @out tag must be either a reference or a pointer")
+
+                    if var_type.IsConst():
+                        raise CppParseError(var, "parameter marked with @out tag must not be const")
+
+                    var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
+
+                    if var_name.startswith("__unnamed"):
+                        raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
+
+                    properties[var_name] = ConvertParameter(var)
+
+                    if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
+                        properties[var_name]["@originalname"] = var.name
+
+                    properties[var_name]["position"] = vars.index(var)
+
+                    if "optional" not in var.meta.decorators:
+                        required.append(var_name)
+
+            params["properties"] = properties
+
+            if len(properties) == 1:
+                return list(properties.values())[0]
+            elif len(properties) > 1:
+                params["required"] = required
+                return params
+            else:
+                void = {"type": "null"}
+                void["description"] = "Always null"
+                return void
+
+        if face.obj.json_prefix:
+            prefix = (face.obj.json_prefix + ("::" if not face.obj.json_prefix.endswith("_") else ""))
+        elif config.AUTO_PREFIX and (face.obj.parent.full_name != ns):
+            prefix = (face.obj.parent.name.lower() + "_")
+        else:
+            prefix = ""
+
+        for method in face.obj.methods:
 
             event_params = EventParameters(method.vars)
 
@@ -458,13 +469,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     log.WarnLine(method, "'%s': @json:omit is redundant for notification registration methods" % method.name)
 
                 continue
-
-            if face.obj.json_prefix:
-                prefix = (face.obj.json_prefix + ("::" if not face.obj.json_prefix.endswith("_") else ""))
-            elif config.AUTO_PREFIX and (face.obj.parent.full_name != ns):
-                prefix = (face.obj.parent.name.lower() + "_")
-            else:
-                prefix = ""
 
             if method.retval.meta.text == method.name.lower():
                 log.WarnLine(method, "'%s': overriden method name is same as default ('%s')" % (method.name, method.retval.meta.text))
@@ -786,7 +790,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
                             if mm == prefix + method_name:
-                                raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                                # raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                                method_name += "#"
                             if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
                                 raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                             if events[mm].get("alt") == method_name:
