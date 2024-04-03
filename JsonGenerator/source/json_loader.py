@@ -102,6 +102,20 @@ class JsonType():
         self.name = name
         self.original_name = schema.get("@originalname")
         self.description = schema.get("description")
+        self.grand_parent = None
+
+        if not isinstance(self, JsonRpcSchema):
+            self.grand_parent = self
+
+            while self.grand_parent and not isinstance(self.grand_parent, JsonMethod):
+                self.grand_parent = self.grand_parent.parent
+
+        if self.grand_parent:
+            if not self.description and \
+                    (((self.root.rpc_format == config.RpcFormat.COMPLIANT) and (self.grand_parent == parent.parent)) \
+                        or (((self.root.rpc_format != config.RpcFormat.COMPLIANT) and (self.grand_parent == parent)))):
+                self.description = self.grand_parent.summary
+
         self.iterator = schema.get("iterator")
         self.original_type = schema.get("original_type")
         self.do_create = (self.original_type == None)
@@ -117,17 +131,19 @@ class JsonType():
                 if self.name[0] == "_":
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
-                if not self.name.islower():
-                    log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
-                elif "_" in self.name:
-                    log.Warn("'%s': snake_case identifiers are supported, however flatcase names are recommended" % self.print_name)
+                if not self.grand_parent or not self.grand_parent.parent.legacy:
+                    if not self.name.islower():
+                        log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
+                    elif "_" in self.name:
+                        log.Warn("'%s': snake_case identifiers are supported, however flatcase names are recommended" % self.print_name)
 
             if self.original_name: # identifier comming from the C++ world
                 if self.original_name[0] == "_":
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
 
-                if "_" in self.original_name:
-                    log.Warn("'%s': snake_case identifiers are supported, however mixedCase names are recommended " % self.original_name)
+                if not self.grand_parent or not self.grand_parent.parent.legacy:
+                    if "_" in self.original_name:
+                        log.Warn("'%s': snake_case identifiers are supported, however PascalCase names are recommended " % self.original_name)
 
         # Do some sanity check on the description text
         if self.description and not isinstance(self, JsonMethod):
@@ -319,6 +335,15 @@ class JsonString(JsonNative, JsonType):
     def cpp_native_type(self):
         return "string"
 
+class JsonInstanceId(JsonNative, JsonType):
+    @property
+    def cpp_class(self):
+        return CoreJson("InstanceId")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::instnance_id"
+
 
 class JsonRefCounted():
     def __init__(self):
@@ -397,7 +422,9 @@ class JsonEnum(JsonRefCounted, JsonType):
                     biggest = e
 
             if same:
-                log.Warn("'%s': specified enum values are same as implicit" % self.print_name)
+                if not self.original_type:
+                    log.Warn("'%s': specified enum values are same as implicit" % self.print_name)
+
                 self.cpp_enumerator_values = []
 
             if self.bitmask and not is_bitmap:
@@ -497,7 +524,7 @@ class JsonObject(JsonRefCounted, JsonType):
                 self._properties.append(new_obj)
 
                 if not new_obj.description and not isinstance(self, JsonMethod):
-                    log.DocIssue("'%s': element missing description" % new_obj.print_name)
+                    log.DocIssue("'%s': element is missing description" % new_obj.print_name)
 
                 # Handle aggregate objects
                 if isinstance(new_obj, JsonObject):
@@ -692,12 +719,12 @@ class JsonMethod(JsonObject):
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
 
-        JsonObject.__init__(self, name, parent, method_schema, included=included)
-
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
         self.obsolete = schema.get("obsolete")
+
+        JsonObject.__init__(self, name, parent, method_schema, included=included)
 
         if not self.summary:
             log.DocIssue("'%s': method is missing summary" % self.print_name)
@@ -709,7 +736,18 @@ class JsonMethod(JsonObject):
         elif (self.rpc_format == config.RpcFormat.EXTENDED) and not property and not isinstance(self.params, (JsonObject, JsonArray, JsonNull)):
             raise JsonParseError("With 'extended' format parameters to a method or event need to be an object or an array: '%s'" % self.print_name)
         elif (self.rpc_format == config.RpcFormat.COLLAPSED) and isinstance(self.params, JsonObject) and (len(self.params.properties) == 1):
-            log.Warn("'%s': with 'collapsed' format methods and events with one parameter should not have an outer object" % self.print_name)
+            log.Info("'%s': with 'collapsed' format methods and events with one parameter can omit the outer object" % self.print_name)
+
+        if "alt" in schema:
+            self.alternative = schema.get("alt")
+
+            if not self.grand_parent and self.grand_parent.parent.legacy:
+                if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
+                    log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
+                elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
+                    log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
+        else:
+            self.alternative = None
 
     @property
     def rpc_format(self):
@@ -745,16 +783,6 @@ class JsonNotification(JsonMethod):
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
         self.is_status_listener = schema.get("statuslistener")
 
-        if "alt" in schema:
-            self.alternative = schema.get("alt")
-
-            if not self.alternative.islower():
-                log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-            elif "_" in self.alternative:
-                log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
-        else:
-            self.alternative = None
-
         self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
 
         for param in self.params.properties:
@@ -787,6 +815,7 @@ class JsonRpcSchema(JsonType):
         self.info = None
         self.base_schema = schema.get("$schema")
         self.jsonrpc_version = schema.get("jsonrpc")
+        self.legacy = False
         self.namespace = None
         self.methods = []
         self.includes = []
@@ -797,6 +826,7 @@ class JsonRpcSchema(JsonType):
 
         if "info" in schema:
             self.info = schema["info"]
+            self.legacy = schema["info"].get("legacy")
 
             self.namespace = self.info.get("namespace")
 
@@ -884,6 +914,8 @@ def JsonItem(name, parent, schema, included=None):
             return JsonBoolean(name, parent, schema)
         elif "enum" in schema:
             return JsonEnum(name, parent, schema, schema["type"], included)
+        elif schema["type"] == "instanceid":
+            return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":
             return JsonString(name, parent, schema)
         elif schema["type"] == "integer":
@@ -978,7 +1010,7 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
 
         # Tags all objects that used to be $references
         if isinstance(schema, jsonref.JsonRef) and isinstance(schema, dict):
-            if "description" in schema.__reference__ or "example" in schema.__reference__ or "default" in schema.__reference__:
+            if "description" in schema.__reference__ or "example" in schema.__reference__ or "default" in schema.__reference__ or "summary" in schema.__reference__:
                 # Need a copy, there an override on one of the properites
                 if idx == None:
                     parent[parent_name] = copy.deepcopy(schema)
@@ -991,6 +1023,9 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
 
                 if "description" in schema.__reference__:
                     new_schema["description"] = schema.__reference__["description"]
+
+                if "summary" in schema.__reference__:
+                    new_schema["summary"] = schema.__reference__["summary"]
 
                 if "example" in schema.__reference__:
                     new_schema["example"] = schema.__reference__["example"]
@@ -1037,6 +1072,9 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
                             if "description" in schema:
                                 parent[parent_name]["description"] = schema["description"]
 
+                            if "summary" in schema:
+                                parent[parent_name]["summary"] = schema["summary"]
+
                             if "example" in schema:
                                 parent[parent_name]["example"] = schema["example"]
 
@@ -1071,20 +1109,20 @@ def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
                             if ".json" in v:
                                 # Need to prepend with 'file:' for jsonref to load an external file..
                                 ref = v.split("#") if "#" in v else [v,""]
+
                                 if ("{interfacedir}" in ref[0]) and include_path:
                                     ref_file = ref[0].replace("{interfacedir}", include_path)
-
-                                    if os.path.exists(ref_file):
-                                        pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
-                                    else:
-                                        raise IOError("$ref file '%s' not found" % ref_file)
                                 else:
                                     ref_file = os.path.abspath(os.path.dirname(file)) + os.sep + ref[0]
 
                                     if not os.path.exists(ref_file):
-                                        ref_file = v
-                                    else:
-                                        pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
+                                        path = "." if not include_path else include_path
+                                        ref_file = os.path.abspath(path) + os.sep + ref[0]
+
+                                if os.path.exists(ref_file):
+                                    pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
+                                else:
+                                    raise IOError("$ref file '%s' not found" % ref_file)
 
                             elif v.endswith(".h") or v.endswith(".h#"):
                                 ref_file = v.replace("#", "")
