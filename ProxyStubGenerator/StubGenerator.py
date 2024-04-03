@@ -154,7 +154,7 @@ def FindInterfaceClasses(tree, namespace):
                                             has_id = True
                                             break
 
-                            if not has_id:
+                            if not has_id and not c.omit:
                                 log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
                 __Traverse(c, interface_namespace, faces)
@@ -1193,7 +1193,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     log.Info("omitting method %s::%s()" % (interface_name, method.name))
 
                 if not emit_methods:
-                    log.Warn("no virtual methods in class %s" % interface_name)
+                    log.Info("no virtual methods in class %s" % interface_name)
                 else:
                     stub_methods_name = CreateName(interface_name) + "StubMethods"
                     proxy_name = CreateName(interface_name) + "Proxy"
