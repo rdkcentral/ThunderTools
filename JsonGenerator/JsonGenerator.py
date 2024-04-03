@@ -61,18 +61,17 @@ if __name__ == "__main__":
 
         for path in files:
 
+            trackers.object_tracker.Reset()
             trackers.enum_tracker.Reset()
 
             try:
                 log.Header(path)
 
-                schemas, additional_includes, temp_files = json_loader.Load(log, path, args.if_dirs, args.cpp_if_dirs, args.include_paths)
+                schemas, additional_includes, temp_files = json_loader.Load(log, path, args.if_dir, args.cppif_dir, args.includePaths)
 
                 joint_headers = {}
 
                 for schema in schemas:
-                    trackers.object_tracker.Reset()
-
                     if schema:
                         warnings = config.GENERATED_JSON
                         config.GENERATED_JSON = "@generated" in schema

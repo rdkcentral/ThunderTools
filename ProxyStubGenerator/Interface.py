@@ -36,7 +36,7 @@ def FindInterfaceClasses(tree, interface_namespace, source_file):
     def __Traverse(tree, faces):
         if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
             for c in tree.classes:
-                if not isinstance(c, CppParser.TemplateClass):
+                if not isinstance(c, CppParser.TemplateClass) and c.methods:
                     if (interface_namespace + "::") in c.full_name:
                         inherits_iunknown = False
                         for a in c.ancestors:

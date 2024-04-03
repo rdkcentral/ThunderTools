@@ -523,7 +523,7 @@ class JsonObject(JsonRefCounted, JsonType):
                 idx += 1
                 self._properties.append(new_obj)
 
-                if not new_obj.description and not isinstance(self, JsonMethod) and "#" not in new_obj.print_name:
+                if not new_obj.description and not isinstance(self, JsonMethod):
                     log.DocIssue("'%s': element is missing description" % new_obj.print_name)
 
                 # Handle aggregate objects
@@ -602,7 +602,7 @@ class JsonObject(JsonRefCounted, JsonType):
 
     @property
     def json_name(self):
-        return self.name.strip("#")
+        return self.name
 
     @property
     def cpp_type(self):
@@ -726,7 +726,7 @@ class JsonMethod(JsonObject):
 
         JsonObject.__init__(self, name, parent, method_schema, included=included)
 
-        if not self.summary and "#" not in self.print_name:
+        if not self.summary:
             log.DocIssue("'%s': method is missing summary" % self.print_name)
 
         self.endpoint_name = (config.IMPL_ENDPOINT_PREFIX + super().json_name)
@@ -935,7 +935,7 @@ def JsonItem(name, parent, schema, included=None):
         raise JsonParseError("missing 'type' for item: '%s'" % name)
 
 
-def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
+def LoadSchema(file, include_path, cpp_include_path, header_include_paths):
     additional_includes = []
 
     def Adjust(schema):
@@ -1110,61 +1110,27 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                 # Need to prepend with 'file:' for jsonref to load an external file..
                                 ref = v.split("#") if "#" in v else [v,""]
 
-                                assert(include_paths)
-
-                                ref_file = None
-
-                                if "{interfacedir}" in ref[0]:
-                                    for p in include_paths:
-                                        rf = ref[0].replace("{interfacedir}", p)
-
-                                        if os.path.exists(rf):
-                                            ref_file = rf
-                                            break
-                                        else:
-                                            log.Info("failed to include '%s', file not found" % rf)
+                                if ("{interfacedir}" in ref[0]) and include_path:
+                                    ref_file = ref[0].replace("{interfacedir}", include_path)
                                 else:
-                                    rf = os.path.abspath(os.path.dirname(file)) + os.sep + ref[0]
+                                    ref_file = os.path.abspath(os.path.dirname(file)) + os.sep + ref[0]
 
-                                    if os.path.exists(rf):
-                                        ref_file = rf
-                                    else:
-                                        log.Info("failed to include '%s', file not found" % rf)
+                                    if not os.path.exists(ref_file):
+                                        path = "." if not include_path else include_path
+                                        ref_file = os.path.abspath(path) + os.sep + ref[0]
 
-                                        for p in include_paths:
-                                            rf = os.path.abspath(p) + os.sep + ref[0]
-
-                                            if os.path.exists(rf):
-                                                ref_file = rf
-                                                break
-                                        else:
-                                            log.Info("failed to include '%s', file not found" % rf)
-
-                                if ref_file:
-                                    log.Info("including JSON file '%s'..." % rf);
+                                if os.path.exists(ref_file):
                                     pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
                                 else:
-                                    raise IOError("$ref file '%s' not found in any of the interface paths" % ref[0])
+                                    raise IOError("$ref file '%s' not found" % ref_file)
 
                             elif v.endswith(".h") or v.endswith(".h#"):
-                                ref = v.replace("#", "").replace("{cppinterfacedir}", "{interfacedir}")
+                                ref_file = v.replace("#", "")
 
-                                assert(cpp_include_paths)
+                                if ("{interfacedir}" in ref_file or "{cppinterfacedir}" in ref_file) and cpp_include_path:
+                                    ref_file = ref_file.replace("{interfacedir}", cpp_include_path).replace("{cppinterfacedir}", cpp_include_path)
 
-                                ref_file = None
-
-                                if "{interfacedir}" in ref:
-                                    for p in cpp_include_paths:
-                                        rf = ref.replace("{interfacedir}", p)
-
-                                        if os.path.exists(rf):
-                                            ref_file = rf
-                                            break
-                                        else:
-                                            log.Info("failed to include '%s', file not found" %rf);
-
-                                if ref_file:
-                                    log.Info("including C++ header '%s'..." % rf);
+                                if os.path.exists(ref_file):
                                     cppif, _ = header_loader.LoadInterface(ref_file, log, True, header_include_paths)
 
                                     if cppif:
@@ -1176,7 +1142,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                             pairs[i] = (k, os.path.normpath("file://" + temp_json_file.name + "#"))
                                             temp_files.append(temp_json_file.name)
                                 else:
-                                    raise IOError("$ref file '%s' not found in any of the interface paths" % v)
+                                    raise IOError("$ref file '%s' not found" % ref_file)
 
                             elif "::" in v:
                                 pairs[i] = ("@dataref", v)
@@ -1199,15 +1165,12 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
     return [], [], temp_files
 
-def Load(log, path, if_dirs = [], cpp_if_dirs = [], include_paths = []):
+def Load(log, path, if_dir = None, cpp_if_dir = None, include_paths = []):
     temp_files = []
-
-    if_dirs.append(os.path.dirname(path))
-    cpp_if_dirs.append(os.path.dirname(path))
 
     if path.endswith(".h"):
         schemas, additional_includes = header_loader.LoadInterface(path, log, False, include_paths)
     else:
-        schemas, additional_includes, temp_files = LoadSchema(path, if_dirs, cpp_if_dirs, include_paths)
+        schemas, additional_includes, temp_files = LoadSchema(path, if_dir, cpp_if_dir, include_paths)
 
     return schemas, additional_includes, temp_files
