@@ -29,7 +29,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     filter_var = "_id_"
     params_var = "_params_"
     designator_var = "_designator_"
-    sendiffn_var = "_sendIfFunction_"
+    sendiffn_var = "_sendifMethod_"
     index_var = "_designatorId_"
 
     prefix = ("%s." % module_var) if not legacy else ""
@@ -77,7 +77,6 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
     if event.included_from:
         line += " /* %s */" % event.included_from
-
 
     emit.Line("// Event: %s" % (event.Headline()))
     emit.Line(line)
@@ -154,7 +153,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
             Emit(parameters)
 
-            if event.alternative:
+            if event.alternative and config.LEGACY_ALT:
                 Emit([Tstring(event.alternative)] + parameters[1:])
 
             if not legacy:
@@ -168,7 +167,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 emit.Indent()
                 Emit(parameters)
 
-                if event.alternative:
+                if event.alternative and config.LEGACY_ALT:
                     Emit([Tstring(event.alternative)] + parameters[1:])
 
                 emit.Unindent()
@@ -186,7 +185,6 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     emit.Unindent()
     emit.Line("}")
     emit.Line()
-
 
 def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, prototypes = []):
     json_source = source_file.endswith(".json")
@@ -275,6 +273,98 @@ def _EmitVersionCode(emit, version):
     emit.Line("} // namespace Version")
 
 def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
+
+    def _EmitHandlerInterface(listener_events):
+        assert(listener_events)
+
+        emit.Line("struct IHandler {")
+        emit.Indent()
+        emit.Line("virtual ~IHandler() = default;")
+
+        for m in listener_events:
+            emit.Line("virtual void On%sEventRegistration(const string& client, const JSONRPC::Status status) = 0;" % m.cpp_name)
+
+        emit.Unindent()
+        emit.Line("};")
+        emit.Line()
+
+    def _EmitNoPushWarnings(prologue = True):
+        if prologue:
+            if not config.NO_PUSH_WARNING:
+                emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
+                emit.Line()
+            else:
+                emit.Line("#if defined(__GNUC__) || defined(__clang__)")
+                emit.Line('#pragma GCC diagnostic ignored "-Wunused-function"')
+                emit.Line("#endif")
+                emit.Line()
+        else:
+            if not config.NO_PUSH_WARNING:
+                emit.Line("POP_WARNING()")
+                emit.Line()
+
+    def _EmitEvents(events):
+        assert(events)
+
+        emit.Line("namespace Event {")
+        emit.Indent()
+        emit.Line()
+
+        for event in events:
+            EmitEvent(emit, root, event, "object")
+
+            if not event.params.is_void:
+                if isinstance(event.params, JsonObject):
+                    EmitEvent(emit, root, event, "json")
+
+                if not isinstance(event.params, JsonArray):
+                    EmitEvent(emit, root, event, "native")
+
+        emit.Unindent()
+        emit.Line("} // namespace Event")
+        emit.Line()
+
+    def _EmitAlternativeEventsRegistration(alt_events, prologue = True):
+        assert(alt_events)
+
+        if prologue:
+            emit.Line("// Register alternative notification names...")
+
+            for event in alt_events:
+                emit.Line("%s.RegisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
+
+            emit.Line()
+        else:
+            emit.Line()
+            emit.Line("// Unegister alternative notification names...")
+
+            for event in alt_events:
+                emit.Line("%s.UnregisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
+
+    def _EmitEventStatusListenerRegistration(listener_events, legacy, prologue=True):
+        if prologue:
+            emit.Line("// Register event status listeners...")
+            emit.Line()
+
+            for event in listener_events:
+                emit.Line("%s.RegisterEventStatusListener(_T(\"%s\")," % (module_var, event.json_name))
+                emit.Indent()
+                emit.Line("[%s](const string& client, const JSONRPC::Status status) {" % (handler_var))
+                emit.Indent()
+                emit.Line("%s%sOn%sEventRegistration(client, status);" % (handler_var, '.' if legacy else '->', event.function_name))
+                emit.Unindent()
+                emit.Line("});")
+                emit.Unindent()
+                emit.Line()
+
+                prototypes.append(["void On%sEventRegistration(const string& client, const %s::JSONRPC::Status status)" % (event.function_name, struct), None])
+        else:
+            emit.Line()
+            emit.Line("// Unregister event status listeners...")
+
+            for event in listener_events:
+                emit.Line("%s.UnregisterEventStatusListener(%s);" % (module_var, Tstring(event.json_name)))
+
     json_source = source_file.endswith(".json")
 
     for i, ns_ in enumerate(ns.split("::")):
@@ -290,53 +380,52 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     module_var = "_module_"
     impl_var = "_impl_"
+    handler_var = "_handler_" if not json_source else impl_var
+    context_var = "_context_"
+
     struct = "J" + root.json_name
+
     face = root.info["interface"] if "interface" in root.info else ("I" + root.json_name)
 
-    has_listeners = any((isinstance(m, JsonNotification) and m.is_status_listener) for m in root.properties)
+    methods = [e for e in root.properties if not isinstance(e, (JsonNotification, JsonProperty))]
+    events = [e for e in root.properties if isinstance(e, JsonNotification)]
+    listener_events = [e for e in events if e.is_status_listener]
+    alt_events = [event for event in events if event.alternative]
 
     emit.Line()
-    emit.Line("using JSONRPC = PluginHost::JSONRPC%s;" % ("SupportsEventStatus" if has_listeners else ""))
+
+    emit.Line("using JSONRPC = PluginHost::%s;" % ("JSONRPCSupportsEventStatus" if listener_events else "JSONRPC"))
     emit.Line()
 
-    if not config.NO_PUSH_WARNING:
-        emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
-        emit.Line()
-    else:
-        emit.Line("#if defined(__GNUC__) || defined(__clang__)")
-        emit.Line('#pragma GCC diagnostic ignored "-Wunused-function"')
-        emit.Line("#endif")
-        emit.Line()
+    if listener_events:
+        _EmitHandlerInterface(listener_events)
+
+    _EmitNoPushWarnings(prologue=True)
 
     if json_source:
         emit.Line("template<typename IMPLEMENTATION>")
+        emit.Line("static void Register(JSONRPC& %s, IMPLEMENTATION& %s)" % (module_var, impl_var))
+    elif listener_events:
+        emit.Line("static void Register(JSONRPC& %s, %s %s, IHandler* %s)" % (module_var, face + "*", impl_var, handler_var))
+    else:
+        emit.Line("static void Register(JSONRPC& %s, %s %s)" % (module_var, face + "*", impl_var))
 
-    emit.Line("static void Register(JSONRPC& %s, %s %s)" % (module_var,  ("IMPLEMENTATION&" if json_source else (face + "*")), impl_var))
     emit.Line("{")
     emit.Indent()
 
     if not json_source:
         emit.Line("ASSERT(%s != nullptr);" % impl_var)
+
+        if listener_events:
+            emit.Line("ASSERT(%s != nullptr);" % handler_var)
+
         emit.Line()
 
     emit.Line("%s.RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (module_var, Tstring(struct)))
     emit.Line()
 
-    events = [e for e in root.properties if isinstance(e, JsonNotification)]
-
-    if events and not config.LEGACY_ALT:
-        alt_events = [event for event in events if event.alternative]
-    else:
-        alt_events = []
-
-    if alt_events:
-        emit.Line("// Register alternative notification names...")
-
-        for event in alt_events:
-            emit.Line("%s.RegisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
-
-        emit.Line("")
-
+    if alt_events and not config.LEGACY_ALT:
+        _EmitAlternativeEventsRegistration(alt_events, prologue=True)
 
     method_count = 0
 
@@ -350,6 +439,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             # Prepare for handling indexed properties
             indexed = isinstance(m, JsonProperty) and m.index
+            contexted = m.context and not isinstance(m, JsonProperty)
             index_converted = False
 
             # Normalize property params/repsonse to match methods
@@ -373,8 +463,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             # Emit method prologue
             template_params = [ params.cpp_type, response.cpp_type ]
 
-            if indexed:
-                function_params = [ "const string&" ]
+            if indexed or contexted:
+                function_params = []
+
+                if contexted:
+                    function_params.append("const Core::JSONRPC::Context&")
+
+                if indexed:
+                    function_params.append("const string&")
 
                 if not params.is_void:
                     function_params.append("const %s&" % params.cpp_type)
@@ -388,6 +484,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Indent()
 
             lambda_params = []
+
+            if contexted:
+                lambda_params.append("const Core::JSONRPC::Context& %s" % context_var)
 
             if indexed:
                 lambda_params.append("const string& %s" % (m.index.TempName("_")))
@@ -594,6 +693,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     implementation_object = "(static_cast<const %s*>(%s))" % (face, impl_var) if const_cast else impl_var
                     function_params = []
+
+                    if contexted:
+                        function_params.append(context_var)
 
                     if indexed:
                         function_params.append(m.index.TempName("converted_") if index_converted else m.index.TempName("_"))
@@ -842,27 +944,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             method_count += 1
 
     # Emit event status registrations
+    if listener_events:
+        _EmitEventStatusListenerRegistration(listener_events, json_source, prologue=True)
 
-    if has_listeners and json_source:
-        emit.Line("// Register event status listeners...")
-        emit.Line()
-
-        for event in events:
-            if event.is_status_listener:
-                emit.Line("%s.RegisterEventStatusListener(_T(\"%s\")," % (module_var, event.json_name))
-                emit.Indent()
-                emit.Line("[&%s](const string& client, const JSONRPC::Status status) {" % (impl_var))
-                emit.Indent()
-                emit.Line("%s.On%sEventRegistration(client, status);" % (impl_var, event.function_name))
-                emit.Unindent()
-                emit.Line("});")
-                emit.Unindent()
-                emit.Line()
-
-                prototypes.append(["void On%sEventRegistration(const string& client, const %s::JSONRPC::Status status)" % (event.function_name, struct), None])
-
-
-    if not method_count and not has_listeners:
+    if not method_count and not listener_events:
         emit.Line("(void) %s;" % impl_var)
 
     emit.Unindent()
@@ -888,52 +973,24 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     else:
         emit.Line("(void) %s;" % module_var);
 
+    # Emit alternative events deregistrations
+    if alt_events and not config.LEGACY_ALT:
+        _EmitAlternativeEventsRegistration(alt_events, prologue=False)
 
-    if alt_events:
-        emit.Line("")
-        emit.Line("// Unegister alternative notification names...")
-
-        for event in alt_events:
-            emit.Line("%s.UnregisterEventAlias(%s, %s);" % (module_var, Tstring(event.alternative), Tstring(event.name)))
-
-    # Emit event status deregistrations
-
-    if has_listeners and json_source:
-        emit.Line()
-        emit.Line("// Unregister event status listeners...")
-
-        for event in events:
-            if event.is_status_listener:
-               emit.Line("%s.UnregisterEventStatusListener(%s);" % (module_var, Tstring(event.json_name)))
+    # Emit event status listeners deregistrations
+    if listener_events:
+        _EmitEventStatusListenerRegistration(listener_events, json_source, prologue=False)
 
     emit.Unindent()
     emit.Line("}")
     emit.Line()
 
-    # Finally emit event code
-
+    # Finally emit utility event code
     if events:
-        emit.Line("namespace Event {")
-        emit.Indent()
-        emit.Line()
+        _EmitEvents(events)
 
-        for event in events:
-            EmitEvent(emit, root, event, "object")
-
-            if not event.params.is_void:
-                if isinstance(event.params, JsonObject):
-                    EmitEvent(emit, root, event, "json")
-
-                if not isinstance(event.params, JsonArray):
-                    EmitEvent(emit, root, event, "native")
-
-        emit.Unindent()
-        emit.Line("} // namespace Event")
-        emit.Line()
-
-    if not config.NO_PUSH_WARNING:
-        emit.Line("POP_WARNING()")
-        emit.Line()
+    # Restore warnings level
+    _EmitNoPushWarnings(prologue=False)
 
     # Return collected signatures, so the emited file can be prepended with
     return prototypes

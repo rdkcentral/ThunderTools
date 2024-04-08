@@ -249,7 +249,7 @@ def Create(log, schema, path, indent_size = 4):
 
         def MethodDump(method, props, classname, section, header, is_notification=False, is_property=False, include=None):
             method = (method.rsplit(".", 1)[1] if "." in method else method)
-            type = "property" if is_property else "event" if is_notification else "method"
+            type = "property" if is_property else "notification" if is_notification else "method"
 
             log.Info("Emitting documentation for %s '%s'..." % (type, method))
 
@@ -367,8 +367,8 @@ def Create(log, schema, path, indent_size = 4):
                         if "name" not in props["id"] or "example" not in props["id"]:
                             raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
 
-                        MdParagraph("> The *%s* argument shall be passed within the designator, e.g. *%s.client.events.1*." %
-                                    (props["id"]["name"], props["id"]["example"]))
+                        MdParagraph("> The *%s* argument will be passed within the designator, e.g. *%s.client.%s*." %
+                                    (props["id"]["name"], props["id"]["example"], method))
 
             if "result" in props:
                 MdHeader("Result", 3)
@@ -381,24 +381,36 @@ def Create(log, schema, path, indent_size = 4):
             MdHeader("Example", 3)
 
             if is_notification:
-                method = "client.events.1." + method
+                callmethod = "client." + method
             elif is_property:
-                method = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"]["example"])) if "index" in props and "example" in props["index"] else "")
+                callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"]["example"])) if "index" in props and "example" in props["index"] else "")
             else:
-                method = "%s.1.%s" % (classname, method)
+                callmethod = "%s.1.%s" % (classname, method)
 
             if "id" in props and "example" in props["id"]:
-                method = props["id"]["example"] + "." + method
+                callmethod = props["id"]["example"] + ".client." + method
 
             jsonError = "Failed to generate JSON example for %s" % method
             jsonResponse = jsonError
             jsonRequest = jsonError
 
+            if is_notification:
+                MdHeader("Registration", 4)
+
+                text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s.1.register", "params": {"event": "%s", "id": "client" } }' % (classname, method)
+                try:
+                    jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
+                except:
+                    jsonRequest = jsonError
+                    log.Error(jsonError)
+
+                MdCode(jsonRequest, "json")
+
             if is_property:
                 if not writeonly:
                     MdHeader("Get Request", 4)
 
-                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method
+                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % callmethod
 
                     try:
                         jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
@@ -421,15 +433,16 @@ def Create(log, schema, path, indent_size = 4):
                     MdCode(jsonResponse, "json")
 
             if not readonly:
-                if not is_notification:
-                    if is_property:
-                        MdHeader("Set Request", 4)
-                    else:
-                        MdHeader("Request", 4)
+                if is_property:
+                    MdHeader("Set Request", 4)
+                elif is_notification:
+                    MdHeader("Message", 4)
+                else:
+                    MdHeader("Request", 4)
 
                 try:
                     jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
-                                                        ('"id": 42, ' if not is_notification else "", method,
+                                                        ('"id": 42, ' if not is_notification else "", callmethod,
                                                         (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
                                                         object_pairs_hook=OrderedDict), indent=2)
                 except:
@@ -882,7 +895,6 @@ def Create(log, schema, path, indent_size = 4):
                                 line += tags
 
                             line += access
-                            print(line)
 
                             MdRow([line, descr])
                             emitted = True
@@ -930,7 +942,7 @@ def Create(log, schema, path, indent_size = 4):
         if event_count:
             SectionDump("Notifications",
                         "events",
-                        "event",
+                        "notification",
                         ("Notifications are autonomous events triggered by the internals of the implementation "
                          "and broadcasted via JSON-RPC to all registered observers. "
                          "Refer to [[Thunder](#ref.Thunder)] for information on how to register for a notification."),

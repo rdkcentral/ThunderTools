@@ -137,22 +137,22 @@ function(JsonGenerator)
     if (Argument_DEF_INT_SIZE)
         list(APPEND _execute_command  "--def-int-size" "${Argument_DEF_INT_SIZE}")
     endif()
-    
+
     if (Argument_FORMAT)
         list(APPEND _execute_command "--format" "${Argument_FORMAT}")
     endif()
-    
+
     if (Argument_CPP_INTERFACE_PATH)
         list(APPEND _execute_command "--emit-cpp-interface-path" "${Argument_CPP_INTERFACE_PATH}")
     endif()
-    
+
     if (Argument_JSON_INTERFACE_PATH)
         list(APPEND _execute_command "--emit-json-interface-path" "${Argument_JSON_INTERFACE_PATH}")
     endif()
 
-    if (Argument_NAMESPACE)
-        list(APPEND _execute_command "--namespace" "${Argument_NAMESPACE}")
-    endif()
+    foreach(_namespace ${Argument_NAMESPACE})
+        list(APPEND _execute_command "--namespace" "${_namespace}")
+    endforeach(_namespace)
 
     foreach(_include_path ${Argument_INCLUDE_PATH})
         list(APPEND _execute_command  "-I" "${_include_path}")

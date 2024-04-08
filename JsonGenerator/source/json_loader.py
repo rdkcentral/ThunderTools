@@ -719,6 +719,8 @@ class JsonMethod(JsonObject):
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
 
+        self.context = schema.get("context")
+
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")

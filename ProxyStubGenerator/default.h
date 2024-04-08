@@ -55,6 +55,10 @@ namespace WPEFramework {
         ID_OFFSET_INTERNAL = 0
       };
     };
+
+    namespace JSONRPC {
+      struct Context;
+    }
   }
 
   namespace PluginHost {
