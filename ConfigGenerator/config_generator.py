@@ -217,7 +217,14 @@ if __name__ == "__main__":
             isEmpty = True
             for param in iconfig.__dict__:
                 if param in params:
-                    result.add(param, iconfig.__dict__[param])
+                    # make sure backward compatible with old config
+                    if param == 'autostart':
+                        if iconfig.__dict__[param] == 'true':
+                            result.add('startmode', 'Activated')
+                        else:
+                            result.add('startmode', 'Deactivated')
+                    else:
+                        result.add(param, iconfig.__dict__[param])
                     isEmpty = False
                 else:
                     if not param.startswith('__') \
