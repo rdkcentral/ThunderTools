@@ -35,8 +35,7 @@ class Emitter():
             self.file.close()
 
     def Line(self, text = ""):
-        if "\n" in text:
-            assert("Invalid characters in the emitted line")
+        assert("\n" not in text)
 
         if text != "":
             commented = "// " if "//" in text else ""

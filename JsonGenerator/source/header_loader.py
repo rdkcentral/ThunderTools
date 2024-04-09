@@ -131,6 +131,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
 
             var_type = ResolveTypedef(var.type)
+
             if isinstance(var_type, str):
                 raise CppParseError(var.type, "%s: undefined type" % var_type)
             elif isinstance(var_type, list):
@@ -559,7 +560,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             obj["index"] = BuildIndex(method.vars[0])
 
                             if obj["index"]:
-                                obj["index"]["name"] = method.vars[0].name
+                                obj["index"]["name"] = method.vars[0].name.capitalize()
+                                obj["index"]["@originalname"] = method.vars[0].name
 
                                 if "enum" in obj["index"]:
                                     obj["index"]["example"] = obj["index"]["enum"][0]

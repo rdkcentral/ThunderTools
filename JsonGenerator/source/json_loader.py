@@ -154,9 +154,16 @@ class JsonType():
                 log.DocIssue("'%s': sentence-case capitalization is recommended for parameter descriptions ('%s')"
                     % (self.print_name ,log.Ellipsis(self.description)))
 
+    @property
+    def temp_name(self):
+        name = self.local_name.lstrip('_')
+        return ("_" + name[0].lower() + name[1:] + "_")
+
     def TempName(self, postfix = ""):
-        name = self.local_name.strip("_")
-        return ("_" + name[0].lower() + name[1:] + (postfix[0].upper() + postfix[1:] if postfix else ""))
+        if postfix:
+            return (self.temp_name.rstrip('_') + postfix[0].upper() + postfix[1:] + '_')
+        else:
+            self.temp_name
 
     def Rename(self, new_name):
         self.new_name = new_name.lower()
