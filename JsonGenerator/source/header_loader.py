@@ -665,9 +665,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if params:
                         obj["params"] = params
 
-                        if "properties" in params and params["properties"]:
-                            if method.name.lower() in [x.lower() for x in params["required"]]:
-                                raise CppParseError(method, "parameters must not use the same name as the method")
+                        #if "properties" in params and params["properties"]:
+                        #    if method.name.lower() in [x.lower() for x in params["required"]]:
+                        #        raise CppParseError(method, "parameters must not use the same name as the method")
 
                     obj["result"] = BuildResult(method.vars)
                     methods[prefix + method_name] = obj

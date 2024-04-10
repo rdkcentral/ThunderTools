@@ -35,8 +35,6 @@ class Emitter():
             self.file.close()
 
     def Line(self, text = ""):
-        assert("\n" not in text)
-
         if text != "":
             commented = "// " if "//" in text else ""
             text = (" " * self.indent) + str(text)

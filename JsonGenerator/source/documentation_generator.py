@@ -397,7 +397,12 @@ def Create(log, schema, path, indent_size = 4):
             if is_notification:
                 MdHeader("Registration", 4)
 
-                text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s.1.register", "params": {"event": "%s", "id": "client" } }' % (classname, method)
+                client = "client"
+
+                if "id" in props and "example" in props["id"]:
+                    client = props["id"]["example"] + "." + client
+
+                text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s.1.register", "params": {"event": "%s", "id": "%s" } }' % (classname, method, client)
                 try:
                     jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
                 except:
@@ -427,7 +432,7 @@ def Create(log, schema, path, indent_size = 4):
                     try:
                         jsonResponse = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
                     except:
-                        jsonResponse = jsonError 
+                        jsonResponse = jsonError
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")

@@ -414,6 +414,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     if is_json_source:
         emit.Line("using JSONRPC = %s;" % names.jsonrpc_alias)
+        emit.Line()
 
     impl_name = ((" " + names.impl) if impl_required else "")
 
