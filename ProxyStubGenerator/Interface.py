@@ -27,7 +27,7 @@ class Interface():
 
 
 # Looks for interface clasess (ie. classes inheriting from Core::Unknown and specifying ID enum).
-def FindInterfaceClasses(tree, interface_namespace, source_file, ancestors = [ "::WPEFramework::Core::IUnknown" ]):
+def FindInterfaceClasses(tree, interface_namespace, source_file, ancestors = [ "::Thunder::Core::IUnknown" ]):
     interfaces = []
 
     selected = []

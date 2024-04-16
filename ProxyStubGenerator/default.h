@@ -44,7 +44,7 @@ namespace std {
   typedef __stubgen_undetermined_integer clock_t;
 }
 
-namespace WPEFramework {
+namespace Thunder {
 
   namespace Core {
     typedef __stubgen_instance_id instance_id;

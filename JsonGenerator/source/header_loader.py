@@ -296,7 +296,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                         return "object", { "properties": properties, "required": required }
 
-                    if cppType.full_name == "::WPEFramework::Core::JSONRPC::Context":
+                    if cppType.full_name == "::Thunder::Core::JSONRPC::Context":
                         result = "@context", {}
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))

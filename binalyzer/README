@@ -5,7 +5,7 @@ Display Application binary and its dependencies with size. Depends on lddtree.
 
     e.g,
 
-   ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -b /usr/lib/wpeframework/plugins/libWPEFrameworkAmazonPrime.so    
+   ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -b /usr/lib/thunder/plugins/libThunderAmazonPrime.so
 
     Options:
       -R <root>         Use this ROOT filesystem tree
@@ -20,24 +20,24 @@ Example usage:
 
 1. To get size details of an application
 
-  ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -b /usr/bin/WPEFramework
+  ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -b /usr/bin/Thunder
     ------------------------------------------------------------------------
         Bin File                        Size in Bytes
     ------------------------------------------------------------------------
-    WPEFramework                              1426128
-        libWPEFrameworkPlugins.so.1           1320820
-        libWPEFrameworkWebSocket.so.1         393968
+    Thunder                              1426128
+        libThunderPlugins.so.1           1320820
+        libThunderWebSocket.so.1         393968
             libz.so.1                         62980
-        libWPEFrameworkCOM.so.1               1062108
-        libWPEFrameworkCryptalgo.so.1         64216
+        libThunderCOM.so.1               1062108
+        libThunderCryptalgo.so.1         64216
             libssl.so.1.1                     338096
                 libdl.so.2                    9604
                     ld-linux-armhf.so.3       123320
                 libatomic.so.1                21768
                 libpthread.so.0               110052
             libcrypto.so.1.1                  1693952
-        libWPEFrameworkTracing.so.1           200712
-        libWPEFrameworkCore.so.1              647320
+        libThunderTracing.so.1           200712
+        libThunderCore.so.1              647320
             librt.so.1                        22336
         libstdc++.so.6                        1265972
         libm.so.6                             341344
@@ -49,17 +49,17 @@ Example usage:
   
 2. To get size details of an application
 
-   ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -b /usr/lib/wpeframework/plugins/libWPEFrameworkAmazonPrime.so
+   ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -b /usr/lib/thunder/plugins/libThunderAmazonPrime.so
 
     ------------------------------------------------------------------------
         Bin File                        Size in Bytes
     ------------------------------------------------------------------------
-    libWPEFrameworkAmazonPrime.so             655676
-        libWPEFrameworkPlugins.so.1           1320820
-        libWPEFrameworkDefinitions.so.1       58236
+    libThunderAmazonPrime.so             655676
+        libThunderPlugins.so.1           1320820
+        libThunderDefinitions.so.1       58236
         libignition.so                        16511752
-        libWPEFrameworkTracing.so.1           200712
-        libWPEFrameworkCore.so.1              647320
+        libThunderTracing.so.1           200712
+        libThunderCore.so.1              647320
         libstdc++.so.6                        1265972
         libm.so.6                             341344
         libgcc_s.so.1                         112152
@@ -70,16 +70,16 @@ Example usage:
  
 3. To get sizes of all libraries and its dependents in a particular folder
 
-  ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -l /usr/lib/wpeframework/plugins/
+  ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -l /usr/lib/thunder/plugins/
     ------------------------------------------------------------------------
         Bin File                        Size in Bytes
     ------------------------------------------------------------------------
-    libWPEFrameworkAmazonPrime.so             655676
-        libWPEFrameworkPlugins.so.1           1320820
-        libWPEFrameworkDefinitions.so.1       58236
+    libThunderAmazonPrime.so             655676
+        libThunderPlugins.so.1           1320820
+        libThunderDefinitions.so.1       58236
         libignition.so                        16511752
-        libWPEFrameworkTracing.so.1           200712
-        libWPEFrameworkCore.so.1              647320
+        libThunderTracing.so.1           200712
+        libThunderCore.so.1              647320
         libstdc++.so.6                        1265972
         libm.so.6                             341344
         libgcc_s.so.1                         112152
@@ -90,11 +90,11 @@ Example usage:
     ------------------------------------------------------------------------
         Bin File                        Size in Bytes
     ------------------------------------------------------------------------
-    libWPEFrameworkCompositor.so              772300
-        libWPEFrameworkPlugins.so.1           1320820
-        libWPEFrameworkDefinitions.so.1       58236
-        libWPEFrameworkTracing.so.1           200712
-        libWPEFrameworkCore.so.1              647320
+    libThunderCompositor.so              772300
+        libThunderPlugins.so.1           1320820
+        libThunderDefinitions.so.1       58236
+        libThunderTracing.so.1           200712
+        libThunderCore.so.1              647320
         libstdc++.so.6                        1265972
         libm.so.6                             341344
         libgcc_s.so.1                         112152
@@ -110,8 +110,8 @@ Example usage:
     Create a input file with new line separted list of files
     
      #cat input.txt 
-     /usr/bin/WPEFramework
-     /usr/bin/WPEProcess
+     /usr/bin/Thunder
+     /usr/bin/ThunderPlugin
  
     Pass it to binalizer
     ./binalizer -R /home/sramani/Work/buildroot/BR_Webkit_2_28/output/target -i input.txt
@@ -119,20 +119,20 @@ Example usage:
     ------------------------------------------------------------------------
 	Bin File                        Size in Bytes
     ------------------------------------------------------------------------
-    WPEFramework                              1426128
-        libWPEFrameworkPlugins.so.1           1320820
-        libWPEFrameworkWebSocket.so.1         393968
+    Thunder                              1426128
+        libThunderPlugins.so.1           1320820
+        libThunderWebSocket.so.1         393968
             libz.so.1                         62980
-        libWPEFrameworkCOM.so.1               1062108
-        libWPEFrameworkCryptalgo.so.1         64216
+        libThunderCOM.so.1               1062108
+        libThunderCryptalgo.so.1         64216
             libssl.so.1.1                     338096
                 libdl.so.2                    9604
                     ld-linux-armhf.so.3       123320
                 libatomic.so.1                21768
                 libpthread.so.0               110052
             libcrypto.so.1.1                  1693952
-        libWPEFrameworkTracing.so.1           200712
-        libWPEFrameworkCore.so.1              647320
+        libThunderTracing.so.1           200712
+        libThunderCore.so.1              647320
             librt.so.1                        22336
         libstdc++.so.6                        1265972
         libm.so.6                             341344
@@ -144,20 +144,20 @@ Example usage:
     ------------------------------------------------------------------------
         Bin File                        Size in Bytes
     ------------------------------------------------------------------------
-    WPEProcess                                387568
-        libWPEFrameworkPlugins.so.1           1320820
-        libWPEFrameworkWebSocket.so.1         393968
+    ThunderPlugin                                387568
+        libThunderPlugins.so.1           1320820
+        libThunderWebSocket.so.1         393968
             libz.so.1                         62980
-        libWPEFrameworkCOM.so.1               1062108
-        libWPEFrameworkCryptalgo.so.1         64216
+        libThunderCOM.so.1               1062108
+        libThunderCryptalgo.so.1         64216
             libssl.so.1.1                     338096
                 libdl.so.2                    9604
                     ld-linux-armhf.so.3       123320
                 libatomic.so.1                21768
                 libpthread.so.0               110052
             libcrypto.so.1.1                  1693952
-        libWPEFrameworkTracing.so.1           200712
-        libWPEFrameworkCore.so.1              647320
+        libThunderTracing.so.1           200712
+        libThunderCore.so.1              647320
             librt.so.1                        22336
         libstdc++.so.6                        1265972
         libm.so.6                             341344
