@@ -50,7 +50,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
 
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if (i.obj.is_json or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
@@ -74,6 +74,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
         schema["$schema"] = "interface.json.schema"
         schema["jsonrpc"] = "2.0"
         schema["@generated"] = True
+        schema["@fullname"] = face.obj.full_name
         schema["namespace"] = ns
 
         if face.obj.is_json:
@@ -130,6 +131,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
 
             var_type = ResolveTypedef(var.type)
+
             if isinstance(var_type, str):
                 raise CppParseError(var.type, "%s: undefined type" % var_type)
             elif isinstance(var_type, list):
@@ -277,23 +279,27 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                         return "object", { "properties": properties, "required": required }
 
-                    result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
+                    if cppType.full_name == "::WPEFramework::Core::JSONRPC::Context":
+                        result = "@context", {}
+                    else:
+                        result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
 
                 # All other types are not supported
                 else:
                     raise CppParseError(var, "unable to convert C++ type to JSON type: %s" % cppType.type)
 
-                if var_type.IsPointer():
-                    result[1]["ptr"] = True
+                if result:
+                    if var_type.IsPointer():
+                        result[1]["ptr"] = True
 
-                if var_type.IsReference():
-                    result[1]["ref"] = True
+                    if var_type.IsReference():
+                        result[1]["ref"] = True
 
-                if var_type.IsPointerToConst():
-                    result[1]["ptrtoconst"] = True
+                    if var_type.IsPointerToConst():
+                        result[1]["ptrtoconst"] = True
 
-                if var.meta.range:
-                    result[1]["range"] = var.meta.range
+                    if var.meta.range:
+                        result[1]["range"] = var.meta.range
 
                 return result
 
@@ -301,7 +307,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             egidx = var.meta.brief.index("(e.g.") if "(e.g." in var.meta.brief else None
 
             if egidx != None and ")" in var.meta.brief[egidx + 1:]:
-                example = var.meta.brief[egidx + 5:var.meta.brief.rfind(")")].strip()
+                example = var.meta.brief[egidx + 5:var.meta.brief.rfind(")")].strip(' "')
                 description = var.meta.brief[0:egidx].strip()
                 return [example, description]
             else:
@@ -351,7 +357,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 events = ResolveTypedef(resolved, events, var.type)
             return events
 
-        def BuildParameters(vars, rpc_format, is_property=False, test=False):
+        def BuildParameters(obj, vars, rpc_format, is_property=False, test=False):
             params = {"type": "object"}
             properties = OrderedDict()
             required = []
@@ -373,20 +379,28 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if var_name.startswith("__unnamed") and not test:
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
 
-                    properties[var_name] = ConvertParameter(var)
+                    converted = ConvertParameter(var)
 
-                    if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
-                        properties[var_name]["@originalname"] = var.name
-
-                    properties[var_name]["position"] = vars.index(var)
-
-                    if "optional" not in var.meta.decorators:
-                        required.append(var_name)
+                    if converted["type"] == "@context":
+                        if obj:
+                            obj["context"] = True
+                        else:
+                            raise CppParseError(var, "context parameter is only valid for methods")
                     else:
-                        properties[var_name]["optional"] = True
+                        properties[var_name] = converted
 
-                    if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
-                        log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
+                        if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
+                            properties[var_name]["@originalname"] = var.name
+
+                        properties[var_name]["position"] = vars.index(var)
+
+                        if "optional" not in var.meta.decorators:
+                            required.append(var_name)
+                        else:
+                            properties[var_name]["optional"] = True
+
+                        if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
+                            log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
             params["properties"] = properties
             params["required"] = required
@@ -409,7 +423,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     return params
 
         def BuildIndex(var, test=False):
-            return BuildParameters([var], rpc_format.COLLAPSED, True, test)
+            return BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
 
         def BuildResult(vars, is_property=False):
             params = {"type": "object"}
@@ -546,7 +560,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             obj["index"] = BuildIndex(method.vars[0])
 
                             if obj["index"]:
-                                obj["index"]["name"] = method.vars[0].name
+                                obj["index"]["name"] = method.vars[0].name.capitalize()
+                                obj["index"]["@originalname"] = method.vars[0].name
 
                                 if "enum" in obj["index"]:
                                     obj["index"]["example"] = obj["index"]["enum"][0]
@@ -620,9 +635,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 obj["writeonly"] = True
 
                             if "params" not in obj:
-                                obj["params"] = BuildParameters([method.vars[value]], rpc_format, True)
+                                obj["params"] = BuildParameters(None, [method.vars[value]], rpc_format, True)
                             else:
-                                test = BuildParameters([method.vars[value]], rpc_format, True, True)
+                                test = BuildParameters(None, [method.vars[value]], rpc_format, True, True)
 
                                 if not test:
                                     raise CppParseError(method.vars[value], "property setter method must have one input parameter")
@@ -645,14 +660,14 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     obj = OrderedDict()
                     obj["@originalname"] = method.name
 
-                    params = BuildParameters(method.vars, rpc_format)
+                    params = BuildParameters(obj, method.vars, rpc_format)
 
                     if params:
                         obj["params"] = params
 
-                        if "properties" in params and params["properties"]:
-                            if method.name.lower() in [x.lower() for x in params["required"]]:
-                                raise CppParseError(method, "parameters must not use the same name as the method")
+                        #if "properties" in params and params["properties"]:
+                        #    if method.name.lower() in [x.lower() for x in params["required"]]:
+                        #        raise CppParseError(method, "parameters must not use the same name as the method")
 
                     obj["result"] = BuildResult(method.vars)
                     methods[prefix + method_name] = obj
@@ -745,7 +760,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             if not method.vars[0].type.IsConst() and method.vars[0].type.IsReference():
                                 raise CppParseError(method.vars[0], "index to a notification must be an input parameter")
 
-                            obj["id"] = BuildParameters([method.vars[0]], config.RpcFormat.COLLAPSED, True, False)
+                            obj["id"] = BuildParameters(None, [method.vars[0]], config.RpcFormat.COLLAPSED, True, False)
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
@@ -760,10 +775,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             else:
                                 raise CppParseError(method.vars[0], "failed to determine type of notification id parameter")
 
-                    if method.retval.meta.is_listener:
+                    if "statuslistener" in method.retval.meta.decorators:
                         obj["statuslistener"] = True
 
-                    params = BuildParameters(method.vars[varsidx:], rpc_format, False)
+                    params = BuildParameters(None, method.vars[varsidx:], rpc_format, False)
                     retvals = BuildResult(method.vars[varsidx:])
                     if retvals and retvals["type"] != "null":
                         raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
@@ -845,9 +860,14 @@ def LoadInterface(file, log, all = False, include_paths = []):
                    posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
-            s, i = LoadInterfaceInternal(file, tree, ns, log, all, include_paths)
-            schemas.extend(s)
-            includes.extend(i)
+            their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, all, include_paths)
+
+            for s in their_schemas:
+                f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))
+                if not f:
+                    schemas.append(s)
+
+            includes.extend(their_includes)
 
         if not schemas:
             log.Info("No interfaces found")

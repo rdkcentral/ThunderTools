@@ -91,7 +91,6 @@ class Metadata:
         self.is_deprecated = False
         self.is_obsolete = False
         self.is_index = False
-        self.is_listener = False
         self.decorators = []
         self.length = None
         self.maxlength = None
@@ -324,31 +323,32 @@ class Identifier():
 
             # handle pointer/reference markers
             elif token[0] == "@":
-                if token[1:] == "IN":
+                tag = token[1:]
+                if tag == "IN":
                     if tags_allowed:
                         self.meta.input = True
                     else:
                         raise ParserError("in/out tags not allowed here")
-                elif token[1:] == "OUT":
+                elif tag == "OUT":
                     if tags_allowed:
                         self.meta.output = True
                     else:
                         raise ParserError("in/out tags not allowed here")
-                elif token[1:] == "INDEX":
+                elif tag == "INDEX":
                     if tags_allowed:
                         self.meta.is_index = True
                     else:
                         raise ParserError("@index tag not allowed here")
-                elif token[1:] == "LENGTH":
+                elif tag == "LENGTH":
                     self.meta.length = string[i + 1]
                     skip = 1
-                elif token[1:] == "MAXLENGTH":
+                elif tag == "MAXLENGTH":
                     if tags_allowed:
                         self.meta.maxlength = string[i + 1]
                     else:
                         raise ParserError("@maxlength tag not allowed here")
                     skip = 1
-                elif token[1:] == "RESTRICT":
+                elif tag == "RESTRICT":
                     self.meta.range = []
                     for s in "".join(string[i + 1]).split(".."):
                         try:
@@ -368,54 +368,56 @@ class Identifier():
                     else:
                         raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
                     skip = 1
-                elif token[1:] == "INTERFACE":
+                elif tag == "INTERFACE":
                     self.meta.interface = string[i + 1]
                     skip = 1
-                elif token[1:] == "OPAQUE":
+                elif tag == "OPAQUE":
                     self.meta.decorators.append("opaque")
-                elif token[1:] == "OPTIONAL":
+                elif tag == "OPTIONAL":
                     self.meta.decorators.append("optional")
-                elif token[1:] == "EXTRACT":
+                elif tag == "EXTRACT":
                     self.meta.decorators.append("extract")
-                elif token[1:] == "END":
+                elif tag == "END":
                     self.meta.decorators.append("endmarker")
-                elif token[1:] == "PROPERTY":
+                elif tag == "PROPERTY":
                     self.meta.is_property = True
-                elif token[1:] == "BRIEF":
+                elif tag == "BRIEF":
                     self.meta.brief = string[i + 1]
                     skip = 1
-                elif token[1:] == "DETAILS":
+                elif tag == "DETAILS":
                     self.meta.details = string[i + 1]
                     skip = 1
-                elif token[1:] == "PARAM":
+                elif tag == "PARAM":
                     par = string[i + 1]
                     if par.endswith(":"):
                         par = par[:-1]
                     self.meta.param[par] = string[i + 2]
                     skip = 2
-                elif token[1:] == "RETVAL":
+                elif tag == "RETVAL":
                     par = string[i + 1]
                     if par.endswith(":"):
                         par = par[:-1]
                     self.meta.retval[par] = string[i + 2]
                     skip = 2
-                elif token[1:] == "DEPRECATED":
+                elif tag == "STATUSLISTENER":
+                    self.meta.decorators.append("statuslistener")
+                elif tag == "DEPRECATED":
                     self.meta.is_deprecated = True
-                elif token[1:] == "OBSOLETE":
+                elif tag == "OBSOLETE":
                     self.meta.is_obsolete = True
-                elif token[1:] == "BITMASK":
+                elif tag == "BITMASK":
                     self.meta.decorators.append("bitmask")
-                elif token[1:] == "TEXT":
+                elif tag == "TEXT":
                     self.meta.text = "".join(string[i + 1])
                     skip = 1
-                elif token[1:] == "ALT":
+                elif tag == "ALT":
                     self.meta.alt = "".join(string[i + 1])
                     skip = 1
-                elif token[1:] == "ALT:OBSOLETE" or token[1:] == "ALT-OBSOLETE":
+                elif tag == "ALT:OBSOLETE" or tag == "ALT-OBSOLETE":
                     self.meta.alt = "".join(string[i + 1])
                     self.meta.alt_is_obsolete = True
                     skip = 1
-                elif token[1:] == "ALT:DEPRECATED" or token[1:] == "ALT-DEPRECATED":
+                elif tag == "ALT:DEPRECATED" or tag == "ALT-DEPRECATED":
                     self.meta.alt = "".join(string[i + 1])
                     self.meta.alt_is_deprecated = True
                     skip = 1
@@ -1651,6 +1653,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@json", False))
                 if _find("@event", token):
                     tagtokens.append("@EVENT")
+                if _find("@statuslistener", token):
+                    tagtokens.append("@STATUSLISTENER")
                 if _find("@prefix", token):
                     tagtokens.append(__ParseParameterValue(token, "@prefix", False))
                 if _find("@extended", token):

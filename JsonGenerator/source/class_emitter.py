@@ -29,12 +29,12 @@ def IsObjectRestricted(argument):
     return False
 
 def AppendTest(tests, argument, relay=None, test_zero=False, reverse=False, override=None):
-    comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
-
-    if not relay:
-        relay = argument
-
     if "range" in argument.schema or IsObjectRestricted(argument):
+        comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
+
+        if not relay:
+            relay = argument
+
         name = relay.TempName() if not override else override
         range = argument.schema.get("range")
 
@@ -221,7 +221,6 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
             for prop in json_obj.properties:
                 emit.Line("_value.%s = %s;" % ( prop.actual_name, prop.cpp_name))
-
 
             if IsObjectRestricted(json_obj):
                 tests = []

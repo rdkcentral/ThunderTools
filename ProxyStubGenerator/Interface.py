@@ -19,9 +19,6 @@
 
 from . import CppParser
 
-CLASS_IUNKNOWN = "::WPEFramework::Core::IUnknown"
-
-
 class Interface():
     def __init__(self, obj, iid, file):
         self.obj = obj
@@ -30,27 +27,46 @@ class Interface():
 
 
 # Looks for interface clasess (ie. classes inheriting from Core::Unknown and specifying ID enum).
-def FindInterfaceClasses(tree, interface_namespace, source_file):
+def FindInterfaceClasses(tree, interface_namespace, source_file, ancestors = [ "::WPEFramework::Core::IUnknown" ]):
     interfaces = []
+
+    selected = []
 
     def __Traverse(tree, faces):
         if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
             for c in tree.classes:
                 if not isinstance(c, CppParser.TemplateClass):
                     if (interface_namespace + "::") in c.full_name:
-                        inherits_iunknown = False
-                        for a in c.ancestors:
-                            if CLASS_IUNKNOWN in str(a[0]):
-                                inherits_iunknown = True
+                        inherits = False
+
+                        for t in ancestors:
+                            for a in c.ancestors:
+                                if t in str(a[0]):
+                                    inherits = True
+                                    break
+                            if inherits:
                                 break
 
-                        if inherits_iunknown:
-                            for e in c.enums:
-                                if not e.scoped:
-                                    for item in e.items:
-                                        if item.name == "ID":
-                                            faces.append(Interface(c, item.value, source_file))
-                                            break
+                        appended = False
+
+                        if ancestors:
+                            if inherits:
+                                for e in c.enums:
+                                    if not e.scoped:
+                                        for item in e.items:
+                                            if item.name == "ID":
+                                                faces.append(Interface(c, item.value, source_file))
+                                                selected.append(c.full_name)
+                                                appended = True
+                                                break
+
+                                if not appended:
+                                    faces.append(Interface(c, 0, source_file))
+                                    selected.append(c.full_name)
+                        else:
+                            faces.append(Interface(c, 0, source_file))
+                            selected.append(c.full_name)
+
                 __Traverse(c, faces)
 
         if isinstance(tree, CppParser.Namespace):
@@ -58,4 +74,5 @@ def FindInterfaceClasses(tree, interface_namespace, source_file):
                 __Traverse(n, faces)
 
     __Traverse(tree, interfaces)
+
     return interfaces

@@ -16,7 +16,7 @@
 # limitations under the License.
 
 class Emitter():
-    def __init__(self, file_name, indent_size, max_line_length = 160):
+    def __init__(self, file_name, indent_size, max_line_length = 120):
         self.file = open(file_name, "w") if file_name else None
         self.indent_size = indent_size
         self.indent = 0
@@ -35,9 +35,6 @@ class Emitter():
             self.file.close()
 
     def Line(self, text = ""):
-        if "\n" in text:
-            assert("Invalid characters in the emitted line")
-
         if text != "":
             commented = "// " if "//" in text else ""
             text = (" " * self.indent) + str(text)
