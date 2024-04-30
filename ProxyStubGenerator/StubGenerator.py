@@ -131,6 +131,7 @@ def FindInterfaceClasses(tree, namespace):
         nonlocal omit_interface_used
 
         if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
+
             for c in tree.classes:
                 if c.omit:
                     omit_interface_used = True
@@ -809,14 +810,14 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.proxy = None
                 self.return_proxy = False
                 self.proxy_instance = None
+                self.type_name = Flatten(self.identifier_type.TypeName(), ns)
+                self.target_type_name = Flatten(self.type.TypeName(), ns)
 
                 if has_proxy:
                     # Have to use instance_id instead of the class name
-                    self.type_name = Flatten(self.identifier_type.TypeName(), ns)
                     self.proto = (("const " if self.is_const else "") + INSTANCE_ID).strip()
                     self.proto_no_cv = INSTANCE_ID
                 else:
-                    self.type_name = Flatten(self.identifier_type.TypeName(), ns)
                     self.proto = Flatten(self.identifier_type.Proto("noref"), ns)
                     self.proto_no_cv = Flatten(self.identifier_type.Proto("nocv|noref"), ns)
 
@@ -1024,14 +1025,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return ("Text<%s>()" % self.peek_length.proto_no_cv) if self.peek_length.proto_no_cv != "uint16_t" else "Text()"
 
                 # The integral types
-                elif isinstance(self.kind, CppParser.Integer):
-                    return "Number<%s>()" % self.type_name
-                elif isinstance(self.kind, CppParser.BuiltinInteger):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger, CppParser.Enum)):
                     return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
-                elif isinstance(self.kind, CppParser.Enum):
-                    return "Number<%s>()" % self.type_name
+                elif isinstance(self.kind, CppParser.Time):
+                    return "Number<%s>()" % self.target_type_name
 
                 # Floating point types
                 elif isinstance(self.kind, CppParser.Float):
@@ -1058,14 +1057,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return ("Text<%s>(%s)" % (self.peek_length.proto_no_cv, self.as_rvalue)) if self.peek_length.proto_no_cv != "uint16_t" else ("Text(%s)" % (self.as_rvalue))
 
                 # The integral types
-                elif isinstance(self.kind, CppParser.Integer):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
-                elif isinstance(self.kind, CppParser.Enum):
-                    return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
-                elif isinstance(self.kind, CppParser.BuiltinInteger):
-                    return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                elif isinstance(self.kind, CppParser.Time):
+                    return "Number<%s>(%s.Ticks())" % (self.target_type_name, self.as_rvalue)
 
                 # Floating point types
                 elif isinstance(self.kind, CppParser.Float):

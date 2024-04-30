@@ -627,9 +627,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
 
                     else:
-                        initializer = (("(%s)" if isinstance(arg, JsonObject) else "{%s}") % cpp_name) if is_readable else "{}"
+                        initializer = (("(%s)" if isinstance(arg, JsonObject) else "{%s}") % cpp_name) if is_readable and not arg.convert else "{}"
 
                     emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type, arg.temp_name, initializer))
+
+                    if arg.convert and is_readable:
+                        emit.Line((arg.convert + ";") % (arg.temp_name, cpp_name))
 
             tests = []
 
@@ -790,7 +793,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     # All others...
                     else:
-                        emit.Line("%s = %s;" % (cpp_name, arg.temp_name))
+                        emit.Line("%s = %s;" % (cpp_name, arg.temp_name + arg.convert_rhs))
 
                         if arg.schema.get("opaque"):
                             emit.Line("%s.SetQuoted(false);" % (cpp_name))

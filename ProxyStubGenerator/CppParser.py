@@ -167,12 +167,14 @@ class BuiltinInteger(Intrinsic):
     def IsFixed(self):
         return self.fixed
 
+
 class InstanceId(BuiltinInteger):
     def __init__(self):
         BuiltinInteger.__init__(self, "instance_id")
 
     def IsFixed(self):
         return self.fixed
+
 
 class String(Intrinsic):
     def __init__(self, std=False, cc=False):
@@ -183,6 +185,11 @@ class String(Intrinsic):
 class CCString(Intrinsic):
     def __init__(self, std=False):
         Intrinsic.__init__(self, "ccstring")
+
+
+class Time(Intrinsic):
+    def __init__(self):
+        Intrinsic.__init__(self, "Core::Time::microsecondsfromepoch")
 
 
 class Nullptr_t(Fundamental):
@@ -609,6 +616,8 @@ class Identifier():
                     self.type[i] = Type(BuiltinInteger(False))
                 elif type == "__stubgen_instance_id":
                     self.type[i] = Type(InstanceId())
+                elif type == "__stubgen_time":
+                    self.type[i] = Type(Time())
                 else:
                     found = []
                     __Search(global_namespace, found, self.type[i])
