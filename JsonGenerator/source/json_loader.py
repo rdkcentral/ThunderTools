@@ -212,6 +212,14 @@ class JsonType():
             return self.name
 
     @property
+    def convert_rhs(self):
+        return ""
+
+    @property
+    def convert(self):
+        return ""
+
+    @property
     def cpp_name(self): # C++ name of the object
         if self.new_name:
             return (self.new_name[0].upper() + self.new_name[1:])
@@ -342,6 +350,7 @@ class JsonString(JsonNative, JsonType):
     def cpp_native_type(self):
         return "string"
 
+
 class JsonInstanceId(JsonNative, JsonType):
     @property
     def cpp_class(self):
@@ -363,6 +372,34 @@ class JsonRefCounted():
 
     def RefCount(self):
         return len(self.refs)
+
+
+class JsonTime(JsonNative, JsonType):
+    def __init__(self, name, parent, schema, time_type):
+        JsonType.__init__(self, name, parent, schema)
+        self.time_type = time_type
+
+    @property
+    def cpp_class(self):
+        return CoreJson("String")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::Time"
+
+    @property
+    def convert(self):
+        if self.time_type == "iso8601":
+            return "%s.FromISO8601(%s)"
+        else:
+            raise JsonParseError("Time format %s is not supported" % self.time_type)
+
+    @property
+    def convert_rhs(self):
+        if self.time_type == "iso8601":
+            return ".ToISO8601()"
+        else:
+            raise JsonParseError("Time format %s is not supported" % self.time_type)
 
 
 class JsonEnum(JsonRefCounted, JsonType):
@@ -921,8 +958,10 @@ def JsonItem(name, parent, schema, included=None):
             return JsonNull(name, parent, schema)
         elif schema["type"] == "boolean":
             return JsonBoolean(name, parent, schema)
-        elif "enum" in schema:
+        elif (schema["type"] == "string") and ("enum" in schema):
             return JsonEnum(name, parent, schema, schema["type"], included)
+        elif (schema["type"] == "string") and ("time" in schema):
+            return JsonTime(name, parent, schema, schema["time"])
         elif schema["type"] == "instanceid":
             return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":

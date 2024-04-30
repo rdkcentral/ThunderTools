@@ -48,6 +48,7 @@ namespace WPEFramework {
 
   namespace Core {
     typedef __stubgen_instance_id instance_id;
+    typedef __stubgen_time Time;
     typedef uint32_t hresult;
 
     struct IUnknown {
@@ -81,6 +82,4 @@ namespace WPEFramework {
     class IValueIterator;
   }
 
-} // namespace WPEFramework
-
-
+}

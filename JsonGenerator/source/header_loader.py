@@ -194,23 +194,33 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         result = [ "string", { "opaque": True } ]
                     else:
                         result = [ "string", {} ]
+
                 # Boolean
                 elif isinstance(cppType, CppParser.Bool):
                     result = ["boolean", {} ]
+
                 # Integer
                 elif isinstance(cppType, CppParser.Integer):
                     size = 8 if cppType.size == "char" else 16 if cppType.size == "short" else \
                         32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
                     result = [ "integer", { "size": size, "signed": cppType.signed } ]
+
                 # Instance ID
                 elif isinstance(cppType, CppParser.InstanceId):
                     result = [ "instanceid", {} ]
+
+                # Time
+                elif isinstance(cppType, CppParser.Time):
+                    result = [ "string", { "time": "iso8601" } ]
+
                 # Float
                 elif isinstance(cppType, CppParser.Float):
                     result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
+
                 # Null
                 elif isinstance(cppType, CppParser.Void):
                     result = [ "null", {} ]
+
                 # Enums
                 elif isinstance(cppType, CppParser.Enum):
 
@@ -399,7 +409,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         else:
                             properties[var_name]["optional"] = True
 
-                        if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() and not "enum" in properties[var_name]:
+                        if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
+                                and not "enum" in properties[var_name] and not "time" in properties[var_name]:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
             params["properties"] = properties
