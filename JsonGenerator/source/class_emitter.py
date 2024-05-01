@@ -29,12 +29,12 @@ def IsObjectRestricted(argument):
     return False
 
 def AppendTest(tests, argument, relay=None, test_zero=False, reverse=False, override=None):
-    comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
-
-    if not relay:
-        relay = argument
-
     if "range" in argument.schema or IsObjectRestricted(argument):
+        comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
+
+        if not relay:
+            relay = argument
+
         name = relay.TempName() if not override else override
         range = argument.schema.get("range")
 
@@ -169,7 +169,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
             if conversion_ctor:
                 for prop in json_obj.properties:
-                    emit.Line("%s = _other.%s;" % (prop.cpp_name, prop.actual_name))
+                    emit.Line("%s = _other.%s;" % (prop.cpp_name, prop.actual_name + prop.convert_rhs))
 
             if no_init_code:
                 emit.Line("_Init();")
@@ -204,7 +204,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                     if optional:
                         emit.Indent()
 
-                    emit.Line("%s = _rhs.%s;" % (prop.cpp_name, prop.actual_name))
+                    emit.Line("%s = _rhs.%s;" % (prop.cpp_name, prop.actual_name + prop.convert_rhs))
 
                     if optional:
                         emit.Unindent()
@@ -220,14 +220,14 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             emit.Line("%s _value{};" % (json_obj.cpp_native_type))
 
             for prop in json_obj.properties:
-                emit.Line("_value.%s = %s;" % ( prop.actual_name, prop.cpp_name))
-
+                conv = prop.convert if prop.convert else "%s = %s"
+                emit.Line((conv + ";") % ( ("_value." + prop.actual_name), prop.cpp_name))
 
             if IsObjectRestricted(json_obj):
                 tests = []
 
                 for prop in json_obj.properties:
-                    AppendTest(tests, prop, reverse=True, override=("_value." + prop.actual_name))
+                    AppendTest(tests, prop, reverse=True, override=("_value." + prop.actual_name + prop.convert_rhs))
 
                 if tests:
                     emit.Line("_valid = (%s);" % " && ".join(tests))

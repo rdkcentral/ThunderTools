@@ -154,9 +154,16 @@ class JsonType():
                 log.DocIssue("'%s': sentence-case capitalization is recommended for parameter descriptions ('%s')"
                     % (self.print_name ,log.Ellipsis(self.description)))
 
+    @property
+    def temp_name(self):
+        name = self.local_name.lstrip('_')
+        return ("_" + name[0].lower() + name[1:] + "_")
+
     def TempName(self, postfix = ""):
-        name = self.local_name.strip("_")
-        return ("_" + name[0].lower() + name[1:] + (postfix[0].upper() + postfix[1:] if postfix else ""))
+        if postfix:
+            return (self.temp_name.rstrip('_') + postfix[0].upper() + postfix[1:] + '_')
+        else:
+            self.temp_name
 
     def Rename(self, new_name):
         self.new_name = new_name.lower()
@@ -203,6 +210,14 @@ class JsonType():
             return self.original_name
         else:
             return self.name
+
+    @property
+    def convert_rhs(self):
+        return ""
+
+    @property
+    def convert(self):
+        return ""
 
     @property
     def cpp_name(self): # C++ name of the object
@@ -335,6 +350,7 @@ class JsonString(JsonNative, JsonType):
     def cpp_native_type(self):
         return "string"
 
+
 class JsonInstanceId(JsonNative, JsonType):
     @property
     def cpp_class(self):
@@ -356,6 +372,34 @@ class JsonRefCounted():
 
     def RefCount(self):
         return len(self.refs)
+
+
+class JsonTime(JsonNative, JsonType):
+    def __init__(self, name, parent, schema, time_type):
+        JsonType.__init__(self, name, parent, schema)
+        self.time_type = time_type
+
+    @property
+    def cpp_class(self):
+        return CoreJson("String")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::Time"
+
+    @property
+    def convert(self):
+        if self.time_type == "iso8601":
+            return "%s.FromISO8601(%s)"
+        else:
+            raise JsonParseError("Time format %s is not supported" % self.time_type)
+
+    @property
+    def convert_rhs(self):
+        if self.time_type == "iso8601":
+            return ".ToISO8601()"
+        else:
+            raise JsonParseError("Time format %s is not supported" % self.time_type)
 
 
 class JsonEnum(JsonRefCounted, JsonType):
@@ -719,6 +763,8 @@ class JsonMethod(JsonObject):
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
 
+        self.context = schema.get("context")
+
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
@@ -912,8 +958,10 @@ def JsonItem(name, parent, schema, included=None):
             return JsonNull(name, parent, schema)
         elif schema["type"] == "boolean":
             return JsonBoolean(name, parent, schema)
-        elif "enum" in schema:
+        elif (schema["type"] == "string") and ("enum" in schema):
             return JsonEnum(name, parent, schema, schema["type"], included)
+        elif (schema["type"] == "string") and ("time" in schema):
+            return JsonTime(name, parent, schema, schema["time"])
         elif schema["type"] == "instanceid":
             return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":
