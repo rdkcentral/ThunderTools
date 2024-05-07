@@ -121,7 +121,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             if interface.is_event:
                 event_interfaces.add(CppInterface.Interface(interface, 0, file))
 
-        def ResolveTypedef(type):
+        def ResolveTypedef(type, parent=type):
+            if isinstance(type, str):
+                raise CppParseError(parent, "%s: undefined type" % type)
+            elif isinstance(type, list):
+                raise CppParseError(parent, "%s: undefined type" % " ".join(type))
+
             return type.Resolve()
 
         def ConvertType(var):
@@ -133,9 +138,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             var_type = ResolveTypedef(var.type)
 
             if isinstance(var_type, str):
-                raise CppParseError(var.type, "%s: undefined type" % var_type)
+                raise CppParseError(var, "%s: undefined type" % var_type)
             elif isinstance(var_type, list):
-                raise CppParseError(var.type, "%s: undefined type" % " ".join(var_type))
+                raise CppParseError(var, "%s: undefined type" % " ".join(var_type))
 
             cppType = var_type.Type()
             is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
@@ -181,9 +186,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         raise CppParseError(var, "passed iterators must not be constant")
 
                     return result
+
                 # All other pointer types are not supported
                 else:
                     raise CppParseError(var, "unable to convert C++ type to JSON type: %s - input pointer allowed only on interator or C-style buffer" % cppType.type)
+
             # Primitives
             else:
                 result = None
@@ -291,12 +298,14 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                     if cppType.full_name == "::WPEFramework::Core::JSONRPC::Context":
                         result = "@context", {}
-                    else:
+                    elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
+                    else:
+                        raise CppParseError(var, "unable to convert this C++ class to JSON type: %s" % cppType.type)
 
                 # All other types are not supported
                 else:
-                    raise CppParseError(var, "unable to convert C++ type to JSON type: %s" % cppType.type)
+                    raise CppParseError(var, "unable to convert this C++ type to JSON type: %s" % cppType.type)
 
                 if result:
                     if var_type.IsPointer():
@@ -445,18 +454,18 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    if var_type.IsValue():
-                        raise CppParseError(var, "parameter marked with @out tag must be either a reference or a pointer")
-
-                    if var_type.IsConst():
-                        raise CppParseError(var, "parameter marked with @out tag must not be const")
-
                     var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
 
                     if var_name.startswith("__unnamed"):
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
 
                     properties[var_name] = ConvertParameter(var)
+
+                    if var_type.IsValue():
+                        raise CppParseError(var, "parameter marked with @out tag must be either a reference or a pointer")
+
+                    if var_type.IsConst():
+                        raise CppParseError(var, "parameter marked with @out tag must not be const")
 
                     if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
                         properties[var_name]["@originalname"] = var.name
@@ -485,7 +494,23 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
         else:
             prefix = ""
 
+        faces = []
+        faces.append((None, prefix, face.obj.methods))
+
         for method in face.obj.methods:
+            if method.retval.meta.lookup:
+                var_type = ResolveTypedef(method.retval.type, method)
+
+                _prefix = ((method.retval.meta.lookup if (method.retval.meta.lookup and method.retval.meta.lookup != "*") else var_type.Type().name[1:].lower()) + "::")
+
+                if isinstance(var_type.Type(), CppParser.Class):
+                    faces.append(([StripFrameworkNamespace(var_type.type.full_name), method.name, method.vars[0].name], _prefix, var_type.Type().methods))
+                else:
+                    raise CppParseError(method, "lookup method for an unknown class")
+
+
+        for lookup_method, prefix, _methods in faces:
+          for method in _methods:
 
             event_params = EventParameters(method.vars)
 
@@ -664,7 +689,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 else:
                     raise CppParseError(method, "property method must have one parameter")
 
-            elif method.IsVirtual() and not method.IsDestructor() and not event_params:
+            elif method.IsVirtual() and not method.IsDestructor() and not event_params and not method.retval.meta.lookup:
                 var_type = ResolveTypedef(method.retval.type)
 
                 if var_type and ((isinstance(var_type.Type(), CppParser.Integer) and (var_type.Type().size == "long")) or not verify):
@@ -697,6 +722,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 if method.retval.meta.details:
                     obj["description"] = method.retval.meta.details.strip()
+
+                if lookup_method:
+                    obj["@lookup"] = lookup_method
 
                 if method.retval.meta.retval:
                     errors = []

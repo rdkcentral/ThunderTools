@@ -271,6 +271,7 @@ def Create(log, schema, path, indent_size = 4):
 
             orig_method = method
             method = props["alt"] if main_status and not alt_status and "alt" in props else method
+            orig_method2 = method
 
             MdHeader(method, 2, type, section)
 
@@ -323,6 +324,9 @@ def Create(log, schema, path, indent_size = 4):
                 events = [props["events"]] if isinstance(props["events"], str) else props["events"]
                 MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), events))))
 
+            if "@lookup" in props:
+                method = method.replace("::", "#1::")
+
             if is_property:
                 MdHeader("Value", 3)
                 if "params" in props:
@@ -339,20 +343,27 @@ def Create(log, schema, path, indent_size = 4):
                         elif "summary" in props:
                             props["result"]["description"] = props["summary"]
 
+                if "@lookup" in props:
+                    MdParagraph("> The *%s* object index shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"]["example"] if "index" in props else ""))
+
                 if "index" in props:
                     if "name" not in props["index"] or "example" not in props["index"]:
                         raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
 
-                    extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@%s``.%s" % (
-                        props["index"]["name"].lower(), classname, method, props["index"]["example"],
+                    extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``.%s" % (
+                        props["index"]["name"].lower(), classname, method, props["index"]["name"].lower(),
                         (" " + props["index"]["description"]) if "description" in props["index"] else "")
 
                     if not extra_paragraph.endswith('.'):
                         extra_paragraph += '.'
 
                     MdParagraph(extra_paragraph)
+
             else:
                 MdHeader("Parameters", 3)
+
+                if "@lookup" in props:
+                    MdParagraph("> The *%s* argument shell be passed within the designator, e.g. ``%s.1.%s``" % (props["@lookup"][2], classname, method))
 
                 if "params" in props:
                     ParamTable("params", props["params"])
