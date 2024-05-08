@@ -760,6 +760,9 @@ class JsonMethod(JsonObject):
         if "@originalname" in schema:
             method_schema["@originalname"] = schema["@originalname"]
 
+        if "@lookup" in schema:
+            method_schema["@lookup"] = schema["@lookup"]
+
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
 

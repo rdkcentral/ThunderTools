@@ -655,6 +655,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             # Emit call to the implementation
             if not is_json_source: # Full automatic mode
+
+                impl = names.impl
+                interface = names.interface
+
+                if lookup:
+                    impl = "_lookup" + impl
+                    interface = lookup[0]
+                    emit.Line("%s%s* const %s = %s->%s(%s);" % ("const " if const_cast else "", lookup[0], impl, names.impl,lookup[1], lookup[2]))
+                    emit.Line()
+                    emit.Line("if (%s != nullptr) {" % impl)
+                    emit.Indent()
+
                 conditions = []
 
                 for _, [arg, _] in sorted_vars:
@@ -671,7 +683,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (%s) {" % " && ".join(conditions))
                     emit.Indent()
 
-                implementation_object = "(static_cast<const %s*>(%s))" % (names.interface, names.impl) if const_cast else names.impl
+                implementation_object = "(static_cast<const %s*>(%s))" % (interface, impl) if const_cast and not lookup else impl
                 function_params = []
 
                 if contexted:
@@ -706,6 +718,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("} else {")
                     emit.Indent()
                     emit.Line("%s = Core::ERROR_GENERAL;" % error_code.temp_name)
+                    emit.Unindent()
+                    emit.Line("}")
+
+                if lookup:
+                    emit.Line("%s->Release();" % impl)
+                    emit.Unindent()
+                    emit.Line("}")
+                    emit.Line("else {")
+                    emit.Indent()
+                    emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.temp_name)
                     emit.Unindent()
                     emit.Line("}")
 
@@ -809,6 +831,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         optional_checked = False
         index_name = m.index.local_name if indexed else None
         index_name_converted = None
+        lookup = m.schema.get("@lookup")
 
         if is_property:
             # Normalize property params/repsonse to match methods
@@ -831,11 +854,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         # Emit method prologue
         template_params = [ params.cpp_type, response.cpp_type ]
 
-        if indexed or contexted:
+        if indexed or contexted or lookup:
             function_params = []
 
             if contexted:
                 function_params.append("const %s&" % names.context_alias)
+
+            if lookup:
+                function_params.append("const uint32_t")
 
             if indexed:
                 function_params.append("const string&")
@@ -855,6 +881,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         if contexted:
             lambda_params.append("const %s& %s" % (names.context_alias, names.context))
+
+        if lookup:
+            lambda_params.append("const uint32_t %s" % (lookup[2]))
 
         if indexed:
             lambda_params.append("const string& %s" % (index_name))
