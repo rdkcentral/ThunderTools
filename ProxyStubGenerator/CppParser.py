@@ -95,6 +95,7 @@ class Metadata:
         self.length = None
         self.maxlength = None
         self.interface = None
+        self.lookup = None
         self.alt = None
         self.alt_is_deprecated = None
         self.alt_is_obsolete = None
@@ -388,6 +389,13 @@ class Identifier():
                     self.meta.decorators.append("endmarker")
                 elif tag == "PROPERTY":
                     self.meta.is_property = True
+                elif tag == "LOOKUP":
+                    self.meta.lookup = string[i + 1]
+                    if self.meta.lookup:
+                        self.meta.lookup = self.meta.lookup[0]
+                    else:
+                        self.meta.lookup = "*"
+                    skip = 1
                 elif tag == "BRIEF":
                     self.meta.brief = string[i + 1]
                     skip = 1
@@ -1652,6 +1660,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@INDEX")
                 if _find("@property", token):
                     tagtokens.append("@PROPERTY")
+                if _find("@lookup", token):
+                    tagtokens.append(__ParseParameterValue(token, "@lookup", False))
                 if _find("@deprecated", token):
                     tagtokens.append("@DEPRECATED")
                 if _find("@obsolete", token):
