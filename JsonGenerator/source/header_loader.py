@@ -505,6 +505,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 if isinstance(var_type.Type(), CppParser.Class):
                     faces.append(([StripFrameworkNamespace(var_type.type.full_name), method.name, method.vars[0].name], _prefix, var_type.Type().methods))
+
+                    if "@lookups" not in schema:
+                        schema["@lookups"] = []
+
+                    schema["@lookups"].append(faces[-1][0][0])
                 else:
                     raise CppParseError(method, "lookup method for an unknown class")
 
@@ -873,11 +878,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
         if events:
             schema["events"] = events
 
-        if config.DUMP_JSON:
-            print("\n// JSON interface for {} -----------".format(face.obj.name))
-            print(json.dumps(schema, indent=2))
-            print("// ----------------\n")
-
         return schema
 
     schemas = []
@@ -887,6 +887,15 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             schema = Build(face)
             if schema:
                 schemas.append(schema)
+
+        for s in schemas:
+            lookups = s["@lookups"] if "@lookups" in s else []
+            for l in lookups:
+                for s2 in schemas:
+                    if StripFrameworkNamespace(s2["@fullname"]) == l:
+                        del s2["@generated"]
+
+        schemas = [s for s in schemas if "@generated" in s]
 
     return schemas, []
 
@@ -910,6 +919,13 @@ def LoadInterface(file, log, all = False, include_paths = []):
 
         if not schemas:
             log.Info("No interfaces found")
+
+        else:
+            if config.DUMP_JSON:
+                for s in schemas:
+                    print("\n// JSON interface for %s -----------" % s["@fullname"])
+                    print(json.dumps(s, indent=2))
+                    print("// ----------------\n")
 
         return schemas, includes
 
