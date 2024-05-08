@@ -344,7 +344,7 @@ def Create(log, schema, path, indent_size = 4):
                             props["result"]["description"] = props["summary"]
 
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* object index shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"]["example"] if "index" in props else ""))
+                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"]["example"] if "index" in props else ""))
 
                 if "index" in props:
                     if "name" not in props["index"] or "example" not in props["index"]:
