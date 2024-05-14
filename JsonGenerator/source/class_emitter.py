@@ -53,7 +53,7 @@ def AppendTest(tests, argument, relay=None, test_zero=False, reverse=False, over
 
             tests.append("(%s %s %s)" % (name, comp[1], range[1]))
 
-def ProcessEnums(action=None):
+def ProcessEnums(log, action=None):
     count = 0
 
     for obj in trackers.enum_tracker.objects:
@@ -61,13 +61,15 @@ def ProcessEnums(action=None):
             obj.schema["@register"] = False
             count += 1
             if action:
-                action(obj)
+                action(log, obj)
 
     return count
 
-def EmitEnumRegs(root, emit, header_file, if_file):
-    def _EmitEnumRegistration(enum):
+def EmitEnumRegs(log, root, emit, header_file, if_file):
+    def _EmitEnumRegistration(log, enum):
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
+
+        log.Info("Emitting enum conversion table for '{}'".format(name))
 
         emit.Line()
         emit.Line("ENUM_CONVERSION_BEGIN(%s)" % name)
@@ -98,7 +100,7 @@ def EmitEnumRegs(root, emit, header_file, if_file):
     emit.Line()
     emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
 
-    count = ProcessEnums(_EmitEnumRegistration)
+    count = ProcessEnums(log, _EmitEnumRegistration)
 
     emit.Line()
     emit.Line("}")
@@ -117,7 +119,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         global emittedItems
         emittedItems += 1
 
-        log.Info("Emitting enum {}".format(enum.cpp_class))
+        log.Info("Emitting enum '{}'".format(enum.cpp_class))
 
         if enum.description:
             emit.Line("// " + enum.description.split("\n",1)[0])
@@ -374,11 +376,11 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emit.Line()
 
     if emitCommon and trackers.enum_tracker.CommonObjects():
+        log.Info("Emitting common enums...")
         emittedPrologue = False
         for obj in trackers.enum_tracker.CommonObjects():
             if obj.do_create and not obj.is_duplicate and not obj.included_from:
                 if not emittedPrologue:
-                    log.Info("Emitting common enums...")
                     emit.Line("// Common enums")
                     emit.Line("//")
                     emit.Line()
