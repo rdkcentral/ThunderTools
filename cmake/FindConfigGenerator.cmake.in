@@ -235,11 +235,7 @@ if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
                 endif()
 
                 if (NOT ${autostart} STREQUAL "")
-                    if (${autostart} STREQUAL "false")
-                        map_append(${plugin_config} startmode "Deactivated")
-                    else()
-                        map_append(${plugin_config} startmode "Activated")
-                    endif()
+                    map_append(${plugin_config} autostart ${autostart})
                 endif()
 
                 if (NOT ${resumed} STREQUAL "")

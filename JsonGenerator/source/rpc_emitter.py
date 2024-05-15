@@ -24,6 +24,7 @@ import rpc_version
 from json_loader import *
 from class_emitter import AppendTest
 
+
 def EmitEvent(emit, root, event, params_type, legacy = False):
     module_var = "_module_"
     filter_var = "_id_"
@@ -518,8 +519,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                                 emit.Line("auto _Iterator = %s.Elements();" % cpp_name)
                                 emit.Line("while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }")
                                 emit.Line()
-                                impl = (arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % arg.iterator))
-                                initializer = "Core::ServiceType<%s>::Create<%s>(_elements)" % (impl, arg.iterator)
+                                impl = arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + "<%s>" % arg.iterator
+                                initializer = "Core::Service<%s>::Create<%s>(_elements)" % (impl, arg.iterator)
                                 emit.Line("%s* const %s{%s};" % (arg.iterator, arg.TempName(), initializer))
                                 arg.flags["release"] = True
 
