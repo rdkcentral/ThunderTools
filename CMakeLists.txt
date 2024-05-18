@@ -17,10 +17,12 @@
 
 cmake_minimum_required(VERSION 3.3)
 
+include(GNUInstallDirs)
+
 project(Generators)
 
 if (NOT DEFINED GENERATOR_INSTALL_PATH)
-    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/sbin" CACHE PATH "Path where the python scripts will be called from the cmake entries")
+    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBIN}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
 endif()
 
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
@@ -33,9 +35,9 @@ if(NOT DEFINED GENERIC_CMAKE_MODULE_PATH)
         set(NAMESPACE WPEFramework)
     endif()
     if(DEFINED ENV{STAGING_DIR})
-        set(GENERIC_CMAKE_MODULE_PATH "$ENV{STAGING_DIR}/usr/include/${NAMESPACE}/Modules")
+        set(GENERIC_CMAKE_MODULE_PATH "$ENV{STAGING_DIR}/usr/${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}/Modules")
     else()
-        set(GENERIC_CMAKE_MODULE_PATH "${CMAKE_SYSROOT}${CMAKE_INSTALL_PREFIX}/include/${NAMESPACE}/Modules")
+        set(GENERIC_CMAKE_MODULE_PATH "${CMAKE_SYSROOT}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}/Modules")
     endif()
 endif()
 
