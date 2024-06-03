@@ -125,7 +125,7 @@ if __name__ == "__main__":
                            action="store",
                            type=str,
                            dest="locator",
-                           help="locator of plugin e.g, libWPEFrameworkDeviceInfo.so")
+                           help="locator of plugin e.g, libThunderDeviceInfo.so")
 
     argparser.add_argument("-c",
                            "--classname",
