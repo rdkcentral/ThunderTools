@@ -17,9 +17,9 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-include(GNUInstallDirs)
-
 project(Generators)
+
+include(GNUInstallDirs)
 
 if (NOT DEFINED GENERATOR_INSTALL_PATH)
     set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBIN}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
