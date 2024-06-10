@@ -1,4 +1,4 @@
-# If not stated otherwise in this file or this component's LICENSE file the
+# If not stated otherwise in this file or this component's LICENSE file the 
 # following copyright and licenses apply:
 #
 # Copyright 2020 Metrological
@@ -32,7 +32,7 @@ if(NOT DEFINED GENERIC_CMAKE_MODULE_PATH)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../src/bridge")
         set(NAMESPACE bridge)
     else()
-        set(NAMESPACE WPEFramework)
+        set(NAMESPACE Thunder)
     endif()
     if(DEFINED ENV{STAGING_DIR})
         set(GENERIC_CMAKE_MODULE_PATH "$ENV{STAGING_DIR}/usr/${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}/Modules")

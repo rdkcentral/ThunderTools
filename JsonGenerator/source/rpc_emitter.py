@@ -1068,7 +1068,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
 def EmitRpcCode(root, emit, header_file, source_file, data_emitted):
 
-    namespace = (root.schema["namespace"] if "namespace" in root.schema else "::WPEFramework::Exchange")
+    namespace = (root.schema["namespace"] if "namespace" in root.schema else "::Thunder::Exchange")
 
     prototypes = _EmitRpcCode(root, emit, namespace, header_file, source_file, data_emitted)
 
@@ -1080,7 +1080,7 @@ def EmitRpcCode(root, emit, header_file, source_file, data_emitted):
 
 def EmitRpcVersionCode(root, emit, header_file, source_file, data_emitted):
 
-    namespace = (root.schema["namespace"] if "namespace" in root.schema else "::WPEFramework::Exchange")
+    namespace = (root.schema["namespace"] if "namespace" in root.schema else "::Thunder::Exchange")
 
     _EmitRpcPrologue(root, emit, header_file, source_file, namespace, data_emitted)
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))

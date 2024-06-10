@@ -23,8 +23,8 @@ argv0=${0##*/}
 : ${ROOT:=${PWD}}
 
 read -r -d '' BIN_LIST <<'EOF'
-/usr/bin/WPEFramework
-/usr/bin/WPEProcess
+/usr/bin/Thunder
+/usr/bin/ThunderPlugin
 EOF
 
 usage() {
