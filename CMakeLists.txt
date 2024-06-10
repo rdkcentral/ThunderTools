@@ -22,7 +22,7 @@ project(Generators)
 include(GNUInstallDirs)
 
 if (NOT DEFINED GENERATOR_INSTALL_PATH)
-    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBIN}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
+    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBINDIR}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
 endif()
 
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
@@ -70,7 +70,6 @@ install(FILES
     "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
 )
-
 
 install(DIRECTORY 
         "${CMAKE_CURRENT_SOURCE_DIR}/ProxyStubGenerator"
