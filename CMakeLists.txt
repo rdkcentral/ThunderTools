@@ -59,16 +59,19 @@ configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindConfigGenerator.cmake.in"
 install(FILES 
         "${CMAKE_CURRENT_BINARY_DIR}/FindProxyStubGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    COMPONENT ${NAMESPACE}_Development
 )
 
 install(FILES 
         "${CMAKE_CURRENT_BINARY_DIR}/FindJsonGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    COMPONENT ${NAMESPACE}_Development
 )
 
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    COMPONENT ${NAMESPACE}_Development
 )
 
 install(DIRECTORY 
@@ -77,4 +80,5 @@ install(DIRECTORY
         "${CMAKE_CURRENT_SOURCE_DIR}/ConfigGenerator"
     DESTINATION ${GENERATOR_INSTALL_PATH}
     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    COMPONENT ${NAMESPACE}_Runtime
 )
