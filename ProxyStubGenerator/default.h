@@ -51,6 +51,9 @@ namespace WPEFramework {
     typedef __stubgen_time Time;
     typedef uint32_t hresult;
 
+    template<typename T>
+    struct OptionalType;
+
     struct IUnknown {
       enum {
         ID_OFFSET_INTERNAL = 0

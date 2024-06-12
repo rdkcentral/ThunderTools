@@ -22,7 +22,11 @@ import config
 import emitter
 import rpc_version
 from json_loader import *
-from class_emitter import AppendTest
+from class_emitter import Restrictions
+from class_emitter import IsObjectOptional
+
+class RPCEmitterError(RuntimeError):
+    pass
 
 class DottedDict(dict):
     __getattr__ = dict.get
@@ -30,7 +34,6 @@ class DottedDict(dict):
     __delattr__ = dict.__delitem__
 
 def EmitEvent(emit, root, event, params_type, legacy = False):
-
     names = DottedDict()
     names['module'] = "_module"
     names['filter'] = "_id"
@@ -54,9 +57,9 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
         if params_type == "native":
             if params.properties and params.do_create:
                 for p in params.properties:
-                    parameters.append("const %s& %s" % (p.cpp_native_type, p.local_name))
+                    parameters.append("const %s& %s" % (p.cpp_native_type_opt, p.local_name))
             else:
-                parameters.append("const %s& %s" % (params.cpp_native_type, params.local_name))
+                parameters.append("const %s& %s" % (params.cpp_native_type_opt, params.local_name))
 
         elif params_type == "json":
             if params.properties and params.do_create:
@@ -284,7 +287,7 @@ def _EmitVersionCode(emit, version):
 def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     def _EmitHandlerInterface(listener_events):
-        assert(listener_events)
+        assert listener_events
 
         emit.Line("struct IHandler {")
         emit.Indent()
@@ -313,7 +316,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line()
 
     def _EmitEvents(events):
-        assert(events)
+        assert events
 
         emit.Line("namespace Event {")
         emit.Indent()
@@ -333,8 +336,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line("} // namespace Event")
         emit.Line()
 
-    def _EmitAlternativeEventsRegistration(alt_events, prologue = True):
-        assert(alt_events)
+    def _EmitAlternativeEventsRegistration(alt_events, prologue=True):
+        assert alt_events
 
         if prologue:
             emit.Line("// Register alternative notification names...")
@@ -466,14 +469,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             vars = OrderedDict()
 
             # Build param/response dictionaries (dictionaries will ensure they do not repeat)
-            if params and not params.is_void:
+            if params:
                 if isinstance(params, JsonObject) and params.do_create:
                     for param in params.properties:
                         vars[param.local_name] = [param, "r"]
                 else:
                     vars[params.local_name] = [params, "r"]
 
-            if response and not response.is_void:
+            if response:
                 if isinstance(response, JsonObject) and response.do_create:
                     for resp in response.properties:
                         if resp.local_name not in vars:
@@ -486,7 +489,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     else:
                         vars[response.local_name][1] += "w"
 
-            sorted_vars = sorted(vars.items(), key=lambda x: x[1][0].schema["position"])
+            sorted_vars = sorted(vars.items(), key=lambda x: x[1][0].schema["@position"])
 
             for _, [arg, _] in sorted_vars:
                 arg.flags = DottedDict()
@@ -500,11 +503,26 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     for name, [var, type] in sorted_vars:
                         if name == length_var_name:
                             if type == "w":
-                                raise RuntimeError("'%s': parameter pointed to by @length is output only" % arg.name)
+                                raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % arg.name)
                             else:
                                 var.flags.is_buffer_length = True
                                 arg.flags.length = var
                                 break
+
+            restrictions = Restrictions(test_set=True)
+            buffer_restrictions_used = False
+
+            if params:
+                restrictions.append(params, override=params.local_name)
+
+                if restrictions.present():
+                    emit.Line()
+                    emit.Line("if (%s) {" % restrictions.join())
+                    emit.Indent()
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("invalid_range")))
+                    emit.Unindent()
+                    emit.Line("} else {")
+                    emit.Indent()
 
             # Emit temporary variables and deserializing of JSON data
 
@@ -514,24 +532,26 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 is_readable = ("r" in arg_type)
                 is_writeable = ("w" in arg_type)
-                cv_qualifier = ("const " if not is_writeable else "")
+                cv_qualifier = ("const " if not is_writeable else "") # don't consider volatile
 
+                # Take care of POD aggregation
                 cpp_name = ((parent + arg.cpp_name) if parent else arg.local_name)
 
-                if arg.schema.get("ptr"):
+                if arg.schema.get("@bypointer"):
                     arg.flags.prefix = "&"
 
                 # Special case for C-style buffers
                 if isinstance(arg, JsonString) and arg.flags.length:
+                    assert not arg.optional
+
                     length = arg.flags.length
 
-                    tests = []
+                    buffer_restrictions = Restrictions(test_set=True, reverse=True, json=False)
 
                     for name, [var, var_type] in sorted_vars:
                         if name == length.local_name:
                             initializer = (parent + var.cpp_name) if "r" in var_type else ""
                             emit.Line("%s %s{%s};" % (var.cpp_native_type, var.temp_name, initializer))
-                            AppendTest(tests, length, reverse=True)
                             break
 
                     encode = arg.schema.get("encode")
@@ -540,20 +560,22 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         initializer = "%s.Value().data()" % cpp_name
                         emit.Line("const %s* %s{%s};" % (arg.original_type, arg.temp_name, initializer))
                     else:
-                        emit.Line("%s* %s = nullptr;" % (arg.original_type, arg.temp_name))
+                        emit.Line("%s* %s{nullptr};" % (arg.original_type, arg.temp_name))
                         emit.Line()
 
-                        if not tests:
-                            AppendTest(tests, arg, length, reverse=True)
-
-                        if len(tests) < 2:
-                            tests.insert(0, ("(%s != 0)" % length.temp_name))
-
-                        if len(tests) < 2:
-                            tests.append("(%s <= 0x400000)" % length.temp_name) # some sanity!
-
-                        emit.Line("if (%s) {" % " && ".join(tests))
+                        emit.Line("if (%s != 0) {" % length.temp_name)
                         emit.Indent()
+
+                        if not buffer_restrictions.present():
+                            buffer_restrictions.append(arg, relay=length, test_set=False)
+
+                        if not buffer_restrictions.present() and (length.size > 16):
+                            buffer_restrictions.extend("(%s <= 0x400000) /* sanity! */" % length.temp_name)
+
+                        if buffer_restrictions.present():
+                            buffer_restrictions_used = True
+                            emit.Line("if (%s) {" % buffer_restrictions.join())
+                            emit.Indent()
 
                         emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (arg.temp_name, arg.original_type, length.temp_name))
                         emit.Line("ASSERT(%s != nullptr);" % arg.temp_name)
@@ -564,12 +586,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         elif is_writeable:
                             emit.Line("::memcpy(%s, %s.Value().data(), %s);" % (arg.temp_name, cpp_name, length.temp_name))
 
-                    if is_writeable or encode:
+                    if buffer_restrictions.present():
                         emit.Unindent()
                         emit.Line("}")
                         emit.Line("else {")
                         emit.Indent()
-                        emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.temp_name)
+                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("invalid_range")))
+                        emit.Unindent()
+                        emit.Line("}")
+
+                    if is_writeable or encode:
                         emit.Unindent()
                         emit.Line("}")
 
@@ -577,31 +603,38 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 # Special case for iterators
                 elif isinstance(arg, JsonArray):
+                    if arg.optional:
+                        raise RPCEmitterError("OptionalType iterators are not supported, use @optional tag (see %s)" % arg.cpp_native_type_opt)
+
                     if arg.iterator:
+                        face_name = "_" + arg.items.local_name.capitalize() + "IteratorType"
+                        emit.Line("using %s = %s;" % (face_name, arg.iterator))
+
                         if not is_writeable:
+                            arg.flags.release = True
+
                             elements_name = arg.items.TempName("elements")
                             iterator_name = arg.items.TempName("iterator")
+                            impl_name = "_" + arg.items.local_name.capitalize() + "IteratorImplType"
 
                             emit.Line("std::list<%s> %s;" % (arg.items.cpp_native_type, elements_name))
                             emit.Line("auto %s = %s.Elements();" % (iterator_name, cpp_name))
                             emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (iterator_name, elements_name, iterator_name))
-                            emit.Line()
+                            impl = (arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % face_name))
+                            emit.Line("using %s = %s;" % (impl_name, impl))
+                            initializer = "Core::ServiceType<%s>::Create<%s>(std::move(%s))" % (impl_name, face_name, elements_name)
+                            emit.Line("%s* const %s{%s};" % (face_name, arg.temp_name, initializer))
+                            emit.Line("ASSERT(%s != nullptr); " % arg.temp_name)
 
-                            impl = (arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % arg.iterator))
-                            initializer = "Core::ServiceType<%s>::Create<%s>(%s)" % (impl, arg.iterator, elements_name)
-
-                            emit.Line("%s* const %s{%s};" % (arg.iterator, arg.temp_name, initializer))
-                            arg.flags.release = True
-
-                            if arg.schema.get("ref"):
-                                arg.flags.cast = "static_cast<%s* const&>(%s)" % (arg.iterator, arg.temp_name)
+                            if arg.schema.get("@byreference"):
+                                arg.flags.cast = "static_cast<%s* const&>(%s)" % (face_name, arg.temp_name)
 
                         elif not is_readable:
-                            emit.Line("%s%s* %s{};" % ("const " if arg.schema.get("ptrtoconst") else "", arg.iterator, arg.temp_name))
+                            emit.Line("%s%s* %s{};" % ("const " if arg.schema.get("@ptrtoconst") else "", face_name, arg.temp_name))
                         else:
-                            raise RuntimeError("Read/write arrays are not supported: %s" % arg.json_name)
+                            raise RPCEmitterError("Read/write arrays (iterators) are not supported (see %s)" % arg.arg.cpp_native_type_opt)
 
-                    elif arg.items.schema.get("bitmask"):
+                    elif arg.items.schema.get("@bitmask"):
                         initializer = cpp_name if is_readable else ""
                         emit.Line("%s%s %s{%s};" % (cv_qualifier, arg.items.cpp_native_type, arg.temp_name, initializer))
 
@@ -615,7 +648,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type, arg.temp_name, initializer))
 
                     else:
-                        raise RuntimeError("Arrays need to be iterators: %s" % arg.json_name)
+                        raise RPCEmitterError("Arrays must be iterators: %s" % arg.json_name)
 
                 # All Other
                 else:
@@ -629,29 +662,25 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     else:
                         initializer = (("(%s)" if isinstance(arg, JsonObject) else "{%s}") % cpp_name) if is_readable and not arg.convert else "{}"
 
-                    emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type, arg.temp_name, initializer))
+                    if arg.optional and is_readable:
+                        # Have to go through assignment...
+                        emit.Line("%s %s{};" % (arg.cpp_native_type_opt, arg.temp_name))
+                        emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
+                        emit.Indent()
+                        emit.Line("%s = %s;" % (arg.temp_name, cpp_name))
+                        emit.Unindent()
+                        emit.Line("}")
+                        emit.Line()
+                    else:
+                        emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type_opt, arg.temp_name, initializer))
 
                     if arg.convert and is_readable:
                         emit.Line((arg.convert + ";") % (arg.temp_name, cpp_name))
 
-            tests = []
-
-            for _, [arg, arg_type] in sorted_vars:
-                if arg.flags.is_buffer_length:
-                    continue
-
-                AppendTest(tests, arg)
-
-            if tests:
+            if buffer_restrictions_used:
                 emit.Line()
-                emit.Line("if (%s) {" % (" || ".join(tests)))
-
+                emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
                 emit.Indent()
-                emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.temp_name)
-                emit.Unindent()
-                emit.Line("}")
-
-            emit.Line()
 
             # Emit call to the implementation
             if not is_json_source: # Full automatic mode
@@ -667,20 +696,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (%s != nullptr) {" % impl)
                     emit.Indent()
 
-                conditions = []
+                iterator_conditions = []
 
                 for _, [arg, _] in sorted_vars:
                     if arg.flags.release:
-                        conditions.append("(%s != nullptr)" % arg.temp_name)
+                        iterator_conditions.append("(%s != nullptr)" % arg.temp_name)
 
-                        if len(conditions) == 1:
+                        if len(iterator_conditions) == 1:
                             emit.Line()
 
-                        emit.Line("ASSERT(%s != nullptr); " % arg.temp_name)
-
-                if conditions:
+                if iterator_conditions:
                     emit.Line()
-                    emit.Line("if (%s) {" % " && ".join(conditions))
+                    emit.Line("if (%s) {" % " && ".join(iterator_conditions))
                     emit.Indent()
 
                 implementation_object = "(static_cast<const %s*>(%s))" % (interface, impl) if const_cast and not lookup else impl
@@ -695,20 +722,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 for _, [arg, _] in sorted_vars:
                     function_params.append("%s%s" % (arg.flags.prefix, (arg.flags.cast if arg.flags.cast else arg.temp_name)))
 
-                if not conditions:
-                    emit.Line()
-
-                if tests:
-                    emit.Line("if (%s == Core::ERROR_NONE) {" % error_code.temp_name)
-                    emit.Indent()
-
                 emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, m.cpp_name, ", ".join(function_params)))
 
-                if tests:
-                    emit.Unindent()
-                    emit.Line("}")
-
-                if conditions:
+                if iterator_conditions:
                     for _, _record in sorted_vars:
                         arg = _record[0]
                         if arg.flags.release:
@@ -717,7 +733,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Unindent()
                     emit.Line("} else {")
                     emit.Indent()
-                    emit.Line("%s = Core::ERROR_GENERAL;" % error_code.temp_name)
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("general")))
                     emit.Unindent()
                     emit.Line("}")
 
@@ -727,7 +743,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("}")
                     emit.Line("else {")
                     emit.Indent()
-                    emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.temp_name)
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
                     emit.Unindent()
                     emit.Line("}")
 
@@ -754,14 +770,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 for _, [ arg, type ] in sorted_vars:
                     parameters.append("%s%s& %s" % ("const " if type == "r" else "", arg.cpp_type, arg.local_name))
 
-                prototypes.append(["uint32_t %s(%s)%s" % (m.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(m, JsonProperty) and m.readonly)) else "")), "Core::ERROR_NONE"])
+                prototypes.append(["uint32_t %s(%s)%s" % (m.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(m, JsonProperty) and m.readonly)) else "")), CoreError("none")])
+
+            if buffer_restrictions_used:
+                emit.Unindent()
+                emit.Line("}")
 
             emit.Line()
 
             # Emit result handling and serialization to JSON data
 
-            if response and not response.is_void and not is_json_source:
-                emit.Line("if (%s == Core::ERROR_NONE) {" % error_code.temp_name)
+            if response and not is_json_source:
+                emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
                 emit.Indent()
 
                 for _, [arg, arg_type] in sorted_vars:
@@ -800,18 +820,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("%s %s{};" % (arg.items.cpp_native_type, item_name))
                             emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (arg.temp_name, item_name, cpp_name, item_name))
 
-                            if arg.schema.get("extract"):
+                            if arg.schema.get("@extract"):
                                 emit.Line("%s.SetExtractOnSingle(true);" % (cpp_name))
 
                             emit.Line("%s->Release();" % arg.temp_name)
                             emit.Unindent()
                             emit.Line("}")
 
-                        elif arg.items.schema.get("bitmask"):
+                        elif arg.items.schema.get("@bitmask"):
                             emit.Line("%s = %s;" % (cpp_name, arg.temp_name))
 
                         else:
-                            raise RuntimeError("unable to serialize a non-iterator array: %s" % arg.json_name)
+                            raise RPCEmitterError("unable to serialize a non-iterator array: %s" % arg.json_name)
 
                     # All others...
                     else:
@@ -820,6 +840,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if arg.schema.get("opaque"):
                             emit.Line("%s.SetQuoted(false);" % (cpp_name))
 
+                emit.Unindent()
+                emit.Line("}")
+
+            if restrictions.present():
                 emit.Unindent()
                 emit.Line("}")
 
@@ -903,11 +927,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         response_parent = ((response.local_name + '.') if (isinstance(response, JsonObject) and response.do_create) else "")
 
         error_code = AuxJsonInteger("errorCode_", 32)
-        emit.Line("%s %s = Core::ERROR_NONE;" % (error_code.cpp_native_type, error_code.temp_name))
+        emit.Line("%s %s = %s;" % (error_code.cpp_native_type, error_code.temp_name, CoreError("none")))
         emit.Line()
 
         if not is_property:
-            _Invoke(params, response, params_parent, response_parent)
+            _Invoke((params if not params.is_void else None), (response if not response.is_void else None), params_parent, response_parent)
         else:
             is_read_only = m.readonly
             is_write_only = m.writeonly
@@ -924,7 +948,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (index_name, index_name, index_name_converted))
                     emit.Indent()
 
-                    emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.temp_name)
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
 
                     if is_read_write:
                         emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
@@ -945,7 +969,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (%s.IsSet() == false) {" % index_name_converted)
                     emit.Indent()
 
-                    emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.temp_name)
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
 
                     if is_read_write:
                         emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
@@ -956,15 +980,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     index_name = index_name_converted
 
-                elif not m.index.schema.get("optional"):
+                elif not IsObjectOptional(m.index):
                     # Ensure the not-optional index is not empty
-                    assert(isinstance(m.index, JsonString))
+                    assert isinstance(m.index, JsonString)
                     optional_checked = True
 
                     emit.Line("if (%s.empty() == true) {" % index_name)
                     emit.Indent()
 
-                    emit.Line("%s = Core::ERROR_UNKNOWN_KEY;" % error_code.temp_name)
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
 
                     if is_read_write:
                         emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
@@ -982,6 +1006,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("// read-only property get")
 
             if not is_write_only:
+                assert not response.is_void
                 _Invoke(None, response, params_parent, response_parent, const_cast=is_read_write)
 
             if not is_read_only:
@@ -993,6 +1018,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 else:
                     emit.Line("// write-only property set")
 
+                assert not params.is_void
                 _Invoke(params, None, params_parent, response_parent)
 
                 if is_read_write:
@@ -1005,7 +1031,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Unindent()
                 emit.Line("}")
 
-            emit.Line()
+        emit.Line()
 
         # Emit method epilogue
 

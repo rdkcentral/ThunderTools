@@ -631,6 +631,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 return self.value if self.value else self.name
 
             @property
+            def as_prvalue(self):
+                return self.as_rvalue
+
+            @property
             def storage_size(self):
                 if isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "sizeof(%s)" % self.type_name
@@ -638,7 +642,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     Unreachable()
 
         class EmitIdentifier():
-            def __init__(self, index, interface, identifier, override_name=None, suppress_type=False):
+            def __init__(self, index, interface, identifier, override_name=None, suppress_type=False, suffix=""):
 
                 def _FindLength(length_name, variable_name):
                     if length_name:
@@ -693,7 +697,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 if not isinstance(identifier.type, CppParser.Type):
                     undefined = CppParser.Type(CppParser.Undefined(identifier.type))
-                    if not identifier.parent.stub and not identifier.parent.omit:
+                    if identifier.parent and (not identifier.parent.stub and not identifier.parent.omit):
                         raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type)), ns))
                     else:
                         type_ = undefined
@@ -706,6 +710,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 is_return_value = (override_name == "result")
 
                 self.is_on_wire = True
+                self.suffix = suffix
                 self.identifier = identifier
                 self.identifier_type = type_
                 self.identifier_kind = self.identifier_type.Type()
@@ -713,6 +718,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.is_input = ((identifier.meta.input or not self.is_output) and not is_return_value)
                 self.is_input_only = not identifier.meta.output
                 self.is_output_only = (identifier.meta.output and not identifier.meta.input)
+                self.interface = interface
 
                 # Declare input parameters 'const' even if 'const' is not on the original signature
                 self.is_const = not identifier.meta.output
@@ -976,21 +982,32 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if isinstance(self.kind, CppParser.Fundamental) and self.type.IsReference() and self.is_input_only:
                     log.WarnLine(self.identifier, "%s: input-only fundamental type passed by reference" % self.trace_proto)
 
+                if isinstance(self.kind, CppParser.Optional):
+                    self.optional = EmitIdentifier(0, self.interface, self.kind.optional, self.as_prvalue, suffix=".Value()")
+                    self.optional.restrict_range = self.restrict_range
+                else:
+                    self.optional = None
+
+
+            def __maybe_const_cast(self, expr):
+                if not self.value and self.type.IsReference():
+                    if self.proxy and self.type.IsConstPointer():
+                        return "static_cast<%s%s* const&>(%s)" % (("const " if self.type.IsPointerToConst() else ""), self.type_name, expr)
+                    elif self.identifier_type.IsConst():
+                        return "static_cast<const %s&>(%s)" % (self.type_name, expr)
+                return expr
+
             @property
             def as_rvalue(self):
-                def maybe_cast(expr):
-                    if not self.value and self.type.IsReference():
-                        if self.proxy and self.type.IsConstPointer():
-                            return "static_cast<%s%s* const&>(%s)" % (("const " if self.type.IsPointerToConst() else ""), self.type_name, expr)
-                        elif self.identifier_type.IsConst():
-                            return "static_cast<const %s&>(%s)" % (self.type_name, expr)
-                    return expr
+                return self.__maybe_const_cast(self.value if self.value else self.as_in_prototype)
 
-                return maybe_cast(self.value if self.value else self.as_in_prototype)
+            @property
+            def as_prvalue(self):
+                return (self.value if self.value else self.as_in_prototype)
 
             @property
             def as_in_prototype(self):
-                return self.proxy_instance if self.proxy_instance else self.name
+                return (self.proxy_instance if self.proxy_instance else (self.name + self.suffix))
 
             @property
             def as_lvalue(self):
@@ -1038,6 +1055,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         return "Number<%s>()" % self.type_name
                     else:
                         raise TypenameError(self.identifier, "long double type is not supported (see '%s')" % (self.trace_proto))
+
+                elif isinstance(self.kind, CppParser.Optional):
+                    assert False, "no RPC type for optional"
+
                 else:
                     raise TypenameError(self.identifier, "%s: unable to deserialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
@@ -1071,6 +1092,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     else:
                         raise TypenameError(self.identifier, "long double is not supported (see '%s')" % (self.trace_proto))
 
+                elif isinstance(self.kind, CppParser.Optional):
+                    assert False, "no RPC type for optional"
+
                 else:
                     raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
@@ -1088,7 +1112,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
-                    return 1 # always one byte
+                    return "1" # always one byte
+                elif isinstance(self.kind, CppParser.Optional):
+                    assert self.optional
+                    return "1"
                 else:
                     Unreachable()
 
@@ -1099,8 +1126,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 return str(self.type)
 
         class EmitParam(EmitIdentifier):
-            def __init__(self, interface, identifier, name=None, suppress_type=False, index=-1):
-                EmitIdentifier.__init__(self, index, interface, identifier, name, suppress_type)
+            def __init__(self, interface, identifier, name=None, suppress_type=False, index=-1, suffix=""):
+                EmitIdentifier.__init__(self, index, interface, identifier, name, suppress_type, suffix)
 
         class EmitRetVal(EmitIdentifier):
             def __init__(self, interface, identifier, name="_result", suppress_type=False):
@@ -1204,13 +1231,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
         def CheckFrame(p, by_parameter=False):
             if ENABLE_INTEGRITY_VERIFICATION:
-                emit.Line()
                 emit.Line("if (%s.Length() < (%s)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % \
                             (vars["reader"], (p.as_rvalue if by_parameter else p.storage_size)))
 
         def CheckRange(p, val):
             if p.restrict_range:
-                cmp = val if isinstance(val, str) else val.as_rvalue
+                cmp = val if isinstance(val, str) else val.as_prvalue
 
                 emit.Line("ASSERT((%s >= %s) && (%s <= %s));"% \
                                 (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
@@ -1249,17 +1275,41 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             def ReadParameter(p):
                 assert(p)
                 assert(p.is_on_wire)
-                if p.is_compound:
-                    kind = p.kind.Merge()
+
+                if p.optional:
                     if not p.suppress_type:
                         emit.Line("%s{};" % p.as_temporary_no_cv)
 
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
+                    CheckFrame(p)
+                    emit.Line("if (%s.Boolean() == true) {" % vars["reader"])
+                    emit.IndentInc()
+
+                    pr = p.optional
+                else:
+                    pr = p
+
+                    if not p.suppress_type and p.is_compound:
+                        emit.Line("%s{};" % p.as_temporary_no_cv)
+
+                if pr.is_compound:
+                    kind = pr.kind.Merge()
+
+                    pname = pr.name
+
+                    if p.optional:
+                        pname = p.name.replace(".", "_") + "_temp";
+                        emit.Line("%s %s{};" % (pr.type_name, pname))
+
+                    params = [EmitParam(interface, v, (pname + "." + v.name), suppress_type=True) for v in kind.vars]
 
                     for pp in params:
                         ReadParameter(pp)
 
+                    if p.optional:
+                        emit.Line("%s = std::move(%s);" % (p.name, pname))
+
                 elif p.is_buffer:
+                    assert not p.optional
                     CheckFrame(p)
                     CheckSize(p)
                     emit.Line("%s{};" % p.as_temporary_no_cv)
@@ -1267,15 +1317,25 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.as_temporary, vars["reader"], p.length.type_name, buffer_param))
                     emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
 
-                elif p.is_string:
-                    CheckFrame(p)
-                    CheckSize(p)
-                    emit.Line("%s = %s.%s;" % (p.as_temporary, vars["reader"], p.read_rpc_type))
-
                 else:
-                    CheckFrame(p)
-                    emit.Line("%s = %s.%s;" % (p.as_temporary, vars["reader"], p.read_rpc_type))
-                    CheckRange(p, p)
+                    if p.optional:
+                        param_ = "%s = %s.%s;" % (p.as_lvalue, vars["reader"], pr.read_rpc_type)
+                    else:
+                        param_ = "%s = %s.%s;" % (pr.as_temporary, vars["reader"], pr.read_rpc_type)
+
+                    if pr.is_string:
+                        CheckFrame(pr)
+                        CheckSize(pr)
+                        emit.Line(param_)
+
+                    else:
+                        CheckFrame(pr)
+                        emit.Line(param_)
+                        CheckRange(pr, pr)
+
+                if p.optional:
+                    emit.IndentDec()
+                    emit.Line("}")
 
             def TemporaryParameter(p):
                 assert(p)
@@ -1390,13 +1450,25 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             def WriteParameter(p):
                 assert(p)
                 if p.is_on_wire:
-                    if p.is_compound:
-                        kind = p.kind.Merge()
-                        params = [EmitParam(interface, v, (p.name + "." + v.name)) for v in kind.vars]
+                    if p.optional:
+                        emit.Line("%s.Boolean(%s.IsSet());" % ( vars["writer"], p.name))
+                        emit.Line("if (%s.IsSet() == true) {" % p.name)
+                        emit.IndentInc()
+                        pr = p.optional
+                    else:
+                        pr = p
+
+                    if pr.is_compound:
+                        kind = pr.kind.Merge()
+                        params = [EmitParam(interface, v, (pr.as_rvalue + "." + v.name)) for v in kind.vars]
                         for pp in params:
                             WriteParameter(pp)
                     else:
-                        emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
+                        emit.Line("%s.%s;" % (vars["writer"], pr.write_rpc_type))
+
+                    if p.optional:
+                        emit.IndentDec()
+                        emit.Line("}")
 
             def AcquireInterface(p):
                 assert(p)
@@ -1589,7 +1661,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             EmitFunctionOrder(methods)
             emit.Line()
 
-            emit.Line("ProxyStub::MethodHandler %s[] = {" % stub_methods_name)
+            emit.Line("static ProxyStub::MethodHandler %s[] = {" % stub_methods_name)
             emit.IndentInc()
 
             for index, method in enumerate(methods):
@@ -1667,29 +1739,62 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             def WriteParameter(p):
                 assert(p)
                 assert(p.is_on_wire)
-                if p.is_compound:
-                    kind = p.kind.Merge()
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
+
+                if p.optional:
+                    emit.Line("%s.Boolean(%s.IsSet());" % (vars["writer"], p.name))
+                    emit.Line("if (%s.IsSet() == true) {" % p.name)
+                    emit.IndentInc()
+                    pr = p.optional
+                else:
+                    pr = p
+
+                if pr.is_compound:
+                    kind = pr.kind.Merge()
+                    params = [EmitParam(interface, v, (pr.as_rvalue + "." + v.name), suppress_type=True) for v in kind.vars]
 
                     for pp in params:
                         WriteParameter(pp)
                 else:
-                    emit.Line("writer.%s;" % p.write_rpc_type)
+                    emit.Line("%s.%s;" % (vars["writer"], pr.write_rpc_type))
+
+                if p.optional:
+                    emit.IndentDec()
+                    emit.Line("}")
 
             def ReadParameter(p):
                 assert(p)
+
                 if p.is_on_wire:
-                    if p.is_compound:
-                        kind = p.kind.Merge()
-                        params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
+                    if p.optional:
+                        CheckFrame(p)
+                        emit.Line("if (%s.Boolean() == true) {" % vars["reader"])
+                        emit.IndentInc()
+                        pr = p.optional
+                    else:
+                        pr = p
+
+                    if pr.is_compound:
+                        if p.optional:
+                            pname = pr.name.replace(".", "_") + "_temp";
+                            emit.Line("%s %s{};" % (pr.type_name, pname))
+                        else:
+                            pname = p.name
+
+                        kind = pr.kind.Merge()
+                        params = [EmitParam(interface, v, (pname + "." + v.name), suppress_type=True) for v in kind.vars]
                         for pp in params:
                             ReadParameter(pp)
 
+                        if p.optional:
+                            emit.Line("%s = std::move(%s);" % (p.name, pname))
+
                     elif p.return_proxy:
+                        assert not p.optional
                         emit.Line("%s = reinterpret_cast<%s>(Interface(%s.%s, %s));" % \
                                 (p.as_lvalue, p.proto_no_cv, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
 
                     elif p.is_buffer:
+                        assert not p.optional
                         CheckFrame(p)
                         CheckSize(p)
 
@@ -1699,15 +1804,22 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             # No one's interested in the return length, perhaps it's sent via method's return value
                             emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
 
-                    elif p.is_string:
-                        CheckFrame(p)
-                        CheckSize(p)
-                        emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
-
                     else:
-                        CheckFrame(p)
-                        emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
-                        CheckRange(p, p)
+                        param_ = "%s = %s.%s;" % (p.as_lvalue, vars["reader"], pr.read_rpc_type)
+
+                        if pr.is_string:
+                            CheckFrame(pr)
+                            CheckSize(pr)
+                            emit.Line(param_)
+
+                        else:
+                            CheckFrame(pr)
+                            emit.Line(param_)
+                            CheckRange(pr, pr)
+
+                    if p.optional:
+                        emit.IndentDec()
+                        emit.Line("}")
 
             if input_params:
                 emit.Line("RPC::Data::Frame::Writer %s(%s->Parameters().Writer());" % (vars["writer"], vars["message"]))
@@ -1751,6 +1863,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if retval:
                 if reuse_hresult:
+                    assert not retval.optional
                     CheckFrame(retval)
                     emit.Line("%s = %s.%s;" % (hresult.as_lvalue, vars["reader"], retval.read_rpc_type))
                     CheckRange(retval, retval)
@@ -1790,7 +1903,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 emit.IndentDec()
                 emit.Line("} else {")
                 emit.IndentInc()
-                emit.Line("%s |= COM_ERROR;" % hresult.as_rvalue)
+                emit.Line("ASSERT((%s & COM_ERROR) != 0);" % hresult.as_rvalue)
+                # emit.Line("%s |= COM_ERROR;" % hresult.as_rvalue)
                 emit.IndentDec()
                 emit.Line("}")
 

@@ -102,7 +102,7 @@ def Create(log, schema, path, indent_size = 4):
                 enum = ""
                 if "enum" in obj and "ids" in obj:
                     enums = []
-                    endmarker = obj.get("endmarker")
+                    endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
                             break;
@@ -170,7 +170,7 @@ def Create(log, schema, path, indent_size = 4):
                         else:
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
-                    if obj.get("extract"):
+                    if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
                     MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
