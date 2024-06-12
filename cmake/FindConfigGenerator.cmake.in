@@ -18,7 +18,7 @@
 # limitations under the License.
 
 if(NOT PYTHON_EXECUTABLE)
-    find_package(PythonInterp 3.5 REQUIRED QUIET)
+    find_package(Python3 3.5 REQUIRED QUIET)
 endif()
 
 if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
@@ -45,7 +45,7 @@ endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
 #                the latest cmake project call.
 #    LOCATOR     Version of the package, defaults to lib + MODULE_NAME + CMAKE_SHARED_LIBRARY_SUFFIX
 #                of the latest cmake project call.
-#    COMPONENT   The cmake component group defaults to PROJECT_NAME
+#    COMPONENT   The cmake component group defaults to  ${NAMESPACE}_Runtime
 #    INSTALL_PATH Overrule the default instalation location. 
 #    INSTALL_NAME Overrule the default file name
 # ----------------------------------------------------------------------------------------
@@ -113,7 +113,7 @@ function(write_config)
     if(ARG_COMPONENT)
         set(_component ${ARG_COMPONENT})
     else()
-        set(_component ${PROJECT_NAME})
+        set(_component  COMPONENT ${NAMESPACE}_Runtime)
     endif()
     endif()
 
