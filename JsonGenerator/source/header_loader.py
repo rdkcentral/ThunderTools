@@ -50,7 +50,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
 
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, ["::%s::Core::IUnknown" % config.FRAMEWORK_NAMESPACE]) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if (i.obj.is_json or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
