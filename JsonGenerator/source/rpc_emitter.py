@@ -100,14 +100,30 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
             emit.Line("%s %s;" % (params.cpp_type, names.params))
 
             if params.properties and params.do_create:
-                for p in event.params.properties:
+                for p in params.properties:
+                    if p.optional and (params_type == "native"):
+                        emit.Line("if (%s.IsSet() == true) {" % (p.local_name))
+                        emit.Indent()
+
                     emit.Line("%s.%s = %s;" % (names.params, p.cpp_name, p.local_name))
                     if p.schema.get("opaque"):
                         emit.Line("%s.%s.SetQuoted(false);" % (names.params, p.cpp_name))
+
+                    if p.optional and (params_type == "native"):
+                        emit.Unindent()
+                        emit.Line("}")
             else:
-                emit.Line("%s = %s;" % (names.params, event.params.local_name))
+                if params.optional and (params_type == "native"):
+                    emit.Line("if (%s.IsSet() == true) {" % (params.local_name))
+                    emit.Indent()
+
+                emit.Line("%s = %s;" % (names.params, params.local_name))
                 if params.schema.get("opaque"):
                     emit.Line("%s.SetQuoted(false);" % names.params)
+
+                if params.optional and (params_type == "native"):
+                    emit.Unindent()
+                    emit.Line("}")
 
             emit.Line()
 
