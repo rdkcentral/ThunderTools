@@ -1092,22 +1092,21 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     # Return collected signatures, so the emited file can be prepended with
     return prototypes
 
+def __Namespace(root):
+    return (root.schema["namespace"] if "namespace" in root.schema else "::%s::Exchange" % config.FRAMEWORK_NAMESPACE)
+
 def EmitRpcCode(root, emit, header_file, source_file, data_emitted):
-
-    namespace = (root.schema["namespace"] if "namespace" in root.schema else "::Thunder::Exchange")
-
-    prototypes = _EmitRpcCode(root, emit, namespace, header_file, source_file, data_emitted)
+    _namespace = __Namespace(root)
+    prototypes = _EmitRpcCode(root, emit, _namespace, header_file, source_file, data_emitted)
 
     with emitter.Emitter(None, config.INDENT_SIZE) as prototypes_emitter:
-        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, namespace, data_emitted, prototypes)
+        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, _namespace, data_emitted, prototypes)
         emit.Prepend(prototypes_emitter)
 
-    _EmitRpcEpilogue(root, emit, namespace)
+    _EmitRpcEpilogue(root, emit, _namespace)
 
 def EmitRpcVersionCode(root, emit, header_file, source_file, data_emitted):
-
-    namespace = (root.schema["namespace"] if "namespace" in root.schema else "::Thunder::Exchange")
-
-    _EmitRpcPrologue(root, emit, header_file, source_file, namespace, data_emitted)
+    _namespace = __Namespace(root)
+    _EmitRpcPrologue(root, emit, header_file, source_file, _namespace, data_emitted)
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
-    _EmitRpcEpilogue(root, emit, namespace)
+    _EmitRpcEpilogue(root, emit, _namespace)

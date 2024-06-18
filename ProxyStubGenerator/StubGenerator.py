@@ -27,9 +27,9 @@ import os
 import argparse
 import copy
 import glob
-import CppParser
 from collections import OrderedDict
 import Log
+import CppParser
 
 NAME = "ProxyStubGenerator"
 
@@ -43,9 +43,10 @@ FORCE = False
 # static configuration
 EMIT_COMMENT_WITH_PROTOTYPE = True
 EMIT_COMMENT_WITH_STUB_ORDER = True
-STUB_NAMESPACE = "::Thunder::ProxyStubs"
-INTERFACE_NAMESPACES = ["::Thunder"]
-CLASS_IUNKNOWN = "::Thunder::Core::IUnknown"
+FRAMEWORK_NAMESPACE = "Thunder"
+STUB_NAMESPACE = "::%s::ProxyStubs" % FRAMEWORK_NAMESPACE
+INTERFACE_NAMESPACES = ["::%s" % FRAMEWORK_NAMESPACE]
+CLASS_IUNKNOWN = "::%s::Core::IUnknown" % FRAMEWORK_NAMESPACE
 PROXYSTUB_CPP_NAME = "ProxyStubs_%s.cpp"
 
 ENABLE_CUSTOM_ALLOCATOR = False
@@ -518,7 +519,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
         emit.Line("}")
         emit.Line()
 
-def Parse(source_file, includePaths = [], defaults = "", extra_includes = []):
+def Parse(source_file, framework_namespace, includePaths = [], defaults = "", extra_includes = []):
 
     log.Info("Parsing %s..." % source_file)
 
@@ -530,7 +531,7 @@ def Parse(source_file, includePaths = [], defaults = "", extra_includes = []):
     files.extend(extra_includes)
     files.append(source_file)
 
-    tree = CppParser.ParseFiles(files, includePaths, log)
+    tree = CppParser.ParseFiles(files, framework_namespace, includePaths, log)
     if not isinstance(tree, CppParser.Namespace):
         raise SkipFileError(source_file)
 
@@ -2162,6 +2163,12 @@ if __name__ == "__main__":
                            action="append",
                            default=[],
                            help="set a namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACES[0])
+    argparser.add_argument("--framework-namespace",
+                           dest="framework_namespace",
+                           metavar="NS",
+                           action="store",
+                           default=FRAMEWORK_NAMESPACE,
+                           help="set framework namespace (default: %s)" % FRAMEWORK_NAMESPACE)
     argparser.add_argument("--outdir",
                            dest="outdir",
                            metavar="DIR",
@@ -2211,6 +2218,12 @@ if __name__ == "__main__":
     EMIT_TRACES = args.traces
     scan_only = False
     keep_incomplete = args.keep_incomplete
+
+    if args.framework_namespace:
+        FRAMEWORK_NAMESPACE = args.framework_namespace
+        STUB_NAMESPACE = "::%s::ProxyStubs" % FRAMEWORK_NAMESPACE
+        INTERFACE_NAMESPACES = ["::%s" % FRAMEWORK_NAMESPACE]
+        CLASS_IUNKNOWN = "::%s::Core::IUnknown" % FRAMEWORK_NAMESPACE
 
     if args.if_namespaces:
         INTERFACE_NAMESPACES = args.if_namespaces
@@ -2332,7 +2345,7 @@ if __name__ == "__main__":
                     _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), IDS_DEFINITIONS_FILE) ]
                     _extra_includes.extend(args.extra_includes)
 
-                    tree = Parse(source_file, args.includePaths,
+                    tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths,
                                     os.path.join("@" + os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE),
                                     _extra_includes)
 

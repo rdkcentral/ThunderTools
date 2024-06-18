@@ -50,7 +50,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
 
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, ["::%s::Core::IUnknown" % config.FRAMEWORK_NAMESPACE]) if (i.obj.is_json or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
@@ -310,7 +310,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                         return "object", { "properties": properties, "required": required }
 
-                    if cppType.full_name == "::Thunder::Core::JSONRPC::Context":
+                    if cppType.full_name == "::%s::Core::JSONRPC::Context" % config.FRAMEWORK_NAMESPACE:
                         result = "@context", {}
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
@@ -934,7 +934,7 @@ def LoadInterface(file, log, all = False, include_paths = []):
         includes = []
 
         tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], include_paths, log)
+                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], config.FRAMEWORK_NAMESPACE, include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, all, include_paths)

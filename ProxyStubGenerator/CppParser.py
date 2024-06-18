@@ -2500,14 +2500,15 @@ def ParseFile(source_file, includePaths = []):
     return Parse(contents)
 
 
-def ParseFiles(source_files, includePaths = [], log = None):
+def ParseFiles(source_files, framework_namespace, includePaths = [], log = None):
     contents = ""
     for source_file in source_files:
         if source_file:
             quiet = (source_file[0] == "@")
             contents += ReadFile((source_file[1:] if quiet else source_file), includePaths, quiet, "")
+            contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
-    return Parse(contents,log)
+    return Parse(contents, log)
 
 
 # -------------------------------------------------------------------------
@@ -2547,7 +2548,7 @@ def DumpTree(tree, ind=0):
 # entry point
 
 if __name__ == "__main__":
-    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], sys.argv[2:], Log.Log("debug", True, True))
+    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], "Thunder", sys.argv[2:], Log.Log("debug", True, True))
     if isinstance(tree, Namespace):
         DumpTree(tree)
     else:
