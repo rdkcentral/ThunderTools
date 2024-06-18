@@ -1,4 +1,4 @@
-# If not stated otherwise in this file or this component's LICENSE file the
+# If not stated otherwise in this file or this component's LICENSE file the 
 # following copyright and licenses apply:
 #
 # Copyright 2020 Metrological
@@ -15,14 +15,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-cmake_minimum_required(VERSION 3.3)
-
-include(GNUInstallDirs)
+cmake_minimum_required(VERSION 3.15)
 
 project(Generators)
 
+include(GNUInstallDirs)
+
 if (NOT DEFINED GENERATOR_INSTALL_PATH)
-    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBIN}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
+    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBINDIR}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
 endif()
 
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
@@ -32,7 +32,7 @@ if(NOT DEFINED GENERIC_CMAKE_MODULE_PATH)
     if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../src/bridge")
         set(NAMESPACE bridge)
     else()
-        set(NAMESPACE WPEFramework)
+        set(NAMESPACE Thunder)
     endif()
     if(DEFINED ENV{STAGING_DIR})
         set(GENERIC_CMAKE_MODULE_PATH "$ENV{STAGING_DIR}/usr/${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}/Modules")
@@ -56,23 +56,23 @@ configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindConfigGenerator.cmake.in"
                 @ONLY
 )
 
-
-
 install(FILES 
         "${CMAKE_CURRENT_BINARY_DIR}/FindProxyStubGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    COMPONENT ${NAMESPACE}_Development
 )
 
 install(FILES 
         "${CMAKE_CURRENT_BINARY_DIR}/FindJsonGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    COMPONENT ${NAMESPACE}_Development
 )
 
 install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
+        "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
     DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    COMPONENT ${NAMESPACE}_Development
 )
-
 
 install(DIRECTORY 
         "${CMAKE_CURRENT_SOURCE_DIR}/ProxyStubGenerator"
@@ -80,4 +80,5 @@ install(DIRECTORY
         "${CMAKE_CURRENT_SOURCE_DIR}/ConfigGenerator"
     DESTINATION ${GENERATOR_INSTALL_PATH}
     FILE_PERMISSIONS OWNER_READ OWNER_WRITE OWNER_EXECUTE GROUP_READ GROUP_EXECUTE WORLD_READ WORLD_EXECUTE
+    COMPONENT ${NAMESPACE}_Runtime
 )

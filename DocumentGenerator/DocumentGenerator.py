@@ -271,7 +271,7 @@ class DocumentGenerator():
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
 |[ThunderInterfaces](" + THUNDER_INTERFACE_REPO_URL + ')|' + self.thunder_interfaces_commit_id + '|' + self.thunder_interfaces_commit_date + " GMT|\n\n"
-        index_file_contents_plugins = '''## WPEFramework-plugins documentation
+        index_file_contents_plugins = '''## Thunder-plugins documentation
 This section contains the documentation created from plugins\n\n
 | Repo | Commit-Id | Commit-Date |
 | :--- | :-------- | :---------- |

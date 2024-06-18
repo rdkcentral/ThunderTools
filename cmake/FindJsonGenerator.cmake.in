@@ -16,7 +16,7 @@
 # limitations under the License.
 
 if(NOT PYTHON_EXECUTABLE)
-    find_package(PythonInterp 3.5 REQUIRED QUIET)
+    find_package(Python3 3.5 REQUIRED QUIET)
 endif()
 
 set(JSON_GENERATOR "@GENERATOR_INSTALL_PATH@/JsonGenerator/JsonGenerator.py")
@@ -174,10 +174,10 @@ function(DocGenerator)
     cmake_parse_arguments(Argument "" "${oneValueArgs}" "" ${ARGN})
     set(PLUGIN_NAME ${Argument_NAME})
 
-    set(WPEFRAMEWORK_IFDIR_PATH ${CMAKE_SYSROOT}${CMAKE_INSTALL_PREFIX}/include/${NAMESPACE})
-    set(CPPIFDIR_PATH ${WPEFRAMEWORK_IFDIR_PATH}/interfaces)
-    set(IFDIR_PATH ${WPEFRAMEWORK_IFDIR_PATH}/interfaces/jsonrpc)
-    JsonGenerator(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/${PLUGIN_NAME}Plugin.json DOCS OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/doc" INCLUDE_PATH ${WPEFRAMEWORK_IFDIR_PATH} CPPIFDIR ${CPPIFDIR_PATH} IFDIR ${IFDIR_PATH})
+    set(THUNDER_IFDIR_PATH ${CMAKE_SYSROOT}${CMAKE_INSTALL_PREFIX}/include/${NAMESPACE})
+    set(CPPIFDIR_PATH ${THUNDER_IFDIR_PATH}/interfaces)
+    set(IFDIR_PATH ${THUNDER_IFDIR_PATH}/interfaces/jsonrpc)
+    JsonGenerator(INPUT ${CMAKE_CURRENT_SOURCE_DIR}/${PLUGIN_NAME}Plugin.json DOCS OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/doc" INCLUDE_PATH ${THUNDER_IFDIR_PATH} CPPIFDIR ${CPPIFDIR_PATH} IFDIR ${IFDIR_PATH})
 
-    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/doc/${PLUGIN_NAME}Plugin.md DESTINATION "${CMAKE_INSTALL_PREFIX}/share/doc")
+    install(FILES ${CMAKE_CURRENT_BINARY_DIR}/doc/${PLUGIN_NAME}Plugin.md DESTINATION "${CMAKE_INSTALL_PREFIX}/share/doc" COMPONENT ${NAMESPACE}_Documentation)
 endfunction(DocGenerator)

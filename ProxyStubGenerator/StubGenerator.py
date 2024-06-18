@@ -43,9 +43,9 @@ FORCE = False
 # static configuration
 EMIT_COMMENT_WITH_PROTOTYPE = True
 EMIT_COMMENT_WITH_STUB_ORDER = True
-STUB_NAMESPACE = "::WPEFramework::ProxyStubs"
-INTERFACE_NAMESPACES = ["::WPEFramework"]
-CLASS_IUNKNOWN = "::WPEFramework::Core::IUnknown"
+STUB_NAMESPACE = "::Thunder::ProxyStubs"
+INTERFACE_NAMESPACES = ["::Thunder"]
+CLASS_IUNKNOWN = "::Thunder::Core::IUnknown"
 PROXYSTUB_CPP_NAME = "ProxyStubs_%s.cpp"
 
 ENABLE_CUSTOM_ALLOCATOR = False

@@ -1763,7 +1763,7 @@ def __Tokenize(contents,log = None):
                     start = string.find(tag)
                     if (start != -1):
                         start += len(tag) + 1
-                        end = EndOfTag(token, start)
+                        end = EndOfTag(string, start)
                         desc = string[start:end].strip(" *\n")
                         if desc:
                             tagtokens.append(tag.upper())
