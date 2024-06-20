@@ -31,6 +31,9 @@ macro(IncludeConfig)
 endmacro()
 endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
 
+set(CONFIG_GENERATOR_PATH "${CMAKE_CURRENT_LIST_DIR}/../ConfigGenerator")
+set(CONFIG_GENERATOR "${CONFIG_GENERATOR_PATH}/config_generator.py")
+set(CONFIG_COMPARE "${CONFIG_GENERATOR_PATH}/config_compare.py")
 
 # ----------------------------------------------------------------------------------------
 # write_config
@@ -46,18 +49,13 @@ endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
 #    LOCATOR     Version of the package, defaults to lib + MODULE_NAME + CMAKE_SHARED_LIBRARY_SUFFIX
 #                of the latest cmake project call.
 #    COMPONENT   The cmake component group defaults to  ${NAMESPACE}_Runtime
-#    INSTALL_PATH Overrule the default instalation location. 
+#    INSTALL_PATH Overrule the default installation location. 
 #    INSTALL_NAME Overrule the default file name
 # ----------------------------------------------------------------------------------------
 function(write_config)
     set(optionsArgs SKIP_COMPARE DISABLE_LEGACY_GENERATOR SKIP_CLASSNAME SKIP_LOCATOR)
     set(oneValueArgs CLASSNAME LOCATOR COMPONENT INSTALL_PATH INSTALL_NAME CUSTOM_PARAMS_WHITELIST)
     set(multiValueArgs PLUGINS)
-
-    set(CONFIG_GENERATOR_PATH "@GENERATOR_INSTALL_PATH@/ConfigGenerator")
-    set(CONFIG_GENERATOR "${CONFIG_GENERATOR_PATH}/config_generator.py")
-    set(CONFIG_COMPARE "${CONFIG_GENERATOR_PATH}/config_compare.py")
-
 
     if (NOT CONFIG_GENERATOR)
         message(FATAL_ERROR "The path CONFIG_GENERATOR is not set!")
@@ -118,7 +116,7 @@ function(write_config)
     endif()
 
     if(NOT ARG_INSTALL_PATH)
-        set(_install_path "${CMAKE_INSTALL_PREFIX}/../etc/${NAMESPACE}/plugins/")
+        set(_install_path "${CMAKE_INSTALL_FULL_SYSCONFDIR}/${NAMESPACE}/plugins/")
     else()
         set(_install_path "${ARG_INSTALL_PATH}")
     endif(NOT ARG_INSTALL_PATH)
