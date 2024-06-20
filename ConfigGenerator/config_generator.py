@@ -256,7 +256,7 @@ if __name__ == "__main__":
     else:
         of = args.projectdir + file_name(cf) + ".json"
 
-    log.Print("Writing Config JSON")
+    log.Info("Writing Config JSON")
 
     try:
         outfile = open(of, "w")

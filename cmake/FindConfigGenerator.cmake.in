@@ -158,7 +158,7 @@ endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
     foreach(plugin ${_plugins})
         set(config_generated "N")
         if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/${plugin}.conf.in")
-            message(STATUS "Writing configuration for ${plugin} using config_generator")
+            message(VERBOSE "Writing configuration for ${plugin} using config_generator")
 
             set(_execute_command "${CONFIG_GENERATOR}")
 
@@ -201,7 +201,7 @@ if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
         if("${CMAKE_BUILD_TYPE}" STREQUAL "Debug" OR
                 "${config_generated}" STREQUAL "N")
 
-            message(STATUS "Writing configuration for ${plugin} using Legacy Config writer")
+            message(VERBOSE "Writing configuration for ${plugin} using Legacy Config writer")
 
             map()
             kv(locator ${_locator})
@@ -303,7 +303,7 @@ if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
                     execute_process(COMMAND ${PYTHON_EXECUTABLE} ${_execute_command} RESULT_VARIABLE compare_result)
 
                     if(compare_result EQUAL 0)
-                        message(STATUS "config json files generated using legacy method and Python ConfigGenerator are identical") 
+                        message(DEBUG "config json files generated using legacy method and Python ConfigGenerator are identical") 
                     elseif( compare_result EQUAL 1)
                         message(AUTHOR_WARNING " Comparing the config json files generated using legacy method and Python ConfigGenerator: \n"
                                             " ${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}_legacy.json and ${CMAKE_CURRENT_BINARY_DIR}/config/${plugin}.json are not identical \n"
@@ -311,10 +311,10 @@ if(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
                                             "    1. Parameters are out of order \n"
                                             "    2. Parameters are spelled incorrectly  \n")
                     else()
-                        message(STATUS "Error while comparing the config json files generated using legacy method and Python ConfigGenerator")
+                        message(SEND_ERROR "Error while comparing the config json files generated using legacy method and Python ConfigGenerator")
                     endif()
                 else()
-                    message(STATUS "Failed to compare the config json files generated using legacy method and Python ConfigGenerator - missing")
+                    message(FATAL_ERROR "Failed to compare the config json files generated using legacy method and Python ConfigGenerator - missing")
                 endif()
             endif()
         endif()
