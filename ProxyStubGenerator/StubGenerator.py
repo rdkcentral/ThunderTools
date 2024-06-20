@@ -1996,7 +1996,7 @@ def GenerateIdentification(name):
             emit.Line("}")
             emit.Line()
 
-            log.Print("created file %s" % os.path.basename(name))
+            log.Info("created file %s" % os.path.basename(name))
 
 
 # -------------------------------------------------------------------------
@@ -2248,7 +2248,7 @@ if __name__ == "__main__":
 
                         else:
                             faces += new_faces
-                            log.Print("created file %s" % os.path.basename(output_file))
+                            log.Info("created file %s" % os.path.basename(output_file))
 
                         # dump interfaces if only scanning
                         if scan_only:
@@ -2256,13 +2256,13 @@ if __name__ == "__main__":
                                 print(f.id, f.obj.full_name)
 
                     if args.lua_code:
-                        log.Print("(lua generator) Scanning %s..." % os.path.basename(source_file))
+                        log.Info("(lua generator) Scanning %s..." % os.path.basename(source_file))
 
                         for ns in INTERFACE_NAMESPACES:
                             GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, source_file, tree, ns)
 
                 except NotModifiedException as err:
-                    log.Print("skipped file %s, up-to-date" % os.path.basename(output_file))
+                    log.Info("skipped file %s, up-to-date" % os.path.basename(output_file))
                     skipped.append(source_file)
                 except SkipFileError as err:
                     log.Print("skipped file %s" % os.path.basename(output_file))
@@ -2311,9 +2311,9 @@ if __name__ == "__main__":
                 # Epilogue
                 for ns in INTERFACE_NAMESPACES:
                     GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums)
-                    log.Print("Created %s (%s interfaces, %s enums)" % (lua_file.name, len(lua_interfaces), len(lua_enums)))
+                    log.Info("Created %s (%s interfaces, %s enums)" % (lua_file.name, len(lua_interfaces), len(lua_enums)))
 
         else:
-            log.Print("Nothing to do")
+            log.Info("Nothing to do")
 
         sys.exit(1 if len(log.errors) else 0)

@@ -99,4 +99,4 @@ function(ProxyStubGenerator)
 
 endfunction(ProxyStubGenerator)
 
-message(STATUS "ProxyStubGenerator ready ${PROXYSTUB_GENERATOR}")
+message(VERBOSE "ProxyStubGenerator ready ${PROXYSTUB_GENERATOR}")
