@@ -166,7 +166,7 @@ function(JsonGenerator)
     endforeach(_input)
 endfunction(JsonGenerator)
 
-message(STATUS "JsonGenerator ready ${JSON_GENERATOR}")
+message(VERBOSE "JsonGenerator ready ${JSON_GENERATOR}")
 
 function(DocGenerator)
 
