@@ -118,7 +118,7 @@ function(write_config)
     endif()
 
     if(NOT ARG_INSTALL_PATH)
-        set(_install_path "${CMAKE_INSTALL_PREFIX}/../etc/${NAMESPACE}/plugins/")
+        set(_install_path "${CMAKE_INSTALL_PREFIX}/etc/${NAMESPACE}/plugins/")
     else()
         set(_install_path "${ARG_INSTALL_PATH}")
     endif(NOT ARG_INSTALL_PATH)
