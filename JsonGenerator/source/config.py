@@ -36,7 +36,7 @@ DEFAULT_INT_SIZE = 32
 DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "Thunder"
-INTERFACE_NAMESPACES = ["::Thunder::Exchange::JSONRPC", "::Thunder::Exchange"]
+INTERFACE_NAMESPACES = ["::%s::Exchange::JSONRPC" % FRAMEWORK_NAMESPACE, "::%s::Exchange" % FRAMEWORK_NAMESPACE]
 INTERFACES_SECTION = True
 INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
@@ -66,6 +66,7 @@ RPC_FORMAT_FORCED = False
 
 
 def Parse(cmdline):
+    global FRAMEWORK_NAMESPACE
     global DEFAULT_DEFINITIONS_FILE
     global INTERFACE_NAMESPACES
     global JSON_INTERFACE_PATH
@@ -291,6 +292,13 @@ def Parse(cmdline):
             help="override interface source file revision to the commit id specified")
 
     ts_group = argparser.add_argument_group("Troubleshooting arguments (optional)")
+    doc_group.add_argument("--framework-namespace",
+            dest="framework_namespace",
+            metavar="NS",
+            type=str,
+            action="store",
+            default=FRAMEWORK_NAMESPACE,
+            help="set framework namespace")
     ts_group.add_argument("--verbose",
             dest="verbose",
             action="store_true",
@@ -325,6 +333,10 @@ def Parse(cmdline):
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
+
+    if args.framework_namespace:
+        FRAMEWORK_NAMESPACE = args.framework_namespace
+        INTERFACE_NAMESPACES = ["::%s::Exchange::JSONRPC" % FRAMEWORK_NAMESPACE, "::%s::Exchange" % FRAMEWORK_NAMESPACE]
 
     if args.if_namespaces:
         INTERFACE_NAMESPACES = args.if_namespaces

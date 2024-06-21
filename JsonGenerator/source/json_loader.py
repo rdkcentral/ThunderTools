@@ -75,6 +75,9 @@ class JsonParseError(RuntimeError):
 def CoreJson(type):
     return (config.TYPE_PREFIX + "::" + type)
 
+def CoreError(error):
+    return ("Core::ERROR_" + error.upper())
+
 def MakeObject(type):
     return (type + config.OBJECT_SUFFIX)
 
@@ -103,6 +106,7 @@ class JsonType():
         self.original_name = schema.get("@originalname")
         self.description = schema.get("description")
         self.grand_parent = None
+        self.optional = schema.get("@optionaltype")
 
         if not isinstance(self, JsonRpcSchema):
             self.grand_parent = self
@@ -117,7 +121,7 @@ class JsonType():
                 self.description = self.grand_parent.summary
 
         self.iterator = schema.get("iterator")
-        self.original_type = schema.get("original_type")
+        self.original_type = schema.get("@originaltype")
         self.do_create = (self.original_type == None)
         self.included_from = included
         self.is_duplicate = False
@@ -159,11 +163,11 @@ class JsonType():
         name = self.local_name.lstrip('_')
         return ("_" + name[0].lower() + name[1:] + "_")
 
-    def TempName(self, postfix = ""):
+    def TempName(self, postfix=None):
         if postfix:
             return (self.temp_name.rstrip('_') + postfix[0].upper() + postfix[1:] + '_')
         else:
-            self.temp_name
+            return self.temp_name
 
     def Rename(self, new_name):
         self.new_name = new_name.lower()
@@ -243,6 +247,19 @@ class JsonType():
     @property
     def cpp_native_type(self):
         assert False, "cpp_native_type accessed on JsonType"
+
+    @property
+    def cpp_native_type_opt(self):
+        if self.optional:
+            return ("Core::OptionalType<%s>" % self.cpp_native_type)
+        else:
+            return self.cpp_native_type
+
+    def cpp_native_type_opt_v(self, toggle=False):
+        if self.optional and toggle:
+            return ("Core::OptionalType<%s>" % self.cpp_native_type)
+        else:
+            return self.cpp_native_type
 
     @property
     def is_void(self):
@@ -411,7 +428,7 @@ class JsonEnum(JsonRefCounted, JsonType):
             raise JsonParseError("Only strings are supported in enums: '%s'" % self.print_name)
 
         self.type = enum_type
-        self.bitmask = schema.get("bitmask")
+        self.bitmask = schema.get("@bitmask")
         self.enumerators = schema.get("enum")
         self.cpp_enumerator_values = schema.get("values")
 
@@ -536,7 +553,7 @@ class JsonObject(JsonRefCounted, JsonType):
         if "properties" in schema:
             obj = trackers.object_tracker.Add(self)
             if obj:
-                if "original_type" in self.schema and "original_type" not in obj.schema:
+                if "@originaltype" in self.schema and "@originaltype" not in obj.schema:
                     # Very unlucky scenario when duplicate class carries more information than the original.
                     # Swap the classes in duplicate lists so we take the better one for generating code.
                     trackers.object_tracker.Remove(obj)
@@ -561,8 +578,8 @@ class JsonObject(JsonRefCounted, JsonType):
 
                 # Use the declared parameter position only if the interface comes from a C++ header,
                 # otherwise order parameters as seen in the JSON meta file.
-                if ("@generated" not in self.root.schema) or ("position" not in new_obj.schema):
-                    new_obj.schema["position"] = idx
+                if ("@generated" not in self.root.schema) or ("@position" not in new_obj.schema):
+                    new_obj.schema["@position"] = idx
 
                 idx += 1
                 self._properties.append(new_obj)
@@ -725,7 +742,10 @@ class JsonArray(JsonType):
 
     @property
     def cpp_native_type(self):
-        return "std::list<%s>" % self._items.cpp_native_type
+        if self.iterator:
+            return "%s*" % self.iterator
+        else:
+            return "std::list<%s>" % self._items.cpp_native_type
 
     @property
     def cpp_class(self):
@@ -1048,8 +1068,8 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
         def _FindCpp(element, schema):
             if isinstance(schema, dict):
-                if "original_type" in schema:
-                    if schema["original_type"] == element:
+                if "@originaltype" in schema:
+                    if schema["@originaltype"] == element:
                         return schema
 
                 for _, item in schema.items():
@@ -1161,7 +1181,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                 # Need to prepend with 'file:' for jsonref to load an external file..
                                 ref = v.split("#") if "#" in v else [v,""]
 
-                                assert(include_paths)
+                                assert include_paths
 
                                 ref_file = None
 
@@ -1200,7 +1220,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                             elif v.endswith(".h") or v.endswith(".h#"):
                                 ref = v.replace("#", "").replace("{cppinterfacedir}", "{interfacedir}")
 
-                                assert(cpp_include_paths)
+                                assert cpp_include_paths
 
                                 ref_file = None
 

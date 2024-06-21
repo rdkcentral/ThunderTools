@@ -157,7 +157,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         props["length"] = " ".join(var.meta.length)
 
                     if "length" in props:
-                        props["original_type"] = cppType.type
+                        props["@originaltype"] = cppType.type
 
                     props["encode"] = cppType.type != "char"
 
@@ -177,13 +177,16 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
 
                     if "extract" in var.meta.decorators:
-                        result[1]["extract"] = True
+                        result[1]["@extract"] = True
 
                     if var_type.IsPointerToPointer():
-                        result[1]["ptr"] = True
+                        result[1]["@bypointer"] = True
 
                     if var_type.IsPointerToConst():
-                        raise CppParseError(var, "passed iterators must not be constant")
+                        raise CppParseError(var, "iterators must be passed as const pointers (not pointers to const)")
+
+                    if var.meta.range:
+                        log.WarnLine(var, "'%s': @restrict has no effect on iterators" % var.name)
 
                     return result
 
@@ -205,6 +208,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 # Boolean
                 elif isinstance(cppType, CppParser.Bool):
                     result = ["boolean", {} ]
+
+                    if var.meta.range:
+                        log.WarnLine(var, "'%s': @restrict has no effect on bools" % var.name)
 
                 # Integer
                 elif isinstance(cppType, CppParser.Integer):
@@ -231,33 +237,41 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 # Enums
                 elif isinstance(cppType, CppParser.Enum):
 
-                    if len(cppType.items) > 1:
-                        autos = [e.auto_value for e in cppType.items].count(True)
+                    #if len(cppType.items) > 1:
+                        #autos = [e.auto_value for e in cppType.items].count(True)
                         #if autos != 0 and (autos != len(cppType.items)):
                         #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
-                    enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items], "scoped": var_type.Type().scoped  }
-                    enum_spec["ids"] = [e.name for e in cppType.items]
+                    enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items] }
+
                     enum_spec["hint"] = var.type.Type().name
 
-                    for e in cppType.items:
-                        if "endmarker" in e.meta.decorators:
-                            enum_spec["endmarker"] = e.name
-                            break;
+                    if var_type.Type().scoped:
+                        enum_spec["scoped"] = True
+
+                    enum_spec["ids"] = [e.name for e in cppType.items]
 
                     if not cppType.items[0].auto_value:
                         enum_spec["values"] = [e.value for e in cppType.items]
 
+                    for e in cppType.items:
+                        if "endmarker" in e.meta.decorators:
+                            enum_spec["@endmarker"] = e.name
+                            break;
+
                     if "bitmask" in var.meta.decorators or "bitmask" in var.type.Type().meta.decorators:
-                        enum_spec["bitmask"] = True
                         enum_spec["type"] = "string"
-                        enum_spec["original_type"] = StripFrameworkNamespace(var.type.Type().full_name)
+                        enum_spec["@bitmask"] = True
+                        enum_spec["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
                         result = ["array", { "items": enum_spec } ]
                     else:
                         result = ["string", enum_spec]
 
                     if isinstance(var.type.Type(), CppParser.Typedef):
                         result[1]["@register"] = False
+
+                    if var.meta.range:
+                        log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
 
                 # POD objects
                 elif isinstance(cppType, CppParser.Class):
@@ -279,7 +293,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                 properties[name] = props
                                 properties[name]["type"] = "object"
-                                properties[name]["original_type"] = StripFrameworkNamespace(p.type.Type().full_name)
+                                properties[name]["@originaltype"] = StripFrameworkNamespace(p.type.Type().full_name)
 
                                 if p.meta.brief:
                                     properties[name]["description"] = p.meta.brief
@@ -296,12 +310,20 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                         return "object", { "properties": properties, "required": required }
 
-                    if cppType.full_name == "::Thunder::Core::JSONRPC::Context":
+                    if cppType.full_name == "::%s::Core::JSONRPC::Context" % config.FRAMEWORK_NAMESPACE:
                         result = "@context", {}
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     else:
-                        raise CppParseError(var, "unable to convert this C++ class to JSON type: %s" % cppType.type)
+                        if cppType.is_iterator:
+                            raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
+                        else:
+                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s" % cppType.type)
+
+                elif isinstance(cppType, CppParser.Optional):
+                    result = ConvertType(cppType.optional)
+                    result[1]["@optionaltype"] = True
+                    result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
 
                 # All other types are not supported
                 else:
@@ -309,13 +331,13 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 if result:
                     if var_type.IsPointer():
-                        result[1]["ptr"] = True
+                        result[1]["@bypointer"] = True
 
                     if var_type.IsReference():
-                        result[1]["ref"] = True
+                        result[1]["@byreference"] = True
 
                     if var_type.IsPointerToConst():
-                        result[1]["ptrtoconst"] = True
+                        result[1]["@ptrtoconst"] = True
 
                     if var.meta.range:
                         result[1]["range"] = var.meta.range
@@ -339,7 +361,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             if args != None:
                 properties.update(args)
                 try:
-                    properties["original_type"] = StripFrameworkNamespace(var.type.Type().full_name)
+                    properties["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
                 except:
                     pass
 
@@ -411,16 +433,20 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
                             properties[var_name]["@originalname"] = var.name
 
-                        properties[var_name]["position"] = vars.index(var)
+                        properties[var_name]["@position"] = vars.index(var)
 
                         if "optional" not in var.meta.decorators:
                             required.append(var_name)
                         else:
-                            properties[var_name]["optional"] = True
+                            properties[var_name]["@optional"] = True
 
                         if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in properties[var_name] and not "time" in properties[var_name]:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
+
+                        if properties[var_name].get("@optionaltype") and not var.type.IsReference():
+                            log.WarnLine(var, "'%s': passing input optional type by value (forgot &?)" % var.name)
+
 
             params["properties"] = properties
             params["required"] = required
@@ -443,7 +469,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     return params
 
         def BuildIndex(var, test=False):
-            return BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
+            index = BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
+            if index.get("@optionaltype") or index.get("type") not in ["string", "integer"]:
+                raise CppParseError(var, "index must be string, integer or enum type")
+            return index
 
         def BuildResult(vars, is_property=False):
             params = {"type": "object"}
@@ -470,7 +499,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
                         properties[var_name]["@originalname"] = var.name
 
-                    properties[var_name]["position"] = vars.index(var)
+                    properties[var_name]["@position"] = vars.index(var)
 
                     if "optional" not in var.meta.decorators:
                         required.append(var_name)
@@ -657,11 +686,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 if obj[result_name]["type"] != test["type"]:
                                     raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*1)")
 
-                                if "ptr" in test and test["ptr"]:
-                                    obj[result_name]["ptr"] = True
+                                if "@bypointer" in test and test["@bypointer"]:
+                                    obj[result_name]["@bypointer"] = True
 
-                                if "ptrtoconst" in test and test["ptrtoconst"]:
-                                    obj[result_name]["ptrtoconst"] = True
+                                if "@ptrtoconst" in test and test["@ptrtoconst"]:
+                                    obj[result_name]["@ptrtoconst"] = True
 
                             if obj[result_name] == None:
                                 raise CppParseError(method.vars[value], "property getter method must have one output parameter")
@@ -686,8 +715,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 if obj["params"]["type"] != test["type"]:
                                     raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*2)")
 
-                                if "ref" in test and test["ref"]:
-                                    obj["params"]["ref"] = True
+                                if "@byreference" in test and test["@byreference"]:
+                                    obj["params"]["@byreference"] = True
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(method.vars[value], "property setter method must have one input parameter")
@@ -714,7 +743,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     methods[prefix + method_name] = obj
 
                 else:
-                    raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by a reference")
+                    raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by reference parameter")
 
             if obj:
                 if method.retval.meta.is_deprecated:
@@ -905,7 +934,7 @@ def LoadInterface(file, log, all = False, include_paths = []):
         includes = []
 
         tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], include_paths, log)
+                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], config.FRAMEWORK_NAMESPACE, include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, all, include_paths)

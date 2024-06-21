@@ -193,6 +193,12 @@ class Time(Intrinsic):
         Intrinsic.__init__(self, "Core::Time::microsecondsfromepoch")
 
 
+class Optional(Intrinsic):
+    def __init__(self, subtype):
+        Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.type)
+        self.optional = subtype
+
+
 class Nullptr_t(Fundamental):
     def __init__(self):
         Fundamental.__init__(self, "std::nullptr_t")
@@ -657,6 +663,9 @@ class Identifier():
 
                 self.type = self.type[typeIdx]
 
+                if isinstance(self.type.type, Optional):
+                    self.meta.decorators.append("optional")
+
     def __str__(self):
         return str(self.type) if self.type else ""
 
@@ -1002,7 +1011,9 @@ class Class(Identifier, Block):
         self.is_iterator = False
         self.sourcelocation = None
         self.type_name = name
-        self.parent.classes.append(self)
+
+        if sum([1 for x in self.parent.classes if x.name == name]) == 0:
+            self.parent.classes.append(self)
 
     def IsAbstract(self):
         return any([m.IsPureVirtual() for m in self.methods])
@@ -1354,7 +1365,7 @@ class TemplateTypeParameter(Name):
 
 class InstantiatedTemplateClass(Class):
     def __init__(self, parent_block, name, params, args):
-        hash = hashlib.sha1("_".join(args+[str(random.random())]).encode('utf-8')).hexdigest()[:8].upper()
+        hash = "_" + hashlib.sha1("_".join(args).encode('utf-8')).hexdigest()[:16]
         Class.__init__(self, parent_block, name + "Instance" + hash)
         self.baseName = Name(parent_block, name)
         self.params = params
@@ -1436,6 +1447,7 @@ class TemplateClass(Class):
         instance.is_compliant = self.is_compliant
         instance.is_event = self.is_event
         instance.is_iterator = self.is_iterator
+        instance.meta = self.meta
 
         for t in self.typedefs:
             newTypedef = copy.copy(t)
@@ -1450,7 +1462,7 @@ class TemplateClass(Class):
             newAttr.type = copy.copy(v.type)
             newAttr.value = copy.copy(v.value)
             _Substitute(newAttr)
-            instance.typedefs.append(newAttr)
+            instance.vars.append(newAttr)
 
         for e in self.enums:
             newEnum = copy.copy(e)
@@ -1480,6 +1492,13 @@ class TemplateClass(Class):
                     _Substitute(newVar)
                     newMethod.vars.append(newVar)
             instance.methods.append(newMethod)
+
+        if ((self.parent.name == "Core") and ("OptionalType" in self.name)):
+            # take over as Optional if this is OptionalType instance
+            if len(instance.args) == 1:
+                instance = Optional(Temporary(parent, instance.args[0].split()))
+            else:
+                raise ParserError("Invalid template arguments to %s" % instance)
 
         return instance
 
@@ -1870,7 +1889,6 @@ def Parse(contents,log = None):
     iterator_next = False
     sourcelocation_next = False
     in_typedef = False
-
 
     # Main loop.
     while i < len(tokens):
@@ -2265,10 +2283,14 @@ def Parse(contents,log = None):
                         nest -= 1
                         if nest == 0 and nest2 == 0:
                             break
+                        elif nest < 0:
+                            raise ParserError("Closing parenthesis ) before opening (")
                     if tokens[j] == '<':
                         nest2 += 1
                     elif tokens[j] == '>':
                         nest2 -= 1
+                        if nest2 < 0:
+                            raise ParserError("Closing parenthesis > before opening <")
                     elif tokens[j] == ',' and nest == 1 and nest2 == 0:
                         break
 
@@ -2478,14 +2500,15 @@ def ParseFile(source_file, includePaths = []):
     return Parse(contents)
 
 
-def ParseFiles(source_files, includePaths = [], log = None):
+def ParseFiles(source_files, framework_namespace, includePaths = [], log = None):
     contents = ""
     for source_file in source_files:
         if source_file:
             quiet = (source_file[0] == "@")
             contents += ReadFile((source_file[1:] if quiet else source_file), includePaths, quiet, "")
+            contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
-    return Parse(contents,log)
+    return Parse(contents, log)
 
 
 # -------------------------------------------------------------------------
@@ -2525,7 +2548,7 @@ def DumpTree(tree, ind=0):
 # entry point
 
 if __name__ == "__main__":
-    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], sys.argv[2:], Log.Log("debug", True, True))
+    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], "Thunder", sys.argv[2:], Log.Log("debug", True, True))
     if isinstance(tree, Namespace):
         DumpTree(tree)
     else:
