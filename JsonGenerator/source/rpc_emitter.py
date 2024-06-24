@@ -113,7 +113,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                         emit.Unindent()
                         emit.Line("}")
             else:
-                if params.optional and (params_type == "native") and not p.default_value:
+                if params.optional and (params_type == "native") and not params.default_value:
                     emit.Line("if (%s.IsSet() == true) {" % (params.local_name))
                     emit.Indent()
 
@@ -121,7 +121,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 if params.schema.get("opaque"):
                     emit.Line("%s.SetQuoted(false);" % names.params)
 
-                if params.optional and (params_type == "native") and not p.default_value:
+                if params.optional and (params_type == "native") and not params.default_value:
                     emit.Unindent()
                     emit.Line("}")
 
