@@ -28,14 +28,19 @@ def IsObjectRestricted(argument):
     return False
 
 def IsObjectOptionalOrOpaque(argument):
-    return (argument.schema.get("opaque") or ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"]))
+    if isinstance(argument.parent, JsonMethod):
+        return False
+    elif argument.optional:
+        return False
+    else:
+        return (argument.schema.get("opaque") or "required" not in argument.parent.schema or (argument.json_name not in argument.parent.schema["required"]))
 
 def IsObjectOptional(argument):
     if argument.optional or IsObjectOptionalOrOpaque(argument):
         return True
     elif isinstance(argument, JsonObject):
         for prop in argument.properties:
-            if not prop.optional and not IsObjectOptionalOrOpaque(prop):
+            if not prop.optional and not IsObjectOptional(prop):
                 return False
         return True
     return False
@@ -124,7 +129,7 @@ class Restrictions:
                     self.__cond.extend(tests)
 
         elif test_set and self.__json and not IsObjectOptional(relay):
-            self.__cond.append("(%s.IsSet() == false)" % (name))
+            self.__cond.append("(%s.IsSet() == %s)" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):
     count = 0
