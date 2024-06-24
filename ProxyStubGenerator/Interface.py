@@ -17,7 +17,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from . import CppParser
+from ProxyStubGenerator import CppParser
 
 class Interface():
     def __init__(self, obj, iid, file):
@@ -25,11 +25,9 @@ class Interface():
         self.id = iid
         self.file = file
 
-
 # Looks for interface clasess (ie. classes inheriting from Core::Unknown and specifying ID enum).
-def FindInterfaceClasses(tree, interface_namespace, source_file, ancestors = [ "::Thunder::Core::IUnknown" ]):
+def FindInterfaceClasses(tree, interface_namespace, source_file, ancestors):
     interfaces = []
-
     selected = []
 
     def __Traverse(tree, faces):

@@ -19,39 +19,112 @@ import trackers
 from json_loader import *
 
 def IsObjectRestricted(argument):
-    for prop in argument.properties:
-        if isinstance(prop, JsonObject):
-            if IsObjectRestricted(prop):
-                return True
-        else:
+    if "range" in argument.schema:
+        return True
+    elif isinstance(argument, JsonObject):
+        for prop in argument.properties:
             if "range" in prop.schema:
                 return True
     return False
 
-def AppendTest(tests, argument, relay=None, test_zero=False, reverse=False, override=None):
-    if "range" in argument.schema or IsObjectRestricted(argument):
-        comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
+def IsObjectOptionalOrOpaque(argument):
+    return (argument.schema.get("opaque") or ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"]))
+
+def IsObjectOptional(argument):
+    if argument.optional or IsObjectOptionalOrOpaque(argument):
+        return True
+    elif isinstance(argument, JsonObject):
+        for prop in argument.properties:
+            if not prop.optional and not IsObjectOptionalOrOpaque(prop):
+                return False
+        return True
+    return False
+
+class Restrictions:
+    def __init__(self, test_set=True, reverse=False, json=True):
+        self.__test_set = test_set
+        self.__reverse = reverse
+        self.__comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
+        self.__json = json
+        self.reset()
+
+    def reset(self):
+        self.__cond = []
+
+    def present(self):
+        return (len(self.__cond) > 0)
+
+    def count(self):
+        return len(self.__cond)
+
+    def join(self):
+        if (len(self.__cond) == 1):
+            return self.__cond[0]
+        elif (len(self.__cond) > 1):
+            return (" && ".join(self.__cond))
+        else:
+            return self.__comp[2]
+
+    def extend(self, element, pos=None):
+        self.__cond.insert(pos if pos else len(self.__cond), element)
+
+    def append(self, argument, relay=None, override=None, test_set=None):
+        if test_set == None:
+            test_set = self.__test_set
 
         if not relay:
             relay = argument
 
-        name = relay.TempName() if not override else override
-        range = argument.schema.get("range")
+        name = relay.temp_name if not override else override
 
-        if isinstance(argument, JsonString):
-            if argument.schema["range"][0] != 0:
-                tests.append("(%s.size() %s %s)" % (name, comp[0], range[0]))
+        if isinstance(relay, JsonObject) and self.__json and test_set:
+            if IsObjectOptional(relay):
+                if self.__reverse:
+                    self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == true))" % (name, name))
+                else:
+                    self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == false))" % (name, name))
+            else:
+                if self.__reverse:
+                    self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == true))" % (name, name))
+                else:
+                    self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == false))" % (name, name))
 
-            tests.append("(%s.size() %s %s)" % (name, comp[1], range[1]))
+        elif IsObjectRestricted(argument):
+            tests = []
 
-        elif isinstance(argument, JsonObject):
-            tests.append("(%s.IsRestrictValid() == %s)" % (name, comp[2]))
+            range = argument.schema.get("range")
 
-        else:
-            if argument.schema["range"][0] or argument.schema.get("signed"):
-                tests.append("(%s %s %s)" % (name, comp[0], range[0]))
+            if isinstance(relay, JsonString):
+                if range:
+                    if range[0] != 0:
+                        tests.append("(%s%s.size() %s %s)" % (name, (".Value()" if self.__json else ""), self.__comp[0], range[0]))
 
-            tests.append("(%s %s %s)" % (name, comp[1], range[1]))
+                    tests.append("(%s%s.size() %s %s)" % (name, (".Value()" if self.__json else ""), self.__comp[1], range[1]))
+
+            elif not isinstance(relay, JsonObject):
+                if range:
+                    if range[0] or relay.schema.get("signed"):
+                        tests.append("(%s %s %s)" % (name, self.__comp[0], range[0]))
+
+                    tests.append("(%s %s %s)" % (name, self.__comp[1], range[1]))
+
+            if tests:
+                if test_set and self.__json:
+                    if IsObjectOptional(argument):
+                        if self.__reverse:
+                            self.__cond.append("((%s.IsSet() == false) || (%s))" % (name, " &&".join(tests)))
+                        else:
+                            self.__cond.append("((%s.IsSet() == true) && (%s))" % (name, " || ".join(tests)))
+                    else:
+                        if self.__reverse:
+                            self.__cond.append("((%s.IsSet() == true) && (%s))" % (name, " && ".join(tests)))
+                        else:
+                            self.__cond.append("((%s.IsSet() == false) || (%s))" % (name, " || ".join(tests)))
+                else:
+                    self.__cond.extend(tests)
+
+        elif test_set and self.__json and not IsObjectOptional(relay):
+            self.__cond.append("(%s.IsSet() == false)" % (name))
 
 def ProcessEnums(log, action=None):
     count = 0
@@ -122,7 +195,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         log.Info("Emitting enum '{}'".format(enum.cpp_class))
 
         if enum.description:
-            emit.Line("// " + enum.description.split("\n",1)[0])
+            emit.Line("// " + enum.description.split("\n", 1)[0])
 
         emit.Line("enum%s %s : uint%i_t {" % (" class" if enum.is_scoped else "", enum.cpp_class, enum.size))
         emit.Indent()
@@ -137,18 +210,58 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Line()
 
     def _EmitClass(json_obj, allow_duplicates=False):
-        def EmitInit(json_object):
+        def __EmitInit(json_obj):
             for prop in json_obj.properties:
                 emit.Line("Add(%s, &%s);" % (Tstring(prop.json_name), prop.cpp_name))
                 if isinstance(prop, JsonString) and prop.schema.get("opaque"):
                     emit.Line("%s.SetQuoted(false);" % prop.cpp_name)
 
-        def EmitCtor(json_obj, no_init_code=False, copy_ctor=False, conversion_ctor=False):
+        def __EmitAssignment(json_obj, other, optional_type=False, conv=False):
+            if optional_type:
+                emit.Line("if (%s.IsSet() == true) {" % other)
+                emit.Indent()
+
+            if optional_type:
+                other += ".Value()"
+
+            for prop in json_obj.properties:
+                optional_or_opaque = IsObjectOptionalOrOpaque(prop)
+                _prop_name = prop.actual_name if conv else prop.cpp_name
+
+                if prop.optional:
+                    emit.Line("if (%s.%s.IsSet() == true) {" % (other, prop.actual_name))
+                    emit.Indent()
+
+                elif optional_or_opaque:
+                    if isinstance(prop, JsonString):
+                        emit.Line("if (%s.%s%s.empty() == false) {" % (other, _prop_name, ".Value()" if not conv else ""))
+                        emit.Indent()
+                    elif isinstance(prop, JsonInteger):
+                        emit.Line("if (%s.%s != 0) {" % (other, _prop_name))
+                        emit.Indent()
+                    else:
+                        optional_or_opaque = False # invalid @optional...
+
+                emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+
+                if prop.optional or optional_or_opaque:
+                    emit.Unindent()
+                    emit.Line("}")
+
+            if optional_type:
+                emit.Unindent()
+                emit.Line("}")
+
+        def __EmitCtor(json_obj, no_init_code=False, copy_ctor=False, conversion_ctor=False, optional_type=False):
+            _other = "_other"
+
             if copy_ctor:
-                emit.Line("%s(const %s& _other)" % (json_obj.cpp_class, json_obj.cpp_class))
+                assert not optional_type
+                emit.Line("%s(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_class, _other))
             elif conversion_ctor:
-                emit.Line("%s(const %s& _other)" % (json_obj.cpp_class, json_obj.cpp_native_type))
+                emit.Line("%s(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
             else:
+                assert not optional_type
                 emit.Line("%s()" % (json_obj.cpp_class))
 
             emit.Indent()
@@ -156,62 +269,59 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
             for prop in json_obj.properties:
                 if copy_ctor:
-                    emit.Line(", %s(_other.%s)" % (prop.cpp_name, prop.cpp_name))
-                elif prop.cpp_def_value != '""' and prop.cpp_def_value != "":
+                    emit.Line(", %s(%s.%s)" % (prop.cpp_name, _other, prop.cpp_name))
+                elif (prop.cpp_def_value != '""') and (prop.cpp_def_value != ""):
                     emit.Line(", %s(%s)" % (prop.cpp_name, prop.cpp_def_value))
-
-            if IsObjectRestricted(json_obj):
-                emit.Line(", _valid(true)")
 
             emit.Unindent()
             emit.Line("{")
             emit.Indent()
 
             if conversion_ctor:
-                for prop in json_obj.properties:
-                    emit.Line("%s = _other.%s;" % (prop.cpp_name, prop.actual_name + prop.convert_rhs))
+                __EmitAssignment(json_obj, _other, optional_type, conv=True)
 
             if no_init_code:
                 emit.Line("_Init();")
             else:
-                EmitInit(json_obj)
+                __EmitInit(json_obj)
 
             emit.Unindent()
             emit.Line("}")
 
-        def _EmitAssignmentOperator(json_obj, copy_ctor=False, conversion_ctor=False):
-            if copy_ctor:
-                emit.Line("%s& operator=(const %s& _rhs)" % (json_obj.cpp_class, json_obj.cpp_class))
-            elif conversion_ctor:
-                emit.Line("%s& operator=(const %s& _rhs)" % (json_obj.cpp_class, json_obj.cpp_native_type))
+        def _EmitCtor(json_obj, no_init=False):
+            __EmitCtor(json_obj, no_init)
+
+        def _EmitCopyCtor(json_obj, optional_type=False):
+            __EmitCtor(json_obj, True, True, False, optional_type)
+
+        def _EmitConvertCtor(json_obj, optional_type=False):
+            __EmitCtor(json_obj, True, False, True, optional_type)
+
+        def __EmitAssignmentOperator(json_obj, copy=False, conversion=False, optional_type=False):
+            _other = "_rhs"
+
+            if copy:
+                assert not optional_type
+                emit.Line("%s& operator=(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_class, _other))
+            elif conversion:
+                emit.Line("%s& operator=(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
+            else:
+                assert False
 
             emit.Line("{")
             emit.Indent()
 
-            for prop in json_obj.properties:
-                if copy_ctor:
-                    emit.Line("%s = _rhs.%s;" % (prop.cpp_name, prop.cpp_name))
-                elif conversion_ctor:
-                    optional = False
-                    if prop.schema.get("opaque") or ("required" in prop.parent.schema and prop.json_name not in prop.parent.schema["required"]):
-                        if isinstance(prop, JsonString):
-                            emit.Line("if (_rhs.%s.empty() == false)" % prop.actual_name)
-                            optional = True
-                        elif isinstance(prop, JsonInteger):
-                            emit.Line("if (_rhs.%s != 0)" % prop.actual_name)
-                            optional = True
-
-                    if optional:
-                        emit.Indent()
-
-                    emit.Line("%s = _rhs.%s;" % (prop.cpp_name, prop.actual_name + prop.convert_rhs))
-
-                    if optional:
-                        emit.Unindent()
+            __EmitAssignment(json_obj, _other, optional_type, conversion)
 
             emit.Line("return (*this);")
             emit.Unindent()
             emit.Line("}")
+
+        def _EmitCopyAssignmentOperator(json_obj, optional_type=False):
+            __EmitAssignmentOperator(json_obj, True, False, optional_type)
+
+        def _EmitConvertAssignmentOperator(json_obj, optional_type=False):
+            __EmitAssignmentOperator(json_obj, False, True, optional_type)
 
         def _EmitConversionOperator(json_obj):
             emit.Line("operator %s() const" % (json_obj.cpp_native_type))
@@ -220,27 +330,34 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             emit.Line("%s _value{};" % (json_obj.cpp_native_type))
 
             for prop in json_obj.properties:
-                conv = prop.convert if prop.convert else "%s = %s"
+                if prop.optional:
+                    emit.Line("if (%s.IsSet() == true) {" % (prop.cpp_name))
+                    emit.Indent()
+
+                conv = (prop.convert if prop.convert else "%s = %s")
                 emit.Line((conv + ";") % ( ("_value." + prop.actual_name), prop.cpp_name))
 
-            if IsObjectRestricted(json_obj):
-                tests = []
-
-                for prop in json_obj.properties:
-                    AppendTest(tests, prop, reverse=True, override=("_value." + prop.actual_name + prop.convert_rhs))
-
-                if tests:
-                    emit.Line("_valid = (%s);" % " && ".join(tests))
+                if prop.optional:
+                    emit.Unindent()
+                    emit.Line("}")
 
             emit.Line("return (_value);")
             emit.Unindent()
             emit.Line("}")
 
         def _EmitValidator(json_obj):
-            emit.Line("bool IsRestrictValid() const")
+            emit.Line()
+            emit.Line("bool IsDataValid() const")
             emit.Line("{")
             emit.Indent()
-            emit.Line("return (_valid);")
+
+            restrictions = Restrictions(test_set=True, reverse=True)
+
+            for prop in json_obj.properties:
+                restrictions.append(prop, override=prop.cpp_name)
+
+            emit.Line("return (%s);" % restrictions.join())
+
             emit.Unindent()
             emit.Line("}")
 
@@ -253,8 +370,10 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
         if not isinstance(json_obj, (JsonRpcSchema, JsonMethod)):
             log.Info("Emitting class '{}' (source: '{}')".format(json_obj.cpp_class, json_obj.print_name))
+
             emit.Line("class %s : public %s {" % (json_obj.cpp_class, CoreJson("Container")))
             emit.Line("public:")
+
             for enum in json_obj.enums:
                 if (enum.do_create and not enum.is_duplicate and (enum.RefCount() == 1)):
                     emit.Indent()
@@ -273,27 +392,43 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
         if not isinstance(json_obj, (JsonRpcSchema, JsonMethod)):
             global emittedItems
+
             emittedItems += 1
-            EmitCtor(json_obj, json_obj.is_copy_ctor_needed or "original_type" in json_obj.schema, False, False)
+
+            _EmitCtor(json_obj, (json_obj.is_copy_ctor_needed or json_obj.original_type))
+
             if json_obj.is_copy_ctor_needed:
                 emit.Line()
-                EmitCtor(json_obj, True, True, False)
+                _EmitCopyCtor(json_obj)
                 emit.Line()
-                _EmitAssignmentOperator(json_obj, True, False)
+                _EmitCopyAssignmentOperator(json_obj)
 
-            if "original_type" in json_obj.schema:
+            if json_obj.original_type:
                 emit.Line()
-                EmitCtor(json_obj, True, False, True)
+                _EmitConvertCtor(json_obj)
+
+                if json_obj.optional:
+                    emit.Line()
+                    _EmitConvertCtor(json_obj, optional_type=True)
+
                 emit.Line()
-                _EmitAssignmentOperator(json_obj, False, True)
+                _EmitConvertAssignmentOperator(json_obj)
+
+                if json_obj.optional:
+                    emit.Line()
+                    _EmitConvertAssignmentOperator(json_obj, optional_type=True)
+
                 emit.Line()
                 _EmitConversionOperator(json_obj)
 
-            if IsObjectRestricted(json_obj):
-                emit.Line()
-                _EmitValidator(json_obj)
+            method = json_obj
 
-            if json_obj.is_copy_ctor_needed or ("original_type" in json_obj.schema):
+            while not isinstance(method, JsonMethod):
+                method = method.parent
+
+            _EmitValidator(json_obj)
+
+            if json_obj.is_copy_ctor_needed or json_obj.original_type:
                 emit.Unindent()
                 emit.Line()
                 emit.Line("private:")
@@ -301,7 +436,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line("void _Init()")
                 emit.Line("{")
                 emit.Indent()
-                EmitInit(json_obj)
+                __EmitInit(json_obj)
                 emit.Unindent()
                 emit.Line("}")
                 emit.Line()
@@ -318,13 +453,6 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             for prop in json_obj.properties:
                 comment = prop.print_name if isinstance(prop, JsonMethod) else prop.description.split("\n",1)[0] if prop.description else ""
                 emit.Line("%s %s;%s" % (prop.short_cpp_type, prop.cpp_name, (" // " + comment) if comment else ""))
-
-            if IsObjectRestricted(json_obj):
-                emit.Unindent()
-                emit.Line()
-                emit.Line("private:")
-                emit.Indent()
-                emit.Line("bool _valid;")
 
             emit.Unindent()
             emit.Line("}; // class %s" % json_obj.cpp_class)

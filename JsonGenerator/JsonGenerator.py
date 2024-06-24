@@ -35,6 +35,7 @@ import documentation_generator
 import json_loader
 import header_loader
 import trackers
+import rpc_emitter
 
 NAME = "JsonGenerator"
 
@@ -75,7 +76,7 @@ if __name__ == "__main__":
 
                     if schema:
                         warnings = config.GENERATED_JSON
-                        config.GENERATED_JSON = "@generated" in schema
+                        config.GENERATED_JSON = schema.get("@generated")
 
                         if args.output_dir:
                             if (args.output_dir[0]) == os.sep:
@@ -104,9 +105,6 @@ if __name__ == "__main__":
 
                             name = os.path.basename(path).replace(".h", "").replace(".json", "")
 
-                            # if "@generated" in schema and name[0] == "I":
-                            #     name = name[1:]
-
                             if headers:
                                 if name not in joint_headers:
                                     joint_headers[name] = []
@@ -132,11 +130,13 @@ if __name__ == "__main__":
                     code_generator.CreateApiHeader(log, n, output_path, joint_headers[n])
 
             except json_loader.JsonParseError as err:
-                log.Error(str(err))
+                log.Error("JSON loader: " + str(err))
             except header_loader.CppParseError as err:
-                log.Error(str(err))
+                log.Error("Header loader: " + str(err))
             except documentation_generator.DocumentationError as err:
-                log.Error(str(err))
+                log.Error("Documentation: " + str(err))
+            except rpc_emitter.RPCEmitterError as err:
+                log.Error("RPC emitter: " + str(err))
             except IOError as err:
                 log.Error(str(err))
             except jsonref.JsonRefError as err:
