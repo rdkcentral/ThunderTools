@@ -101,7 +101,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
             if params.properties and params.do_create:
                 for p in params.properties:
-                    if p.optional and (params_type == "native"):
+                    if p.optional and (params_type == "native") and not p.default_value:
                         emit.Line("if (%s.IsSet() == true) {" % (p.local_name))
                         emit.Indent()
 
@@ -109,11 +109,11 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                     if p.schema.get("opaque"):
                         emit.Line("%s.%s.SetQuoted(false);" % (names.params, p.cpp_name))
 
-                    if p.optional and (params_type == "native"):
+                    if p.optional and (params_type == "native") and not p.default_value:
                         emit.Unindent()
                         emit.Line("}")
             else:
-                if params.optional and (params_type == "native"):
+                if params.optional and (params_type == "native") and not params.default_value:
                     emit.Line("if (%s.IsSet() == true) {" % (params.local_name))
                     emit.Indent()
 
@@ -121,7 +121,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 if params.schema.get("opaque"):
                     emit.Line("%s.SetQuoted(false);" % names.params)
 
-                if params.optional and (params_type == "native"):
+                if params.optional and (params_type == "native") and not params.default_value:
                     emit.Unindent()
                     emit.Line("}")
 
@@ -535,7 +535,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line()
                     emit.Line("if (%s) {" % restrictions.join())
                     emit.Indent()
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("invalid_range")))
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
                     emit.Unindent()
                     emit.Line("} else {")
                     emit.Indent()
@@ -607,7 +607,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("}")
                         emit.Line("else {")
                         emit.Indent()
-                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("invalid_range")))
+                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
                         emit.Unindent()
                         emit.Line("}")
 
@@ -619,10 +619,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 # Special case for iterators
                 elif isinstance(arg, JsonArray):
-                    if arg.optional:
-                        raise RPCEmitterError("OptionalType iterators are not supported, use @optional tag (see %s)" % arg.cpp_native_type_opt)
 
                     if arg.iterator:
+                        if arg.optional:
+                            raise RPCEmitterError("OptionalType iterators are not supported, use @optional tag (see %s)" % arg.cpp_native_type_opt)
+
                         face_name = "_" + arg.items.local_name.capitalize() + "IteratorType"
                         emit.Line("using %s = %s;" % (face_name, arg.iterator))
 
@@ -678,13 +679,17 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     else:
                         initializer = (("(%s)" if isinstance(arg, JsonObject) else "{%s}") % cpp_name) if is_readable and not arg.convert else "{}"
 
-                    if arg.optional and is_readable:
-                        # Have to go through assignment...
+                    if arg.optional and is_readable and (arg.default_value == None or not parent):
                         emit.Line("%s %s{};" % (arg.cpp_native_type_opt, arg.temp_name))
                         emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
                         emit.Indent()
                         emit.Line("%s = %s;" % (arg.temp_name, cpp_name))
                         emit.Unindent()
+                        if arg.default_value:
+                            emit.Line("} else {")
+                            emit.Indent()
+                            emit.Line("%s = %s;" % (arg.temp_name, arg.default_value))
+                            emit.Unindent()
                         emit.Line("}")
                         emit.Line()
                     else:
@@ -759,7 +764,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("}")
                     emit.Line("else {")
                     emit.Indent()
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
                     emit.Unindent()
                     emit.Line("}")
 
@@ -964,7 +969,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (index_name, index_name, index_name_converted))
                     emit.Indent()
 
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
 
                     if is_read_write:
                         emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
@@ -985,7 +990,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (%s.IsSet() == false) {" % index_name_converted)
                     emit.Indent()
 
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
 
                     if is_read_write:
                         emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
@@ -1004,7 +1009,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (%s.empty() == true) {" % index_name)
                     emit.Indent()
 
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
 
                     if is_read_write:
                         emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME

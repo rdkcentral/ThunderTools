@@ -149,7 +149,7 @@ def Create(log, schema, path, indent_size = 4):
                     if row.endswith('.'):
                         row = row[:-1]
 
-                    if optional and "default" in obj:
+                    if "default" in obj:
                         row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
 
                     if obj["type"] == "number":

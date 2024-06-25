@@ -233,7 +233,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 optional_or_opaque = IsObjectOptionalOrOpaque(prop)
                 _prop_name = prop.actual_name if conv else prop.cpp_name
 
-                if prop.optional:
+                if (prop.optional and not prop.default_value):
                     emit.Line("if (%s.%s.IsSet() == true) {" % (other, prop.actual_name))
                     emit.Indent()
 
@@ -249,7 +249,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
                 emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
 
-                if prop.optional or optional_or_opaque:
+                if (prop.optional and not prop.default_value) or optional_or_opaque:
                     emit.Unindent()
                     emit.Line("}")
 
@@ -275,8 +275,8 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             for prop in json_obj.properties:
                 if copy_ctor:
                     emit.Line(", %s(%s.%s)" % (prop.cpp_name, _other, prop.cpp_name))
-                elif (prop.cpp_def_value != '""') and (prop.cpp_def_value != ""):
-                    emit.Line(", %s(%s)" % (prop.cpp_name, prop.cpp_def_value))
+                elif prop.default_value:
+                    emit.Line(", %s(%s)" % (prop.cpp_name, prop.default_value))
 
             emit.Unindent()
             emit.Line("{")
@@ -335,14 +335,14 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             emit.Line("%s _value{};" % (json_obj.cpp_native_type))
 
             for prop in json_obj.properties:
-                if prop.optional:
+                if (prop.optional and not prop.default_value):
                     emit.Line("if (%s.IsSet() == true) {" % (prop.cpp_name))
                     emit.Indent()
 
                 conv = (prop.convert if prop.convert else "%s = %s")
                 emit.Line((conv + ";") % ( ("_value." + prop.actual_name), prop.cpp_name))
 
-                if prop.optional:
+                if (prop.optional and not prop.default_value):
                     emit.Unindent()
                     emit.Line("}")
 

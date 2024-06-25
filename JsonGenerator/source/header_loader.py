@@ -325,6 +325,34 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     result[1]["@optionaltype"] = True
                     result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
 
+                    if var.meta.default:
+                        try:
+                            if result[1].get("float"):
+                                result[1]["@default"] = float(var.meta.default[0])
+                                result[1]["default"] = float(var.meta.default[0])
+                            elif result[0] == "integer":
+                                result[1]["@default"] = int(var.meta.default[0])
+                                result[1]["default"] = int(var.meta.default[0])
+                            elif result[0] == "boolean":
+                                result[1]["@default"] = "true" if var.meta.default[0] == "true" else "false"
+                                result[1]["default"] = (var.meta.default[0] == "true")
+                            elif result[1].get("enum"):
+                                if var.meta.default[0] not in result[1].get("ids"):
+                                    raise CppParseError(var, "default value for enumerator type is not an enum value")
+                                else:
+                                    result[1]["@default"] = result[1]["@originaltype"]+ "::" + str(var.meta.default[0])
+                                    result[1]["default"] = str(var.meta.default[0])
+                            else:
+                                if not var.meta.default[0].startswith('"') or not var.meta.default[0].endswith('"'):
+                                    raise CppParseError(var, "default value for string type must be a quoted string literal %s" % result[1].get("type"))
+
+                                result[1]["@default"] = '_T(' + str(var.meta.default[0]) + ')'
+                                result[1]["default"] = str(var.meta.default[0])
+                        except CppParseError as err:
+                            raise err
+                        except:
+                            raise CppParseError(var, "OptionalType and default value type mismatch (expected %s, got '%s')" % (result[1].get("@originaltype"), var.meta.default[0]))
+
                 # All other types are not supported
                 else:
                     raise CppParseError(var, "unable to convert this C++ type to JSON type: %s" % cppType.type)
@@ -341,6 +369,14 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                     if var.meta.range:
                         result[1]["range"] = var.meta.range
+
+                        if var.meta.default[0]:
+                            if result[0] == "integer" or result[0] == "number":
+                                if float(var.meta.default[0]) < var.meta.range[0] or (float(var.meta.default[0]) > var.meta.range[1]):
+                                    raise CppParseError(var, "default value is outside of restrict range")
+                            elif result[0] == "string" and not result[1].get("enum"):
+                                if len(var.meta.default[0]) - 2 < var.meta.range[0] or (len(var.meta.default[0]) -2  > var.meta.range[1]):
+                                    raise CppParseError(var, "default value string length is outside of restrict range")
 
                 return result
 
@@ -373,6 +409,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     properties["description"] = pair[1]
                 else:
                     properties["description"] = var.meta.brief.strip()
+
 
             return properties
 
