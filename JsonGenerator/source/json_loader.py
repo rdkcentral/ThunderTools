@@ -266,8 +266,8 @@ class JsonType():
         return (self.cpp_type == "void")
 
     @property
-    def cpp_def_value(self): # Value to initialize with in C++
-        return ""
+    def default_value(self): # Value to initialize with in C++
+        return self.schema.get("@default")
 
     @property
     def root(self):

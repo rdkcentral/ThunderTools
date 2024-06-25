@@ -87,22 +87,23 @@ class Metadata:
         self.details = ""
         self.input = False
         self.output = False
-        self.is_property = False
-        self.is_deprecated = False
-        self.is_obsolete = False
-        self.is_index = False
-        self.decorators = []
         self.length = None
         self.maxlength = None
         self.interface = None
         self.lookup = None
+        self.default = None
         self.alt = None
-        self.alt_is_deprecated = None
-        self.alt_is_obsolete = None
         self.text = None
         self.range = []
+        self.decorators = []
         self.param = OrderedDict()
         self.retval = OrderedDict()
+        self.is_property = False
+        self.is_deprecated = False
+        self.is_obsolete = False
+        self.is_index = False
+        self.alt_is_deprecated = None
+        self.alt_is_obsolete = None
 
     @property
     def is_input(self):
@@ -384,6 +385,9 @@ class Identifier():
                     skip = 1
                 elif tag == "INTERFACE":
                     self.meta.interface = string[i + 1]
+                    skip = 1
+                elif tag == "DEFAULT":
+                    self.meta.default = string[i + 1]
                     skip = 1
                 elif tag == "OPAQUE":
                     self.meta.decorators.append("opaque")
@@ -1721,6 +1725,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@OPAQUE")
                 if _find("@optional", token):
                     tagtokens.append("@OPTIONAL")
+                if _find("@default", token):
+                    tagtokens.append(__ParseParameterValue(token, "@default"))
                 if _find("@extract", token):
                     tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):
