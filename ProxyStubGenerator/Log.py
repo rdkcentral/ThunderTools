@@ -25,6 +25,7 @@ class Log:
         self.errors = []
         self.infos = []
         self.show_infos = verbose
+        self.show_successes = verbose
         self.show_warnings = warnings
         self.show_doc_issues = doc_issues
         self.name = name
@@ -121,7 +122,8 @@ class Log:
             return ("..." + text[-32:]) if len(text) > 32 else text
 
     def Success(self, text):
-        self.Print("Success: {}".format(text))
+        if self.show_successes:
+            self.Print("Success: {}".format(text))
 
 
 

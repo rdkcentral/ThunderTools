@@ -19,7 +19,7 @@ if(NOT PYTHON_EXECUTABLE)
     find_package(Python3 3.5 REQUIRED QUIET)
 endif()
 
-set(PROXYSTUB_GENERATOR "@GENERATOR_INSTALL_PATH@/ProxyStubGenerator/StubGenerator.py")
+set(PROXYSTUB_GENERATOR "${CMAKE_CURRENT_LIST_DIR}/../ProxyStubGenerator/StubGenerator.py")
 
 function(ProxyStubGenerator)
     if (NOT PROXYSTUB_GENERATOR)
@@ -103,4 +103,4 @@ function(ProxyStubGenerator)
 
 endfunction(ProxyStubGenerator)
 
-message(STATUS "ProxyStubGenerator ready ${PROXYSTUB_GENERATOR}")
+message(VERBOSE "ProxyStubGenerator ready ${PROXYSTUB_GENERATOR}")

@@ -21,25 +21,20 @@ project(Generators)
 
 include(GNUInstallDirs)
 
-if (NOT DEFINED GENERATOR_INSTALL_PATH)
-    set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_SBINDIR}" CACHE PATH "Path where the python scripts will be called from the cmake entries")
+if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../src/bridge")
+    set(NAMESPACE bridge)
+else()
+    set(NAMESPACE Thunder)
 endif()
+
+set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}" CACHE PATH "Location to install the generators.")
+set(GENERATOR_MODULE_INSTALL_PATH "${GENERATOR_INSTALL_PATH}/Modules" CACHE INTERNAL "Location where to install the generator cmake modules")
 
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
 option(PROXYSTUB_GENERATOR_ENABLE_COHERENCY "Globally enable frame coherency checks in proxystubs" OFF)
 
-if(NOT DEFINED GENERIC_CMAKE_MODULE_PATH)
-    if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/../src/bridge")
-        set(NAMESPACE bridge)
-    else()
-        set(NAMESPACE Thunder)
-    endif()
-    if(DEFINED ENV{STAGING_DIR})
-        set(GENERIC_CMAKE_MODULE_PATH "$ENV{STAGING_DIR}/usr/${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}/Modules")
-    else()
-        set(GENERIC_CMAKE_MODULE_PATH "${CMAKE_SYSROOT}${CMAKE_INSTALL_PREFIX}/${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}/Modules")
-    endif()
-endif()
+message(VERBOSE  "GENERATOR_MODULE_INSTALL_PATH: ${GENERATOR_MODULE_INSTALL_PATH}")
+message(VERBOSE  "GENERATOR_INSTALL_PATH: ${GENERATOR_INSTALL_PATH}")
 
 configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindProxyStubGenerator.cmake.in"
                 "${CMAKE_CURRENT_BINARY_DIR}/FindProxyStubGenerator.cmake"
@@ -58,19 +53,9 @@ configure_file( "${CMAKE_CURRENT_SOURCE_DIR}/cmake/FindConfigGenerator.cmake.in"
 
 install(FILES 
         "${CMAKE_CURRENT_BINARY_DIR}/FindProxyStubGenerator.cmake"
-    DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
-    COMPONENT ${NAMESPACE}_Development
-)
-
-install(FILES 
         "${CMAKE_CURRENT_BINARY_DIR}/FindJsonGenerator.cmake"
-    DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
-    COMPONENT ${NAMESPACE}_Development
-)
-
-install(FILES
         "${CMAKE_CURRENT_BINARY_DIR}/FindConfigGenerator.cmake"
-    DESTINATION ${GENERIC_CMAKE_MODULE_PATH}
+    DESTINATION ${GENERATOR_MODULE_INSTALL_PATH}
     COMPONENT ${NAMESPACE}_Development
 )
 
