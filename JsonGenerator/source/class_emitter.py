@@ -28,12 +28,8 @@ def IsObjectRestricted(argument):
     return False
 
 def IsObjectOptionalOrOpaque(argument):
-    if isinstance(argument.parent, JsonMethod):
-        return False
-    elif argument.optional:
-        return False
-    else:
-        return (argument.schema.get("opaque") or "required" not in argument.parent.schema or (argument.json_name not in argument.parent.schema["required"]))
+        _by_required = ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"])
+        return (argument.schema.get("opaque") or argument.schema.get("@optional") or _by_required) and not argument.optional
 
 def IsObjectOptional(argument):
     if argument.optional or IsObjectOptionalOrOpaque(argument):

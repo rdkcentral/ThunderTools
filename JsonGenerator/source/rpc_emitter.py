@@ -1001,22 +1001,25 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     index_name = index_name_converted
 
-                elif not IsObjectOptional(m.index):
-                    # Ensure the not-optional index is not empty
-                    assert isinstance(m.index, JsonString)
-                    optional_checked = True
+                elif isinstance(m.index, JsonString):
+                    if not IsObjectOptional(m.index):
+                        # Ensure the not-optional index is not empty
+                        assert isinstance(m.index, JsonString)
+                        optional_checked = True
 
-                    emit.Line("if (%s.empty() == true) {" % index_name)
-                    emit.Indent()
+                        emit.Line("if (%s.empty() == true) {" % index_name)
+                        emit.Indent()
 
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
 
-                    if is_read_write:
-                        emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+                        if is_read_write:
+                            emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
 
-                    emit.Unindent()
-                    emit.Line("} else {")
-                    emit.Indent()
+                        emit.Unindent()
+                        emit.Line("} else {")
+                        emit.Indent()
+                else:
+                    assert False, "Invalid type for index"
 
             if is_read_write:
                 emit.Line("if (%s.IsSet() == false) {" % (params.local_name))
