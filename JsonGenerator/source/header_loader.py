@@ -283,7 +283,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         required = []
 
                         for p in kind.vars:
-                            name = p.name.lower()
+                            name = p.meta.text if p.meta.text else p.name.lower()
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))

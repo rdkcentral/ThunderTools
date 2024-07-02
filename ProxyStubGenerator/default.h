@@ -29,6 +29,7 @@
 
 /* @define EXTERNAL */
 /* @define DEPRECATED */
+/* @define VARIABLE_IS_NOT_USED */
 
 typedef char TCHAR;
 typedef wchar_t WCHAR;
