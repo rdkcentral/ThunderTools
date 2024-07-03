@@ -58,7 +58,7 @@ def ASSERT_ISVALID(token):
 
 def ASSERT_ISEXPECTED(token, list):
     if token not in list:
-        raise ParserError("unexpected identifier: '" + token + "', expected one of " + str(list))
+        raise ParserError("unexpected identifier: '" + str(token) + "', expected one of " + str(list))
 
 
 # -------------------------------------------------------------------------
@@ -1589,7 +1589,7 @@ def __Tokenize(contents,log = None):
                 else:
                     continue
 
-            def __ParseParameterValue(string, tag, mandatory = True, append = True):
+            def __ParseParameterValue(string, tag, mandatory=True, append=True, relay=None):
                 formula = (r"(\"[^\"]+\")"
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
@@ -1598,7 +1598,7 @@ def __Tokenize(contents,log = None):
                            r"|([\r\n\t ])")
 
                 if append:
-                    tagtokens.append(tag.upper())
+                    tagtokens.append(relay.upper() if relay else tag.upper())
 
                 length_str = string[string.index(tag) + len(tag):]
                 length_tokens = [s.strip() for s in re.split(formula, length_str, flags=re.MULTILINE) if isinstance(s, str) and len(s.strip())]
@@ -1741,7 +1741,9 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@alt:obsolete"))
                 if _find("@alt-obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt-obsolete"))
-                if _find("@text", token):
+                if _find("@text:keep", token):
+                    tagtokens.append(__ParseParameterValue(token, "@text", True, True, "@text-global"))
+                elif _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
@@ -1894,6 +1896,7 @@ def Parse(contents,log = None):
     compliant_next = False
     iterator_next = False
     sourcelocation_next = False
+    text_next = None
     in_typedef = False
 
     # Main loop.
@@ -1941,6 +1944,11 @@ def Parse(contents,log = None):
             json_next = False
             tokens[i] = ";"
             i += 1
+        elif tokens[i] == "@TEXT-GLOBAL":
+            text_next = tokens[i + 1][0]
+            tokens[i] = ";"
+            tokens[i+1] = ";"
+            i += 2
         elif tokens[i] == "@EXTENDED":
             extended_next = True
             tokens[i] = ";"
@@ -1980,6 +1988,7 @@ def Parse(contents,log = None):
             compliant_next = False
             iterator_next = False
             sourcelocation_next = False
+            text_next = None
             in_typedef = False
             tokens[i] = ";"
             i += 1
@@ -2125,6 +2134,9 @@ def Parse(contents,log = None):
                     raise ParserError("@compliant and @uncompliant used together")
             if exclude_next:
                 raise ParserError("@json:omit is invalid here (applies to methods only)")
+            if text_next:
+                new_class.meta.text = text_next
+                text_next = None
 
             json_next = False
             json_version = ""
