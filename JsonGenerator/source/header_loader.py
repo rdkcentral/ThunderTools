@@ -66,6 +66,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
             return rpc_format
 
+        log.Info("Parsing interface %s in file %s" % (face.obj.full_name, file))
+
         schema = OrderedDict()
         methods = OrderedDict()
         properties = OrderedDict()
@@ -85,11 +87,28 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
         verify = face.obj.is_json or face.obj.is_event
 
+        _case_format = face.obj.meta.text if face.obj.meta.text else "lower"
+
+        def compute_name(obj, relay = None):
+            if not relay:
+                relay = obj
+
+            _default_name = relay.name if _case_format == "keep" else relay.name.lower()
+
+            if obj.meta.text == _default_name:
+                log.WarnLine(method, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _default_name))
+
+            _name = obj.meta.text if obj.meta.text else _default_name
+
+            return (_name)
+
         schema["@interfaceonly"] = True
         schema["configuration"] = { "nodefault" : True }
 
         info = dict()
         info["format"] = rpc_format.value
+
+        log.Info("JSON-RPC format is %s" % rpc_format.value)
 
         if not face.obj.parent.full_name.endswith(ns):
             info["namespace"] = face.obj.parent.name[1:] if (face.obj.parent.name[0] == "I" and face.obj.parent.name[1].isupper()) else face.obj.parent.name
@@ -111,6 +130,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
         info["title"] = info["class"] + " API"
         info["description"] = info["class"] + " JSON-RPC interface"
+
+        if _case_format == "keep":
+            info["legacy"] = True # suppress case warnings
+            log.Info("@text:keep is used!")
+
         schema["info"] = info
 
         clash_msg = "JSON-RPC name clash detected"
@@ -242,7 +266,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         #if autos != 0 and (autos != len(cppType.items)):
                         #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
-                    enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items] }
+                    if _case_format == "keep":
+                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name for e in cppType.items] }
+                    else:
+                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items] }
 
                     enum_spec["hint"] = var.type.Type().name
 
@@ -283,7 +310,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         required = []
 
                         for p in kind.vars:
-                            name = p.meta.text if p.meta.text else p.name.lower()
+                            name = compute_name(p)
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
@@ -452,7 +479,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             elif not var.meta.output:
                                 log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                    var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
+                    var_name = "value" if (is_property and _case_format == "lower") else compute_name(var)
 
                     if var_name.startswith("__unnamed") and not test:
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
@@ -520,7 +547,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    var_name = "value" if is_property else (var.meta.text if var.meta.text else var.name.lower())
+                    var_name = "value" if (is_property and _case_format == "lower") else compute_name(var)
 
                     if var_name.startswith("__unnamed"):
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
@@ -591,9 +618,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 continue
 
-            if method.retval.meta.text == method.name.lower():
-                log.WarnLine(method, "'%s': overriden method name is same as default ('%s')" % (method.name, method.retval.meta.text))
-
             # Copy over @text tag to the other method of a property
             if method.retval.meta.text and method.retval.meta.is_property:
                 for mm in face.obj.methods:
@@ -608,7 +632,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
-            method_name =  method.retval.meta.text if method.retval.meta.text else method.name.lower()
+            method_name = compute_name(method.retval, method)
 
             if method.retval.meta.alt == method_name:
                 log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
@@ -667,7 +691,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             obj["index"] = BuildIndex(method.vars[0])
 
                             if obj["index"]:
-                                obj["index"]["name"] = method.vars[0].name.capitalize()
+                                obj["index"]["name"] = (method.vars[0].name if _case_format == "keep" else method.vars[0].name.capitalize())
                                 obj["index"]["@originalname"] = method.vars[0].name
 
                                 if "enum" in obj["index"]:
@@ -907,10 +931,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if params:
                         obj["params"] = params
 
-                    if method.retval.meta.text == method.name.lower():
-                        log.WarnLine(method, "'%s': overriden notification name is same as default ('%s')" % (method.name, method.retval.meta.text))
-
-                    method_name = method.retval.meta.text if method.retval.meta.text else method.name.lower()
+                    method_name = compute_name(method.retval, method)
 
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
