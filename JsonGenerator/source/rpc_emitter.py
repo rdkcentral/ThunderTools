@@ -24,6 +24,7 @@ import rpc_version
 from json_loader import *
 from class_emitter import Restrictions
 from class_emitter import IsObjectOptional
+from class_emitter import IsObjectOptionalOrOpaque
 
 class RPCEmitterError(RuntimeError):
     pass
@@ -537,7 +538,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Indent()
                     emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
                     emit.Unindent()
-                    emit.Line("} else {")
+                    emit.Line("}")
+                    emit.Line("else {")
                     emit.Indent()
 
             # Emit temporary variables and deserializing of JSON data
@@ -873,9 +875,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         # Prepare for handling indexed properties
         indexed = is_property and m.index
         contexted = not is_property and m.context
-        optional_checked = False
         index_name = m.index.local_name if indexed else None
         index_name_converted = None
+        index_name_optional = None
         lookup = m.schema.get("@lookup")
 
         if is_property:
@@ -959,67 +961,101 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             is_read_write = not m.readonly and not m.writeonly
 
             if indexed:
-                if isinstance(m.index, JsonInteger):
-                    # Automatically convert integer indexes in properties
-                    index_name_converted = m.index.TempName("converted_")
+                def _EmitRestrictions(index_name, extra=None):
+                    _index_restrictions = Restrictions(json=False)
 
-                    emit.Line("%s %s{};" % (m.index.cpp_native_type, index_name_converted))
-                    emit.Line()
+                    if extra:
+                        _index_restrictions.extend(extra)
 
-                    emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (index_name, index_name, index_name_converted))
-                    emit.Indent()
+                    _index_restrictions.append(m.index, override=index_name)
 
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                    if _index_restrictions.count():
+                        emit.Line("if (%s) {" % ( _index_restrictions.join()))
+                        emit.Indent()
+                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                        emit.Unindent()
+                        emit.Line("}")
 
-                    if is_read_write:
-                        emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+                    return _index_restrictions.count()
 
-                    emit.Unindent()
-                    emit.Line("} else {")
-                    emit.Indent()
+                if IsObjectOptional(m.index) and not IsObjectOptionalOrOpaque(m.index):
+                    index_name_optional = m.index.TempName("opt_")
+                    if isinstance(m.index, JsonString):
+                        emit.Line("%s %s{};" %(m.index.cpp_native_type_opt, index_name_optional))
+                    else:
+                        emit.Line("%s %s{%s};" %(m.index.cpp_native_type_opt, index_name_optional, m.index.default_value if m.index.default_value else ""))
 
-                    index_name = index_name_converted
+                if isinstance(m.index, JsonString):
+                    if IsObjectOptionalOrOpaque(m.index):
+                        _EmitRestrictions(index_name)
 
-                elif isinstance(m.index, JsonEnum):
-                    # Automatically convert enum indexes in properties
-                    index_name_converted = m.index.TempName("converted_")
+                    elif not IsObjectOptional(m.index):
+                        _EmitRestrictions(index_name, extra=("(%s.empty() == true)" % index_name))
+                        index_name_converted = index_name
 
-                    emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (m.index.cpp_native_type, index_name_converted, index_name))
-                    emit.Line()
-
-                    emit.Line("if (%s.IsSet() == false) {" % index_name_converted)
-                    emit.Indent()
-
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
-
-                    if is_read_write:
-                        emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
-
-                    emit.Unindent()
-                    emit.Line("} else {")
-                    emit.Indent()
-
-                    index_name = index_name_converted
-
-                elif isinstance(m.index, JsonString):
-                    if not IsObjectOptional(m.index):
-                        # Ensure the not-optional index is not empty
-                        assert isinstance(m.index, JsonString)
-                        optional_checked = True
-
-                        emit.Line("if (%s.empty() == true) {" % index_name)
+                    else:
+                        emit.Line("if (%s.empty() == false) {" % index_name)
                         emit.Indent()
 
-                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                        cnt = _EmitRestrictions(index_name)
+                        if cnt:
+                            emit.Line("else {")
+                            emit.Indent()
 
-                        if is_read_write:
-                            emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+                        emit.Line("%s = %s;" % (index_name_optional, index_name))
+
+                        if cnt:
+                            emit.Unindent()
+                            emit.Line("}")
+
+                        if m.index.default_value:
+                            emit.Unindent()
+                            emit.Line("}")
+                            emit.Line("else {")
+                            emit.Indent()
+                            emit.Line("%s = %s;" %(index_name_optional, m.index.default_value))
+                            emit.Unindent()
+                            emit.Line("}")
 
                         emit.Unindent()
-                        emit.Line("} else {")
+                        emit.Line("}")
+
+
+                elif isinstance(m.index, (JsonInteger, JsonBoolean, JsonEnum)):
+                    if IsObjectOptional(m.index):
+                        emit.Line("if (%s.empty() == false) {" % index_name)
                         emit.Indent()
-                else:
-                    assert False, "Invalid type for index"
+
+                    index_name_converted = m.index.TempName("conv_")
+
+                    if isinstance(m.index, JsonEnum):
+                        emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (m.index.cpp_native_type, index_name_converted, index_name))
+                        _EmitRestrictions(index_name_converted, extra="((%s.IsSet() == false)" % (index_name_converted))
+                    else:
+                        emit.Line("%s %s{};" % (m.index.cpp_native_type, index_name_converted))
+                        _EmitRestrictions(index_name_converted, extra="(Core::FromString(%s, %s) == false)" % (index_name, index_name_converted))
+
+                    if IsObjectOptional(m.index):
+                        emit.Line("else {")
+                        emit.Indent()
+                        emit.Line("%s = %s;" % (index_name_optional, index_name_converted))
+                        emit.Unindent()
+                        emit.Line("}")
+                        emit.Unindent()
+                        emit.Line("}")
+
+                    index_name = index_name_converted
+
+                emit.Line()
+
+                if index_name_optional:
+                    index_name = index_name_optional
+                elif index_name_converted:
+                    index_name = index_name_converted
+
+            if index_name_converted:
+                emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
+                emit.Indent()
 
             if is_read_write:
                 emit.Line("if (%s.IsSet() == false) {" % (params.local_name))
@@ -1036,7 +1072,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if not is_read_only:
                 if is_read_write:
                     emit.Unindent()
-                    emit.Line("} else {")
+                    emit.Line("}")
+                    emit.Line("else {")
                     emit.Indent()
                     emit.Line("// property set")
                 else:
@@ -1046,12 +1083,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 _Invoke(params, None, params_parent, response_parent)
 
                 if is_read_write:
-                    emit.Line()
-                    emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
                     emit.Unindent()
                     emit.Line("}")
 
-            if index_name_converted or optional_checked:
+            if index_name_converted:
+                emit.Unindent()
+                emit.Line("}")
+
+            if not is_read_only and is_read_write:
+                emit.Line()
+                emit.Line("if (%s.IsSet() == true) {" % (params.local_name))
+                emit.Indent()
+                emit.Line("%s%s.Null(true);" % ("// FIXME " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
                 emit.Unindent()
                 emit.Line("}")
 

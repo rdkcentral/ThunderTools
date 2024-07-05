@@ -153,7 +153,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
             return type.Resolve()
 
-        def ConvertType(var):
+        def ConvertType(var, quiet=False):
             if isinstance(var.type, str):
                 raise CppParseError(var, "%s: undefined type" % var.type)
             elif isinstance(var.type, list):
@@ -297,7 +297,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if isinstance(var.type.Type(), CppParser.Typedef):
                         result[1]["@register"] = False
 
-                    if var.meta.range:
+                    if var.meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
 
                 # POD objects
@@ -334,6 +334,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                             if "optional" not in p.meta.decorators:
                                 required.append(name)
+                            elif not quiet:
+                                log.Info(p, "'%s': @optional tag is deprecated, use Core::OptionalType instead" % p.name)
 
                         return "object", { "properties": properties, "required": required }
 
@@ -375,6 +377,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                                 result[1]["@default"] = '_T(' + str(var.meta.default[0]) + ')'
                                 result[1]["default"] = str(var.meta.default[0])
+
                         except CppParseError as err:
                             raise err
                         except:
@@ -383,6 +386,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 # All other types are not supported
                 else:
                     raise CppParseError(var, "unable to convert this C++ type to JSON type: %s" % cppType.type)
+
+                if not isinstance(cppType, CppParser.Optional) and var.meta.default and not quiet:
+                    log.WarnLine(var, "'%s': @default on non OptionalType type has no effect" % var.name)
 
                 if result:
                     if var_type.IsPointer():
@@ -397,7 +403,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if var.meta.range:
                         result[1]["range"] = var.meta.range
 
-                        if var.meta.default[0]:
+                        if var.meta.default:
                             if result[0] == "integer" or result[0] == "number":
                                 if float(var.meta.default[0]) < var.meta.range[0] or (float(var.meta.default[0]) > var.meta.range[1]):
                                     raise CppParseError(var, "default value is outside of restrict range")
@@ -417,8 +423,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             else:
                 return None
 
-        def ConvertParameter(var):
-            jsonType, args = ConvertType(var)
+        def ConvertParameter(var, quiet=False):
+            jsonType, args = ConvertType(var, quiet)
             properties = {"type": jsonType}
 
             if args != None:
@@ -484,7 +490,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if var_name.startswith("__unnamed") and not test:
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
 
-                    converted = ConvertParameter(var)
+                    converted = ConvertParameter(var, test)
 
                     if converted["type"] == "@context":
                         if obj:
@@ -503,6 +509,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             required.append(var_name)
                         else:
                             properties[var_name]["@optional"] = True
+
+                            if not test:
+                                log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
 
                         if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in properties[var_name] and not "time" in properties[var_name]:
@@ -534,8 +543,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
         def BuildIndex(var, test=False):
             index = BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
-            if index.get("@optionaltype") or index.get("type") not in ["string", "integer"]:
-                raise CppParseError(var, "index must be string, integer or enum type")
             return index
 
         def BuildResult(vars, is_property=False):
@@ -635,7 +642,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             method_name = compute_name(method.retval, method)
 
             if method.retval.meta.alt == method_name:
-                log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+                log.WarnLine(method, "'%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
 
             if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:
@@ -701,18 +708,34 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                     # example not specified, let's invent something...
                                     obj["index"]["example"] = ("0" if obj["index"]["type"] == "integer" else "xyz")
 
-                                if obj["index"]["type"] not in ["integer", "string"]:
+                                if obj["index"]["type"] not in ["integer", "string", "boolean"]:
                                     raise CppParseError(method.vars[0], "index to a property must be integer, enum or string type")
                             else:
                                 raise CppParseError(method.vars[0], "failed to determine type of index")
                         else:
                             test = BuildIndex(method.vars[0], True)
 
+                            if "range" in test:
+                                if "range" in obj["index"] and obj["index"]["range"] != test["range"]:
+                                    log.WarnLine(method.vars[0], "'%s': inconsistent @restrict specifications between indexes of the same property" % method.vars[0].name)
+
+                                obj["index"]["range"] = test["range"]
+
+                            if "@default" in test:
+                                if "@default" in obj["index"] and obj["index"]["@default"] != test["@default"]:
+                                    log.WarnLine(method.vars[0], "'%s': inconsistent @default specifications between indexes of the same property" % method.vars[0].name)
+
+                                obj["index"]["@default"] = test["@default"]
+                                obj["index"]["default"] = test["default"]
+
                             if not test:
                                 raise CppParseError(method.vars[value], "property index must be an input parameter")
 
                             if obj["index"]["type"] != test["type"]:
                                 raise CppParseError(method.vars[0], "setter and getter of the same property must have same index type")
+
+                            if obj["index"].get("@optionaltype") != test.get("@optionaltype"):
+                                raise CppParseError(method.vars[0], "OptionalType is inconsistent between setter and getter of this property")
 
                         if method.vars[1].meta.is_index:
                             raise CppParseError(method.vars[0], "index must be the first parameter to property method")
@@ -885,7 +908,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if len(method.vars) > 0:
                         for v in method.vars[1:]:
                             if v.meta.is_index:
-                                log.WarnLine(method,"@index ignored on non-first parameter of %s" % method.name)
+                                log.WarnLine(method, "@index ignored on non-first parameter of '%s'" % method.name)
 
                         if method.vars[0].meta.is_index:
                             if method.vars[0].type.IsPointer():

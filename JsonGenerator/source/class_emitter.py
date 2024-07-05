@@ -62,7 +62,7 @@ class Restrictions:
         if (len(self.__cond) == 1):
             return self.__cond[0]
         elif (len(self.__cond) > 1):
-            return (" && ".join(self.__cond))
+            return ((" %s " % ("&&" if self.__reverse else "||")).join(self.__cond))
         else:
             return self.__comp[2]
 
