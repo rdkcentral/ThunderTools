@@ -508,6 +508,21 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             if obj.do_create and not obj.is_duplicate and not obj.included_from:
                 count += 1
 
+    def _EmitNoPushWarnings(prologue = True):
+        if prologue:
+            if not config.NO_PUSH_WARNING:
+                emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
+                emit.Line()
+            else:
+                emit.Line("#if defined(__GNUC__) || defined(__clang__)")
+                emit.Line('#pragma GCC diagnostic ignored "-Wtype-limits"')
+                emit.Line("#endif")
+                emit.Line()
+        else:
+            if not config.NO_PUSH_WARNING:
+                emit.Line("POP_WARNING()")
+                emit.Line()
+
     emit.Line()
     emit.Line("// C++ classes for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
     emit.Line("// Generated automatically from '%s'. DO NOT EDIT." % os.path.basename(if_file))
@@ -535,6 +550,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emit.Line("namespace %s {" % config.DATA_NAMESPACE)
     emit.Indent()
     emit.Line()
+    _EmitNoPushWarnings()
 
     if "info" in root.schema and "namespace" in root.schema["info"]:
         emit.Line("namespace %s {" % root.schema["info"]["namespace"])
@@ -584,6 +600,8 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Unindent()
         emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
         emit.Line()
+
+    _EmitNoPushWarnings(False)
 
     emit.Unindent()
     emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
