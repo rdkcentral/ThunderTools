@@ -162,8 +162,8 @@ class Intrinsic(BaseType):
 
 
 class BuiltinInteger(Intrinsic):
-    def __init__(self, fixed_size = False):
-        Intrinsic.__init__(self, "builtin_integer")
+    def __init__(self, fixed_size=False, name="builtin_integer"):
+        Intrinsic.__init__(self, name)
         self.fixed = fixed_size
 
     def IsFixed(self):
@@ -172,7 +172,7 @@ class BuiltinInteger(Intrinsic):
 
 class InstanceId(BuiltinInteger):
     def __init__(self):
-        BuiltinInteger.__init__(self, "instance_id")
+        BuiltinInteger.__init__(self, fixed_size=True, name="Core::instance_id")
 
     def IsFixed(self):
         return self.fixed
@@ -1047,7 +1047,7 @@ class Class(Identifier, Block):
             for v in array:
                 if v.access == "public":
                     found = list(filter(lambda x: x.name == v.name, vars))
-                    assert(len(found)<=1)
+                    assert len(found)<=1
 
                     if not found:
                         vars.append(v)
@@ -1501,6 +1501,7 @@ class TemplateClass(Class):
             # take over as Optional if this is OptionalType instance
             if len(instance.args) == 1:
                 instance = Optional(Temporary(parent, instance.args[0].split()))
+                instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
@@ -2511,6 +2512,27 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
         if not quiet:
             raise LoaderError(source_file, "failed to open file")
         return ""
+
+
+def Locate(block_name, tree=None):
+    if not tree:
+        tree = global_namespace
+
+    if block_name in tree.full_name:
+        return tree
+
+    if isinstance(tree, (Namespace, Class)):
+        for n in tree.namespaces:
+            found = Locate(block_name, n)
+            if found:
+                return found
+
+        for n in tree.namespaces:
+            found = Locate(block_name, n)
+            if found:
+                return found
+
+    return None
 
 
 def ParseFile(source_file, includePaths = []):

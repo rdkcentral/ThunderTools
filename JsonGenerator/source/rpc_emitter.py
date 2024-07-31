@@ -24,6 +24,7 @@ import rpc_version
 from json_loader import *
 from class_emitter import Restrictions
 from class_emitter import IsObjectOptional
+from class_emitter import IsObjectOptionalOrOpaque
 
 class RPCEmitterError(RuntimeError):
     pass
@@ -72,7 +73,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
 
         elif params_type == "object":
-            parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
+           parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
 
     if not legacy:
         parameters.insert(0, "const %s& %s" % (names.jsonrpc_alias, names.module))
@@ -320,14 +321,20 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         if prologue:
             if not config.NO_PUSH_WARNING:
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
+                emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
+                emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
                 emit.Line()
             else:
                 emit.Line("#if defined(__GNUC__) || defined(__clang__)")
                 emit.Line('#pragma GCC diagnostic ignored "-Wunused-function"')
+                emit.Line('#pragma GCC diagnostic ignored "-Wdeprecated-declarations"')
+                emit.Line('#pragma GCC diagnostic ignored "-Wtype-limits"')
                 emit.Line("#endif")
                 emit.Line()
         else:
             if not config.NO_PUSH_WARNING:
+                emit.Line("POP_WARNING()")
+                emit.Line("POP_WARNING()")
                 emit.Line("POP_WARNING()")
                 emit.Line()
 
@@ -481,8 +488,120 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     for m in methods_and_properties:
 
-        def _Invoke(params, response, parent="", repsonse_parent="", const_cast=False):
+        def _EmitIndexing(index):
+            nonlocal index_name
+
+            _index_checked = False
+            _index_name_converted = None
+            _index_name_optional = None
+
+            def _IsOptional(v):
+                return ((IsObjectOptional(v) and not IsObjectOptionalOrOpaque(v)))
+
+            def _IsLegacyOptional(v):
+                return (IsObjectOptionalOrOpaque(v))
+
+            def _EmitRestrictions(index_name, extra=None):
+                _index_restrictions = Restrictions(json=False)
+
+                if extra:
+                    _index_restrictions.extend(extra)
+
+                _index_restrictions.append(index, override=index_name)
+
+                if _index_restrictions.count():
+                    emit.Line("if (%s) {" % ( _index_restrictions.join()))
+                    emit.Indent()
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                    emit.Unindent()
+                    emit.Line("}")
+
+                return _index_restrictions.count()
+
+            if _IsOptional(index) or _IsLegacyOptional(index):
+
+                if isinstance(index, JsonString):
+                    if not _IsLegacyOptional(index) or index.default_value:
+                        _index_name_optional = index.TempName("opt_")
+                        emit.Line("%s %s{};" %(index.cpp_native_type_opt, _index_name_optional))
+                else:
+                    _index_name_optional = index.TempName("opt_")
+                    emit.Line("%s %s{%s};" %(index.cpp_native_type_opt, _index_name_optional, index.default_value if index.default_value else ""))
+
+            if isinstance(index, JsonString):
+                if _IsOptional(index) or _IsLegacyOptional(index):
+                    if _IsOptional(index) or index.default_value:
+                        emit.Line("if (%s.empty() == false) {" % index_name)
+                        emit.Indent()
+
+                    cnt = _EmitRestrictions(index_name)
+                    if cnt:
+                        emit.Line("else {")
+                        emit.Indent()
+
+                    if _IsOptional(index) or index.default_value:
+                        emit.Line("%s = %s;" % (_index_name_optional, index_name))
+
+                    if cnt:
+                        emit.Unindent()
+                        emit.Line("}")
+
+                    if index.default_value:
+                        emit.Unindent()
+                        emit.Line("}")
+                        emit.Line("else {")
+                        emit.Indent()
+                        emit.Line("%s = %s;" %(_index_name_optional, index.default_value))
+
+                    if _IsOptional(index) or index.default_value:
+                        emit.Unindent()
+                        emit.Line("}")
+                else:
+                    _EmitRestrictions(index_name, extra=("(%s.empty() == true)" % index_name))
+                    _index_checked = True # still have to close the bracket...
+
+            elif isinstance(index, (JsonInteger, JsonBoolean, JsonEnum)):
+                if _IsOptional(index) or _IsLegacyOptional(index):
+                    emit.Line("if (%s.empty() == false) {" % index_name)
+                    emit.Indent()
+
+                _index_name_converted = index.TempName("conv_")
+
+                if isinstance(index, JsonEnum):
+                    emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (index.cpp_native_type, _index_name_converted, index_name))
+                    _EmitRestrictions(_index_name_converted, extra="((%s.IsSet() == false)" % (_index_name_converted))
+                else:
+                    emit.Line("%s %s{};" % (index.cpp_native_type, _index_name_converted))
+                    _EmitRestrictions(_index_name_converted, extra="(Core::FromString(%s, %s) == false)" % (index_name, _index_name_converted))
+
+                if _IsOptional(index) or _IsLegacyOptional(index):
+                    emit.Line("else {")
+                    emit.Indent()
+                    emit.Line("%s = %s;" % (_index_name_optional, _index_name_converted))
+                    emit.Unindent()
+                    emit.Line("}")
+                    emit.Unindent()
+                    emit.Line("}")
+
+            emit.Line()
+
+            if _index_name_optional:
+                index_name = _index_name_optional
+            elif _index_name_converted:
+                index_name = _index_name_converted
+
+            _index_checked = ((_index_name_converted != None) or _index_checked)
+
+            if _index_checked:
+                emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
+                emit.Indent()
+
+            return _index_checked
+
+        def _Invoke(params, response, parent="", repsonse_parent="", const_cast=False, index=None, test_param=True):
             vars = OrderedDict()
+
+            _index_checks_emitted = _EmitIndexing(index) if index else False
 
             # Build param/response dictionaries (dictionaries will ensure they do not repeat)
             if params:
@@ -529,7 +648,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             buffer_restrictions_used = False
 
             if params:
-                restrictions.append(params, override=params.local_name)
+                restrictions.append(params, override=params.local_name, test_set=test_param)
 
                 if restrictions.present():
                     emit.Line()
@@ -537,7 +656,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Indent()
                     emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
                     emit.Unindent()
-                    emit.Line("} else {")
+                    emit.Line("}")
+                    emit.Line("else {")
                     emit.Indent()
 
             # Emit temporary variables and deserializing of JSON data
@@ -619,37 +739,47 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 # Special case for iterators
                 elif isinstance(arg, JsonArray):
+                    face_name = "_" + arg.items.local_name.capitalize() + "IteratorType"
+
+                    if arg.optional and is_readable:
+                        emit.Line("Core::OptionalType<%s*> %s{};" % (face_name, arg.temp_name))
+                        emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
+                        emit.Indent()
 
                     if arg.iterator:
-                        if arg.optional:
-                            raise RPCEmitterError("OptionalType iterators are not supported, use @optional tag (see %s)" % arg.cpp_native_type_opt)
-
-                        face_name = "_" + arg.items.local_name.capitalize() + "IteratorType"
                         emit.Line("using %s = %s;" % (face_name, arg.iterator))
 
                         if not is_writeable:
-                            arg.flags.release = True
+                            arg.flags.release = False if (arg.optional and is_readable) else True
 
                             elements_name = arg.items.TempName("elements")
                             iterator_name = arg.items.TempName("iterator")
                             impl_name = "_" + arg.items.local_name.capitalize() + "IteratorImplType"
 
-                            emit.Line("std::list<%s> %s;" % (arg.items.cpp_native_type, elements_name))
+                            emit.Line("std::list<%s> %s{};" % (arg.items.cpp_native_type, elements_name))
                             emit.Line("auto %s = %s.Elements();" % (iterator_name, cpp_name))
                             emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (iterator_name, elements_name, iterator_name))
                             impl = (arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % face_name))
                             emit.Line("using %s = %s;" % (impl_name, impl))
                             initializer = "Core::ServiceType<%s>::Create<%s>(std::move(%s))" % (impl_name, face_name, elements_name)
-                            emit.Line("%s* const %s{%s};" % (face_name, arg.temp_name, initializer))
+                            if arg.optional and is_readable:
+                                emit.Line("%s = %s;" % (arg.temp_name, initializer))
+                            else:
+                                emit.Line("%s* const %s{%s};" % (face_name, arg.temp_name, initializer))
                             emit.Line("ASSERT(%s != nullptr); " % arg.temp_name)
 
                             if arg.schema.get("@byreference"):
                                 arg.flags.cast = "static_cast<%s* const&>(%s)" % (face_name, arg.temp_name)
 
+                            emit.Line()
+
                         elif not is_readable:
-                            emit.Line("%s%s* %s{};" % ("const " if arg.schema.get("@ptrtoconst") else "", face_name, arg.temp_name))
+                            if arg.optional:
+                                emit.Line("Core::OptionalType<%s*> %s{};" % (face_name, arg.temp_name))
+                            else:
+                                emit.Line("%s%s* %s{};" % ("const " if arg.schema.get("@ptrtoconst") else "", face_name, arg.temp_name))
                         else:
-                            raise RPCEmitterError("Read/write arrays (iterators) are not supported (see %s)" % arg.arg.cpp_native_type_opt)
+                            raise RPCEmitterError("Read/write arrays (iterators) are not supported (see %s)" % arg.cpp_native_type_opt)
 
                     elif arg.items.schema.get("@bitmask"):
                         initializer = cpp_name if is_readable else ""
@@ -666,6 +796,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     else:
                         raise RPCEmitterError("Arrays must be iterators: %s" % arg.json_name)
+
+                    if arg.optional and is_readable:
+                        emit.Unindent()
+                        emit.Line("}")
 
                 # All Other
                 else:
@@ -686,7 +820,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("%s = %s;" % (arg.temp_name, cpp_name))
                         emit.Unindent()
                         if arg.default_value:
-                            emit.Line("} else {")
+                            emit.Line("}")
+                            emit.Line("else {")
                             emit.Indent()
                             emit.Line("%s = %s;" % (arg.temp_name, arg.default_value))
                             emit.Unindent()
@@ -717,20 +852,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (%s != nullptr) {" % impl)
                     emit.Indent()
 
-                iterator_conditions = []
-
-                for _, [arg, _] in sorted_vars:
-                    if arg.flags.release:
-                        iterator_conditions.append("(%s != nullptr)" % arg.temp_name)
-
-                        if len(iterator_conditions) == 1:
-                            emit.Line()
-
-                if iterator_conditions:
-                    emit.Line()
-                    emit.Line("if (%s) {" % " && ".join(iterator_conditions))
-                    emit.Indent()
-
                 implementation_object = "(static_cast<const %s*>(%s))" % (interface, impl) if const_cast and not lookup else impl
                 function_params = []
 
@@ -745,18 +866,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, m.cpp_name, ", ".join(function_params)))
 
-                if iterator_conditions:
-                    for _, _record in sorted_vars:
-                        arg = _record[0]
-                        if arg.flags.release:
-                            emit.Line("%s->Release();" % arg.temp_name)
-
-                    emit.Unindent()
-                    emit.Line("} else {")
-                    emit.Indent()
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("general")))
-                    emit.Unindent()
-                    emit.Line("}")
+                for _, _record in sorted_vars:
+                    arg = _record[0]
+                    if arg.flags.release:
+                        emit.Line("%s->Release();" % arg.temp_name)
 
                 if lookup:
                     emit.Line("%s->Release();" % impl)
@@ -786,7 +899,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 parameters = []
 
                 if indexed:
-                    parameters.append("const %s& %s" % (m.index.cpp_native_type, index_name))
+                    parameters.append("const %s& %s" % (any_index.cpp_native_type, index_name))
 
                 for _, [ arg, type ] in sorted_vars:
                     parameters.append("%s%s& %s" % ("const " if type == "r" else "", arg.cpp_type, arg.local_name))
@@ -808,6 +921,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 for _, [arg, arg_type] in sorted_vars:
                     if "w" not in arg_type:
                         continue
+
+                    _rhs = arg.temp_name
+                    if arg.optional:
+                        _rhs += ".Value()"
 
                     cpp_name = (repsonse_parent + arg.cpp_name) if repsonse_parent else arg.local_name
 
@@ -835,30 +952,30 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if arg.iterator:
                             item_name = arg.items.TempName("item_")
 
-                            emit.Line("if (%s != nullptr) {" % arg.temp_name)
+                            emit.Line("if (%s != nullptr) {" % _rhs)
                             emit.Indent()
 
                             emit.Line("%s %s{};" % (arg.items.cpp_native_type, item_name))
-                            emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (arg.temp_name, item_name, cpp_name, item_name))
+                            emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (_rhs, item_name, cpp_name, item_name))
 
                             if arg.schema.get("@extract"):
                                 emit.Line("%s.SetExtractOnSingle(true);" % (cpp_name))
 
-                            emit.Line("%s->Release();" % arg.temp_name)
+                            emit.Line("%s->Release();" % _rhs)
                             emit.Unindent()
                             emit.Line("}")
 
                         elif arg.items.schema.get("@bitmask"):
-                            emit.Line("%s = %s;" % (cpp_name, arg.temp_name))
+                            emit.Line("%s = %s;" % (cpp_name, _rhs))
 
                         else:
                             raise RPCEmitterError("unable to serialize a non-iterator array: %s" % arg.json_name)
 
                     # All others...
                     else:
-                        emit.Line("%s = %s;" % (cpp_name, arg.temp_name + arg.convert_rhs))
+                        emit.Line("%s = %s;" % (cpp_name, _rhs + arg.convert_rhs))
 
-                        if arg.schema.get("opaque"):
+                        if arg.schema.get("opaque") and not repsonse_parent: # if comes from a struct it already has a SetQuoted
                             emit.Line("%s.SetQuoted(false);" % (cpp_name))
 
                 emit.Unindent()
@@ -868,14 +985,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Unindent()
                 emit.Line("}")
 
+            if _index_checks_emitted:
+                emit.Unindent()
+                emit.Line("}")
+
         is_property = isinstance(m, JsonProperty)
+
+        contexted = (not is_property and m.context)
 
         # Prepare for handling indexed properties
         indexed = is_property and m.index
-        contexted = not is_property and m.context
-        optional_checked = False
-        index_name = m.index.local_name if indexed else None
-        index_name_converted = None
+        any_index = (m.index[0] if m.index[0] else m.index[1]) if indexed else None
+        indexes_are_different = not m.index[2] if indexed else False
+        index_name = any_index.local_name if any_index else None
         lookup = m.schema.get("@lookup")
 
         if is_property:
@@ -951,75 +1073,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line("%s %s = %s;" % (error_code.cpp_native_type, error_code.temp_name, CoreError("none")))
         emit.Line()
 
+        _index_checks_emitted = _EmitIndexing(m.index[0]) if (indexed and not indexes_are_different) else False
+
         if not is_property:
             _Invoke((params if not params.is_void else None), (response if not response.is_void else None), params_parent, response_parent)
         else:
             is_read_only = m.readonly
             is_write_only = m.writeonly
             is_read_write = not m.readonly and not m.writeonly
-
-            if indexed:
-                if isinstance(m.index, JsonInteger):
-                    # Automatically convert integer indexes in properties
-                    index_name_converted = m.index.TempName("converted_")
-
-                    emit.Line("%s %s{};" % (m.index.cpp_native_type, index_name_converted))
-                    emit.Line()
-
-                    emit.Line("if ((%s.empty() == true) || (Core::FromString(%s, %s) == false)) {" % (index_name, index_name, index_name_converted))
-                    emit.Indent()
-
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
-
-                    if is_read_write:
-                        emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
-
-                    emit.Unindent()
-                    emit.Line("} else {")
-                    emit.Indent()
-
-                    index_name = index_name_converted
-
-                elif isinstance(m.index, JsonEnum):
-                    # Automatically convert enum indexes in properties
-                    index_name_converted = m.index.TempName("converted_")
-
-                    emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (m.index.cpp_native_type, index_name_converted, index_name))
-                    emit.Line()
-
-                    emit.Line("if (%s.IsSet() == false) {" % index_name_converted)
-                    emit.Indent()
-
-                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
-
-                    if is_read_write:
-                        emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
-
-                    emit.Unindent()
-                    emit.Line("} else {")
-                    emit.Indent()
-
-                    index_name = index_name_converted
-
-                elif isinstance(m.index, JsonString):
-                    if not IsObjectOptional(m.index):
-                        # Ensure the not-optional index is not empty
-                        assert isinstance(m.index, JsonString)
-                        optional_checked = True
-
-                        emit.Line("if (%s.empty() == true) {" % index_name)
-                        emit.Indent()
-
-                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
-
-                        if is_read_write:
-                            emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
-
-                        emit.Unindent()
-                        emit.Line("} else {")
-                        emit.Indent()
-                else:
-                    assert False, "Invalid type for index"
 
             if is_read_write:
                 emit.Line("if (%s.IsSet() == false) {" % (params.local_name))
@@ -1031,29 +1092,35 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             if not is_write_only:
                 assert not response.is_void
-                _Invoke(None, response, params_parent, response_parent, const_cast=is_read_write)
+                _Invoke(None, response, params_parent, response_parent, const_cast=is_read_write, index=m.index[0] if indexes_are_different else None, test_param=not is_read_write)
+
+                if indexes_are_different:
+                    index_name = any_index.local_name
 
             if not is_read_only:
                 if is_read_write:
                     emit.Unindent()
-                    emit.Line("} else {")
+                    emit.Line("}")
+                    emit.Line("else {")
                     emit.Indent()
                     emit.Line("// property set")
                 else:
                     emit.Line("// write-only property set")
 
                 assert not params.is_void
-                _Invoke(params, None, params_parent, response_parent)
+                _Invoke(params, None, params_parent, response_parent, index=m.index[1] if indexes_are_different else None, test_param=not is_read_write)
 
-                if is_read_write:
-                    emit.Line()
-                    emit.Line("%s%s.Null(true);" % ("// " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
-                    emit.Unindent()
-                    emit.Line("}")
+            if is_read_write:
+                emit.Line()
+                emit.Line("%s%s.Null(true);" % ("// FIXME " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
 
-            if index_name_converted or optional_checked:
+            if not is_read_only and is_read_write:
                 emit.Unindent()
                 emit.Line("}")
+
+        if _index_checks_emitted:
+            emit.Unindent()
+            emit.Line("}")
 
         emit.Line()
 

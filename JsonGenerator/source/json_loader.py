@@ -868,11 +868,24 @@ class JsonProperty(JsonMethod):
         if ("params" not in schema) and ("result" not in schema):
             raise JsonParseError("No parameters defined for property: '%s'" % self.print_name)
 
-        if ("index" in schema) and ("type" not in schema["index"]):
+        if ("index" in schema) and ("type" not in schema["index"]) and not isinstance(schema["index"], list):
             schema["index"]["type"] = "string"
 
         JsonMethod.__init__(self, name, parent, schema, included, property=True)
-        self.index = JsonItem("index", self, schema["index"]) if "index" in schema else None
+
+        if "index" in schema:
+            self.index = [None, None, True]
+            if isinstance(schema["index"], list):
+                assert(len(schema["index"]) == 2)
+                self.index[0] = JsonItem("index", self, schema["index"][0]) if schema["index"][0] else None
+                self.index[1] = JsonItem("index", self, schema["index"][1]) if schema["index"][1] else None
+                self.index[2] = schema["index"][0] == schema["index"][1]
+            else:
+                # legacy metafile with one "index" entry
+                self.index[0] = JsonItem("index", self, schema["index"])
+                self.index[1] = self.index[0]
+        else:
+            self.index = None
 
         self.endpoint_set_name = (config.IMPL_ENDPOINT_PREFIX + "set_" + self.json_name)
         self.endpoint_get_name = (config.IMPL_ENDPOINT_PREFIX + "get_" + self.json_name)

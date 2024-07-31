@@ -47,6 +47,10 @@ namespace std {
 
 namespace __FRAMEWORK_NAMESPACE__ {
 
+  namespace ProxyStub {
+    class UnknownProxy;
+  }
+
   namespace Core {
     typedef __stubgen_instance_id instance_id;
     typedef __stubgen_time Time;
