@@ -196,7 +196,7 @@ class Time(Intrinsic):
 
 class Optional(Intrinsic):
     def __init__(self, subtype):
-        Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.type)
+        Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.Proto())
         self.optional = subtype
 
 
@@ -283,6 +283,8 @@ class Identifier():
         nest1 = 0
         nest2 = 0
         array = False
+        array_size = None
+        self.array = None
         skip = 0
         self.value = []
 
@@ -391,6 +393,14 @@ class Identifier():
                     skip = 1
                 elif tag == "OPAQUE":
                     self.meta.decorators.append("opaque")
+                elif tag == "ENCODEBASE64":
+                    self.meta.decorators.append("encode:base64")
+                elif tag == "ENCODEHEX":
+                    self.meta.decorators.append("encode:hex")
+                elif tag == "ENCODEIP":
+                    self.meta.decorators.append("encode:ip")
+                elif tag == "ENCODEMAC":
+                    self.meta.decorators.append("encode:mac")
                 elif tag == "OPTIONAL":
                     self.meta.decorators.append("optional")
                 elif tag == "EXTRACT":
@@ -467,6 +477,8 @@ class Identifier():
             elif token == "]":
                 array = False
                 type.append("*")
+                self.array = array_size
+                array_size = None
 
             elif token in ["*", "&"]:
                 type.append(token)
@@ -514,6 +526,8 @@ class Identifier():
             elif type_found:
                 if not array:
                     self.name = token
+                else:
+                    array_size = token
 
         if array:
             raise ParserError("unmatched bracket '['")
@@ -584,6 +598,13 @@ class Identifier():
             typeIdx = len(self.type) - 1
             cnt = 0
             ref = 0
+
+            if isinstance(self.type[typeIdx], str):
+                if self.type[typeIdx].startswith('['):
+                    ref |= Ref.POINTER
+                    typeIdx -=1
+                    cnt += 1
+
             while self.type[typeIdx] in ["*", "&", "&&", "const", "volatile"]:
                 if self.type[typeIdx] == "*":
                     if ref & Ref.POINTER:
@@ -602,8 +623,10 @@ class Identifier():
                     ref |= Ref.CONST
                 elif self.type[typeIdx] == "volatile":
                     ref |= Ref.VOLATILE
+
                 typeIdx -= 1
                 cnt += 1
+
 
             # Skip template parsing here
             if isinstance(self.type[typeIdx], str):
@@ -613,6 +636,7 @@ class Identifier():
             if isinstance(self.type[typeIdx], str):
                 i = typeIdx
                 type = self.type[i].split()[-1]
+
                 if type in ["float", "double"]:
                     self.type[i] = Type(Float(self.type[i]))
                 elif type in ["int", "char", "wchar_t", "char16_t", "char32_t", "short", "long", "signed", "unsigned",
@@ -682,8 +706,17 @@ class Identifier():
     def Proto(self):
         return str(self.Type())
 
-    def Signature(self):
-        return (self.Proto() + " " + self.name)
+    def TypeStrong(self):
+        if self.array:
+            return ("%s[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
+        else:
+            return self.Proto()
+
+    def Signature(self, override=None):
+        if self.array:
+            return ("%s %s[%s]" % (self.type.Proto("nocv|noref|noptr"), override if override != None else self.name, self.array))
+        else:
+            return (self.Proto() + " " + override if override != None else self.name)
 
 
 def Evaluate(identifiers_):
@@ -937,8 +970,7 @@ class Type:
         return _str
 
     def Proto(self, mask=""):
-        _str = ""
-        _str += self.CVString(mask)
+        _str = self.CVString(mask)
         _str += " " if _str else ""
         _str += self.TypeName()
         if "noptr" not in mask:
@@ -1064,7 +1096,7 @@ class Class(Identifier, Block):
 
     def Merge(self, do_methods=False):
         new_class = Class(self.parent, self.name)
-        result = self._Merge(new_class.vars, new_class.methods, do_methods)
+        self._Merge(new_class.vars, new_class.methods, do_methods)
         return new_class
 
     def __str__(self):
@@ -1169,9 +1201,6 @@ class Temporary(Identifier, Name):
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value) if value else None
 
-    def Proto(self):
-        return TypeStr(self.type)
-
     def __str__(self):
         return self.Proto()
 
@@ -1188,9 +1217,6 @@ class Variable(Identifier, Name):
         if self.parent:
             self.parent.vars.append(self)
 
-    def Proto(self):
-        return TypeStr(self.type)
-
     def __str__(self):
         return self.Proto()
 
@@ -1206,9 +1232,6 @@ class Parameter(Variable):
         self.def_value = Evaluate(value) if value else None
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
-
-    def Proto(self):
-        return TypeStr(self.type)
 
     def __str__(self):
         return "%s %s" % (self.Proto(), self.name)
@@ -1304,11 +1327,11 @@ class Attribute(Variable):
         return str
 
     def Proto(self):
-        return "%s %s" % (TypeStr(self.type), str(self.name))
+        return "%s" % (TypeStr(self.type))
 
     def __str__(self):
         value = ValueStr(self.value) if self.value else None
-        return "%s %s" % (self.Proto(), (" = " + value) if value else "")
+        return "%s %s %s" % (self.Proto(), self.name, (" = " + value) if value else "")
 
     def __repr__(self):
         value = ValueStr(self.value) if self.value else None
@@ -1746,6 +1769,14 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@text", True, True, "@text-global"))
                 elif _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
+                if _find("@encode:base64", token):
+                    tagtokens.append("@ENCODEBASE64")
+                elif _find("@encode:hex", token):
+                    tagtokens.append("@ENCODEHEX")
+                elif _find("@encode:ip", token):
+                    tagtokens.append("@ENCODEIP")
+                elif _find("@encode:mac", token):
+                    tagtokens.append("@ENCODEMAC")
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
                 if _find("@maxlength", token):
@@ -2443,6 +2474,7 @@ def Parse(contents,log = None):
                     else:
                         j = i + 1
                 i += 1
+
             if in_typedef:
                 current_block[-2].typedefs[-1].type = Type(enum)
                 in_typedef = False

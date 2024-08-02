@@ -634,7 +634,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             for _, [arg, _] in sorted_vars:
                 length_var_name = arg.schema.get("length")
 
-                if isinstance(arg, JsonString) and length_var_name:
+                if isinstance(arg, (JsonString, JsonArray)) and length_var_name:
                     for name, [var, type] in sorted_vars:
                         if name == length_var_name:
                             if type == "w":
@@ -784,6 +784,39 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     elif arg.items.schema.get("@bitmask"):
                         initializer = cpp_name if is_readable else ""
                         emit.Line("%s%s %s{%s};" % (cv_qualifier, arg.items.cpp_native_type, arg.temp_name, initializer))
+
+                    elif arg.schema.get("@arraysize"):
+                        if "#" in arg.schema.get("@arraysize"):
+                            for name, [var, var_type] in sorted_vars:
+                                if name == arg.flags.length.local_name:
+                                    initializer = (parent + var.cpp_name) if "r" in var_type else ""
+                                    emit.Line("%s %s{%s};" % (var.cpp_native_type, var.temp_name, initializer))
+                                    break
+
+                            emit.Line("%s* %s{};" % (arg.items.cpp_native_type, arg.items.temp_name))
+                            emit.Line("if (%s != 0) {" % arg.flags.length.temp_name)
+                            emit.Indent()
+                            emit.Line("%s = static_cast<%s*>(ALLOCA(%s));" % (arg.items.temp_name, arg.items.cpp_native_type, arg.flags.length.temp_name))
+                            emit.Line("ASSERT(%s != nullptr);" % arg.items.temp_name)
+                            _len = arg.flags.length.temp_name
+                        else:
+                            emit.Line("%s %s[%s]{};" % (arg.items.cpp_native_type, arg.items.temp_name, arg.schema.get("@arraysize")))
+                            _len = arg.schema.get("@arraysize")
+                            emit.Line("{")
+                            emit.Indent()
+
+                        if is_readable:
+                            emit.Line("uint16_t i = 0;")
+                            emit.Line("auto it = %s.Elements();" % arg.local_name)
+                            emit.Line("while ((it.Next() != true) && (i < %s)) {" % _len)
+                            emit.Indent()
+                            emit.Line("%s[i++] = it.Current();" % (arg.items.temp_name))
+                            emit.Unindent()
+                            emit.Line("}")
+
+                        emit.Unindent()
+                        emit.Line("}")
+                        emit.Line()
 
                     elif is_json_source:
                         response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
@@ -967,6 +1000,20 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         elif arg.items.schema.get("@bitmask"):
                             emit.Line("%s = %s;" % (cpp_name, _rhs))
+
+                        elif arg.schema.get("@arraysize"):
+                            if "#" in arg.schema.get("@arraysize"):
+                                _len = arg.flags.length.temp_name
+                            else:
+                                _len = arg.schema.get("@arraysize")
+
+                            emit.Line("%s.Clear();" % cpp_name)
+                            emit.Line("for (uint16_t i = 0; i < %s; i++) {" % _len)
+                            emit.Indent()
+                            emit.Line("%s.Add() = %s[i];" % (cpp_name, _rhs))
+                            emit.Unindent()
+                            emit.Line("}")
+                            pass
 
                         else:
                             raise RPCEmitterError("unable to serialize a non-iterator array: %s" % arg.json_name)

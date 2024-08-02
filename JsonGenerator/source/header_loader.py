@@ -153,7 +153,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
             return type.Resolve()
 
-        def ConvertType(var, quiet=False, meta=None):
+        def ConvertType(var, quiet=False, meta=None, no_array=False):
             if not meta:
                 meta = var.meta
 
@@ -171,11 +171,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
             cppType = var_type.Type()
             is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
+            is_bitmask = "bitmask" in meta.decorators
 
             # Pointers
-            if var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"])):
+            if var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"]) or var.array) and not no_array and not is_bitmask:
                 # Special case for serializing C-style buffers, that will be converted to base64 encoded strings
-                if isinstance(cppType, CppParser.Integer) and cppType.size == "char":
+                if isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and ("encode:base64" in meta.decorators):
                     props = dict()
 
                     if meta.maxlength:
@@ -186,12 +187,18 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if "length" in props:
                         props["@originaltype"] = cppType.type
 
-                    props["encode"] = cppType.type != "char"
+                    props["encode"] = (cppType.type != "char")
 
                     if meta.range:
                         props["range"] = meta.range
 
                     return "string", props if props else None
+
+                elif isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and not var.array:
+                    return ["array", { "items": ConvertParameter(var, no_array=True), "length": " ".join(meta.length), "@arraysize": "#bylength" }]
+
+                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float)) and var.array:
+                    return ["array", { "items": ConvertParameter(var, no_array=True), "@arraysize": var.array }]
 
                 # Special case for iterators, that will be converted to JSON arrays
                 elif is_iterator and len(cppType.args) == 2:
@@ -319,7 +326,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
                             if isinstance(p.type, str):
                                 raise CppParseError(p, "%s: undefined type" % p.type)
-                            elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class):
+                            elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class) and not p.array:
                                 _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                 properties[name] = props
                                 properties[name]["type"] = "object"
@@ -396,8 +403,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             else:
                 return None
 
-        def ConvertParameter(var, quiet=False):
-            jsonType, args = ConvertType(var, quiet)
+        def ConvertParameter(var, quiet=False, no_array=False):
+            jsonType, args = ConvertType(var, quiet, no_array=no_array)
             properties = {"type": jsonType}
 
             if args != None:
