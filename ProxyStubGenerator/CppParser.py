@@ -118,7 +118,7 @@ class BaseType:
         self.type = type
 
     def Proto(self):
-        return self.type
+        return TypeStr(self.type)
 
     def __str__(self):
         return self.Proto()
@@ -130,16 +130,21 @@ class Undefined(BaseType):
         self.comment = comment
 
     def Proto(self):
-        proto = self.comment
         if isinstance(self.type, list):
+            proto = ""
+
             for e in self.type:
-                proto += " " + (e if isinstance(e, str) else str(e))
+                proto += " " + (e.strip() if isinstance(e, str) else str(e))
+
             proto = proto.replace(" < ", "<").replace(" :: ", "::").replace(" >", ">")
             proto = proto.replace(" *", "*").replace(" &", "&").replace(" &&", "&&").replace(" ,",",").strip()
         else:
-            proto += str(self.type)
+            proto = str(self.type)
 
-        return proto
+        return ((self.comment + " " if self.comment else "") + proto)
+
+    def __str__(self):
+        return self.Proto()
 
     def __repr__(self):
         return "undefined %s" % self.Proto()
@@ -704,7 +709,7 @@ class Identifier():
         return self.type
 
     def Proto(self):
-        return str(self.Type())
+        return TypeStr(self.type)
 
     def TypeStrong(self):
         if self.array:
@@ -987,7 +992,7 @@ class Type:
 
 
 def TypeStr(s):
-    return str(Undefined(s, "/* undefined type  */")) if not isinstance(s, Type) else str(s)
+    return str(Undefined(s, "/* undefined type */")) if isinstance(s, list) else str(s)
 
 
 def ValueStr(s):
