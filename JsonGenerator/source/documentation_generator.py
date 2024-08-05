@@ -296,6 +296,9 @@ def Create(log, schema, path, indent_size = 4):
                     writeonly = True
                     MdParagraph("> This property is **write-only**.")
 
+                if "index" in props:
+                    if not isinstance(props["index"], list):
+                        props["index"] = [props["index"], props["index"]]
 
             if alt_status == main_status:
                 if main_status:
@@ -326,6 +329,38 @@ def Create(log, schema, path, indent_size = 4):
                 method = method.replace("::", "#1::")
 
             if is_property:
+                if "index" in props:
+                    if "name" not in props["index"][0] or "example" not in props["index"][0]:
+                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
+
+                    extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``." % (
+                        props["index"][0]["name"].lower(), classname, method, props["index"][0]["name"].lower())
+
+                    if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
+                        extra_paragraph += " The index is optional."
+                    elif props["index"][0] and props["index"][0].get("optional"):
+                        extra_paragraph += " The index is optional for the get request."
+                    elif props["index"][1] and props["index"][1].get("optional"):
+                        extra_paragraph += " The index is optional for the set request."
+
+                    if not extra_paragraph.endswith('.'):
+                        extra_paragraph += '.'
+
+                    MdParagraph(extra_paragraph)
+
+                    if props["index"][0] and props["index"][1] and props["index"][0] != props["index"][1]:
+                        MdHeader("Index (Get)", 3)
+                        ParamTable(props["index"][0]["name"].lower(), props["index"][0])
+                        MdHeader("Index (Set)", 3)
+                        ParamTable(props["index"][1]["name"].lower(), props["index"][1])
+                    elif props["index"][0]:
+                        MdHeader("Index", 3)
+                        ParamTable(props["index"][0]["name"].lower(), props["index"][0])
+                    elif props["index"][1]:
+                        MdHeader("Index", 3)
+                        ParamTable(props["index"][1]["name"].lower(), props["index"][1])
+
+
                 MdHeader("Value", 3)
                 if "params" in props:
                     if not "description" in props["params"]:
@@ -342,20 +377,7 @@ def Create(log, schema, path, indent_size = 4):
                             props["result"]["description"] = props["summary"]
 
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"]["example"] if "index" in props else ""))
-
-                if "index" in props:
-                    if "name" not in props["index"] or "example" not in props["index"]:
-                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
-
-                    extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``.%s" % (
-                        props["index"]["name"].lower(), classname, method, props["index"]["name"].lower(),
-                        (" " + props["index"]["description"]) if "description" in props["index"] else "")
-
-                    if not extra_paragraph.endswith('.'):
-                        extra_paragraph += '.'
-
-                    MdParagraph(extra_paragraph)
+                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
 
             else:
                 MdHeader("Parameters", 3)
@@ -392,7 +414,7 @@ def Create(log, schema, path, indent_size = 4):
             if is_notification:
                 callmethod = "client." + method
             elif is_property:
-                callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"]["example"])) if "index" in props and "example" in props["index"] else "")
+                callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"][0]["example"])) if "index" in props and "example" in props["index"][0] else "")
             else:
                 callmethod = "%s.1.%s" % (classname, method)
 
@@ -449,10 +471,13 @@ def Create(log, schema, path, indent_size = 4):
             if not readonly:
                 if is_property:
                     MdHeader("Set Request", 4)
+                    callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"][1]["example"])) if "index" in props and "example" in props["index"][1] else "")
+
                 elif is_notification:
                     MdHeader("Message", 4)
                 else:
                     MdHeader("Request", 4)
+
 
                 try:
                     jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %

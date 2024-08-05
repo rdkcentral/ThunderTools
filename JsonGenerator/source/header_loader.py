@@ -153,7 +153,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
             return type.Resolve()
 
-        def ConvertType(var):
+        def ConvertType(var, quiet=False, meta=None):
+            if not meta:
+                meta = var.meta
+
             if isinstance(var.type, str):
                 raise CppParseError(var, "%s: undefined type" % var.type)
             elif isinstance(var.type, list):
@@ -170,23 +173,23 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
 
             # Pointers
-            if var_type.IsPointer() and (is_iterator or (var.meta.length and var.meta.length != ["void"])):
+            if var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"])):
                 # Special case for serializing C-style buffers, that will be converted to base64 encoded strings
                 if isinstance(cppType, CppParser.Integer) and cppType.size == "char":
                     props = dict()
 
-                    if var.meta.maxlength:
-                        props["length"] = " ".join(var.meta.maxlength)
-                    elif var.meta.length:
-                        props["length"] = " ".join(var.meta.length)
+                    if meta.maxlength:
+                        props["length"] = " ".join(meta.maxlength)
+                    elif meta.length:
+                        props["length"] = " ".join(meta.length)
 
                     if "length" in props:
                         props["@originaltype"] = cppType.type
 
                     props["encode"] = cppType.type != "char"
 
-                    if var.meta.range:
-                        props["range"] = var.meta.range
+                    if meta.range:
+                        props["range"] = meta.range
 
                     return "string", props if props else None
 
@@ -200,7 +203,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                     result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
 
-                    if "extract" in var.meta.decorators:
+                    if "extract" in meta.decorators:
                         result[1]["@extract"] = True
 
                     if var_type.IsPointerToPointer():
@@ -209,7 +212,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if var_type.IsPointerToConst():
                         raise CppParseError(var, "iterators must be passed as const pointers (not pointers to const)")
 
-                    if var.meta.range:
+                    if meta.range:
                         log.WarnLine(var, "'%s': @restrict has no effect on iterators" % var.name)
 
                     return result
@@ -224,7 +227,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 # String
                 if isinstance(cppType, CppParser.String):
-                    if "opaque" in var.meta.decorators :
+                    if "opaque" in meta.decorators :
                         result = [ "string", { "opaque": True } ]
                     else:
                         result = [ "string", {} ]
@@ -233,7 +236,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 elif isinstance(cppType, CppParser.Bool):
                     result = ["boolean", {} ]
 
-                    if var.meta.range:
+                    if meta.range:
                         log.WarnLine(var, "'%s': @restrict has no effect on bools" % var.name)
 
                 # Integer
@@ -286,7 +289,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             enum_spec["@endmarker"] = e.name
                             break;
 
-                    if "bitmask" in var.meta.decorators or "bitmask" in var.type.Type().meta.decorators:
+                    if "bitmask" in meta.decorators or "bitmask" in var.type.Type().meta.decorators:
                         enum_spec["type"] = "string"
                         enum_spec["@bitmask"] = True
                         enum_spec["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
@@ -297,7 +300,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if isinstance(var.type.Type(), CppParser.Typedef):
                         result[1]["@register"] = False
 
-                    if var.meta.range:
+                    if meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
 
                 # POD objects
@@ -334,6 +337,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                             if "optional" not in p.meta.decorators:
                                 required.append(name)
+                            elif not quiet:
+                                log.Info(p, "'%s': @optional tag is deprecated, use Core::OptionalType instead" % p.name)
 
                         return "object", { "properties": properties, "required": required }
 
@@ -348,37 +353,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             raise CppParseError(var, "unable to convert this C++ class to JSON type: %s" % cppType.type)
 
                 elif isinstance(cppType, CppParser.Optional):
-                    result = ConvertType(cppType.optional)
+                    result = ConvertType(cppType.optional, meta=var.meta)
                     result[1]["@optionaltype"] = True
                     result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
 
-                    if var.meta.default:
-                        try:
-                            if result[1].get("float"):
-                                result[1]["@default"] = float(var.meta.default[0])
-                                result[1]["default"] = float(var.meta.default[0])
-                            elif result[0] == "integer":
-                                result[1]["@default"] = int(var.meta.default[0])
-                                result[1]["default"] = int(var.meta.default[0])
-                            elif result[0] == "boolean":
-                                result[1]["@default"] = "true" if var.meta.default[0] == "true" else "false"
-                                result[1]["default"] = (var.meta.default[0] == "true")
-                            elif result[1].get("enum"):
-                                if var.meta.default[0] not in result[1].get("ids"):
-                                    raise CppParseError(var, "default value for enumerator type is not an enum value")
-                                else:
-                                    result[1]["@default"] = result[1]["@originaltype"]+ "::" + str(var.meta.default[0])
-                                    result[1]["default"] = str(var.meta.default[0])
-                            else:
-                                if not var.meta.default[0].startswith('"') or not var.meta.default[0].endswith('"'):
-                                    raise CppParseError(var, "default value for string type must be a quoted string literal %s" % result[1].get("type"))
-
-                                result[1]["@default"] = '_T(' + str(var.meta.default[0]) + ')'
-                                result[1]["default"] = str(var.meta.default[0])
-                        except CppParseError as err:
-                            raise err
-                        except:
-                            raise CppParseError(var, "OptionalType and default value type mismatch (expected %s, got '%s')" % (result[1].get("@originaltype"), var.meta.default[0]))
+                    ConvertDefault(var, result[0], result[1])
 
                 # All other types are not supported
                 else:
@@ -394,15 +373,15 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if var_type.IsPointerToConst():
                         result[1]["@ptrtoconst"] = True
 
-                    if var.meta.range:
-                        result[1]["range"] = var.meta.range
+                    if meta.range:
+                        result[1]["range"] = meta.range
 
-                        if var.meta.default[0]:
+                        if meta.default:
                             if result[0] == "integer" or result[0] == "number":
-                                if float(var.meta.default[0]) < var.meta.range[0] or (float(var.meta.default[0]) > var.meta.range[1]):
+                                if float(meta.default[0]) < meta.range[0] or (float(meta.default[0]) > meta.range[1]):
                                     raise CppParseError(var, "default value is outside of restrict range")
                             elif result[0] == "string" and not result[1].get("enum"):
-                                if len(var.meta.default[0]) - 2 < var.meta.range[0] or (len(var.meta.default[0]) -2  > var.meta.range[1]):
+                                if len(meta.default[0]) - 2 < meta.range[0] or (len(meta.default[0]) -2  > meta.range[1]):
                                     raise CppParseError(var, "default value string length is outside of restrict range")
 
                 return result
@@ -417,8 +396,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             else:
                 return None
 
-        def ConvertParameter(var):
-            jsonType, args = ConvertType(var)
+        def ConvertParameter(var, quiet=False):
+            jsonType, args = ConvertType(var, quiet)
             properties = {"type": jsonType}
 
             if args != None:
@@ -462,6 +441,34 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 events = ResolveTypedef(resolved, events, var.type)
             return events
 
+        def ConvertDefault(var, type, converted):
+            if var.meta.default:
+                try:
+                    if type == "integer":
+                        converted["@default"] = int(var.meta.default[0])
+                        converted["default"] = converted["@default"]
+                    elif type == "number":
+                        converted["@default"] = float(var.meta.default[0])
+                        converted["default"] = converted["@default"]
+                    elif type == "boolean":
+                        converted["@default"] = ("true" if var.meta.default[0] == "true" else "false")
+                        converted["default"] = (var.meta.default[0] == "true")
+                    if type == "string" and "enum" in converted:
+                        if var.meta.default[0] not in converted.get("ids"):
+                            raise CppParseError(var, "default value for enumerator type is not an enum value")
+                        converted["@default"] = converted["@originaltype"] + "::" + str(var.meta.default[0])
+                        converted["default"] = str(var.meta.default[0])
+                    elif type == "string":
+                        if not var.meta.default[0].startswith('"') or not var.meta.default[0].endswith('"'):
+                            raise CppParseError(var, "default value for string type must be a quoted string literal %s" % converted.get("type"))
+                        converted["@default"] = '_T(' + str(var.meta.default[0]) + ')'
+                        converted["default"] = str(var.meta.default[0][1:-1])
+                except CppParseError as err:
+                    raise err
+                except:
+                    raise CppParseError(var, "type and default value type mismatch (expected %s, got '%s')" % (converted.get("@originaltype"), var.meta.default[0]))
+
+
         def BuildParameters(obj, vars, rpc_format, is_property=False, test=False):
             params = {"type": "object"}
             properties = OrderedDict()
@@ -484,7 +491,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if var_name.startswith("__unnamed") and not test:
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
 
-                    converted = ConvertParameter(var)
+                    converted = ConvertParameter(var, test)
 
                     if converted["type"] == "@context":
                         if obj:
@@ -492,24 +499,30 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         else:
                             raise CppParseError(var, "context parameter is only valid for methods")
                     else:
-                        properties[var_name] = converted
-
                         if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
-                            properties[var_name]["@originalname"] = var.name
+                            converted["@originalname"] = var.name
 
-                        properties[var_name]["@position"] = vars.index(var)
+                        converted["@position"] = vars.index(var)
 
                         if "optional" not in var.meta.decorators:
                             required.append(var_name)
                         else:
-                            properties[var_name]["@optional"] = True
+                            converted["@optional"] = True
+                            converted["optional"] = True
 
-                        if properties[var_name]["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
-                                and not "enum" in properties[var_name] and not "time" in properties[var_name]:
+                            ConvertDefault(var, converted["type"], converted)
+
+                            if not test:
+                                log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
+
+                        if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
+                                and not "enum" in converted and not "time" in converted:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
-                        if properties[var_name].get("@optionaltype") and not var.type.IsReference():
+                        if converted.get("@optionaltype") and not var.type.IsReference():
                             log.WarnLine(var, "'%s': passing input optional type by value (forgot &?)" % var.name)
+
+                        properties[var_name] = converted
 
 
             params["properties"] = properties
@@ -533,10 +546,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     return params
 
         def BuildIndex(var, test=False):
-            index = BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
-            if index.get("@optionaltype") or index.get("type") not in ["string", "integer"]:
-                raise CppParseError(var, "index must be string, integer or enum type")
-            return index
+            return BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
 
         def BuildResult(vars, is_property=False):
             params = {"type": "object"}
@@ -635,7 +645,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             method_name = compute_name(method.retval, method)
 
             if method.retval.meta.alt == method_name:
-                log.WarnLine(method, "%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+                log.WarnLine(method, "'%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
 
             if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:
@@ -682,37 +692,46 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 if len(method.vars) == 1 or (len(method.vars) == 2 and indexed_property):
                     if indexed_property:
                         if method.vars[0].type.IsPointer():
-                            raise CppParseError(method.vars[0], "index to a property must not be pointer")
+                            raise CppParseError(method.vars[0], "index to a property must not be a pointer")
 
                         if not method.vars[0].type.IsConst() and method.vars[0].type.IsReference():
-                            raise CppParseError(method.vars[0], "index to a property must be an input parameter")
+                            raise CppParseError(method.vars[0], "index to a property must be an const input parameter")
 
                         if "index" not in obj:
-                            obj["index"] = BuildIndex(method.vars[0])
+                            obj["index"] = [None, None]
 
-                            if obj["index"]:
-                                obj["index"]["name"] = (method.vars[0].name if _case_format == "keep" else method.vars[0].name.capitalize())
-                                obj["index"]["@originalname"] = method.vars[0].name
+                        _index_idx = (0 if "const" in method.qualifiers else 1)
 
-                                if "enum" in obj["index"]:
-                                    obj["index"]["example"] = obj["index"]["enum"][0]
+                        obj["index"][_index_idx] = BuildIndex(method.vars[0])
+                        _index = obj["index"][_index_idx]
 
-                                if "example" not in obj["index"]:
-                                    # example not specified, let's invent something...
-                                    obj["index"]["example"] = ("0" if obj["index"]["type"] == "integer" else "xyz")
+                        if _index:
+                            _index["name"] = (method.vars[0].name if _case_format == "keep" else method.vars[0].name.capitalize())
+                            _index["@originalname"] = method.vars[0].name
 
-                                if obj["index"]["type"] not in ["integer", "string"]:
-                                    raise CppParseError(method.vars[0], "index to a property must be integer, enum or string type")
-                            else:
-                                raise CppParseError(method.vars[0], "failed to determine type of index")
+                            if "enum" in _index:
+                                _index["example"] = _index["enum"][0]
+
+                            if "example" not in obj["index"]:
+                                # example not specified, let's invent something...
+                                if method.vars[0].meta.default:
+                                    _index["example"] = method.vars[0].meta.default[0]
+                                else:
+                                    _index["example"] = ("0" if _index["type"] == "integer" else "xyz")
+
+                            if _index["type"] not in ["integer", "string", "boolean"]:
+                                raise CppParseError(method.vars[0], "index to a property must be integer, enum, boolean or string type")
                         else:
-                            test = BuildIndex(method.vars[0], True)
+                            raise CppParseError(method.vars[0], "failed to determine type of index")
 
-                            if not test:
-                                raise CppParseError(method.vars[value], "property index must be an input parameter")
-
-                            if obj["index"]["type"] != test["type"]:
+                        if obj["index"][0] and obj["index"][1]:
+                            if obj["index"][0]["type"] != obj["index"][1]["type"]:
                                 raise CppParseError(method.vars[0], "setter and getter of the same property must have same index type")
+
+                            if "description" in obj["index"][0] and "description" not in obj["index"][1]:
+                                obj["index"][1]["description"] = obj["index"][0]["description"]
+                            elif "description" in obj["index"][1] and "description" not in obj["index"][0]:
+                                obj["index"][0]["description"] = obj["index"][1]["description"]
 
                         if method.vars[1].meta.is_index:
                             raise CppParseError(method.vars[0], "index must be the first parameter to property method")
@@ -885,7 +904,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if len(method.vars) > 0:
                         for v in method.vars[1:]:
                             if v.meta.is_index:
-                                log.WarnLine(method,"@index ignored on non-first parameter of %s" % method.name)
+                                log.WarnLine(method, "@index ignored on non-first parameter of '%s'" % method.name)
 
                         if method.vars[0].meta.is_index:
                             if method.vars[0].type.IsPointer():

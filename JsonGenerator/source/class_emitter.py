@@ -62,7 +62,7 @@ class Restrictions:
         if (len(self.__cond) == 1):
             return self.__cond[0]
         elif (len(self.__cond) > 1):
-            return (" && ".join(self.__cond))
+            return ((" %s " % ("&&" if self.__reverse else "||")).join(self.__cond))
         else:
             return self.__comp[2]
 
@@ -217,112 +217,116 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 if isinstance(prop, JsonString) and prop.schema.get("opaque"):
                     emit.Line("%s.SetQuoted(false);" % prop.cpp_name)
 
-        def __EmitAssignment(json_obj, other, optional_type=False, conv=False):
-            if optional_type:
+        def __EmitAssignment(json_obj, other, type, optional_type=False):
+            _move = (type == "move")
+
+            if optional_type and not _move:
                 emit.Line("if (%s.IsSet() == true) {" % other)
                 emit.Indent()
-
-            if optional_type:
                 other += ".Value()"
 
             for prop in json_obj.properties:
-                optional_or_opaque = IsObjectOptionalOrOpaque(prop)
-                _prop_name = prop.actual_name if conv else prop.cpp_name
+                _prop_name = (prop.actual_name if type == "conv" else prop.cpp_name)
 
-                if (prop.optional and not prop.default_value):
-                    emit.Line("if (%s.%s.IsSet() == true) {" % (other, prop.actual_name))
-                    emit.Indent()
+                if _move:
+                    emit.Line("%s = std::move(%s.%s);" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                else:
+                    _optional_or_opaque = IsObjectOptionalOrOpaque(prop)
 
-                elif optional_or_opaque:
-                    if isinstance(prop, JsonString):
-                        emit.Line("if (%s.%s%s.empty() == false) {" % (other, _prop_name, ".Value()" if not conv else ""))
+                    if (prop.optional and not prop.default_value):
+                        emit.Line("if (%s.%s.IsSet() == true) {" % (other, prop.actual_name))
                         emit.Indent()
-                    elif isinstance(prop, JsonInteger):
-                        emit.Line("if (%s.%s != 0) {" % (other, _prop_name))
-                        emit.Indent()
-                    else:
-                        optional_or_opaque = False # invalid @optional...
 
-                emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                    elif _optional_or_opaque:
+                        if isinstance(prop, JsonString):
+                            emit.Line("if (%s.%s%s.empty() == false) {" % (other, _prop_name, ".Value()" if type != "conv" else ""))
+                            emit.Indent()
+                        elif isinstance(prop, JsonInteger):
+                            emit.Line("if (%s.%s != 0) {" % (other, _prop_name))
+                            emit.Indent()
+                        else:
+                            _optional_or_opaque = False # invalid @optional...
 
-                if (prop.optional and not prop.default_value) or optional_or_opaque:
-                    emit.Unindent()
-                    emit.Line("}")
+                    emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
 
-            if optional_type:
+                    if (prop.optional and not prop.default_value) or _optional_or_opaque:
+                        emit.Unindent()
+                        emit.Line("}")
+
+            if optional_type and not _move:
                 emit.Unindent()
                 emit.Line("}")
 
-        def __EmitCtor(json_obj, no_init_code=False, copy_ctor=False, conversion_ctor=False, optional_type=False):
-            _other = "_other"
+        def __EmitCtor(json_obj, type, no_init_code=False, optional_type=False, delete=False):
+            _other = " _other" if not delete else ""
+            _delete_str = " = delete;" if delete else ""
 
-            if copy_ctor:
+            if type == "copy":
                 assert not optional_type
-                emit.Line("%s(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_class, _other))
-            elif conversion_ctor:
-                emit.Line("%s(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
+                emit.Line("%s(const %s&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
+            elif type == "move":
+                assert not optional_type
+                emit.Line("%s(%s&&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
+            elif type == "conv":
+                assert not delete
+                emit.Line("%s(const %s&%s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
             else:
+                assert not delete
                 assert not optional_type
                 emit.Line("%s()" % (json_obj.cpp_class))
 
-            emit.Indent()
-            emit.Line(": %s()" % CoreJson("Container"))
+            if not delete:
+                emit.Indent()
+                emit.Line(": %s()" % CoreJson("Container"))
 
-            for prop in json_obj.properties:
-                if copy_ctor:
-                    emit.Line(", %s(%s.%s)" % (prop.cpp_name, _other, prop.cpp_name))
-                elif prop.default_value:
-                    emit.Line(", %s(%s)" % (prop.cpp_name, prop.default_value))
+                for prop in json_obj.properties:
+                    if type == "copy":
+                        emit.Line(", %s(%s.%s)" % (prop.cpp_name, _other.strip(), prop.cpp_name))
+                    elif type == "move":
+                        emit.Line(", %s(std::move(%s.%s))" % (prop.cpp_name, _other.strip(), prop.cpp_name))
+                    elif prop.default_value:
+                        emit.Line(", %s(%s)" % (prop.cpp_name, prop.default_value))
 
-            emit.Unindent()
-            emit.Line("{")
-            emit.Indent()
+                emit.Unindent()
+                emit.Line("{")
+                emit.Indent()
 
-            if conversion_ctor:
-                __EmitAssignment(json_obj, _other, optional_type, conv=True)
+                if type == "conv":
+                    __EmitAssignment(json_obj, _other.strip(), type, optional_type)
 
-            if no_init_code:
-                emit.Line("_Init();")
-            else:
-                __EmitInit(json_obj)
+                if no_init_code:
+                    emit.Line("_Init();")
+                else:
+                    __EmitInit(json_obj)
 
-            emit.Unindent()
-            emit.Line("}")
+                emit.Unindent()
+                emit.Line("}")
 
-        def _EmitCtor(json_obj, no_init=False):
-            __EmitCtor(json_obj, no_init)
+        def __EmitAssignmentOperator(json_obj, type, optional_type=False, delete=False):
+            _other = " _rhs" if not delete else ""
+            _delete_str = " = delete;" if delete else ""
 
-        def _EmitCopyCtor(json_obj, optional_type=False):
-            __EmitCtor(json_obj, True, True, False, optional_type)
-
-        def _EmitConvertCtor(json_obj, optional_type=False):
-            __EmitCtor(json_obj, True, False, True, optional_type)
-
-        def __EmitAssignmentOperator(json_obj, copy=False, conversion=False, optional_type=False):
-            _other = "_rhs"
-
-            if copy:
+            if type == "copy":
                 assert not optional_type
-                emit.Line("%s& operator=(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_class, _other))
-            elif conversion:
-                emit.Line("%s& operator=(const %s& %s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
+                emit.Line("%s& operator=(const %s&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
+            elif type == "move":
+                assert not optional_type
+                emit.Line("%s& operator=(%s&&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
+            elif type == "conv":
+                assert not delete
+                emit.Line("%s& operator=(const %s&%s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
             else:
                 assert False
 
-            emit.Line("{")
-            emit.Indent()
+            if not delete:
+                emit.Line("{")
+                emit.Indent()
 
-            __EmitAssignment(json_obj, _other, optional_type, conversion)
+                __EmitAssignment(json_obj, _other[1:], type, optional_type)
 
-            emit.Line("return (*this);")
-            emit.Unindent()
-            emit.Line("}")
-
-        def _EmitCopyAssignmentOperator(json_obj, optional_type=False):
-            __EmitAssignmentOperator(json_obj, True, False, optional_type)
-
-        def _EmitConvertAssignmentOperator(json_obj, optional_type=False):
-            __EmitAssignmentOperator(json_obj, False, True, optional_type)
+                emit.Line("return (*this);")
+                emit.Unindent()
+                emit.Line("}")
 
         def _EmitConversionOperator(json_obj):
             emit.Line("operator %s() const" % (json_obj.cpp_native_type))
@@ -346,8 +350,32 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
             emit.Unindent()
             emit.Line("}")
 
+        def _EmitCtor(json_obj, no_init=False):
+            __EmitCtor(json_obj, "default", no_init)
+
+        def _EmitCopyCtor(json_obj, optional_type=False, delete=False):
+            __EmitCtor(json_obj, "copy", True, optional_type, delete)
+
+        def _EmitMoveCtor(json_obj, optional_type=False, delete=False):
+            __EmitCtor(json_obj, "move", True, optional_type, delete)
+
+        def _EmitConvertCtor(json_obj, optional_type=False):
+            __EmitCtor(json_obj, "conv", True, optional_type)
+
+        def _EmitCopyAssignmentOperator(json_obj, optional_type=False, delete=False):
+            __EmitAssignmentOperator(json_obj, "copy", optional_type, delete)
+
+        def _EmitMoveAssignmentOperator(json_obj, optional_type=False, delete=False):
+            __EmitAssignmentOperator(json_obj, "move", optional_type, delete)
+
+        def _EmitConvertAssignmentOperator(json_obj, optional_type=False):
+            __EmitAssignmentOperator(json_obj, "conv", optional_type)
+
         def _EmitValidator(json_obj):
             emit.Line()
+            emit.Unindent()
+            emit.Line("public:")
+            emit.Indent()
             emit.Line("bool IsDataValid() const")
             emit.Line("{")
             emit.Indent()
@@ -398,11 +426,15 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
             _EmitCtor(json_obj, (json_obj.is_copy_ctor_needed or json_obj.original_type))
 
-            if json_obj.is_copy_ctor_needed:
+            if json_obj.is_copy_ctor_needed or json_obj.original_type:
                 emit.Line()
                 _EmitCopyCtor(json_obj)
                 emit.Line()
-                _EmitCopyAssignmentOperator(json_obj)
+                _EmitMoveCtor(json_obj)
+            else:
+                emit.Line()
+                _EmitCopyCtor(json_obj, delete=True)
+                _EmitMoveCtor(json_obj, delete=True)
 
             if json_obj.original_type:
                 emit.Line()
@@ -412,6 +444,17 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                     emit.Line()
                     _EmitConvertCtor(json_obj, optional_type=True)
 
+            if json_obj.is_copy_ctor_needed or json_obj.original_type:
+                emit.Line()
+                _EmitCopyAssignmentOperator(json_obj)
+                emit.Line()
+                _EmitMoveAssignmentOperator(json_obj)
+            else:
+                emit.Line()
+                _EmitCopyAssignmentOperator(json_obj, delete=True)
+                _EmitMoveAssignmentOperator(json_obj, delete=True)
+
+            if json_obj.original_type:
                 emit.Line()
                 _EmitConvertAssignmentOperator(json_obj)
 
@@ -421,6 +464,9 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
                 emit.Line()
                 _EmitConversionOperator(json_obj)
+
+            emit.Line()
+            emit.Line("~%s() = default;" % json_obj.cpp_class)
 
             method = json_obj
 
@@ -440,14 +486,9 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 __EmitInit(json_obj)
                 emit.Unindent()
                 emit.Line("}")
-                emit.Line()
-            else:
-                emit.Line()
-                emit.Line("%s(const %s&) = delete;" % (json_obj.cpp_class, json_obj.cpp_class))
-                emit.Line("%s& operator=(const %s&) = delete;" % (json_obj.cpp_class, json_obj.cpp_class))
-                emit.Line()
 
             emit.Unindent()
+            emit.Line()
             emit.Line("public:")
             emit.Indent()
 
@@ -466,6 +507,21 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         for obj in trackers.enum_tracker.objects:
             if obj.do_create and not obj.is_duplicate and not obj.included_from:
                 count += 1
+
+    def _EmitNoPushWarnings(prologue = True):
+        if prologue:
+            if not config.NO_PUSH_WARNING:
+                emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
+                emit.Line()
+            else:
+                emit.Line("#if defined(__GNUC__) || defined(__clang__)")
+                emit.Line('#pragma GCC diagnostic ignored "-Wtype-limits"')
+                emit.Line("#endif")
+                emit.Line()
+        else:
+            if not config.NO_PUSH_WARNING:
+                emit.Line("POP_WARNING()")
+                emit.Line()
 
     emit.Line()
     emit.Line("// C++ classes for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
@@ -494,6 +550,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emit.Line("namespace %s {" % config.DATA_NAMESPACE)
     emit.Indent()
     emit.Line()
+    _EmitNoPushWarnings()
 
     if "info" in root.schema and "namespace" in root.schema["info"]:
         emit.Line("namespace %s {" % root.schema["info"]["namespace"])
@@ -543,6 +600,8 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Unindent()
         emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
         emit.Line()
+
+    _EmitNoPushWarnings(False)
 
     emit.Unindent()
     emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
