@@ -410,7 +410,7 @@ if __name__ == "__main__":
         repo = Repo(docs_path)
         repo.git.add("index.html")
         repo.git.add("{}".format(branch_name))
-        repo.index.commit("{} Documentation for ".format(branch_name))
+        repo.index.commit("{} Documentation".format(branch_name))
         repo.remote().push()
         log.Info("Script Completed Successfully")
 
