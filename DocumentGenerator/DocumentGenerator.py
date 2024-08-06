@@ -297,7 +297,7 @@ This section contains the documentation created from plugins\n\n
                         title = lines[2][1:].strip()
                         self._yaml_generator.create_subtopics(title, os.path.join(base, f))
 
-    def to_markdown(self, md_path, include_dirs, cpp_interface_dir, json_interface_dir, paths):
+    def to_markdown(self, md_path, include_dirs, cpp_interface_dir, json_interface_dir, paths, ns=None):
         cmd = [os.path.join(".", "JsonGenerator.py"), "--docs", "--output", md_path]
 
         if json_interface_dir:
@@ -305,6 +305,11 @@ This section contains the documentation created from plugins\n\n
 
         if cpp_interface_dir:
             cmd.extend(["-j", cpp_interface_dir])
+
+        if ns:
+            cmd.extend(["--namespace", ns])
+
+        cmd.append("--verbose")
 
         cmd.extend(paths)
 
@@ -360,6 +365,7 @@ if __name__ == "__main__":
     thunder_plugins_path = os.path.join(clone_path, "thunder_nano_services")
     rdk_plugins_path = os.path.join(clone_path, "thunder_nano_services_rdk")
     thunder_path = os.path.join(clone_path, "thunder")
+    controller_plugins_path = os.path.join(thunder_path, "Source", "Thunder")
     docs_path = os.path.join(clone_path, "Documentation")
 
     if args.local_tools:
@@ -381,18 +387,22 @@ if __name__ == "__main__":
     include_dirs = [os.path.join(thunder_path, "Source")]
     cpp_interfaces = os.path.join(thunder_interface_path, "interfaces")
     json_interfaces = os.path.join(thunder_interface_path, "jsonrpc")
+    controller_interfaces = os.path.join(thunder_path, "Source", "plugins")
     md_path = os.path.join(docs_path, "docs")
+
+    controller_namespace = "Thunder::Exchange::Controller"
 
     log.Info("Adding Interface Documentation")
     topic = os.path.join(md_path, "api")
-    document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces,
-                                   [os.path.join(cpp_interfaces, "*.h"), os.path.join(json_interfaces, "*.json")])
+    document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(cpp_interfaces, "I*.h"), os.path.join(json_interfaces, "*.json")])
+    document_generator.to_markdown(topic, include_dirs, controller_interfaces, None, [os.path.join(controller_interfaces, "I*.h")], controller_namespace)
     document_generator.add_topic("Interface Documentation", topic)
 
     log.Info("Adding Plugin Documentation")
     topic = os.path.join(md_path, "plugins")
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(thunder_plugins_path, "*", "*Plugin.json")])
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(rdk_plugins_path, "*", "*Plugin.json")])
+    document_generator.to_markdown(topic, include_dirs, controller_interfaces, None, [os.path.join(controller_plugins_path, "*Plugin.json")], controller_namespace)
     document_generator.add_topic("Plugin Documentation", topic)
 
     document_generator.complete_yaml_creation()
