@@ -268,20 +268,19 @@ class DocumentGenerator():
         index_file = open(os.path.join(self.docs_path, "docs", "index.md"), "w")
 
         index_file_thunder_contents =  "# Welcome to Documentation\nThese documentation are automatically created using mkdocs on " + time.strftime("%a, %d %b %Y %H:%M", time.gmtime()) + " GMT\n\
-## Thunder Documentation\nThis section contains the documentation created from Thunder\n\n\
+## Thunder\nThis section contains the documentation created from Thunder\n\n\
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
 |[Thunder](" + THUNDER_REPO_URL + ')|' + self.thunder_commit_id + '|' + self.thunder_commit_date + " GMT|\n\n"
 
-        index_file_interface_contents = "## Interface Documentation\nThis section contains the documentation created from interfaces\n\n\
+        index_file_interface_contents = "## Interfaces\nThis section contains the documentation created from interfaces\n\n\
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
 |[ThunderInterfaces](" + THUNDER_INTERFACE_REPO_URL + ')|' + self.thunder_interfaces_commit_id + '|' + self.thunder_interfaces_commit_date + " GMT|\n\n"
 
-        index_file_contents_plugins = '''## Plugin Documentation
-This section contains the documentation created from plugins\n\n
-| Repo | Commit-Id | Commit-Date |
-| :--- | :-------- | :---------- |
+        index_file_contents_plugins = '''## Plugins\nThis section contains the documentation created from plugins\n\n\
+| Repo | Commit-Id | Commit-Date |\n\
+| :--- | :-------- | :---------- |\n\
 | [ThunderNanoServices]('''+THUNDER_PLUGINS_REPO_URL + ') | '  + self.thunder_plugins_commit_id + ' | ' + self.thunder_plugins_commit_date + " GMT |\n| [ThunderNanoServicesRDK]("+ RDK_PLUGINS_REPO_URL + ') | '  + self.rdk_plugins_commit_id + ' | ' + self.rdk_plugins_commit_date + " GMT |\n"
         
         index_file.write(index_file_thunder_contents)
@@ -403,19 +402,19 @@ if __name__ == "__main__":
     log.Info("Adding Thunder Documentation")
     topic = os.path.join(md_path, "thunder")
     document_generator.to_markdown(topic, include_dirs, controller_interfaces, None, [os.path.join(controller_plugins_path, "*Plugin.json")], controller_namespace)
-    document_generator.add_topic("Thunder Documentation", topic)
+    document_generator.add_topic("Thunder", topic)
 
     log.Info("Adding Interface Documentation")
     topic = os.path.join(md_path, "api")
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces,
                                    [os.path.join(cpp_interfaces, "*.h"), os.path.join(json_interfaces, "*.json")])
-    document_generator.add_topic("Interface Documentation", topic)
+    document_generator.add_topic("Interfaces", topic)
 
     log.Info("Adding Plugin Documentation")
     topic = os.path.join(md_path, "plugins")
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(thunder_plugins_path, "*", "*Plugin.json")])
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(rdk_plugins_path, "*", "*Plugin.json")])
-    document_generator.add_topic("Plugin Documentation", topic)
+    document_generator.add_topic("Plugins", topic)
 
     document_generator.complete_yaml_creation()
 
