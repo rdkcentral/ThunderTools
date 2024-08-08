@@ -96,6 +96,8 @@ def Unreachable():
 def CreateName(ns):
     return ns.replace("::I", "").replace("::", "")[1 if ns[0] == "I" else 0:]
 
+def Normalize(n):
+    return n.replace('.', '_').replace('[','_').replace(']','_').replace('(','_').replace(')','_')
 
 class Emitter:
     def __init__(self, file, size=2):
@@ -576,6 +578,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
         class AuxIdentifier():
             def __init__(self, type, qualifiers, name, value=None):
+                name = Normalize(name)
                 self.type = CppParser.Type(type)
                 self.kind = self.type.Type()
                 self.type.ref = qualifiers
@@ -621,6 +624,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             def __init__(self, index, interface, identifier, override_name=None, suppress_type=False, suffix=""):
 
                 def _FindLength(length_name, variable_name):
+                    variable_name = Normalize(variable_name)
                     if length_name:
                         if length_name[0] == "void":
                             return EmitIdentifier(-2, interface, \
@@ -684,6 +688,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 is_variable_length_of = (index == -1)
                 no_length_warnings = is_variable_length_of
                 is_return_value = (override_name == "result")
+                in_pod = '.' in override_name if override_name else False
 
                 self.is_on_wire = True
                 self.suffix = suffix
@@ -713,10 +718,16 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.kind = self.type.Type()
 
                 is_class = isinstance(self.kind, CppParser.Class)
+                is_struct = is_class and self.kind.vars
+                is_interface = is_class and (self.kind.Inherits(CLASS_IUNKNOWN) or not is_struct)
 
                 # Length variables are actually not put on wire
                 self.length_of = None
                 self.max_length_of = None
+                self.length = None
+                self.max_length = None
+                self.is_buffer = False
+                self.is_array = False
 
                 # Is this a length or max-length of a buffer?
                 if self.identifier.parent:
@@ -741,9 +752,14 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.interface_id = _FindLength(self.identifier.meta.interface, (name[1:] + "IntefaceId"))
 
                 # Is it a buffer?
-                is_buffer = (self.type.IsPointer() and not is_class and not self.interface_id)
-                self.length = _FindLength(self.identifier.meta.length, (name[1:] + "Len"))
-                self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "Len"))
+
+                is_buffer = (self.type.IsPointer() and not is_interface and not self.interface_id)
+                self.length = _FindLength(self.identifier.meta.length, (name[1:] + "_Len"))
+                self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "_MaxLen"))
+
+                if self.identifier.array and not self.length:
+                    self.length = _FindLength([self.identifier.array], (name[1:] + "ImmLen"))
+                    self.max_length = self.length
 
                 if (is_buffer and not self.length and self.is_input):
                     raise TypenameError(self.identifier, "'%s': an outbound buffer requires a @length tag" % self.trace_proto)
@@ -751,16 +767,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if (is_buffer and (not self.length and not self.max_length) and self.is_output):
                     raise TypenameError(self.identifier, "'%s': an inbound-only buffer requires a @maxlength tag" % self.trace_proto)
 
-                self.is_buffer = ((self.length or self.max_length) and is_buffer)
+                self.is_buffer = ((self.length or self.max_length) and is_buffer and isinstance(self.identifier_kind, CppParser.Integer) and (self.identifier_kind.size == "char"))
+                self.is_array = ((self.length or self.max_length) and is_buffer and not self.is_buffer)
 
                 # If have a input length, assume it's a max-length parameter even if not stated explicitly
                 if (self.is_buffer and not self.max_length and self.length.is_input):
                     self.max_length = self.length
 
                     if self.is_input and self.is_output:
-                        log.WarnLine(self.identifier, \
-                            "'%s': maximum length of this inbound/outbound buffer is assumed to be same as @length, use @maxlength to disambiguate" % \
-                                (self.trace_proto))
+                        log.WarnLine(self.identifier, "'%s': maximum length of this inbound/outbound buffer is assumed to be same as @length, use @maxlength to disambiguate" % self.trace_proto)
                     elif self.is_output_only:
                         log.InfoLine(self.identifier, "'%s': @maxlength not specified for this inbound buffer, assuming same as @length" % self.trace_proto)
 
@@ -781,11 +796,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.is_compound = (is_class and not self.kind.IsVirtual() and (len(self.kind.vars) > 0))
 
                 # Is it an interface instance?
-                is_iunknown_descendant = is_class #and self.kind.Inherits(CLASS_IUNKNOWN)
                 is_unspecified_interface_instance = (isinstance(self.kind, CppParser.Void) and self.identifier.meta.interface)
-                has_proxy = not self.is_compound and (is_class and is_iunknown_descendant and self.type.IsPointer()) and self.is_input
+                has_proxy = not self.is_compound and (is_interface and self.type.IsPointer()) and self.is_input
                 has_output_proxy = not self.is_compound and \
-                    (self.is_output and self.type.IsPointer() and (is_iunknown_descendant or is_unspecified_interface_instance))
+                    (self.is_output and self.type.IsPointer() and (is_interface or is_unspecified_interface_instance))
 
                 self.proxy = None
                 self.return_proxy = False
@@ -801,8 +815,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     # Have to use instance_id instead of the class name
                     self.proto_weak = (("const " if self.is_const else "") + INSTANCE_ID).strip()
                     self.proto_weak_no_cv = INSTANCE_ID
-                    self.proxy = AuxIdentifier(CppParser.Class(CppParser.Locate("ProxyStub"), "UnknownProxy"), CppParser.Ref.POINTER, ("%sProxy__" % name).replace('.', '_'))
-                    self.proxy_instance = AuxIdentifier(CppParser.InstanceId(), CppParser.Ref.VALUE, ("%sInstanceId__" % name).replace('.', '_'))
+                    self.proxy = AuxIdentifier(CppParser.Class(CppParser.Locate("ProxyStub"), "UnknownProxy"), CppParser.Ref.POINTER, ("%sProxy__" % name))
+                    self.proxy_instance = AuxIdentifier(CppParser.InstanceId(), CppParser.Ref.VALUE, ("%sInstanceId__" % name))
                 else:
                     self.proto_weak = self.proto
                     self.proto_weak_no_cv = self.proto_no_cv
@@ -825,21 +839,21 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference()):
                     raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
 
-                if self.is_compound and self.type.IsPointer():
-                    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
+                #if self.is_compound and self.type.IsPointer()
+                #    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
 
                 if self.length:
-                    if not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': @length tag only allowed for raw buffers" % self.trace_proto)
+                    if not self.is_buffer and not self.is_array:
+                        raise TypenameError(self.identifier, "'%s': @length tag only allowed for raw buffers or arrays" % self.trace_proto)
 
                 if self.max_length:
-                    if not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers" % self.trace_proto)
+                    if not self.is_buffer and not self.is_array:
+                        raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers or arrays" % self.trace_proto)
 
                 if self.length_of and not no_length_warnings:
                     if not self.is_input:
                         raise TypenameError(self.identifier, "'%s': a length parameter must not be write-only" % self.trace_proto)
-                    elif not isinstance(self.kind, CppParser.Integer) or self.is_buffer:
+                    elif not isinstance(self.kind, CppParser.Integer) or (self.is_buffer or self.is_array):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer length carrying parameter" % self.trace_proto)
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer length carrying parameter is not supported" % self.trace_proto)
@@ -854,7 +868,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if self.max_length_of and (self.max_length != self.length) and not no_length_warnings:
                     if not self.is_input:
                         raise TypenameError(self.identifier, "'%s': a max-length parameter must not be write-only" % self.trace_proto)
-                    elif not isinstance(self.kind, CppParser.Integer) or self.is_buffer:
+                    elif not isinstance(self.kind, CppParser.Integer) or (self.is_buffer or self.is_array):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer max-length carrying parameter" % self.trace_proto)
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer max-length carrying parameter is not supported" % self.trace_proto)
@@ -874,7 +888,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if not self.identifier_type.IsConst() and self.is_input_only:
                         log.WarnLine(identifier, "'%s': read-only parameter is missing a const qualifier" % self.trace_proto)
 
-                if self.is_buffer:
+                if ((self.is_buffer or self.is_array) and not in_pod):
                     if not self.identifier_type.IsPointerToConst() and not self.identifier.meta.input and not self.identifier.meta.output:
                         raise TypenameError(self.identifier, "'%s': pointer to non-const data requires an @in or @out tag" % self.trace_proto)
                     elif not self.identifier_type.IsPointerToConst() and self.is_input_only:
@@ -882,7 +896,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif self.identifier_type.IsPointerToConst() and self.is_output:
                         raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
 
-                if not self.is_buffer and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
+                if (not self.is_buffer and not self.is_array) and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
                     if not self.kind.IsFixed():
                         log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
 
@@ -922,8 +936,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s..%s)" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range[0], self.restrict_range[1]))
 
-                if self.is_string or self.is_buffer:
-                    aux_name = (self.name.replace(".", "_") + "PeekedLen__")
+                if self.is_string or self.is_buffer or self.is_array:
+                    aux_name = Normalize(self.name + "PeekedLen__")
                     aux_size = "uint16_t"
 
                     if self.restrict_range:
@@ -942,7 +956,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                         self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
 
-                    elif self.is_buffer:
+                    elif self.is_buffer or self.is_array:
                         if not self.restrict_range:
                             aux_size = (self.length.type_name if self.length else self.max_length.type_name)
 
@@ -962,17 +976,26 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     log.WarnLine(self.identifier, "%s: input-only fundamental type passed by reference" % self.trace_proto)
 
                 if isinstance(self.kind, CppParser.Optional):
-                    if self.kind.optional.type.IsPointer() and not isinstance(self.kind.optional.type.Resolve().type, CppParser.Class):
-                        raise TypenameError(identifier, "'%s': raw buffer must not be OptionalType" % self.trace_proto)
+                    #if self.kind.optional.type.IsPointer() and not isinstance(self.kind.optional.type.Resolve().type, CppParser.Class) and not:
+                    #    raise TypenameError(identifier, "'%s': raw buffer must not be OptionalType" % self.trace_proto)
 
                     self.kind.optional.meta = identifier.meta
-                    self.kind.optional.type.ref |= identifier.type.ref
+
+                    if not self.is_array:
+                        self.kind.optional.type.ref |= identifier.type.ref
 
                     self.optional = EmitIdentifier(0, self.interface, self.kind.optional, self.name, suffix=".Value()")
                     self.optional.restrict_range = self.restrict_range
                     self.is_compound = self.optional.is_compound
+                    self.is_array = self.optional.is_array
+                    self.is_buffer = self.optional.is_buffer
                     self.is_string = self.optional.is_string
-                    self.peek_length = self.optional.peek_length
+                    if not self.length:
+                        self.length = self.optional.length
+                    if not self.max_length:
+                        self.max_length = self.optional.max_length
+                    if not self.peek_length:
+                        self.peek_length = self.optional.peek_length
                     self.suffix = ".Value()"
 
                     if self.is_compound:
@@ -1279,27 +1302,39 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             has_hresult = retval and retval.is_hresult
 
             # For stubs
-            def ReadParameter(p):
+            def ReadParameter(p, no_array=False):
                 assert p.is_on_wire
 
-                if p.optional:
+                if p.optional and (not p.is_array or no_array):
                     if not p.suppress_type:
-                        emit.Line("%s{};" % p.temporary_no_cv)
+                        if not p.is_array:
+                            emit.Line("%s{};" % p.temporary_no_cv)
 
                     CheckFrame(p)
                     emit.Line("if (%s.Boolean() == true) {" % vars["reader"])
                     emit.IndentInc()
 
                 else:
-                    if not p.suppress_type and p.is_compound:
+                    if not p.suppress_type and p.is_compound and not p.is_array:
                         emit.Line("%s{};" % p.temporary_no_cv)
 
-                if p.is_compound:
+                if p.is_array and not no_array:
+                    if not p.suppress_type:
+                        emit.Line("%s %s[%s]{};" % (p.type_name, p.name, p.length.as_rvalue))
+
+                    _index = chr(ord('i') + p.name.count('['))
+                    emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (_index, _index, p.length.as_rvalue, _index))
+                    emit.IndentInc()
+                    ReadParameter(EmitParam(interface, p.identifier, "%s[%s]" % (p.name, _index), suppress_type=True), no_array=True)
+                    emit.IndentDec()
+                    emit.Line("}")
+
+                elif p.is_compound:
                     obj_name = p.name
 
                     if p.optional:
-                        obj_name = p.name.replace(".", "_") + "Object__";
-                        emit.Line("%s %s{};" % (p.optional.proto_no_cv, obj_name))
+                        obj_name = Normalize(p.name + "Object__");
+                        emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
 
                     params = [EmitParam(interface, v, (obj_name + "." + v.name), suppress_type=True) for v in p.compound_merged.vars]
 
@@ -1312,13 +1347,24 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                 elif p.is_buffer:
-                    assert not p.optional
                     CheckFrame(p)
                     CheckSize(p)
-                    emit.Line("%s{};" % p.temporary_no_cv)
-                    buffer_param = "const_cast<const %s*&>(%s)" % (p.type_name, p.as_rvalue) if not p.identifier_type.IsPointerToConst() else p.as_rvalue
+
+                    if not p.suppress_type:
+                        emit.Line("%s{};" % p.temporary_no_cv)
+
+                    _name = p.as_rvalue
+                    if p.identifier.array:
+                        _name = "__Temp" + Normalize(_name)
+                        emit.Line("%s %s{};" % (p.proto, _name))
+
+                    buffer_param = "const_cast<const %s*&>(%s)" % (p.type_name, _name) if not p.identifier_type.IsPointerToConst() else _name
                     emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.temporary, vars["reader"], p.length.type_name, buffer_param))
                     emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
+
+                    if p.identifier.array:
+                        emit.Line("ASSERT(%s == (%s * sizeof(%s)));" % (p.length.as_rvalue, p.identifier.array, p.type_name))
+                        emit.Line("::memcpy(%s, %s, %s);" % (p.name, _name, p.length.as_rvalue))
 
                 else:
                     param_ = "%s = %s.%s;" % (p.as_lvalue if p.optional else p.temporary, vars["reader"], p.read_rpc_type)
@@ -1336,7 +1382,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                     _EmitAssignment(p.optional if p.optional else p)
 
-                if p.optional:
+                if p.optional and (not p.is_array or no_array):
                     emit.IndentDec()
                     emit.Line("}")
 
@@ -1450,7 +1496,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if (p.max_length and (p.length.type.Type().size == "long")):
                     emit.Line("RPC::Administrator::Instance().Free(%s);" % large_buffer.as_rvalue)
 
-            def WriteParameter(p):
+            def WriteParameter(p, no_array=False):
                 assert p
 
                 if p.is_on_wire:
@@ -1459,8 +1505,16 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.Line("if (%s.IsSet() == true) {" % p.name)
                         emit.IndentInc()
 
-                    if p.is_compound:
-                        params = [EmitParam(interface, v, (p.as_rvalue + "." + v.name)) for v in p.compound_merged.vars]
+                    if p.is_array and not no_array:
+                        _index = chr(ord('i') + p.name.count('['))
+                        emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (_index, _index, p.length.as_rvalue, _index))
+                        emit.IndentInc()
+                        WriteParameter(EmitParam(interface, p.identifier, "%s[%s]" % (p.name, _index), suppress_type=True), no_array=True)
+                        emit.IndentDec()
+                        emit.Line("}")
+
+                    elif p.is_compound:
+                        params = [EmitParam(interface, v, (p.as_rvalue + "." + v.name), suppress_type=True) for v in p.compound_merged.vars]
 
                         for pp in params:
                             WriteParameter(pp)
@@ -1479,7 +1533,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 assert p.proxy
                 assert p.proxy_instance
 
-                _name = p.name.replace('.', '_')
+                _name = Normalize(p.name)
                 _name_maybe_opt = ((_name + "Object__") if p.optional else p.name)
 
                 emit.Line("%s %s{};" % (p.proto_no_cv, _name))
@@ -1740,7 +1794,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 input_params, output_params, proxy_params, return_proxy_params):
 
             # For proxy
-            def WriteParameter(p):
+            def WriteParameter(p, no_array=False):
                 assert p.is_on_wire
 
                 if p.optional:
@@ -1748,7 +1802,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.Line("if (%s.IsSet() == true) {" % p.name)
                     emit.IndentInc()
 
-                if p.is_compound:
+                if p.is_array and not no_array:
+                    _index = chr(ord('i') + p.name.count('['))
+                    emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (_index, _index, p.length.as_rvalue, _index))
+                    emit.IndentInc()
+                    WriteParameter(EmitParam(interface, p.identifier, "%s[%s]" % (p.name, _index), suppress_type=True), no_array=True)
+                    emit.IndentDec()
+                    emit.Line("}")
+
+                elif p.is_compound:
                     params = [EmitParam(interface, v, (p.as_rvalue + "." + v.name), suppress_type=True) for v in p.compound_merged.vars]
 
                     for pp in params:
@@ -1761,17 +1823,35 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.Line("}")
 
             # For proxy
-            def ReadParameter(p):
+            def ReadParameter(p, no_array=False):
                 if p.is_on_wire:
                     if p.optional:
                         CheckFrame(p)
                         emit.Line("if (%s.Boolean() == true) {" % vars["reader"])
                         emit.IndentInc()
 
-                    if p.is_compound:
+                    if p.is_array and not no_array:
+                        _index = chr(ord('i') + p.name.count('['))
+                        emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (_index, _index, p.length.as_rvalue, _index))
+                        emit.IndentInc()
+                        ReadParameter(EmitParam(interface, p.identifier, "%s[%s]" % (p.name, _index), suppress_type=True), no_array=True)
+                        emit.IndentDec()
+                        emit.Line("}")
+
+                    elif p.is_buffer:
+                        CheckFrame(p)
+                        CheckSize(p)
+
+                        if p.length and p.length.is_output:
+                            emit.Line("%s = %s.%s;" % (p.length.as_lvalue, vars["reader"], p.read_rpc_type))
+                        else:
+                            # No one's interested in the return length, perhaps it's sent via method's return value
+                            emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
+
+                    elif p.is_compound:
                         if p.optional:
-                            obj_name = p.name.replace(".", "_") + "Object__";
-                            emit.Line("%s %s{};" % (p.optional.proto_no_cv, obj_name))
+                            obj_name = Normalize(p.name + "Object__");
+                            emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
                         else:
                             obj_name = p.name
 
@@ -1786,18 +1866,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif p.return_proxy:
                         emit.Line("%s = reinterpret_cast<%s>(Interface(%s.%s, %s));" % \
                                 (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
-
-                    elif p.is_buffer:
-                        assert not p.optional
-
-                        CheckFrame(p)
-                        CheckSize(p)
-
-                        if p.length and p.length.is_output:
-                            emit.Line("%s = %s.%s;" % (p.length.as_lvalue, vars["reader"], p.read_rpc_type))
-                        else:
-                            # No one's interested in the return length, perhaps it's sent via method's return value
-                            emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
 
                     else:
                         param_ = "%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type)
@@ -1968,7 +2036,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             method_type = ((Flatten(retval.identifier.Proto(), ns) + " ") if retval else "void ")
             method_qualifiers = ((" const" if "const" in method.qualifiers else "") + " override")
-            params_list = [(Flatten(p.identifier.Proto(), ns) + ((" " + p.name) if not method.stub else "")) for p in params]
+            params_list = [(Flatten(p.identifier.Signature((p.name if not method.stub else "")), ns)) for p in params]
 
             emit.Line("%s%s(%s)%s" % (method_type, method.name, ", ".join(params_list), method_qualifiers))
             emit.Line("{")

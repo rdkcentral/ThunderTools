@@ -62,7 +62,7 @@ class MkdocsYamlFileGenerator():
 
     def add_nav_tag(self):
         assert self._fd != None
-        self._fd.write("nav:\n    - 'Documentation': 'index.md'\n")
+        self._fd.write("nav:\n    - 'Home': 'index.md'\n")
 
     def add_topic(self, topic_name):
         assert self._fd != None
@@ -266,17 +266,24 @@ class DocumentGenerator():
             os.mkdir(os.path.join(self.docs_path, "docs"))
 
         index_file = open(os.path.join(self.docs_path, "docs", "index.md"), "w")
-        index_file_interface_contents = "# Welcome to Documentation.\nThese documentation are automatically created using mkdocs on " + time.strftime("%a, %d %b %Y %H:%M", time.gmtime()) + " GMT\n\
-## Interface documentation\nThis section contains the documentation created from interfaces\n\n\
+
+        index_file_thunder_contents =  "# Welcome to Documentation\nThese documentation are automatically created using mkdocs on " + time.strftime("%a, %d %b %Y %H:%M", time.gmtime()) + " GMT\n\
+## Thunder\nThis section contains the documentation created from Thunder\n\n\
+| Repo | Commit-Id | Commit-Date |\n\
+| :--- | :-------- | :---------- |\n\
+|[Thunder](" + THUNDER_REPO_URL + ')|' + self.thunder_commit_id + '|' + self.thunder_commit_date + " GMT|\n\n"
+
+        index_file_interface_contents = "## Interfaces\nThis section contains the documentation created from interfaces\n\n\
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
 |[ThunderInterfaces](" + THUNDER_INTERFACE_REPO_URL + ')|' + self.thunder_interfaces_commit_id + '|' + self.thunder_interfaces_commit_date + " GMT|\n\n"
-        index_file_contents_plugins = '''## Thunder-plugins documentation
-This section contains the documentation created from plugins\n\n
-| Repo | Commit-Id | Commit-Date |
-| :--- | :-------- | :---------- |
-| [ThunderNanoServices]('''+THUNDER_PLUGINS_REPO_URL + ') | '  + self.thunder_plugins_commit_id + ' | ' + self.thunder_plugins_commit_date + " GMT |\n| [ThunderNanoServicesRDK]("+ RDK_PLUGINS_REPO_URL + ') | '  + self.rdk_plugins_commit_id + ' | ' + self.rdk_plugins_commit_date + " GMT |\n"
 
+        index_file_contents_plugins = '''## Plugins\nThis section contains the documentation created from plugins\n\n\
+| Repo | Commit-Id | Commit-Date |\n\
+| :--- | :-------- | :---------- |\n\
+| [ThunderNanoServices]('''+THUNDER_PLUGINS_REPO_URL + ') | '  + self.thunder_plugins_commit_id + ' | ' + self.thunder_plugins_commit_date + " GMT |\n| [ThunderNanoServicesRDK]("+ RDK_PLUGINS_REPO_URL + ') | '  + self.rdk_plugins_commit_id + ' | ' + self.rdk_plugins_commit_date + " GMT |\n"
+        
+        index_file.write(index_file_thunder_contents)
         index_file.write(index_file_interface_contents)
         index_file.write(index_file_contents_plugins)
 
@@ -297,7 +304,7 @@ This section contains the documentation created from plugins\n\n
                         title = lines[2][1:].strip()
                         self._yaml_generator.create_subtopics(title, os.path.join(base, f))
 
-    def to_markdown(self, md_path, include_dirs, cpp_interface_dir, json_interface_dir, paths):
+    def to_markdown(self, md_path, include_dirs, cpp_interface_dir, json_interface_dir, paths, ns=None):
         cmd = [os.path.join(".", "JsonGenerator.py"), "--docs", "--output", md_path]
 
         if json_interface_dir:
@@ -305,6 +312,11 @@ This section contains the documentation created from plugins\n\n
 
         if cpp_interface_dir:
             cmd.extend(["-j", cpp_interface_dir])
+
+        if ns:
+            cmd.extend(["--namespace", ns])
+
+        cmd.append("--verbose")
 
         cmd.extend(paths)
 
@@ -360,6 +372,7 @@ if __name__ == "__main__":
     thunder_plugins_path = os.path.join(clone_path, "thunder_nano_services")
     rdk_plugins_path = os.path.join(clone_path, "thunder_nano_services_rdk")
     thunder_path = os.path.join(clone_path, "thunder")
+    controller_plugins_path = os.path.join(thunder_path, "Source", "Thunder")
     docs_path = os.path.join(clone_path, "Documentation")
 
     if args.local_tools:
@@ -381,19 +394,27 @@ if __name__ == "__main__":
     include_dirs = [os.path.join(thunder_path, "Source")]
     cpp_interfaces = os.path.join(thunder_interface_path, "interfaces")
     json_interfaces = os.path.join(thunder_interface_path, "jsonrpc")
+    controller_interfaces = os.path.join(thunder_path, "Source", "plugins")
     md_path = os.path.join(docs_path, "docs")
+
+    controller_namespace = "Thunder::Exchange::Controller"
+
+    log.Info("Adding Thunder Documentation")
+    topic = os.path.join(md_path, "thunder")
+    document_generator.to_markdown(topic, include_dirs, controller_interfaces, None, [os.path.join(controller_plugins_path, "*Plugin.json")], controller_namespace)
+    document_generator.add_topic("Thunder", topic)
 
     log.Info("Adding Interface Documentation")
     topic = os.path.join(md_path, "api")
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces,
                                    [os.path.join(cpp_interfaces, "*.h"), os.path.join(json_interfaces, "*.json")])
-    document_generator.add_topic("Interface Documentation", topic)
+    document_generator.add_topic("Interfaces", topic)
 
     log.Info("Adding Plugin Documentation")
     topic = os.path.join(md_path, "plugins")
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(thunder_plugins_path, "*", "*Plugin.json")])
     document_generator.to_markdown(topic, include_dirs, cpp_interfaces, json_interfaces, [os.path.join(rdk_plugins_path, "*", "*Plugin.json")])
-    document_generator.add_topic("Plugin Documentation", topic)
+    document_generator.add_topic("Plugins", topic)
 
     document_generator.complete_yaml_creation()
 
@@ -410,7 +431,6 @@ if __name__ == "__main__":
         repo = Repo(docs_path)
         repo.git.add("index.html")
         repo.git.add("{}".format(branch_name))
-        repo.index.commit("{} Documentation for ".format(branch_name))
+        repo.index.commit("{} Documentation".format(branch_name))
         repo.remote().push()
         log.Info("Script Completed Successfully")
-
