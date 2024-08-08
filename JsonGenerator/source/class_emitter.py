@@ -247,7 +247,15 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                         else:
                             _optional_or_opaque = False # invalid @optional...
 
-                    emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                    if isinstance(prop, JsonArray) and type == "conv" and prop.schema.get("@arraysize"):
+                        emit.Line("%s.Clear();" % prop.cpp_name)
+                        emit.Line("for (uint16_t i = 0; i < %s; i++) {" % (prop.schema.get("@arraysize")))
+                        emit.Indent()
+                        emit.Line("%s.Add() = %s.%s[i];" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                        emit.Unindent()
+                        emit.Line("}")
+                    else:
+                        emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
 
                     if (prop.optional and not prop.default_value) or _optional_or_opaque:
                         emit.Unindent()
@@ -340,7 +348,21 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                     emit.Indent()
 
                 conv = (prop.convert if prop.convert else "%s = %s")
-                emit.Line((conv + ";") % ( ("_value." + prop.actual_name), prop.cpp_name))
+
+                if isinstance(prop, JsonArray) and prop.schema.get("@arraysize"):
+                    emit.Line("{")
+                    emit.Indent()
+                    emit.Line("uint16_t i = 0;")
+                    emit.Line("auto it = %s.Elements();" % prop.cpp_name)
+                    emit.Line("while ((it.Next() != true) && (i < %s)) {" % prop.schema.get("@arraysize"))
+                    emit.Indent()
+                    emit.Line("%s[i++] = it.Current();" % ("_value." + prop.actual_name))
+                    emit.Unindent()
+                    emit.Line("}")
+                    emit.Unindent()
+                    emit.Line("}")
+                else:
+                    emit.Line((conv + ";") % ( ("_value." + prop.actual_name), prop.cpp_name))
 
                 if (prop.optional and not prop.default_value):
                     emit.Unindent()
