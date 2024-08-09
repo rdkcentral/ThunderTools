@@ -78,17 +78,23 @@ class Restrictions:
 
         name = relay.temp_name if not override else override
 
-        if isinstance(relay, JsonObject) and self.__json and test_set:
-            if IsObjectOptional(relay):
-                if self.__reverse:
-                    self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == true))" % (name, name))
+        if isinstance(relay, JsonObject) and self.__json:
+            if test_set:
+                if IsObjectOptional(relay):
+                    if self.__reverse:
+                        self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == true))" % (name, name))
+                    else:
+                        self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == false))" % (name, name))
                 else:
-                    self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == false))" % (name, name))
+                    if self.__reverse:
+                        self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == true))" % (name, name))
+                    else:
+                        self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == false))" % (name, name))
             else:
                 if self.__reverse:
-                    self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == true))" % (name, name))
+                    self.__cond.append("(%s.IsDataValid() == true)" % name)
                 else:
-                    self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == false))" % (name, name))
+                    self.__cond.append("(%s.IsDataValid() == false)" % name)
 
         elif IsObjectRestricted(argument):
             tests = []
