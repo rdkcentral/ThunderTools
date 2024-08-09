@@ -193,6 +193,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                     result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
 
+                    if var.meta.range:
+                        result[1]["items"]["range"] = var.meta.range
+
                     if "extract" in var.meta.decorators:
                         result[1]["extract"] = True
 

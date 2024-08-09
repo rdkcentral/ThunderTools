@@ -429,6 +429,20 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     arg.flags = dict()
                     arg.flags["prefix"] = ""
 
+                param_tests = []
+                if params and not params.is_void:
+                    AppendTest(param_tests, params, override=params.local_name)
+
+                if param_tests:
+                    emit.Line()
+                    emit.Line("if (%s) {" % (" || ".join(param_tests)))
+
+                    emit.Indent()
+                    emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.TempName())
+                    emit.Unindent()
+                    emit.Line("}")
+                    emit.Line()
+
                 # Tie buffer with length variables
                 for _, [arg, _] in vars.items():
                     length_var_name = arg.schema.get("length")
@@ -444,6 +458,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                                     break
 
                 # Emit temporary variables and deserializing of JSON data
+
+                if param_tests:
+                    emit.Line("if (%s == Core::ERROR_NONE) {" % error_code.TempName())
+                    emit.Indent()
 
                 for _, [arg, arg_type] in sorted(vars.items(), key=lambda x: x[1][0].schema["position"]):
                     if arg.flags.get("isbufferlength"):
@@ -558,22 +576,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if json_source else arg.cpp_native_type, arg.TempName(), initializer))
 
-                tests = []
-                for _, [arg, arg_type] in sorted(vars.items(), key=lambda x: x[1][0].schema["position"]):
-                    if arg.flags.get("isbufferlength"):
-                        continue
-
-                    AppendTest(tests, arg)
-
-                if tests:
-                    emit.Line()
-                    emit.Line("if (%s) {" % (" || ".join(tests)))
-
-                    emit.Indent()
-                    emit.Line("%s = Core::ERROR_INVALID_RANGE;" % error_code.TempName())
-                    emit.Unindent()
-                    emit.Line("}")
-
                 emit.Line()
 
                 # Emit call to the implementation
@@ -605,15 +607,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     if not conditions:
                         emit.Line()
 
-                    if tests:
-                        emit.Line("if (%s == Core::ERROR_NONE) {" % error_code.TempName())
-                        emit.Indent()
-
                     emit.Line("%s = %s->%s(%s);" % (error_code.TempName(), implementation_object, m.cpp_name, ", ".join(function_params)))
-
-                    if tests:
-                        emit.Unindent()
-                        emit.Line("}")
 
                     if conditions:
                         for _, _record in vars.items():
@@ -728,6 +722,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Unindent()
                     emit.Line("}")
                     emit.Line()
+
+                if param_tests:
+                    emit.Unindent()
+                    emit.Line("}")
+
 
             # Emit the function body
 
