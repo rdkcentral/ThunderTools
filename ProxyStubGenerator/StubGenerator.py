@@ -1212,7 +1212,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             (vars["reader"], (p.as_rvalue if by_parameter else p.storage_size)))
 
         def CheckRange(p, val):
-            if p.restrict_range:
+            if p.restrict_range and not p.proxy:
                 cmp = val if isinstance(val, str) else val.as_rvalue
 
                 emit.Line("ASSERT((%s >= %s) && (%s <= %s));"% \
