@@ -28,10 +28,10 @@ namespace Plugin {
         {{NESTED_CLASS}}
 
         // Inherited Methods
-        {INHERITED_METHOD}
+        {{INHERITED_METHOD}}
 
         // Plugin Methods
-        {PLUGIN_METHOD}
+        {{PLUGIN_METHOD}}
 
         BEGIN_INTERFACE_MAP({{PLUGIN_NAME}})
         {{INTERFACE_ENTRY}}

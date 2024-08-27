@@ -16,22 +16,47 @@
 
 '''
 import os
+from blueprint_data import BlueprintData, HeaderData, SourceData
+
+
+header_template_paths = []
 
 class PluginGenerator:
     
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
-        self.plugin_name = plugin_name
-        self.comrpc_interfaces = comrpc_interface if comrpc_interface else []
-        self.jsonrpc_interfaces = jsonrpc_interface if jsonrpc_interface else []
-        self.run_oop = run_oop
-        self.json_events = json_events
-        self.map_of_keyword = {}
+    def __init__(self, blueprint_data) -> None:
+        self.blueprint_data = blueprint_data
+        self.directory = self.blueprint_data.plugin_name
+        os.makedirs(self.blueprint_data.plugin_name, exist_ok=True)
 
     def load_template(self, template_name):
-        with open(template_name, 'r') as template_file:
-            return template_file
+        try:
+            with open(template_name, 'r') as template_file:
+                return template_file.read()
+        except FileNotFoundError:
+            print("no file")
+            return None
         
-    def generate_header(self, template_path, output_path):
+    def generate_file(self, template_path, output_path):
+
+        template = self.load_template(template_path)
+
+        if template:
+
+            code = self.replace_code(template)
+            header_path = os.path.join(self.directory, output_path)
+
+            with open(header_path, 'w') as f:
+                f.write(code)
+
+    def generate_source(self):
+
+        self.generate_file("templates/plugin_source_template.txt", f'{self.blueprint_data.plugin_name}.cpp')
+        self.generate_file("templates/module_cpp_file.txt", "Module.cpp")
+        pass
+
+    def generate_headers(self):
+        self.generate_file("templates/plugin_header_template.txt", f'{self.blueprint_data.plugin_name}.h')
+        self.generate_file("templates/module_header_template.txt", "Module.h")
         pass
 
     def generate_plugin(self):
@@ -44,87 +69,31 @@ class PluginGenerator:
         - CMake .txt
         - Plugin .json
         '''
-        
-        os.makedirs("HelloWorld", exist_ok=True)
-
-    def add_includes(self):
-        
-        includes = []
-
-        for jsonrpc in self.jsonrpc_interface:
-            includes.append(f'#include <interfaces/json/{jsonrpc}.h>')
-        
-        for comrpc in self.comrpc_interface:
-            includes.append(f'#include <interfaces/{comrpc}>')
-
-        return '\n'.join(includes)
-        
-    def add_inherited_classes(self):
-
-        # TODO: Implement differentiation between filetypes 
-        # Implement indent multiplier
-
-        inhertance = ''
-        if comrpc_interface:
-            first_inheritance = f'public {self.comrpc_interfaces[0]}'
-            if len(first_inheritance > 1):
-                for inherited_class in self.comrpc_interfaces[1:]:
-                    next_inheritance = "\n".join(f" public {inherited_class}")
-                inhertance = f'{first_inheritance}, {next_inheritance}'
-            else:
-                inheritance = f": {first_inheritance}"
-        return inheritance
-        
-    def add_inherited_methods(self):
         pass
 
-    def add_thunder_license(self):
-        return "ADD_THUNDER_LICENSE"
-    
-    def add_forward_declarations(self):
-        pass
+    def replace_code(self,template):
+        code = template
+        data = self.blueprint_data.keywords
+        for keyword, value in data.items():
+            code = code.replace(keyword,value)
+        return code
 
-    def add_plugin_methods(self):
-        pass
-
-    def add_interface_entry(self):
-
-        pass
-
-    def add_interface_aggregate(self):
-
-        if(run_oop == True):
-            
-        else:
-        pass
-
-    def add_data_members(self):
-        pass
-
-    def map_of_keywords(self):
-        
-        self.map_of_keywords = {
-            '{{THUNDER_LICENSE}}' : self.add_thunder_license(),
-            '{{PLUGIN_NAME}}' : self.plugin_name,
-            '{{INCLUDE}}' : self.add_includes(),
-            '{{FORWARD_DECLARATIONS}}' : self.add_forward_declarations(),
-            '{{INHERITED_CLASS}}' : self.add_inherited_classes(),
-            '{{INHERITED_METHOD}}' : self.add_inherited_methods(),
-            '{{PLUGIN_METHOD}}' : self.add_plugin_methods(),
-            '{{INTERFACE_ENTRY}}' : self.add_interface_entry(),
-            '{{INTERFACE_AGGREGATE}}' : self.add_interface_aggregate(),
-            '{{DATA_MEMBERS}}' : self.add_data_members()
-        }
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
 
 plugin_name = "HelloWorld"
 comrpc_interface = ["COMRPC1", "COMRPC2"]
 jsonrpc_interface = ["JSONRPC1", "JSONRPC2"]
-run_oop = True
+run_oop = False
 jsonrpc_events = True
 
+#blueprint_data = BlueprintData(plugin_name, comrpc_interface, jsonrpc_interface, run_oop, jsonrpc_events)
+header_data = HeaderData(plugin_name, comrpc_interface, jsonrpc_interface, run_oop, jsonrpc_events)
+source_data = SourceData(plugin_name, comrpc_interface, jsonrpc_interface, run_oop, jsonrpc_events)
 
-print("hello world")
+plugin_generator = PluginGenerator(header_data)
+plugin_generator.generate_headers()
+
+plugin_generator.blueprint_data = source_data
+plugin_generator.generate_source()
 

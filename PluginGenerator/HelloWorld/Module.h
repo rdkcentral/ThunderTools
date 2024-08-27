@@ -1,9 +1,9 @@
-{{THUNDER_LICENSE}}
+ADD_THUNDER_LICENSE
 
 #pragma once
 
 #ifndef MODULE_NAME
-#define MODULE_NAME {{MODULE_PLUGIN_NAME}}
+#define MODULE_NAME Plugin_HelloWorld
 #endif
 
 #include <plugins/plugins.h>
