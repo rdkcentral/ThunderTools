@@ -16,10 +16,8 @@
 
 '''
 import os
-from blueprint_data import BlueprintData, HeaderData, SourceData
-
-
-header_template_paths = []
+from blueprint_data import BlueprintData, HeaderData, SourceData, CMakeData, JSONData, ConfData
+from helper import Helper
 
 class PluginGenerator:
     
@@ -33,15 +31,13 @@ class PluginGenerator:
             with open(template_name, 'r') as template_file:
                 return template_file.read()
         except FileNotFoundError:
-            print("no file")
+            print(f"Could not load template: {template_name}")
             return None
         
     def generate_file(self, template_path, output_path):
 
         template = self.load_template(template_path)
-
         if template:
-
             code = self.replace_code(template)
             header_path = os.path.join(self.directory, output_path)
 
@@ -50,25 +46,26 @@ class PluginGenerator:
 
     def generate_source(self):
 
-        self.generate_file("templates/plugin_source_template.txt", f'{self.blueprint_data.plugin_name}.cpp')
-        self.generate_file("templates/module_cpp_file.txt", "Module.cpp")
-        pass
+        self.generate_file("templates/plugin_source.txt", f'{self.blueprint_data.plugin_name}.cpp')
+        self.generate_file("templates/module/module_source.txt", "Module.cpp")
 
     def generate_headers(self):
-        self.generate_file("templates/plugin_header_template.txt", f'{self.blueprint_data.plugin_name}.h')
-        self.generate_file("templates/module_header_template.txt", "Module.h")
-        pass
 
-    def generate_plugin(self):
-        '''
-        Generate the following:
-        - Module .h/.cpp
-        - Plugin .h/.cpp
-        - OOP implementation .cpp
-        - Plugin .conf.in
-        - CMake .txt
-        - Plugin .json
-        '''
+        if(self.blueprint_data.run_oop):
+            self.generate_file("templates/plugin_implementation.txt", f'{self.blueprint_data.plugin_name}Implementation.cpp')
+
+        self.generate_file("templates/plugin_header.txt", f'{self.blueprint_data.plugin_name}.h')
+        self.generate_file("templates/module/module_header.txt", "Module.h")
+
+    def generate_cmake(self):
+        self.generate_file("templates/cmake.txt", "CMakeLists.txt")
+
+    def generate_json(self):
+       # self.generate_file("templates/cmake.txt", "CMakeLists.txt")
+       pass
+
+    def generate_conf_in(self):
+        self.generate_file("templates/plugin_conf_in.txt", f'{self.blueprint_data.plugin_name}.conf.in')
         pass
 
     def replace_code(self,template):
@@ -77,23 +74,61 @@ class PluginGenerator:
         for keyword, value in data.items():
             code = code.replace(keyword,value)
         return code
+    
+def menu():
+
+    plugin_name = input("What will your plugin be called: \n")
+
+    comrpc_interface = []
+    jsonrpc_interface = []
+
+    print(f"Enter any COM-RPC interfaces used: (Enter ! to quit) \nNote: IPlugin is already defined for you")
+    while True:
+        comrpc = input("Enter a COM-RPC interface: ")
+        if comrpc == '!':
+            break
+        comrpc_interface.append(comrpc)
+
+    print(f"Enter any JSON-RPC interfaces used: (Enter ! to quit)")
+    while True:
+        jsonrpc = input("Enter a JSONRPC-RPC interface: ")
+        if jsonrpc == '!':
+            break
+        jsonrpc_interface.append(jsonrpc)
+
+    out_of_process = False
+
+    while True:
+        run_oop = input("Is your plugin expected to work out of process: (Enter Y or N)\n")
+        if(run_oop.lower() == 'y'):
+            out_of_process = True
+            break
+        elif(run_oop.lower() == 'n'):
+            out_of_process = False
+            break
+        else:
+            print("Unknown character, try again.")
+
+    jsonrpc_events = False
+
+    header_data = HeaderData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc_events)
+    source_data = SourceData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc_events)
+    cmake_data = CMakeData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc_events)
+    conf_data = ConfData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc_events)
+
+    plugin_generator = PluginGenerator(header_data)
+    plugin_generator.generate_headers()
+
+    plugin_generator.blueprint_data = source_data
+    plugin_generator.generate_source()
+
+    plugin_generator.blueprint_data = cmake_data
+    plugin_generator.generate_cmake()
+
+    plugin_generator.blueprint_data = conf_data
+    plugin_generator.generate_conf_in()
 
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 
-plugin_name = "HelloWorld"
-comrpc_interface = ["COMRPC1", "COMRPC2"]
-jsonrpc_interface = ["JSONRPC1", "JSONRPC2"]
-run_oop = False
-jsonrpc_events = True
-
-#blueprint_data = BlueprintData(plugin_name, comrpc_interface, jsonrpc_interface, run_oop, jsonrpc_events)
-header_data = HeaderData(plugin_name, comrpc_interface, jsonrpc_interface, run_oop, jsonrpc_events)
-source_data = SourceData(plugin_name, comrpc_interface, jsonrpc_interface, run_oop, jsonrpc_events)
-
-plugin_generator = PluginGenerator(header_data)
-plugin_generator.generate_headers()
-
-plugin_generator.blueprint_data = source_data
-plugin_generator.generate_source()
-
+menu()
