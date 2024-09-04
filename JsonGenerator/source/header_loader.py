@@ -256,6 +256,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 elif isinstance(cppType, CppParser.InstanceId):
                     result = [ "instanceid", {} ]
 
+                # Thread ID
+                elif isinstance(cppType, CppParser.ThreadId):
+                    result = [ "threadid", {} ]
+
                 # Time
                 elif isinstance(cppType, CppParser.Time):
                     result = [ "string", { "time": "iso8601" } ]

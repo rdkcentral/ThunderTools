@@ -1,4 +1,9 @@
 .vscode
 *.pyc
 LuaGenerator/*.data
-
+CMakeCache.txt
+CMakeFiles
+Find*Generator.cmake
+Makefile
+cmake_install.cmake
+install_manifest.txt

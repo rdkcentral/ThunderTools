@@ -183,6 +183,14 @@ class InstanceId(BuiltinInteger):
         return self.fixed
 
 
+class ThreadId(BuiltinInteger):
+    def __init__(self):
+        BuiltinInteger.__init__(self, fixed_size=True, name="Core::thread_id")
+
+    def IsFixed(self):
+        return self.fixed
+
+
 class String(Intrinsic):
     def __init__(self, std=False, cc=False):
         Intrinsic.__init__(self, "std::string" if std else "ccstring" if cc else "string")
@@ -663,6 +671,8 @@ class Identifier():
                     self.type[i] = Type(BuiltinInteger(False))
                 elif type == "__stubgen_instance_id":
                     self.type[i] = Type(InstanceId())
+                elif type == "__stubgen_thread_id":
+                    self.type[i] = Type(ThreadId())
                 elif type == "__stubgen_time":
                     self.type[i] = Type(Time())
                 else:
