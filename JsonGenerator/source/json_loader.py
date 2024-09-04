@@ -375,7 +375,17 @@ class JsonInstanceId(JsonNative, JsonType):
 
     @property
     def cpp_native_type(self):
-        return "Core::instnance_id"
+        return "Core::instance_id"
+
+
+class JsonThreadId(JsonNative, JsonType):
+    @property
+    def cpp_class(self):
+        return CoreJson("ThreadId")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::thread_id"
 
 
 class JsonRefCounted():
@@ -1000,6 +1010,8 @@ def JsonItem(name, parent, schema, included=None):
             return JsonTime(name, parent, schema, schema["time"])
         elif schema["type"] == "instanceid":
             return JsonInstanceId(name, parent, schema)
+        elif schema["type"] == "threadid":
+            return JsonThreadId(name, parent, schema)
         elif schema["type"] == "string":
             return JsonString(name, parent, schema)
         elif schema["type"] == "integer":
