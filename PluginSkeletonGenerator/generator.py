@@ -22,6 +22,8 @@ import os
 from file_data import FileData, HeaderData, SourceData, CMakeData, JSONData, ConfData
 from helper import Indenter, FileUtils
 
+import global_variables
+
 class PluginGenerator:
     
     def __init__(self, blueprint_data) -> None:
@@ -49,21 +51,20 @@ class PluginGenerator:
                 f.write(indented_code)
 
     def generate_source(self):
-
-        self.generate_file("templates/plugin_source.txt", f'{self.blueprint_data.plugin_name}.cpp')
-        self.generate_file("templates/module/module_source.txt", "Module.cpp")
+        self.generate_file(global_variables.PLUGIN_SOURCE_PATH, f'{self.blueprint_data.plugin_name}.cpp')
+        self.generate_file(global_variables.MODULE_SOURCE_PATH, "Module.cpp")
 
     def generate_headers(self):
 
         # Although this is a .cpp file, it's actually most like a .h
         if(self.blueprint_data.out_of_process):
-            self.generate_file("templates/plugin_implementation.txt", f'{self.blueprint_data.plugin_name}Implementation.cpp')
+            self.generate_file(global_variables.PLUGIN_IMPLEMENTATION_PATH, f'{self.blueprint_data.plugin_name}Implementation.cpp')
 
-        self.generate_file("templates/plugin_header.txt", f'{self.blueprint_data.plugin_name}.h')
-        self.generate_file("templates/module/module_header.txt", "Module.h")
+        self.generate_file(global_variables.PLUGIN_HEADER_PATH, f'{self.blueprint_data.plugin_name}.h')
+        self.generate_file(global_variables.MODULE_HEADER_PATH, "Module.h")
 
     def generate_cmake(self):
-        self.generate_file("templates/cmake.txt", "CMakeLists.txt")
+        self.generate_file(global_variables.CMAKE_PATH, "CMakeLists.txt")
 
     def generate_json(self):
        # TODO:
@@ -71,7 +72,7 @@ class PluginGenerator:
        pass
 
     def generate_conf_in(self):
-        self.generate_file("templates/plugin_conf_in.txt", f'{self.blueprint_data.plugin_name}.conf.in')
+        self.generate_file(global_variables.PLUGIN_CONF_PATH, f'{self.blueprint_data.plugin_name}.conf.in')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 

@@ -1,0 +1,31 @@
+import os 
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+# Nested Directories:
+TEMPLATE_DIR = os.path.join(BASE_DIR,'templates')
+
+IPLUGIN_DIR = os.path.join(TEMPLATE_DIR,'iplugin_methods')
+MODULE_DIR = os.path.join(TEMPLATE_DIR, 'module')
+NESTED_CLASS_DIR = os.path.join(TEMPLATE_DIR, 'nested_class')
+
+# Nested File Paths:
+# /templates
+CMAKE_PATH = os.path.join(TEMPLATE_DIR,'cmake.txt')
+PLUGIN_CONF_PATH = os.path.join(TEMPLATE_DIR,'plugin_conf_in.txt')
+PLUGIN_HEADER_PATH = os.path.join(TEMPLATE_DIR,'plugin_header.txt')
+PLUGIN_IMPLEMENTATION_PATH = os.path.join(TEMPLATE_DIR,'plugin_implementation.txt')
+PLUGIN_SOURCE_PATH = os.path.join(TEMPLATE_DIR,'plugin_source.txt')
+
+# /templates/iplugin_methods
+DENINITIALIZE_OOP_PATH = os.path.join(IPLUGIN_DIR,'deinitialize_oop.txt')
+INITIALIZE_OOP_PATH = os.path.join(IPLUGIN_DIR,'initialize_oop.txt')
+INITIALIZE_IP_PATH = os.path.join(IPLUGIN_DIR,'initialize_ip.txt')
+
+# /templates/module
+MODULE_HEADER_PATH = os.path.join(MODULE_DIR,'module_header.txt')
+MODULE_SOURCE_PATH = os.path.join(MODULE_DIR,'module_source.txt')
+
+# /templates/nested_class
+CONFIG_CLASS_PATH = os.path.join(NESTED_CLASS_DIR,'config_class.txt')
+RPC_NOTIFICATION_CLASS_PATH = os.path.join(NESTED_CLASS_DIR,'rpc_inotification.txt')

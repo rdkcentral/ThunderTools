@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 
 from helper import FileUtils
+import global_variables
 
 class FileData:
     def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
@@ -129,7 +130,7 @@ class HeaderData(FileData):
 
     def generate_jsonrpc_event(self):
         if self.out_of_process:
-            template_name = 'templates/nested_class/rpc_inotification.txt'
+            template_name = global_variables.RPC_NOTIFICATION_CLASS_PATH
             template = FileUtils.read_file(template_name)
             code = FileUtils.replace_keywords(template,self.keywords)
             return code
@@ -138,7 +139,7 @@ class HeaderData(FileData):
     def generate_config(self):
 
         if not self.out_of_process:
-            template_name = 'templates/nested_class/config_class.txt'
+            template_name = global_variables.CONFIG_CLASS_PATH
             template = FileUtils.read_file(template_name)
             code = FileUtils.replace_keywords(template,self.keywords)
             return code
@@ -164,9 +165,9 @@ class SourceData(FileData):
     def generate_initialize(self):
 
         if self.out_of_process:
-            template_name = 'templates/iplugin_methods/initialize_oop.txt'
+            template_name = global_variables.INITIALIZE_OOP_PATH
         else:
-            template_name = 'templates/iplugin_methods/initialize_ip.txt'
+            template_name = global_variables.INITIALIZE_IP_PATH
 
         template = FileUtils.read_file(template_name)
         code = FileUtils.replace_keywords(template,self.keywords)
@@ -175,7 +176,7 @@ class SourceData(FileData):
     def generate_deinitialize(self):
 
         if self.out_of_process:
-            template_name = 'templates/iplugin_methods/deinitialize_oop.txt'
+            template_name = global_variables.DENINITIALIZE_OOP_PATH
 
             template = FileUtils.read_file(template_name)
             code = FileUtils.replace_keywords(template,self.keywords)
