@@ -1,0 +1,34 @@
+if (_service != nullptr) {
+~INDENT_INCREASE~
+ASSERT(_service == service);
+
+service->Unregister(&_connectionNotification);
+
+if (_implementation != nullptr) {
+~INDENT_INCREASE~
+    // Example if your interface has inotification implemented
+    //Exchange::JVolumeControl::Unregister(*this);
+    //_implementation->Unregister(&_volumeNotification);
+
+    RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
+    VARIABLE_IS_NOT_USED uint32_t result = _implementation->Release();
+    _implementation = nullptr;
+    // It should have been the last reference we are releasing,
+    // so it should endup in a DESTRUCTION_SUCCEEDED, if not we
+    // are leaking...
+    ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
+    // The process can disappear in the meantime...
+    if (connection != nullptr) {
+~INDENT_INCREASE~
+        // But if it did not dissapear in the meantime, forcefully terminate it. Shoot to kill 
+        connection->Terminate();
+        connection->Release();
+~INDENT_DECREASE~
+    }
+~INDENT_DECREASE~
+}
+_service->Release();
+_service = nullptr;
+_connectionId = 0;
+~INDENT_DECREASE~
+}

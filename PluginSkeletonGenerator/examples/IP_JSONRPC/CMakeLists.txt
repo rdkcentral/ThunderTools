@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project({{PLUGIN_NAME}})
+project(IP_JSONRPC)
 
 cmake_minimum_required(VERSION 3.15)
 
@@ -27,7 +27,7 @@ set(MODULE_NAME ${NAMESPACE}${PROJECT_NAME})
 
 message("Setup ${MODULE_NAME} v${PROJECT_VERSION}")
 
-set(PLUGIN_{{PLUGIN_NAME_CAPS}}_STARTMODE "Activated" CACHE STRING "Automatically start {{PLUGIN_NAME}} plugin")
+set(PLUGIN_IP_JSONRPC_STARTMODE "Activated" CACHE STRING "Automatically start IP_JSONRPC plugin")
 
 if(BUILD_REFERENCE)
     add_definitions(-DBUILD_REFERENCE=${BUILD_REFERENCE})
@@ -38,8 +38,7 @@ find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
-    HelloWorld.cpp 
-HelloWorldImplementation.cpp
+    IP_JSONRPC.cpp
 )
 
 set_target_properties(${MODULE_NAME} PROPERTIES
@@ -48,10 +47,9 @@ set_target_properties(${MODULE_NAME} PROPERTIES
 
 target_link_libraries(${MODULE_NAME}
     PRIVATE
-        CompileSettingsDebug::CompileSettingsDebug
-        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
-
+    CompileSettingsDebug::CompileSettingsDebug
+    ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+    ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 
 target_include_directories( ${MODULE_NAME}
     PUBLIC
@@ -59,7 +57,6 @@ target_include_directories( ${MODULE_NAME}
 
 install(TARGETS ${MODULE_NAME}
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/${STORAGE_DIRECTORY}/plugins COMPONENT ${NAMESPACE}_Runtime)
-    
-write_config()    
 
+write_config()
 

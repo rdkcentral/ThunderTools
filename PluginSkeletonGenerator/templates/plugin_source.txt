@@ -17,26 +17,47 @@
  * limitations under the License.
  */
 
-#include "HelloWorldNotOOP.h"
+{{INCLUDE}}
 
 namespace Thunder{
 namespace Plugin{
-
+~INDENT_INCREASE~
     namespace {
-
-        static Metadata<HelloWorldNotOOP>metadata(
+~INDENT_INCREASE~
+        static Metadata<{{PLUGIN_NAME}}>metadata( 
+~INDENT_INCREASE~
             // Version
             1, 0, 0,
             // Preconditions
-            {conditions}
+            {},
             // Terminations
-            {terminations}
+            {},
             // Controls
-            {controls}
+            {}
+~INDENT_DECREASE~
         )
+~INDENT_DECREASE~
     }
 
-// Implement all methods from HelloWorldNotOOP.h
+// Implement all methods from {{PLUGIN_NAME}}.h
 
+const string {{PLUGIN_NAME}}::Initialize(PluginHost::IShell* service) {
+~INDENT_INCREASE~
+    {{INITIALIZE_IMPLEMENTATION}}
+~INDENT_DECREASE~
+}
+
+void {{PLUGIN_NAME}}::Deinitialize(PluginHost::IShell* service) {
+~INDENT_INCREASE~
+    {{DEINITIALIZE_IMPLEMENTATION}}
+~INDENT_DECREASE~
+}
+
+string {{PLUGIN_NAME}}::Information(PluginHost::IShell* service) {
+~INDENT_INCREASE~
+    return string()
+~INDENT_DECREASE~
+}
+~INDENT_DECREASE~
 } // Plugin
 } // Thunder

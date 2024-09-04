@@ -17,6 +17,13 @@
  * limitations under the License.
  */
 
-#include "Module.h"
+#pragma once
 
-MODULE_NAME_DECLARATION(BUILD_REFERENCE)
+#ifndef MODULE_NAME
+#define MODULE_NAME {{MODULE_PLUGIN_NAME}}
+#endif
+
+#include <plugins/plugins.h>
+
+#undef EXTERNAL
+#define EXTERNAL

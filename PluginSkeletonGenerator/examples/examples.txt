@@ -1,0 +1,6 @@
+Abbreviations:
+OOP = Out of Process
+IP = In Process
+JSONRPC = JSONRPC is enabled
+
+These examples serve as a display to show what your skeleton may look like.

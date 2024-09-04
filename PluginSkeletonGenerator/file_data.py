@@ -1,40 +1,31 @@
 #!/usr/bin/env python3
 
-import helper
+from helper import FileUtils
 
-class BlueprintData:
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
+class FileData:
+    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
         self.plugin_name = plugin_name
         self.comrpc_interfaces = comrpc_interfaces if comrpc_interfaces else []
         self.jsonrpc_interfaces = jsonrpc_interfaces if jsonrpc_interfaces else []
-        self.run_oop = run_oop
-        self.json_events = json_events
-
-        self.indenter = helper.Helper()
+        self.out_of_process = out_of_process
+        self.jsonrpc = jsonrpc
 
         self.keywords = self.generate_keywords_map()
 
-    def generate_thunder_license(self):
-        return helper.THUNDER_LICENSE
-    
-    def generate_inherited_methods(self):
-        pass
-    
-    def generate_plugin_methods(self):
-        pass
-    
     def generate_keywords_map(self):
         return {
-            '{{THUNDER_LICENSE}}' : self.generate_thunder_license(),
             '{{PLUGIN_NAME}}' : self.plugin_name,
-            '{{PLUGIN_NAME_CAPS}}' : self.plugin_name.upper(),
+            '{{PLUGIN_NAME_CAPS}}' : self.plugin_name.upper()
         }
+    
+class HeaderData(FileData):
 
-class HeaderData(BlueprintData):
+    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
+        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
 
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
-        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events)
-        self.keywords = self.generate_keywords_map()
+        self.keywords = super().generate_keywords_map()
+        self.keywords.update(self.generate_keywords_map())
+        self.keywords.update(self.generate_nested_map())
     
     def generate_jsonrpc_includes(self):
         includes = []
@@ -52,15 +43,12 @@ class HeaderData(BlueprintData):
     
     def generate_inherited_classes(self):
 
-        # TODO: Implement differentiation between filetypes 
-        # Implement indent multiplier
-
-        if not self.comrpc_interfaces:
-            return ''
-
         inheritance = ["PluginHost::IPlugin"]
 
-        if not self.run_oop:
+        if self.jsonrpc:
+            inheritance.append("public PluginHost::JSONRPC")
+
+        if not self.out_of_process:
             for inherited_class in self.comrpc_interfaces:
                 inheritance.append(f'public {inherited_class}')
 
@@ -73,7 +61,7 @@ class HeaderData(BlueprintData):
 
         inheritance = [self.comrpc_interfaces[0]]
 
-        if self.run_oop:
+        if self.out_of_process:
             for inherited_class in self.comrpc_interfaces[1:]:
                 inheritance.append(f'public {inherited_class}')
 
@@ -82,13 +70,12 @@ class HeaderData(BlueprintData):
 
     def generate_inherited_methods(self):
         methods = []
-        self.indent_size = 2
-        if not self.run_oop:
+        if not self.out_of_process:
             for inherited in self.comrpc_interfaces:
                 method1 = f'void {inherited}Method1() override;'
                 method2 = f'void {inherited}Method2() override;'
                 methods.extend([method1,method2])
-        return ('\n'+ self.indenter.apply_indent()).join(methods)
+        return ('\n').join(methods)
 
     def generate_plugin_methods(self):
         method = f'void {self.plugin_name}Method(1);'
@@ -99,35 +86,30 @@ class HeaderData(BlueprintData):
         for comrpc in self.comrpc_interfaces:
             entry = f'INTERFACE_ENTRY({comrpc})'
             entries.append(entry)
-        return ('\n'+ self.indenter.apply_indent()).join(entries)
+        return ('\n').join(entries)
 
     def generate_interface_aggregate(self):
         aggregates = []
-        if(self.run_oop):
+        if(self.out_of_process):
             aggregates = []
             for comrpc in self.comrpc_interfaces:
                 aggregate = f'INTERFACE_AGGREGATE({comrpc}, _impl)'
                 aggregates.append(aggregate)
-        return ('\n'+ self.indenter.apply_indent()).join(aggregates)
+        return ('\n').join(aggregates)
 
     def generate_data_members(self):
         return 'DATA_MEMBER'
     
     def generate_module_plugin_name(self):
         return f'Plugin_{self.plugin_name}'
-    
-    def generate_forward_declarations(self):
-        return " "
-    
+       
     def generate_comrpc_interface(self):
         return "Test_COMRPC"
-           
+    
     def generate_keywords_map(self):
-        return {
+        return{
             '{{JSONRPC_INTERFACE_INCLUDES}}' : self.generate_jsonrpc_includes(),
             '{{COMRPC_INTERFACE_INCLUDES}}' : self.generate_comrpc_includes(),
-            '{{PLUGIN_NAME}}' : self.plugin_name,
-            '{{FORWARD_DECLARATIONS}}' : self.generate_forward_declarations(),
             '{{INHERITED_CLASS}}' : self.generate_inherited_classes(),
             '{{INHERITED_METHOD}}' : self.generate_inherited_methods(),
             '{{PLUGIN_METHOD}}' : self.generate_plugin_methods(),
@@ -138,37 +120,89 @@ class HeaderData(BlueprintData):
             '{{COMRPC_INTERFACE}}' : self.generate_comrpc_interface(),
             '{{OOP_INHERITED_CLASS}}' : self.generate_oop_inherited_classes()
         }
+    
+    def generate_nested_map(self):
+        return{
+            '{{JSONRPC_EVENT}}' : self.generate_jsonrpc_event(),
+            '{{CONFIG_CLASS}}' : self.generate_config()
+        }
 
-class SourceData(BlueprintData):
+    def generate_jsonrpc_event(self):
+        if self.out_of_process:
+            template_name = 'templates/nested_class/rpc_inotification.txt'
+            template = FileUtils.read_file(template_name)
+            code = FileUtils.replace_keywords(template,self.keywords)
+            return code
+        return  ' '
+    
+    def generate_config(self):
 
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
-        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events)
-        self.keywords = self.generate_keywords_map()
+        if not self.out_of_process:
+            template_name = 'templates/nested_class/config_class.txt'
+            template = FileUtils.read_file(template_name)
+            code = FileUtils.replace_keywords(template,self.keywords)
+            return code
+        return ' '
+               
+class SourceData(FileData):
+
+    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
+        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
+        self.keywords = super().generate_keywords_map()
+        self.keywords.update(self.generate_keywords_map())
+        self.keywords.update(self.generate_nested_map())
 
     def generate_include_statements(self):
         return f'#include "{self.plugin_name}.h"'
 
     def generate_plugin_methods(self):
-        return "test method"
+        return "Plugin method"
 
     def generate_inherited_methods(self):
-        return "test inherited method"
+        return "Inherited method"
+    
+    def generate_initialize(self):
+
+        if self.out_of_process:
+            template_name = 'templates/iplugin_methods/initialize_oop.txt'
+        else:
+            template_name = 'templates/iplugin_methods/initialize_ip.txt'
+
+        template = FileUtils.read_file(template_name)
+        code = FileUtils.replace_keywords(template,self.keywords)
+        return code
+
+    def generate_deinitialize(self):
+
+        if self.out_of_process:
+            template_name = 'templates/iplugin_methods/deinitialize_oop.txt'
+
+            template = FileUtils.read_file(template_name)
+            code = FileUtils.replace_keywords(template,self.keywords)
+            return code
+        return ""
 
     def generate_keywords_map(self):
         return {
             '{{INCLUDE}}' : self.generate_include_statements(),
-            '{{PLUGIN_NAME}}' : self.plugin_name,
             '{{INHERITED_METHOD}}' : self.generate_inherited_methods(),
             '{{PLUGIN_METHOD}}' : self.generate_plugin_methods(),
             '{{PRECONDITIONS}}' : "conditions",
             '{{TERMINATIONS}}' : "terminations",
             '{{CONTROLS}}' : "controls"
-
         }
     
-class CMakeData(BlueprintData):
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
-        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events)
+    def generate_nested_map(self):
+        return {
+            '{{INITIALIZE_IMPLEMENTATION}}' : self.generate_initialize(),
+            '{{DEINITIALIZE_IMPLEMENTATION}}' : self.generate_deinitialize()
+        }
+    
+class CMakeData(FileData):
+    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
+        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
+        self.keywords = super().generate_keywords_map()
+        self.keywords.update(self.generate_keywords_map())
 
     def generate_keywords_map(self):
         return {
@@ -176,24 +210,27 @@ class CMakeData(BlueprintData):
         }
     
     def find_source_files(self):
-        if(self.run_oop):
+        if(self.out_of_process):
             return f'{self.plugin_name}.cpp \n{self.plugin_name}Implementation.cpp'
         else:
             return f'{self.plugin_name}.cpp'
 
-class JSONData(BlueprintData):
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
-        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events)
+class JSONData(FileData):
+    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
+        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
+        self.keywords = super().generate_keywords_map()
+        self.keywords.update(self.generate_keywords_map())
 
-class ConfData(BlueprintData):
-    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events) -> None:
-        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, run_oop, json_events)
+class ConfData(FileData):
+    def __init__(self, plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc) -> None:
+        super().__init__(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
+        self.keywords = super().generate_keywords_map()
+        self.keywords.update(self.generate_keywords_map())
 
     def generate_keywords_map(self):
         return {
             '{{PLUGIN_STARTMODE}}' : f'"@PLUGIN_{self.plugin_name.upper()}_STARTMODE@"'
         }
-
 
 # Not in use currently, may use later on to track rather than hardcode
 class PluginData():
@@ -204,4 +241,3 @@ class PluginData():
 
     def add_class(self, class_name):
         pass
-

@@ -19,31 +19,34 @@
 
 #pragma once
 
-#include <interfaces/com1>
+{{COMRPC_INTERFACE_INCLUDES}}
 
 namespace Thunder {
 namespace Plugin {
+~INDENT_INCREASE~
+    SERVICE_REGISTRATION({{PLUGIN_NAME}}Implementation, 1, 0)
 
-    SERVICE_REGISTRATION(HelloWorldImplementation, 1, 0)
-
-    class HelloWorldImplementation : public com1 {
+    class {{PLUGIN_NAME}}Implementation : public {{OOP_INHERITED_CLASS}} {
     public:
+~INDENT_INCREASE~
+        {{PLUGIN_NAME}}Implementation(const {{PLUGIN_NAME}}Implementation&) = delete;
+        {{PLUGIN_NAME}}Implementation& operator=(const {{PLUGIN_NAME}}Implementation&) = delete;
 
-        HelloWorldImplementation(const HelloWorldImplementation&) = delete;
-        HelloWorldImplementation& operator=(const HelloWorldImplementation&) = delete;
+        {{PLUGIN_NAME}}Implementation();
+        ~{{PLUGIN_NAME}}Implementation() override = default;
 
-        HelloWorldImplementation();
-        ~HelloWorldImplementation() override = default;
-
-        BEGIN_INTERFACE_MAP(HelloWorldImplementation)
-        INTERFACE_ENTRY(com1)
+        BEGIN_INTERFACE_MAP({{PLUGIN_NAME}}Implementation)
+        {{INTERFACE_ENTRY}}
         END_INTERFACE_MAP
     
         // Implement methods from the interface
-        
-
+        {{INHERITED_METHOD}}
+~INDENT_DECREASE~
     private:
+~INDENT_INCREASE~
         // Add data members, for example: (Core::CriticalSection, std::vector<INTERFACE*>..)
-};
+~INDENT_DECREASE~
+    };
+~INDENT_DECREASE~
 } // Plugin
 } // Thunder
