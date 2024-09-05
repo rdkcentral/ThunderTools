@@ -385,7 +385,7 @@ class JsonThreadId(JsonNative, JsonType):
 
     @property
     def cpp_native_type(self):
-        return "Core::thread_id"
+        return "::thread_id"
 
 
 class JsonRefCounted():
