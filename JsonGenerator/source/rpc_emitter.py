@@ -85,7 +85,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     if legacy:
         line = "void %s::%s(%s)" % (root.cpp_name, event.endpoint_name, ", ".join(parameters))
     else:
-        line = "static void %s(%s)" % (event.function_name, ", ".join(parameters))
+        line = "static void %s(%s)" % (event.cpp_name, ", ".join(parameters))
 
     if event.included_from:
         line += " /* %s */" % event.included_from
@@ -141,7 +141,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
         # Emit the local call
         if not legacy:
-            emit.Line("%s(%s);" % (event.function_name, ", ".join(parameters + ([names.sendif] if (event.sendif_type or event.is_status_listener) else []))))
+            emit.Line("%s(%s);" % (event.cpp_name, ", ".join(parameters + ([names.sendif] if (event.sendif_type or event.is_status_listener) else []))))
 
     if params_type == "object" or legacy:
         # Build parameters for the notification call
@@ -386,13 +386,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Indent()
                 emit.Line("[%s%s](const string& client, const %s::Status status) {" % ("&" if legacy else "", names.handler, names.jsonrpc_alias))
                 emit.Indent()
-                emit.Line("%s%sOn%sEventRegistration(client, status);" % (names.handler, '.' if legacy else '->', event.function_name))
+                emit.Line("%s%sOn%sEventRegistration(client, status);" % (names.handler, '.' if legacy else '->', event.cpp_name))
                 emit.Unindent()
                 emit.Line("});")
                 emit.Unindent()
                 emit.Line()
 
-                prototypes.append(["void On%sEventRegistration(const string& client, const %s::Status status)" % (event.function_name, names.jsonrpc_alias), None])
+                prototypes.append(["void On%sEventRegistration(const string& client, const %s::Status status)" % (event.cpp_name, names.jsonrpc_alias), None])
         else:
             emit.Line()
             emit.Line("// Unregister event status listeners...")
@@ -897,7 +897,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 for _, [arg, _] in sorted_vars:
                     function_params.append("%s%s" % (arg.flags.prefix, (arg.flags.cast if arg.flags.cast else arg.temp_name)))
 
-                emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, m.cpp_name, ", ".join(function_params)))
+                emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, m.function_name, ", ".join(function_params)))
 
                 for _, _record in sorted_vars:
                     arg = _record[0]
