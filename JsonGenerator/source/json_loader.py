@@ -835,7 +835,7 @@ class JsonMethod(JsonObject):
         if "hint" in self.schema:
             return self.schema["hint"]
         else:
-            return self.cpp_name
+            return self.actual_name
 
     def Headline(self):
         return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
