@@ -74,7 +74,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     if legacy:
         line = "void %s::%s(%s)" % (root.cpp_name, event.endpoint_name, ", ".join(parameters))
     else:
-        line = "static void %s(%s)" % (event.function_name, ", ".join(parameters))
+        line = "static void %s(%s)" % (event.cpp_name, ", ".join(parameters))
 
     if event.included_from:
         line += " /* %s */" % event.included_from
@@ -115,7 +115,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
         # Emit the local call
         if not legacy:
-            emit.Line("%s(%s);" % (event.function_name, ", ".join(parameters + ([sendiffn_var] if (event.sendif_type or event.is_status_listener) else []))))
+            emit.Line("%s(%s);" % (event.cpp_name, ", ".join(parameters + ([sendiffn_var] if (event.sendif_type or event.is_status_listener) else []))))
 
     if params_type == "object" or legacy:
         # Build parameters for the notification call
@@ -607,7 +607,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     if not conditions:
                         emit.Line()
 
-                    emit.Line("%s = %s->%s(%s);" % (error_code.TempName(), implementation_object, m.cpp_name, ", ".join(function_params)))
+                    emit.Line("%s = %s->%s(%s);" % (error_code.TempName(), implementation_object, m.function_name, ", ".join(function_params)))
 
                     if conditions:
                         for _, _record in vars.items():
@@ -853,13 +853,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Indent()
                 emit.Line("[&%s](const string& client, const JSONRPC::Status status) {" % (impl_var))
                 emit.Indent()
-                emit.Line("%s.On%sEventRegistration(client, status);" % (impl_var, event.function_name))
+                emit.Line("%s.On%sEventRegistration(client, status);" % (impl_var, event.cpp_name))
                 emit.Unindent()
                 emit.Line("});")
                 emit.Unindent()
                 emit.Line()
 
-                prototypes.append(["void On%sEventRegistration(const string& client, const %s::JSONRPC::Status status)" % (event.function_name, struct), None])
+                prototypes.append(["void On%sEventRegistration(const string& client, const %s::JSONRPC::Status status)" % (event.cpp_name, struct), None])
 
 
     if not method_count and not has_listeners:
