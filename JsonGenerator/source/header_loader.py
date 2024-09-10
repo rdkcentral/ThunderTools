@@ -248,17 +248,16 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         enum_spec = { "enum": [e.meta.text if e.meta.text else e.name for e in cppType.items] }
                     else:
                         enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items] }
+
                     enum_spec["ids"] = [e.name for e in cppType.items]
-                    enum_spec["hint"] = var.type.Type().name
+
+                    if not cppType.items[0].auto_value:
+                        enum_spec["values"] = [e.value for e in cppType.items]
 
                     for e in cppType.items:
                         if "endmarker" in e.meta.decorators:
                             enum_spec["endmarker"] = e.name
                             break;
-
-                    if not cppType.items[0].auto_value:
-                        enum_spec["values"] = [e.value for e in cppType.items]
-
                     if "bitmask" in var.meta.decorators or "bitmask" in var.type.Type().meta.decorators:
                         enum_spec["bitmask"] = True
                         enum_spec["type"] = "string"

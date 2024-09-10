@@ -207,11 +207,13 @@ class JsonType():
     @property
     def cpp_name(self): # C++ name of the object
         if self.new_name:
-            return (self.new_name[0].upper() + self.new_name[1:])
+            _name = self.new_name
         elif self.original_name:
-            return (self.original_name[0].upper() + self.original_name[1:])
+            _name = self.original_name
         else:
-            return (self.name[0].upper() + self.name[1:])
+            _name = self.name
+
+        return (_name[0].upper() + _name[1:])
 
     @property
     def cpp_type(self): # C++ type of the object (e.g. may be array)
@@ -448,7 +450,7 @@ class JsonEnum(JsonRefCounted, JsonType):
             classname = self.original_type
         elif "class" in self.schema:
             # Override class name if "class" property present
-            classname = self.schema["class"].capitalize
+            classname = self.schema["class"].capitalize()
         elif "hint" in self.schema:
             # Override class name if "hint" property present
             classname = self.schema["hint"]
@@ -554,7 +556,7 @@ class JsonObject(JsonRefCounted, JsonType):
         if self.is_renamed:
             return super().cpp_name
         elif isinstance(self.parent, JsonMethod):
-            return self.parent.cpp_name + super().cpp_name
+            return self.parent.actual_name.capitalize() + super().cpp_name
         elif isinstance(self.parent, JsonArray):
             return self.parent.cpp_name
         else:
@@ -765,8 +767,23 @@ class JsonMethod(JsonObject):
     def function_name(self):
         if "hint" in self.schema:
             return self.schema["hint"]
+        elif self.original_name:
+            return self.original_name
         else:
-            return self.actual_name
+            return self.actual_name[0].upper() + self.actual_name[1:]
+
+    @property
+    def cpp_name(self): # C++ name of the object
+        if self.new_name:
+            _name = self.new_name
+        elif self.original_name:
+            _name = self.original_name
+        elif "hint" in self.schema:
+            _name = self.schema["hint"]
+        else:
+            _name = self.name
+
+        return (_name[0].upper() + _name[1:])
 
     def Headline(self):
         return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
