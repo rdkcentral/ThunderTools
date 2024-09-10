@@ -285,8 +285,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     else:
                         enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items] }
 
-                    enum_spec["hint"] = var.type.Type().name
-
                     if var_type.Type().scoped:
                         enum_spec["scoped"] = True
 
