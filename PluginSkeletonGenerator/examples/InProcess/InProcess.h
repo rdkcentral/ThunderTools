@@ -18,55 +18,74 @@
 */
 
 #pragma once
-#include <interfaces/json/JSON1.h>
-#include <interfaces/COM1>
+#include <interfaces/json/JHello.h>
+#include <interfaces/json/JWorld.h>
+#include <interfaces/IHello>
+#include <interfaces/IWorld>
 
 namespace Thunder {
 namespace Plugin {
     
-    class IP_JSONRPC : public PluginHost::IPlugin, public PluginHost::JSONRPC, public COM1 {
+    class InProcess : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IHello, public Exchange::IWorld {
     public:
-        IP_JSONRPC(const IP_JSONRPC&) = delete;
-        IP_JSONRPC &operator=(const IP_JSONRPC&) = delete;
-        IP_JSONRPC() {}
-        ~IP_JSONRPC override {}
-    
-    private:
+        InProcess(const InProcess&) = delete;
+        InProcess &operator=(const InProcess&) = delete;
+        InProcess(InProcess&&) = delete;
+        InProcess &operator=(InProcess&&) = delete;
         
+        InProcess()
+        : IHello()
+        , IWorld()
+        , _example(0)
+        {
+        }
+        
+        ~InProcess() override = default;
+    private:
         class Config : public Core::JSON::Container {
         private:
             Config(const Config&) = delete;
             Config& operator=(const Config&) = delete;
+            Config(Config&&) = delete;
+            Config& operator=(Config&&) = delete;
         public:
             Config()
-                : Example("Example")
+                : Core::JSON::Container()
             {
                 Add(_T("example"), &Example);
             }
-            ~Config(){}
+            ~Config() override = default;
         public:
             Core::JSON::String Example;
         }
-        
     public:
-        
-        // Inherited Methods
+        // IPlugin Methods
         const string Initialize(PluginHost::IShell* service) override;
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
-        void COM1Method1() override;
-        void COM1Method2() override;
+        
+        // IHello methods
+        void IHelloMethod1() override;
+        void IHelloMethod2() override;
+        
+        // IWorld methods
+        void IWorldMethod1() override;
+        void IWorldMethod2() override;
+        
         // Plugin Methods
-        void IP_JSONRPCMethod(1);
+        void InProcessMethod(1);
         
-        BEGIN_INTERFACE_MAP(IP_JSONRPC)
-        INTERFACE_ENTRY(COM1)
-        
+        BEGIN_INTERFACE_MAP(InProcess)
+        INTERFACE_ENTRY(PluginHost::IPlugin)
+        INTERFACE_ENTRY(PluginHost::IDispatcher)
+        INTERFACE_ENTRY(Exchange::IHello)
+        INTERFACE_ENTRY(Exchange::IWorld)
         END_INTERFACE_MAP
+        
     private:
         // Include the correct member variables for your plugin:
         // Note this is only an example, you are responsible for adding the correct members:
-        uint32_t _connectionId;
+        uint32_t _example;
     };
 }
 }

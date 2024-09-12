@@ -9,8 +9,8 @@ _service = service;
 _service->AddRef();
 _service->Register(&_connectionNotification);
 
-implementation = 
-service->Root<Exchange::{{COMRPC}}>(_connectionId, 2000, _T("{{PLUGIN_NAME}}Implementation"));
+// Example
+_implementation = service->Root<Exchange::{{COMRPC}}>(_connectionId, 2000, _T("{{PLUGIN_NAME}}Implementation"));
 if (_implementation == nullptr) {
 ~INDENT_INCREASE~
     message = _T("Couldn't create instance");
@@ -19,7 +19,7 @@ if (_implementation == nullptr) {
 ~INDENT_INCREASE~
     // Add registration e.g:
     //_implementation->Register(&_volumeNotification);
-    // Exchange::JVolumeControl::Register(*this, _implementation);
+    {{JSONRPC_REGISTER}}
 ~INDENT_DECREASE~
 }
 

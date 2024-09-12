@@ -18,25 +18,31 @@
 */
 
 #pragma once
-#include <interfaces/json/JSON1.h>
-#include <interfaces/COM1>
+#include <interfaces/json/JHello.h>
+#include <interfaces/json/JWorld.h>
+#include <interfaces/IHello>
+#include <interfaces/IWorld>
 
 namespace Thunder {
 namespace Plugin {
     
-    class OOP_JSONRPC : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+    class OutProcess : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     public:
-        OOP_JSONRPC(const OOP_JSONRPC&) = delete;
-        OOP_JSONRPC &operator=(const OOP_JSONRPC&) = delete;
-        OOP_JSONRPC() {}
-        ~OOP_JSONRPC override {}
-    
+        OutProcess(const OutProcess&) = delete;
+        OutProcess &operator=(const OutProcess&) = delete;
+        OutProcess(OutProcess&&) = delete;
+        OutProcess &operator=(OutProcess&&) = delete;
+        
+        OutProcess()
+        : _example(0)
+        {
+        }
+        
+        ~OutProcess() override = default;
     private:
-        
-        
         class ConnectionNotification : public RPC::IRemoteConnection::INotification {
         public:
-            explicit ConnectionNotification(OOP_JSONRPC* parent)
+            explicit ConnectionNotification(OutProcess* parent)
                 : _parent(*parent)
             {
                 ASSERT(parent != nullptr);
@@ -46,6 +52,8 @@ namespace Plugin {
             ConnectionNotification() = delete;
             ConnectionNotification(const ConnectionNotification&) = delete;
             ConnectionNotification& operator=(const ConnectionNotification&) = delete;
+            ConnectionNotification(ConnectionNotification&&) = delete;
+            ConnectionNotification& operator=(ConnectionNotification&&) = delete;
             
             void Activated(RPC::IRemoteConnection*) override
             {
@@ -60,26 +68,29 @@ namespace Plugin {
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
         private:
-            OOP_JSONRPC& _parent;
+            OutProcess& _parent;
         }
     public:
-        
-        // Inherited Methods
+        // IPlugin Methods
         const string Initialize(PluginHost::IShell* service) override;
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
         
-        // Plugin Methods
-        void OOP_JSONRPCMethod(1);
         
-        BEGIN_INTERFACE_MAP(OOP_JSONRPC)
-        INTERFACE_ENTRY(COM1)
-        INTERFACE_AGGREGATE(COM1, _impl)
+        // Plugin Methods
+        void OutProcessMethod(1);
+        
+        BEGIN_INTERFACE_MAP(OutProcess)
+        INTERFACE_ENTRY(PluginHost::IPlugin)
+        INTERFACE_ENTRY(PluginHost::IDispatcher)
+        INTERFACE_AGGREGATE(Exchange::IHello, _implIHello)
+        INTERFACE_AGGREGATE(Exchange::IWorld, _implIWorld)
         END_INTERFACE_MAP
+        
     private:
         // Include the correct member variables for your plugin:
         // Note this is only an example, you are responsible for adding the correct members:
-        uint32_t _connectionId;
+        uint32_t _example;
     };
 }
 }

@@ -17,36 +17,47 @@
  * limitations under the License.
  */
 
-#pragma once
+{{INCLUDE}}
 
-{{COMRPC_INTERFACE_INCLUDES}}
-
-namespace Thunder {
-namespace Plugin {
+namespace Thunder{
+namespace Plugin{
 ~INDENT_INCREASE~
-    SERVICE_REGISTRATION({{PLUGIN_NAME}}Implementation, 1, 0)
-
-    class {{PLUGIN_NAME}}Implementation : public {{OOP_INHERITED_CLASS}} {
-    public:
+    namespace {
 ~INDENT_INCREASE~
-        {{PLUGIN_NAME}}Implementation(const {{PLUGIN_NAME}}Implementation&) = delete;
-        {{PLUGIN_NAME}}Implementation& operator=(const {{PLUGIN_NAME}}Implementation&) = delete;
-
-        {{PLUGIN_NAME}}Implementation();
-        ~{{PLUGIN_NAME}}Implementation() override = default;
-
-        BEGIN_INTERFACE_MAP({{PLUGIN_NAME}}Implementation)
-        {{INTERFACE_ENTRY}}
-        END_INTERFACE_MAP
-    
-        // Implement methods from the interface
-        {{INHERITED_METHOD}}
+        static Metadata<{{PLUGIN_NAME}}>metadata( 
+~INDENT_INCREASE~
+            // Version
+            1, 0, 0,
+            // Preconditions
+            {},
+            // Terminations
+            {},
+            // Controls
+            {}
 ~INDENT_DECREASE~
-    private:
-~INDENT_INCREASE~
-        // Add data members, for example: (Core::CriticalSection, std::vector<INTERFACE*>..)
+        )
 ~INDENT_DECREASE~
-    };
+    }
+
+// Implement all methods from {{PLUGIN_NAME}}.h
+
+const string {{PLUGIN_NAME}}::Initialize(PluginHost::IShell* service) {
+~INDENT_INCREASE~
+    {{INITIALIZE_IMPLEMENTATION}}
+~INDENT_DECREASE~
+}
+
+void {{PLUGIN_NAME}}::Deinitialize(PluginHost::IShell* service{{VARIABLE_NOT_USED}}) {
+~INDENT_INCREASE~
+    {{DEINITIALIZE_IMPLEMENTATION}}
+~INDENT_DECREASE~
+}
+
+string {{PLUGIN_NAME}}::Information() {
+~INDENT_INCREASE~
+    return string()
+~INDENT_DECREASE~
+}
 ~INDENT_DECREASE~
 } // Plugin
 } // Thunder

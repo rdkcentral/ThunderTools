@@ -7,7 +7,7 @@ service->Unregister(&_connectionNotification);
 if (_implementation != nullptr) {
 ~INDENT_INCREASE~
     // Example if your interface has inotification implemented
-    //Exchange::JVolumeControl::Unregister(*this);
+    {{JSONRPC_UNREGISTER}}
     //_implementation->Unregister(&_volumeNotification);
 
     RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));

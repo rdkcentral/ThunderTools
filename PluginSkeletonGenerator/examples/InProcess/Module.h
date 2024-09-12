@@ -20,9 +20,10 @@
 #pragma once
 
 #ifndef MODULE_NAME
-#define MODULE_NAME Plugin_OOP_JSONRPC
+#define MODULE_NAME Plugin_InProcess
 #endif
 
+#include <core/core.h>
 #include <plugins/plugins.h>
 
 #undef EXTERNAL

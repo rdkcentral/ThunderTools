@@ -15,10 +15,11 @@ def python_distrubution():
 
 # add future scripts
 scripts = {
-"plugin_skeleton" : os.path.join("PluginSkeletonGenerator","generator.py")
+"plugin_skeleton" : os.path.join("PluginSkeletonGenerator","PluginSkeletonGenerator.py")
 }
 
 def script_menu():
+    print("== Thunder Development Tools ==")
     print("Choose one of the following tools: (To quit, type q) ")
     print("1. Plugin Skeleton Generator")
     while True:

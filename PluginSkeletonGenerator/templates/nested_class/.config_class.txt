@@ -3,19 +3,21 @@ private:
 ~INDENT_INCREASE~
     Config(const Config&) = delete;
     Config& operator=(const Config&) = delete;
+    Config(Config&&) = delete;
+    Config& operator=(Config&&) = delete;
 ~INDENT_DECREASE~
 public:
 ~INDENT_INCREASE~
     Config() 
 ~INDENT_INCREASE~
-        : Example("Example")
+        : Core::JSON::Container()
 ~INDENT_DECREASE~
     {
 ~INDENT_INCREASE~
         Add(_T("example"), &Example);
 ~INDENT_DECREASE~
     }
-    ~Config(){}
+    ~Config() override = default;
 ~INDENT_DECREASE~
 public:
 ~INDENT_INCREASE~

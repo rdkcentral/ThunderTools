@@ -17,12 +17,12 @@
 * limitations under the License.
 */
 
-#include "OOP_JSONRPC.h"
+#include "OutProcess.h"
 
 namespace Thunder{
 namespace Plugin{
     namespace {
-        static Metadata<OOP_JSONRPC>metadata(
+        static Metadata<OutProcess>metadata(
             // Version
             1, 0, 0,
             // Preconditions
@@ -34,9 +34,9 @@ namespace Plugin{
         )
     }
     
-    // Implement all methods from OOP_JSONRPC.h
+    // Implement all methods from OutProcess.h
     
-    const string OOP_JSONRPC::Initialize(PluginHost::IShell* service) {
+    const string OutProcess::Initialize(PluginHost::IShell* service) {
         string message;
         
         ASSERT (_service == nullptr);
@@ -48,20 +48,21 @@ namespace Plugin{
         _service->AddRef();
         _service->Register(&_connectionNotification);
         
-        implementation =
-        service->Root<Exchange::{{COMRPC}}>(_connectionId, 2000, _T("OOP_JSONRPCImplementation"));
+        // Example
+        _implementation = service->Root<Exchange::IHello>(_connectionId, 2000, _T("OutProcessImplementation"));
         if (_implementation == nullptr) {
             message = _T("Couldn't create instance");
         } else {
             // Add registration e.g:
             //_implementation->Register(&_volumeNotification);
-            // Exchange::JVolumeControl::Register(*this, _implementation);
+            Exchange::JHello::Register(*this, implJHello);
+            Exchange::JWorld::Register(*this, implJWorld);
         }
         
         return (message);
     }
     
-    void OOP_JSONRPC::Deinitialize(PluginHost::IShell* service) {
+    void OutProcess::Deinitialize(PluginHost::IShell* service) {
         if (_service != nullptr) {
             ASSERT(_service == service);
             
@@ -69,7 +70,8 @@ namespace Plugin{
             
             if (_implementation != nullptr) {
                 // Example if your interface has inotification implemented
-                //Exchange::JVolumeControl::Unregister(*this);
+                Exchange::JHello::Unregister(*this);
+                Exchange::JWorld::Unregister(*this);
                 //_implementation->Unregister(&_volumeNotification);
                 
                 RPC::IRemoteConnection* connection(_service->RemoteConnection(_connectionId));
@@ -92,7 +94,7 @@ namespace Plugin{
         }
     }
     
-    string OOP_JSONRPC::Information(PluginHost::IShell* service) {
+    string OutProcess::Information() {
         return string()
     }
 } // Plugin

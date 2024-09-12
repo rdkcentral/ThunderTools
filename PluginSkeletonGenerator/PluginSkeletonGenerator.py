@@ -20,7 +20,7 @@ TODO:
 
 import os
 from file_data import FileData, HeaderData, SourceData, CMakeData, JSONData, ConfData
-from helper import Indenter, FileUtils
+from utils import Indenter, FileUtils
 
 import global_variables
 
@@ -44,11 +44,11 @@ class PluginGenerator:
         template = self.load_template(template_path)
         if template:
             code = self.replace_code(template)
-            indented_code = self.indenter.process_indent(code)
-            header_path = os.path.join(self.directory, output_path)
 
+            indented_code = self.indenter.process_indent(code, output_path)
+            header_path = os.path.join(self.directory, output_path)
             with open(header_path, 'w') as f:
-                f.write(indented_code)
+                    f.write(indented_code)
 
     def generate_source(self):
         self.generate_file(global_variables.PLUGIN_SOURCE_PATH, f'{self.blueprint_data.plugin_name}.cpp')
@@ -56,20 +56,21 @@ class PluginGenerator:
 
     def generate_headers(self):
 
-        # Although this is a .cpp file, it's actually most like a .h
-        if(self.blueprint_data.out_of_process):
-            self.generate_file(global_variables.PLUGIN_IMPLEMENTATION_PATH, f'{self.blueprint_data.plugin_name}Implementation.cpp')
-
         self.generate_file(global_variables.PLUGIN_HEADER_PATH, f'{self.blueprint_data.plugin_name}.h')
         self.generate_file(global_variables.MODULE_HEADER_PATH, "Module.h")
+
+        # Although this is a .cpp file, it's actually most like a .h
+        if(self.blueprint_data.out_of_process):
+            self.blueprint_data.type = HeaderData.HeaderType.HEADER_IMPLEMENTATION
+            self.blueprint_data.populate_keywords()
+            self.generate_file(global_variables.PLUGIN_IMPLEMENTATION_PATH, f'{self.blueprint_data.plugin_name}Implementation.cpp')
+
 
     def generate_cmake(self):
         self.generate_file(global_variables.CMAKE_PATH, "CMakeLists.txt")
 
     def generate_json(self):
-       # TODO:
-       # self.generate_file("templates/cmake.txt", "CMakeLists.txt")
-       pass
+        self.generate_file(global_variables.PLUGIN_JSON, f'{self.blueprint_data.plugin_name}Plugin.json')
 
     def generate_conf_in(self):
         self.generate_file(global_variables.PLUGIN_CONF_PATH, f'{self.blueprint_data.plugin_name}.conf.in')
@@ -120,22 +121,47 @@ def menu():
         else:
             print("Unknown character, try again.")
 
+    '''
+    TODO: Incomplete
+    # subsystems support needed (dependend en set)
+    while True:
+        sub_systems = input("Is your plugin expected to work out of process: (Enter Y or N)\n")
+        if(sub_systems.lower() == 'y'):
+            sub_systems = True
+            break
+        elif(sub_systems.lower() == 'n'):
+            sub_systems = False
+            break
+        else:
+            print("Unknown character, try again.")
+
+    if sub_systems:
+        preconditions= []
+        while True:
+            precondition = input("Enter subsystem precondition: ")
+            if not precondition:
+                break
+            preconditions.append(precondition)
+
+    # pluginsmartinterface
+    '''
+
     data = FileData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
     plugin_generator = PluginGenerator(data)
 
-    header_data = HeaderData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
-    source_data = SourceData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
-    cmake_data = CMakeData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
-    conf_data = ConfData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
+    file_map = {
+        HeaderData: plugin_generator.generate_headers,
+        SourceData: plugin_generator.generate_source,
+        CMakeData: plugin_generator.generate_cmake,
+        ConfData: plugin_generator.generate_conf_in,
+        JSONData: plugin_generator.generate_json
+    }
 
-    plugin_generator.blueprint_data = header_data
-    plugin_generator.generate_headers()
-    plugin_generator.blueprint_data = source_data
-    plugin_generator.generate_source()
-    plugin_generator.blueprint_data = cmake_data
-    plugin_generator.generate_cmake()
-    plugin_generator.blueprint_data = conf_data
-    plugin_generator.generate_conf_in()
+    for file_data, generate in file_map.items():
+        instance = file_data(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
+        instance.populate_keywords()
+        plugin_generator.blueprint_data = instance
+        generate()
 
 def main():
     menu()

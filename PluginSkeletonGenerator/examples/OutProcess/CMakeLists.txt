@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(OOP_JSONRPC)
+project(OutProcess)
 
 cmake_minimum_required(VERSION 3.15)
 
@@ -27,7 +27,7 @@ set(MODULE_NAME ${NAMESPACE}${PROJECT_NAME})
 
 message("Setup ${MODULE_NAME} v${PROJECT_VERSION}")
 
-set(PLUGIN_OOP_JSONRPC_STARTMODE "Activated" CACHE STRING "Automatically start OOP_JSONRPC plugin")
+set(PLUGIN_OUTPROCESS_STARTMODE "Activated" CACHE STRING "Automatically start OutProcess plugin")
 
 if(BUILD_REFERENCE)
     add_definitions(-DBUILD_REFERENCE=${BUILD_REFERENCE})
@@ -38,8 +38,8 @@ find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
-    OOP_JSONRPC.cpp
-    OOP_JSONRPCImplementation.cpp
+    OutProcess.cpp
+    OutProcessImplementation.cpp
 )
 
 set_target_properties(${MODULE_NAME} PROPERTIES
@@ -60,4 +60,3 @@ install(TARGETS ${MODULE_NAME}
     DESTINATION ${CMAKE_INSTALL_LIBDIR}/${STORAGE_DIRECTORY}/plugins COMPONENT ${NAMESPACE}_Runtime)
 
 write_config()
-

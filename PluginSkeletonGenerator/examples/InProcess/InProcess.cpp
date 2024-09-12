@@ -17,12 +17,12 @@
 * limitations under the License.
 */
 
-#include "IP_JSONRPC.h"
+#include "InProcess.h"
 
 namespace Thunder{
 namespace Plugin{
     namespace {
-        static Metadata<IP_JSONRPC>metadata(
+        static Metadata<InProcess>metadata(
             // Version
             1, 0, 0,
             // Preconditions
@@ -34,22 +34,27 @@ namespace Plugin{
         )
     }
     
-    // Implement all methods from IP_JSONRPC.h
+    // Implement all methods from InProcess.h
     
-    const string IP_JSONRPC::Initialize(PluginHost::IShell* service) {
+    const string InProcess::Initialize(PluginHost::IShell* service) {
         string message;
         
         ASSERT (service != nullptr);
         
         Config config;
         config.FromString(service->ConfigLine());
-    }
-    
-    void IP_JSONRPC::Deinitialize(PluginHost::IShell* service) {
         
+        Exchange::JHello::Register(*this, this);
+        Exchange::JWorld::Register(*this, this);
+        return (message);
     }
     
-    string IP_JSONRPC::Information(PluginHost::IShell* service) {
+    void InProcess::Deinitialize(PluginHost::IShell* service VARIABLE_IS_NOT_USED) {
+        Exchange::JHello::Unregister(*this);
+        Exchange::JWorld::Unregister(*this);
+    }
+    
+    string InProcess::Information() {
         return string()
     }
 } // Plugin

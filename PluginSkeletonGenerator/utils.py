@@ -1,3 +1,4 @@
+import os
 class FileUtils():
     def __init__(self) -> None:
         pass
@@ -23,12 +24,20 @@ class FileUtils():
 class Indenter():
     def __init__(self) -> None:
         self.indent_size = 0
-        self.indent = "    "
+        self.indent = ""
         self.indented_code = []
 
-    def process_indent(self, code):
-        self.indented_code.clear()
+    def indent_type(self, path):
 
+        extension = os.path.splitext(path)[1]
+        if extension == '.json':
+            self.indent = ' ' * 2
+        else:
+            self.indent = ' ' * 4
+
+    def process_indent(self, code, path):
+        self.indented_code.clear()
+        self.indent_type(path)
         lines = code.splitlines()
         self.indent_size = 0
         for line in lines:
@@ -43,5 +52,9 @@ class Indenter():
             elif('~INDENT_DECREASE~' in newline):
                 self.indent_size -=1
                 continue
-            self.indented_code.append(self.indent * self.indent_size + newline)
+            # rm\*n refers to remove line, therefore return this to delete line
+            elif('rm\*n' in newline):
+                continue
+            indented_line = self.indent * self.indent_size + newline
+            self.indented_code.append(indented_line)
         return '\n'.join(self.indented_code)
