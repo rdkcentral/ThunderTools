@@ -19,8 +19,8 @@
 
 {{INCLUDE}}
 
-namespace Thunder{
-namespace Plugin{
+namespace Thunder {
+namespace Plugin {
 ~INDENT_INCREASE~
     namespace {
 ~INDENT_INCREASE~
@@ -29,11 +29,11 @@ namespace Plugin{
             // Version
             1, 0, 0,
             // Preconditions
-            {},
+            {{{PRECONDITIONS}}},
             // Terminations
-            {},
+            {{{TERMINATIONS}}},
             // Controls
-            {}
+            {{{CONTROLS}}}
 ~INDENT_DECREASE~
         )
 ~INDENT_DECREASE~

@@ -24,20 +24,20 @@
 
 namespace Thunder {
 namespace Plugin {
-    SERVICE_REGISTRATION(OutProcessImplementation, 1, 0)
+    SERVICE_REGISTRATION(OutOfProcessImplementation, 1, 0)
     
-    class OutProcessImplementation : public IHello, public IWorld {
+    class OutOfProcessImplementation : public IHello, public IWorld {
     public:
-        OutProcessImplementation(const OutProcessImplementation&) = delete;
-        OutProcessImplementation& operator=(const OutProcessImplementation&) = delete;
+        OutOfProcessImplementation(const OutOfProcessImplementation&) = delete;
+        OutOfProcessImplementation& operator=(const OutOfProcessImplementation&) = delete;
         
-        OutProcessImplementation()
-        : IHello()
-        , IWorld()
-        , _test(0)
+        OutOfProcessImplementation()
+            : IHello()
+            , IWorld()
+            , _test(0)
         {
         }
-        ~OutProcessImplementation() override = default;
+        ~OutOfProcessImplementation() override = default;
         
     private:
     
@@ -60,7 +60,7 @@ namespace Plugin {
     
     public:
         
-        BEGIN_INTERFACE_MAP(OutProcessImplementation)
+        BEGIN_INTERFACE_MAP(OutOfProcessImplementation)
         INTERFACE_ENTRY(Exchange::IHello)
         INTERFACE_ENTRY(Exchange::IWorld)
         END_INTERFACE_MAP

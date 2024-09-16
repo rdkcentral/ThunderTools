@@ -17,10 +17,11 @@ TODO:
 - needs workerpool jobs (scheduled or not), so we can generate an example job
 '''
 
-
 import os
+
 from file_data import FileData, HeaderData, SourceData, CMakeData, JSONData, ConfData
 from utils import Indenter, FileUtils
+import menu
 
 import global_variables
 
@@ -76,96 +77,8 @@ class PluginGenerator:
         self.generate_file(global_variables.PLUGIN_CONF_PATH, f'{self.blueprint_data.plugin_name}.conf.in')
 
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
-def menu():
-
-    plugin_name = input("What will your plugin be called: \n")
-
-    comrpc_interface = []
-    jsonrpc_interface = []
-
-    print(f"Enter any COM-RPC interfaces used: (Enter to quit) \nNote: IPlugin is already defined for you")
-    while True:
-        comrpc = input("Enter a COM-RPC interface: ")
-        if not comrpc:
-            break
-        comrpc_interface.append(comrpc)
-
-    while True:
-        jsonrpc = input("Does your plugin require JSONRPC functionality: (Enter Y or N)\n")
-        if(jsonrpc.lower() == 'y'):
-            jsonrpc= True
-            break
-        elif(jsonrpc.lower() == 'n'):
-            jsonrpc = False
-            break
-        else:
-            print("Unknown character, try again.")
-
-    if jsonrpc:
-        print(f"Enter any JSON-RPC interfaces used: (Enter to quit)")
-        while True:
-            jsonrpc_class = input("Enter a JSON-RPC interface: ")
-            if not jsonrpc_class:
-                break
-            jsonrpc_interface.append(jsonrpc_class)
-
-    while True:
-        out_of_process = input("Is your plugin expected to work out of process: (Enter Y or N)\n")
-        if(out_of_process.lower() == 'y'):
-            out_of_process = True
-            break
-        elif(out_of_process.lower() == 'n'):
-            out_of_process = False
-            break
-        else:
-            print("Unknown character, try again.")
-
-    '''
-    TODO: Incomplete
-    # subsystems support needed (dependend en set)
-    while True:
-        sub_systems = input("Is your plugin expected to work out of process: (Enter Y or N)\n")
-        if(sub_systems.lower() == 'y'):
-            sub_systems = True
-            break
-        elif(sub_systems.lower() == 'n'):
-            sub_systems = False
-            break
-        else:
-            print("Unknown character, try again.")
-
-    if sub_systems:
-        preconditions= []
-        while True:
-            precondition = input("Enter subsystem precondition: ")
-            if not precondition:
-                break
-            preconditions.append(precondition)
-
-    # pluginsmartinterface
-    '''
-
-    data = FileData(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
-    plugin_generator = PluginGenerator(data)
-
-    file_map = {
-        HeaderData: plugin_generator.generate_headers,
-        SourceData: plugin_generator.generate_source,
-        CMakeData: plugin_generator.generate_cmake,
-        ConfData: plugin_generator.generate_conf_in,
-        JSONData: plugin_generator.generate_json
-    }
-
-    for file_data, generate in file_map.items():
-        instance = file_data(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc)
-        instance.populate_keywords()
-        plugin_generator.blueprint_data = instance
-        generate()
-
 def main():
-    menu()
+    menu.menu()
 #~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
-
 if __name__ == "__main__":
     main()

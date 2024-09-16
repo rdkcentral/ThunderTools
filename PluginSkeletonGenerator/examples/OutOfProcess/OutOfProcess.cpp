@@ -17,39 +17,39 @@
 * limitations under the License.
 */
 
-#include "OutProcess.h"
+#include "OutOfProcess.h"
 
-namespace Thunder{
-namespace Plugin{
+namespace Thunder {
+namespace Plugin {
     namespace {
-        static Metadata<OutProcess>metadata(
+        static Metadata<OutOfProcess>metadata(
             // Version
             1, 0, 0,
             // Preconditions
-            {},
+            {subsystem::PRE},
             // Terminations
-            {},
+            {subsystem::TERM},
             // Controls
-            {}
+            {subsystem::CONT}
         )
     }
     
-    // Implement all methods from OutProcess.h
+    // Implement all methods from OutOfProcess.h
     
-    const string OutProcess::Initialize(PluginHost::IShell* service) {
+    const string OutOfProcess::Initialize(PluginHost::IShell* service) {
         string message;
         
-        ASSERT (_service == nullptr);
-        ASSERT (service != nullptr);
-        ASSERT (_implementation == nullptr);
-        ASSERT (_connectionId == 0);
+        ASSERT(_service == nullptr);
+        ASSERT(service != nullptr);
+        ASSERT(_implementation == nullptr);
+        ASSERT(_connectionId == 0);
         
         _service = service;
         _service->AddRef();
         _service->Register(&_connectionNotification);
         
         // Example
-        _implementation = service->Root<Exchange::IHello>(_connectionId, 2000, _T("OutProcessImplementation"));
+        _implementation = service->Root<Exchange::IHello>(_connectionId, 2000, _T("OutOfProcessImplementation"));
         if (_implementation == nullptr) {
             message = _T("Couldn't create instance");
         } else {
@@ -62,7 +62,7 @@ namespace Plugin{
         return (message);
     }
     
-    void OutProcess::Deinitialize(PluginHost::IShell* service) {
+    void OutOfProcess::Deinitialize(PluginHost::IShell* service) {
         if (_service != nullptr) {
             ASSERT(_service == service);
             
@@ -94,7 +94,7 @@ namespace Plugin{
         }
     }
     
-    string OutProcess::Information() {
+    string OutOfProcess::Information() {
         return string()
     }
 } // Plugin

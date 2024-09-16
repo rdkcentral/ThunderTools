@@ -34,9 +34,9 @@ namespace Plugin {
         InProcess &operator=(InProcess&&) = delete;
         
         InProcess()
-        : IHello()
-        , IWorld()
-        , _example(0)
+            : IHello()
+            , IWorld()
+            , _example(0)
         {
         }
         
@@ -73,7 +73,7 @@ namespace Plugin {
         void IWorldMethod2() override;
         
         // Plugin Methods
-        void InProcessMethod(1);
+        void InProcessMethod();
         
         BEGIN_INTERFACE_MAP(InProcess)
         INTERFACE_ENTRY(PluginHost::IPlugin)
@@ -87,5 +87,5 @@ namespace Plugin {
         // Note this is only an example, you are responsible for adding the correct members:
         uint32_t _example;
     };
-}
-}
+} // Plugin
+} // Thunder

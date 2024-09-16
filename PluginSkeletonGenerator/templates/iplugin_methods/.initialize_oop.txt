@@ -1,9 +1,9 @@
 string message;
 
-ASSERT (_service == nullptr);
-ASSERT (service != nullptr);
-ASSERT (_implementation == nullptr);
-ASSERT (_connectionId == 0);
+ASSERT(_service == nullptr);
+ASSERT(service != nullptr);
+ASSERT(_implementation == nullptr);
+ASSERT(_connectionId == 0);
 
 _service = service;
 _service->AddRef();

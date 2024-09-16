@@ -7,7 +7,7 @@ import argparse
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 THUNDER_TOOLS_DIR = os.path.dirname(CURRENT_DIR)
 
-def python_distrubution():
+def python_distribution():
     if os.name == "posix":
         return "python3"
     else:
@@ -15,7 +15,7 @@ def python_distrubution():
 
 # add future scripts
 scripts = {
-"plugin_skeleton" : os.path.join("PluginSkeletonGenerator","PluginSkeletonGenerator.py")
+"plugin_skeleton" : os.path.join("PluginSkeletonGenerator","PluginSkeletonGeneratror.py")
 }
 
 def script_menu():
@@ -39,10 +39,10 @@ def run_script(script):
     try:
         script_path = scripts[script]
         full_path = os.path.join(THUNDER_TOOLS_DIR, script_path)
-        subprocess.run([python_distrubution(), full_path], check=True)
+        subprocess.run([python_distribution(), full_path], check=True, text=True, stderr=subprocess.PIPE)
         print("Success")
     except subprocess.CalledProcessError as e:
-        print("Error running the script")
+        print(f"Error running the script: {e.stderr}")
 
 def main():
     parser = argparse.ArgumentParser(description="Run any ThunderDevTool script")

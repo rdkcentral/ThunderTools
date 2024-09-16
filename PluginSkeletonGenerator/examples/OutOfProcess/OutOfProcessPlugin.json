@@ -1,9 +1,9 @@
 {
   "$schema": "plugin.schema.json",
   "info": {
-    "title": "OutProcess Plugin",
-    "callsign": "OutProcess",
-    "locator": "libThunderOutProcess.so",
+    "title": "OutOfProcess Plugin",
+    "callsign": "OutOfProcess",
+    "locator": "libThunderOutOfProcess.so",
     "status": "production",
     "description": [
     ""

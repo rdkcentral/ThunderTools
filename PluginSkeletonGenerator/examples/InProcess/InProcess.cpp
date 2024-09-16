@@ -19,14 +19,14 @@
 
 #include "InProcess.h"
 
-namespace Thunder{
-namespace Plugin{
+namespace Thunder {
+namespace Plugin {
     namespace {
         static Metadata<InProcess>metadata(
             // Version
             1, 0, 0,
             // Preconditions
-            {},
+            {subsystem::PRE1, subsystem::PRE2},
             // Terminations
             {},
             // Controls
@@ -39,7 +39,7 @@ namespace Plugin{
     const string InProcess::Initialize(PluginHost::IShell* service) {
         string message;
         
-        ASSERT (service != nullptr);
+        ASSERT(service != nullptr);
         
         Config config;
         config.FromString(service->ConfigLine());

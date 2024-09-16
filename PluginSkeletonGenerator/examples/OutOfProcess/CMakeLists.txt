@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-project(OutProcess)
+project(OutOfProcess)
 
 cmake_minimum_required(VERSION 3.15)
 
@@ -27,7 +27,7 @@ set(MODULE_NAME ${NAMESPACE}${PROJECT_NAME})
 
 message("Setup ${MODULE_NAME} v${PROJECT_VERSION}")
 
-set(PLUGIN_OUTPROCESS_STARTMODE "Activated" CACHE STRING "Automatically start OutProcess plugin")
+set(PLUGIN_OUTOFPROCESS_STARTMODE "Activated" CACHE STRING "Automatically start OutOfProcess plugin")
 
 if(BUILD_REFERENCE)
     add_definitions(-DBUILD_REFERENCE=${BUILD_REFERENCE})
@@ -38,8 +38,8 @@ find_package(${NAMESPACE}Definitions REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
-    OutProcess.cpp
-    OutProcessImplementation.cpp
+    OutOfProcess.cpp
+    OutOfProcessImplementation.cpp
 )
 
 set_target_properties(${MODULE_NAME} PROPERTIES
@@ -52,7 +52,7 @@ target_link_libraries(${MODULE_NAME}
     ${NAMESPACE}Plugins::${NAMESPACE}Plugins
     ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 
-target_include_directories( ${MODULE_NAME}
+target_include_directories(${MODULE_NAME}
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 

@@ -35,7 +35,9 @@ namespace Plugin {
     {{PLUGIN_NAME}} &operator=({{PLUGIN_NAME}}&&) = delete;
 
     {{PLUGIN_NAME}}()
+    ~INDENT_INCREASE~
     :{{INTERFACE_CONSTRUCTOR}} _example(0)
+    ~INDENT_DECREASE~
     {   
     }
     
@@ -71,5 +73,5 @@ namespace Plugin {
 ~INDENT_DECREASE~
     };
 ~INDENT_DECREASE~
-}
-}
+} // Plugin
+} // Thunder

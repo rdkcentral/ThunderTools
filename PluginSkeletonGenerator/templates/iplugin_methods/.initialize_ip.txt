@@ -1,6 +1,6 @@
 string message;
 
-ASSERT (service != nullptr);
+ASSERT(service != nullptr);
 
 Config config;
 config.FromString(service->ConfigLine());

@@ -1,4 +1,4 @@
-startmode = "@PLUGIN_OUTPROCESS_STARTMODE@"
+startmode = "@PLUGIN_OUTOFPROCESS_STARTMODE@"
 
 configuration = JSON()
 configuration.add("example,"mystring")

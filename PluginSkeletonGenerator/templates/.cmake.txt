@@ -59,7 +59,7 @@ target_link_libraries(${MODULE_NAME}
         ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
 ~INDENT_DECREASE~
 
-target_include_directories( ${MODULE_NAME}
+target_include_directories(${MODULE_NAME}
 ~INDENT_INCREASE~
     PUBLIC
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)

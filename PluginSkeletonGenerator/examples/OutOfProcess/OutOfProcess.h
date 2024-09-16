@@ -26,23 +26,23 @@
 namespace Thunder {
 namespace Plugin {
     
-    class OutProcess : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+    class OutOfProcess : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     public:
-        OutProcess(const OutProcess&) = delete;
-        OutProcess &operator=(const OutProcess&) = delete;
-        OutProcess(OutProcess&&) = delete;
-        OutProcess &operator=(OutProcess&&) = delete;
+        OutOfProcess(const OutOfProcess&) = delete;
+        OutOfProcess &operator=(const OutOfProcess&) = delete;
+        OutOfProcess(OutOfProcess&&) = delete;
+        OutOfProcess &operator=(OutOfProcess&&) = delete;
         
-        OutProcess()
-        : _example(0)
+        OutOfProcess()
+            : _example(0)
         {
         }
         
-        ~OutProcess() override = default;
+        ~OutOfProcess() override = default;
     private:
         class ConnectionNotification : public RPC::IRemoteConnection::INotification {
         public:
-            explicit ConnectionNotification(OutProcess* parent)
+            explicit ConnectionNotification(OutOfProcess* parent)
                 : _parent(*parent)
             {
                 ASSERT(parent != nullptr);
@@ -68,7 +68,7 @@ namespace Plugin {
             INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
             END_INTERFACE_MAP
         private:
-            OutProcess& _parent;
+            OutOfProcess& _parent;
         }
     public:
         // IPlugin Methods
@@ -78,9 +78,9 @@ namespace Plugin {
         
         
         // Plugin Methods
-        void OutProcessMethod(1);
+        void OutOfProcessMethod();
         
-        BEGIN_INTERFACE_MAP(OutProcess)
+        BEGIN_INTERFACE_MAP(OutOfProcess)
         INTERFACE_ENTRY(PluginHost::IPlugin)
         INTERFACE_ENTRY(PluginHost::IDispatcher)
         INTERFACE_AGGREGATE(Exchange::IHello, _implIHello)
@@ -92,5 +92,5 @@ namespace Plugin {
         // Note this is only an example, you are responsible for adding the correct members:
         uint32_t _example;
     };
-}
-}
+} // Plugin
+} // Thunder

@@ -33,7 +33,9 @@ namespace Plugin {
         {{PLUGIN_NAME}}Implementation& operator=(const {{PLUGIN_NAME}}Implementation&) = delete;
 
         {{PLUGIN_NAME}}Implementation()
+        ~INDENT_INCREASE~
         :{{INTERFACE_CONSTRUCTOR}} _test(0)
+        ~INDENT_DECREASE~
         {   
         }
         ~{{PLUGIN_NAME}}Implementation() override = default;
