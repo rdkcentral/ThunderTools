@@ -1,20 +1,30 @@
 from file_data import FileData, HeaderData, SourceData, CMakeData, JSONData, ConfData
 from PluginSkeletonGenerator import PluginGenerator
 
-# Helper for menu options
-def get_boolean_input(option):
-    while True:
-        user_input = input(f"{option}")
-        if(user_input.lower() == 'y'):
-            user_input = True
-            break
-        elif(user_input.lower() == 'n'):
-            user_input = False
-            break
-        else:
-            print("Unknown character, try again.")
-    return user_input
+# Helpers for menu options
 
+def generate_files(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc,
+                    subsystems, preconditions, terminations, controls):
+    
+    data = FileData(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
+    plugin_generator = PluginGenerator(data)
+
+    file_map = {
+        HeaderData: plugin_generator.generate_headers,
+        SourceData: plugin_generator.generate_source,
+        CMakeData: plugin_generator.generate_cmake,
+        ConfData: plugin_generator.generate_conf_in,
+        JSONData: plugin_generator.generate_json
+    }
+
+    for file_data, generate in file_map.items():
+        instance = file_data(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc,
+                              preconditions, terminations, controls)
+        instance.populate_keywords()
+        plugin_generator.blueprint_data = instance
+        generate()
+    return True
+  
 def display_settings(plugin_name, comrpc_interface, jsonrpc_interface, out_of_process, jsonrpc,
                     subsystems, preconditions, terminations, controls):
     print("=======================================")
@@ -44,27 +54,25 @@ def menu():
     jsonrpc = user_jsonrpc(jsonrpc_interfaces)
     out_of_process = user_out_of_process()
     subsystems = user_subsystems(preconditions, terminations, controls)
+
     display_settings(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc,
                     subsystems, preconditions, terminations, controls)
-
-    data = FileData(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc)
-    plugin_generator = PluginGenerator(data)
-
-    file_map = {
-        HeaderData: plugin_generator.generate_headers,
-        SourceData: plugin_generator.generate_source,
-        CMakeData: plugin_generator.generate_cmake,
-        ConfData: plugin_generator.generate_conf_in,
-        JSONData: plugin_generator.generate_json
-    }
-
-    for file_data, generate in file_map.items():
-        instance = file_data(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc,
-                              preconditions, terminations, controls)
-        instance.populate_keywords()
-        plugin_generator.blueprint_data = instance
-        generate()
-
+    
+    generate_files(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc,
+                    subsystems, preconditions, terminations, controls)
+    
+def get_boolean_input(option):
+    while True:
+        user_input = input(f"{option}")
+        if(user_input.lower() == 'y'):
+            user_input = True
+            break
+        elif(user_input.lower() == 'n'):
+            user_input = False
+            break
+        else:
+            print("Unknown character, try again.")
+    return user_input
 
 def user_plugin_name():
     name = input("What will your plugin be called: ")
