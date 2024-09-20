@@ -15,7 +15,8 @@ env:
   DHCPServer: ThunderNanoServices\DHCPServer\DHCPServer.vcxproj
   DIALServer: ThunderNanoServices\DIALServer\DIALServer.vcxproj
   dictionary: ThunderNanoServices\Dictionary\Dictionary.vcxproj
-  JSONRPCPlugin: ThunderNanoServices\examples\JSONRPCPlugin\JSONRPCPlugin.vcxproj
+  JSONRPCClient: ThunderNanoServices\examples\JSONRPC\Client\JSONRPCClient.vcxproj
+  JSONRPCPlugin: ThunderNanoServices\examples\JSONRPC\Plugin\JSONRPCPlugin.vcxproj
   locationSync: ThunderNanoServicesRDK\LocationSync\LocationSync.vcxproj
   messenger: ThunderNanoServicesRDK\Messenger\Messenger.vcxproj
   monitor: ThunderNanoServicesRDK\Monitor\Monitor.vcxproj
@@ -156,6 +157,7 @@ jobs:
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%DHCPServer%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%DIALServer%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%dictionary%"
+        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%JSONRPCClient%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%JSONRPCPlugin%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%locationSync%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%messenger%"
