@@ -556,7 +556,7 @@ class JsonObject(JsonRefCounted, JsonType):
         if self.is_renamed:
             return super().cpp_name
         elif isinstance(self.parent, JsonMethod):
-            return self.parent.actual_name.capitalize() + super().cpp_name
+            return self.parent.actual_name[0].upper() + self.parent.actual_name[1:] + super().cpp_name
         elif isinstance(self.parent, JsonArray):
             return self.parent.cpp_name
         else:
