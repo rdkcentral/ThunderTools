@@ -200,7 +200,7 @@ def Flatten(identifier, scope):
 
 
 # Generate interface information in lua
-def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=None, ns=None):
+def GenerateLuaData(emit, interfaces_list, enums_list, project_dir, source_file=None, tree=None, ns=None):
 
     if not source_file:
         assert(tree==None)
@@ -542,7 +542,7 @@ def Parse(source_file, framework_namespace, includePaths = [], defaults = "", ex
 
     return tree
 
-def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
+def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=False):
     log.Info("Scanning '%s' (in %s)..." % (source_file, ns))
 
     if not FORCE and (os.path.exists(output_file) and (os.path.getmtime(source_file) < os.path.getmtime(output_file))):
@@ -2167,7 +2167,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
         emit.Line()
 
-        if os.path.isfile(os.path.join(os.path.dirname(source_file), "Module.h")):
+        if os.path.isfile(os.path.join(project_dir, "Module.h")):
             emit.Line('#include "Module.h"')
 
         if os.path.isfile(os.path.join(os.path.dirname(source_file), interface_header_name)):
@@ -2351,6 +2351,12 @@ if __name__ == "__main__":
                            help="include an additional C++ header file, may be used multiple times (default: include 'Ids.h')")
     argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
                            help='add an include search path, can be used multiple times')
+    argparser.add_argument("--projectdir",
+                           dest="project_dir",
+                           metavar="DIR",
+                           type=str,
+                           default="",
+                           help="specify the project directory")
 
     args = argparser.parse_args(sys.argv[1:])
     SHOW_WARNINGS = not args.no_warnings
@@ -2493,7 +2499,10 @@ if __name__ == "__main__":
 
             for source_file in interface_files:
                 try:
-                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), IDS_DEFINITIONS_FILE) ]
+                    if args.project_dir is not None:
+                        _extra_includes = [ os.path.join("@" + args.project_dir, IDS_DEFINITIONS_FILE)]
+                    else:
+                        _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), IDS_DEFINITIONS_FILE)]
                     _extra_includes.extend(args.extra_includes)
 
                     tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths,
@@ -2514,7 +2523,7 @@ if __name__ == "__main__":
                         some_omitted = False
 
                         for ns in INTERFACE_NAMESPACES:
-                            output, some_omitted = GenerateStubs2(output_file, source_file, tree, ns, scan_only)
+                            output, some_omitted = GenerateStubs2(output_file, source_file, args.project_dir, tree, ns, scan_only)
 
                             new_faces += output
 
@@ -2537,7 +2546,7 @@ if __name__ == "__main__":
                         log.Info("(lua generator) Scanning %s..." % os.path.basename(source_file))
 
                         for ns in INTERFACE_NAMESPACES:
-                            GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, source_file, tree, ns)
+                            GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, args.project_dir, source_file, tree, ns)
 
                 except NotModifiedException as err:
                     log.Info("skipped file %s, up-to-date" % os.path.basename(output_file))
