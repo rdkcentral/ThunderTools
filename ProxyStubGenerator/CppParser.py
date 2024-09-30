@@ -1746,7 +1746,7 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@COMPLIANT")
                 if _find("@iterator", token):
                     tagtokens.append("@ITERATOR")
-                if _find("@bitmask", token):
+                if _find("@encode:bitmask", token) or _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
                 if _find("@end", token):
                     tagtokens.append("@END")
