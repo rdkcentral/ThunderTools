@@ -45,8 +45,6 @@ namespace std {
   typedef __stubgen_undetermined_integer clock_t;
 }
 
-typedef __stubgen_thread_id thread_id;
-
 namespace __FRAMEWORK_NAMESPACE__ {
 
   namespace ProxyStub {
@@ -55,6 +53,7 @@ namespace __FRAMEWORK_NAMESPACE__ {
 
   namespace Core {
     typedef __stubgen_instance_id instance_id;
+    typedef __stubgen_thread_id thread_id;
     typedef __stubgen_time Time;
     typedef uint32_t hresult;
 

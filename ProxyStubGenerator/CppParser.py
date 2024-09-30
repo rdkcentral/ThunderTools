@@ -185,7 +185,7 @@ class InstanceId(BuiltinInteger):
 
 class ThreadId(BuiltinInteger):
     def __init__(self):
-        BuiltinInteger.__init__(self, fixed_size=True, name="::thread_id")
+        BuiltinInteger.__init__(self, fixed_size=True, name="Core::thread_id")
 
     def IsFixed(self):
         return self.fixed
