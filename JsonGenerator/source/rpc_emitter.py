@@ -1159,7 +1159,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             if is_read_write:
                 emit.Line()
-                emit.Line("%s%s.Null(true);" % ("// FIXME " if isinstance(response, (JsonArray, JsonObject)) else "", response.local_name)) # FIXME
+                emit.Line("%s.Null(true);" % (response.local_name)) # FIXME
 
             if not is_read_only and is_read_write:
                 emit.Unindent()
