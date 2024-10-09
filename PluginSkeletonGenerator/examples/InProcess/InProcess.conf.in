@@ -1,0 +1,4 @@
+startmode = "@PLUGIN_INPROCESS_STARTMODE@"
+
+configuration = JSON()
+configuration.add("example,"mystring")
