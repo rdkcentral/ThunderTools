@@ -1211,8 +1211,6 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                 # Need to prepend with 'file:' for jsonref to load an external file..
                                 ref = v.split("#") if "#" in v else [v,""]
 
-                                assert include_paths
-
                                 ref_file = None
 
                                 if "{interfacedir}" in ref[0]:
@@ -1250,8 +1248,6 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                             elif v.endswith(".h") or v.endswith(".h#"):
                                 ref = v.replace("#", "").replace("{cppinterfacedir}", "{interfacedir}")
 
-                                assert cpp_include_paths
-
                                 ref_file = None
 
                                 if "{interfacedir}" in ref:
@@ -1262,10 +1258,20 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                             ref_file = rf
                                             break
                                         else:
-                                            log.Info("failed to include '%s', file not found" %rf);
+                                            log.Info("failed to include '%s', file not found" %rf)
+
+                                if not ref_file and "{currentdir}" in ref:
+                                    rf = ref.replace("{currentdir}", os.path.dirname(file))
+                                    if os.path.exists(rf):
+                                        ref_file = rf
+
+                                if not ref_file:
+                                    rf = os.path.dirname(file) + os.sep + ref
+                                    if os.path.exists(rf):
+                                        ref_file = rf
 
                                 if ref_file:
-                                    log.Info("including C++ header '%s'..." % rf);
+                                    log.Info("including C++ header '%s'..." % ref_file)
                                     cppif, _ = header_loader.LoadInterface(ref_file, log, True, header_include_paths)
 
                                     if cppif:
@@ -1302,9 +1308,6 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
 def Load(log, path, if_dirs = [], cpp_if_dirs = [], include_paths = []):
     temp_files = []
-
-    if_dirs.append(os.path.dirname(path))
-    cpp_if_dirs.append(os.path.dirname(path))
 
     if path.endswith(".h"):
         schemas, additional_includes = header_loader.LoadInterface(path, log, False, include_paths)
