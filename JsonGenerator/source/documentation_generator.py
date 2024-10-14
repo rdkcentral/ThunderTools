@@ -90,6 +90,8 @@ def Create(log, schema, path, indent_size = 4):
                 obsolete = obj["obsolete"] if "obsolete" in obj else False
                 restricted = obj.get("range")
 
+                name = name.replace(' ','-')
+
                 if parent and not optional:
                     if parent["type"] == "object":
                         optional = ("required" not in parent and len(parent["properties"]) > 1) or (
@@ -333,8 +335,13 @@ def Create(log, schema, path, indent_size = 4):
                     if "name" not in props["index"][0] or "example" not in props["index"][0]:
                         raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
 
+                    if "type" not in props["index"][0]:
+                        props["index"][0]["type"] = "string"
+                    if props["index"][1] and ("type" not in props["index"][1]):
+                        props["index"][1]["type"] = "string"
+
                     extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``." % (
-                        props["index"][0]["name"].lower(), classname, method, props["index"][0]["name"].lower())
+                        props["index"][0]["name"].lower(), classname, method, props["index"][0]["name"].lower().replace(' ', '-'))
 
                     if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
                         extra_paragraph += " The index is optional."
