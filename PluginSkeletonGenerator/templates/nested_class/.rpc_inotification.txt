@@ -1,22 +1,21 @@
-class ConnectionNotification : public RPC::IRemoteConnection::INotification {
+class Notification : {{NOTIFICATION_CLASS}} {
 public:
 ~INDENT_INCREASE~
-    explicit ConnectionNotification({{PLUGIN_NAME}}* parent)
+    explicit Notification({{PLUGIN_NAME}}& parent)
 ~INDENT_INCREASE~
-        : _parent(*parent)
+        : RPC::IRemoteConnection::INotification()
+        {{NOTIFICATION_CONSTRUCTOR}}
+        , _parent(parent)
 ~INDENT_DECREASE~
     {
-~INDENT_INCREASE~
-        ASSERT(parent != nullptr);
-~INDENT_DECREASE~
     }
 
-    ~ConnectionNotification() override = default;
-    ConnectionNotification() = delete;
-    ConnectionNotification(const ConnectionNotification&) = delete;
-    ConnectionNotification& operator=(const ConnectionNotification&) = delete;
-    ConnectionNotification(ConnectionNotification&&) = delete;
-    ConnectionNotification& operator=(ConnectionNotification&&) = delete;
+    ~Notification() override = default;
+    Notification() = delete;
+    Notification(const Notification&) = delete;
+    Notification& operator=(const Notification&) = delete;
+    Notification(Notification&&) = delete;
+    Notification& operator=(Notification&&) = delete;
 
     void Activated(RPC::IRemoteConnection*) override
     {
@@ -29,8 +28,12 @@ public:
 ~INDENT_DECREASE~
     }
 
-    BEGIN_INTERFACE_MAP(ConnectionNotification)
+    {{NOTIFICATION_FUNCTION}}
+    BEGIN_INTERFACE_MAP(Notification)
+~INDENT_INCREASE~
     INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
+    {{NOTIFICATION_ENTRY}}
+~INDENT_DECREASE~
     END_INTERFACE_MAP
 ~INDENT_DECREASE~
 private:

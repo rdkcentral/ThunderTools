@@ -1,0 +1,11 @@
+uint32_t Configure(PluginHost::IShell* service) override {
+    ~INDENT_INCREASE~
+    if (service) {
+        ~INDENT_INCREASE~
+        Config config;
+        config.FromString(service->ConfigLine());
+        ~INDENT_DECREASE~
+    }
+    return Core::ERROR_NONE;
+    ~INDENT_DECREASE~
+}

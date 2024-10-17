@@ -19,7 +19,6 @@
 
 #pragma once
 ~INDENT_RESET~
-{{JSONRPC_INTERFACE_INCLUDES}}
 {{COMRPC_INTERFACE_INCLUDES}}
 
 namespace Thunder {
@@ -36,11 +35,14 @@ namespace Plugin {
 
     {{PLUGIN_NAME}}()
     ~INDENT_INCREASE~
-    :{{INTERFACE_CONSTRUCTOR}} _example(0)
+    :{{BASE_CONSTRUCTOR}} 
+    {{INTERFACE_CONSTRUCTOR}} 
+    , _example(0)
+    {{MEMBER_CONSTRUCTOR}}
     ~INDENT_DECREASE~
     {   
     }
-    
+
     ~{{PLUGIN_NAME}}() override = default;
 ~INDENT_DECREASE~
     private:
@@ -60,8 +62,10 @@ namespace Plugin {
     {{PLUGIN_METHOD}}
 
     BEGIN_INTERFACE_MAP({{PLUGIN_NAME}})
+    ~INDENT_INCREASE~
     {{INTERFACE_ENTRY}}
     {{INTERFACE_AGGREGATE}}
+    ~INDENT_DECREASE~
     END_INTERFACE_MAP
     
 ~INDENT_DECREASE~
@@ -70,6 +74,9 @@ namespace Plugin {
     // Include the correct member variables for your plugin:
     // Note this is only an example, you are responsible for adding the correct members:
     uint32_t _example;
+
+    PluginHost::IShell* _service;
+    {{MEMBER_IMPL}}
 ~INDENT_DECREASE~
     };
 ~INDENT_DECREASE~

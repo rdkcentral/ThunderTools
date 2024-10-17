@@ -1,4 +1,0 @@
-startmode = "@PLUGIN_OUTOFPROCESS_STARTMODE@"
-
-configuration = JSON()
-configuration.add("example,"mystring")

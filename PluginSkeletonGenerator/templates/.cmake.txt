@@ -28,6 +28,7 @@ set(MODULE_NAME ${NAMESPACE}${PROJECT_NAME})
 message("Setup ${MODULE_NAME} v${PROJECT_VERSION}")
 
 set(PLUGIN_{{PLUGIN_NAME_CAPS}}_STARTMODE "Activated" CACHE STRING "Automatically start {{PLUGIN_NAME}} plugin")
+{{SET_MODE}}
 
 if(BUILD_REFERENCE)
 ~INDENT_INCREASE~
@@ -61,7 +62,7 @@ target_link_libraries(${MODULE_NAME}
 
 target_include_directories(${MODULE_NAME}
 ~INDENT_INCREASE~
-    PUBLIC
+    PRIVATE
     $<BUILD_INTERFACE:${CMAKE_CURRENT_LIST_DIR}>)
 ~INDENT_DECREASE~
 

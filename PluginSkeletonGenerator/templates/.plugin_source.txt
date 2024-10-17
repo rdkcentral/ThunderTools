@@ -18,6 +18,7 @@
  */
 
 {{INCLUDE}}
+{{JSONRPC_INTERFACE_INCLUDES}}
 
 namespace Thunder {
 namespace Plugin {
@@ -29,11 +30,11 @@ namespace Plugin {
             // Version
             1, 0, 0,
             // Preconditions
-            {{{PRECONDITIONS}}},
+            {},
             // Terminations
-            {{{TERMINATIONS}}},
+            {},
             // Controls
-            {{{CONTROLS}}}
+            {}
 ~INDENT_DECREASE~
         )
 ~INDENT_DECREASE~
@@ -47,7 +48,7 @@ const string {{PLUGIN_NAME}}::Initialize(PluginHost::IShell* service) {
 ~INDENT_DECREASE~
 }
 
-void {{PLUGIN_NAME}}::Deinitialize(PluginHost::IShell* service{{VARIABLE_NOT_USED}}) {
+void {{PLUGIN_NAME}}::Deinitialize({{VARIABLE_NOT_USED}}PluginHost::IShell* service) {
 ~INDENT_INCREASE~
     {{DEINITIALIZE_IMPLEMENTATION}}
 ~INDENT_DECREASE~
@@ -58,6 +59,14 @@ string {{PLUGIN_NAME}}::Information() {
     return string()
 ~INDENT_DECREASE~
 }
+
+void {{PLUGIN_NAME}}::{{PLUGIN_NAME}}Method() {
+
+}
+
+{{PLUGIN_METHOD_IMPL}}
+{{INHERITED_METHOD_IMPL}}
+
 ~INDENT_DECREASE~
 } // Plugin
 } // Thunder

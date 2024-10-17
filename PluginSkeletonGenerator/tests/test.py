@@ -149,7 +149,7 @@ test_cases = {
         'test_controls' : test_no_controls()
     },
 }
-
+#generate_files(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces):
 class TestSkeletonGenerator(unittest.TestCase):
     def test(self):
         for key,value in test_cases.items():
@@ -159,10 +159,8 @@ class TestSkeletonGenerator(unittest.TestCase):
                 value['test_jsonrpc_interfaces'],
                 value['test_out_of_process'],
                 value['test_jsonrpc_functionality'],
-                value['test_subsystems'],
-                value['test_preconditions'],
-                value['test_terminations'],
-                value['test_controls']
+                True,
+                value['test_comrpc_interfaces']
             )
             self.assertEqual(result, True)
             print(f'Success for case: {value["test_plugin_name"]}')

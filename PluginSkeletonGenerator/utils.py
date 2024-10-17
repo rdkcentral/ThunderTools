@@ -1,3 +1,4 @@
+from enum import Enum
 import os
 import re
 
@@ -16,11 +17,13 @@ class FileUtils():
             with open(template_name, 'r') as template_file:
                 return template_file.read()
         except FileNotFoundError as e:
-            raise(f'Could not load template: {template_name}') from e
+            raise (f'Could not load template: {template_name}') from e
         except PermissionError as e:
-            raise(f'Permissions denied: {template_name}') from e
+            raise (f'Permissions denied: {template_name}') from e
         except OSError as e:
-            raise OSError(f'OS error occurred trying to open: {template_name}, Error details: {e.strerror}')
+            raise OSError(
+                f'OS error occurred trying to open: {template_name}, Error details: {e.strerror}')
+
 
 class Indenter():
     def __init__(self) -> None:
@@ -37,14 +40,14 @@ class Indenter():
     def create_indent_map(self):
         return {
             '.json': ' ' * 2,
-            '.py' : ' ' * 4,
-            '.h' : ' ' * 4,
-            '.cpp' : ' ' * 4
+            '.py': ' ' * 4,
+            '.h': ' ' * 4,
+            '.cpp': ' ' * 4
         }
 
     def indent_type(self, path):
         extension = os.path.splitext(path)[1]
-        self.indent = self.indent_map.get(extension, ' ' * 4) # Default case: 4 spaces
+        self.indent = self.indent_map.get(extension, ' ' * 4)  # Default case: 4 spaces
 
     def process_indent(self, code, path):
         if not code:
@@ -73,3 +76,31 @@ class Indenter():
             indented_line = self.indent * self.indent_size + newline
             self.indented_code.append(indented_line)
         return '\n'.join(self.indented_code)
+
+
+class Utils():
+    def __init__(self) -> None:
+        pass
+
+    class Error(Enum):
+        EXTENSION = 1
+        INITIAL = 2
+
+    # Replaces COMRPC interface to JSONRPC interface
+    # IHello -> JHello
+    # Under the assumption, an interface is correctly named as I
+    @staticmethod
+    def replace_comrpc_to_jsonrpc(comrpc_interface):
+        return f'J{comrpc_interface[1:]}'
+
+    @staticmethod
+    def extract_interface(interface):
+        extension = interface[-2:]
+        if extension != ".h":
+            return False
+        return interface[:-2]
+    
+    # Currently check to see if interface name begins with I
+    @staticmethod
+    def check_correct_comrpc(interface):
+        return True if interface[0] == "I" else False

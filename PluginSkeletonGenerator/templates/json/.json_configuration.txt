@@ -22,4 +22,4 @@
       ~INDENT_DECREASE~
     }
     ~INDENT_DECREASE~
-}
+},

@@ -15,7 +15,7 @@ def python_distribution():
 
 # add future scripts
 scripts = {
-"plugin_skeleton" : os.path.join("PluginSkeletonGenerator","PluginSkeletonGeneratror.py")
+"plugin_skeleton" : os.path.join("PluginSkeletonGenerator","PluginSkeletonGenerator.py")
 }
 
 def script_menu():

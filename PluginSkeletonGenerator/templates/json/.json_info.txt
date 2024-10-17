@@ -3,7 +3,7 @@
   "title": "{{PLUGIN_NAME}} Plugin",
   "callsign": "{{PLUGIN_NAME}}",
   "locator": "libThunder{{PLUGIN_NAME}}.so",
-  "status": "production",
+  "status": "development",
   "description": [
   ""
   ],

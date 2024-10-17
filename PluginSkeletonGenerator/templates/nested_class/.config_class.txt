@@ -1,16 +1,15 @@
 class Config : public Core::JSON::Container {
-private:
+public:
 ~INDENT_INCREASE~
     Config(const Config&) = delete;
     Config& operator=(const Config&) = delete;
     Config(Config&&) = delete;
     Config& operator=(Config&&) = delete;
-~INDENT_DECREASE~
-public:
-~INDENT_INCREASE~
+    
     Config() 
 ~INDENT_INCREASE~
         : Core::JSON::Container()
+        , Example()
 ~INDENT_DECREASE~
     {
 ~INDENT_INCREASE~
