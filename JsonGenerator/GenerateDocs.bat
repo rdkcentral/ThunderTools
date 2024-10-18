@@ -31,7 +31,7 @@ if not exist JsonGenerator.py (
     exit /b 0
 )
 
-set COMMAND=python JsonGenerator.py --docs -i ../../Source/interfaces/json -j ../../Source/interfaces -o doc 
+set COMMAND=python JsonGenerator.py --docs -i ../../Source/interfaces/json -i ../../Source/interfaces/qa_json -j ../../Source/interfaces -j ../../Source/qa_interfaces -I ../../Source -o doc 
 
 if "%1"=="" (
     echo Usage %0 [JSONFILE] OR [DIRECTORY]

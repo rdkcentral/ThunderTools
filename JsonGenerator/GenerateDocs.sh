@@ -28,7 +28,7 @@
 
 command -v ./JsonGenerator.py >/dev/null 2>&1 || { echo >&2 "JsonGenerator.py is not available. Aborting."; exit 1; }
 
-if [ -d ]; then
+if [ $# -eq 1 ] && [ -d $1 ]; then
    files=`find $1 -name "*Plugin.json"`
 elif [ $# -gt 0 ]; then
    files=$@
@@ -40,6 +40,6 @@ fi
 
 echo "Generating Plugin markdown documentation..."
 
-./JsonGenerator.py --docs -i ../../ThunderInterfaces/jsonrpc -j ../../ThunderInterfaces/interfaces -I ../../Thunder/Source -o doc --verbose $files
+./JsonGenerator.py --docs -i ../../ThunderInterfaces/jsonrpc -i ../../ThunderInterfaces/qa_jsonrpc -j ../../ThunderInterfaces/interfaces -j ../../ThunderInterfaces/qa_interfaces -I ../../Thunder/Source -o doc --verbose $files
 
 echo "Complete."
