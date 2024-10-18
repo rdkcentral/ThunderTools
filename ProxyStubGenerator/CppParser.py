@@ -855,6 +855,7 @@ class Namespace(Block):
         self.namespaces = []
         self.methods = []
         self.omit = False
+        self.omit_mode = False
         self.stub = -False
         if self.parent != None:                                                                 # case for global namespace
             if isinstance(self.parent, Namespace):
@@ -1041,6 +1042,7 @@ class Class(Identifier, Block):
         self.ancestors = [] # parent classes
         self._current_access = "public"
         self.omit = False
+        self.omit_mode = False
         self.stub = False
         self.is_json = False
         self.json_version = ""
@@ -1055,6 +1057,9 @@ class Class(Identifier, Block):
 
         if sum([1 for x in self.parent.classes if x.name == name]) == 0:
             self.parent.classes.append(self)
+
+    def IsPOD(self):
+        return (not self.methods and self.vars)
 
     def IsAbstract(self):
         return any([m.IsPureVirtual() for m in self.methods])
@@ -1123,6 +1128,7 @@ class Union(Identifier, Block):
         self.classes = []
         self._current_access = "public"
         self.omit = False
+        self.omit_mode = False
         self.stub = False
         self.parent.unions.append(self)
 
@@ -1298,8 +1304,7 @@ class Method(Function):
 
     def __repr__(self):
         cv = " " + self.CVString() if self.CVString() else ""
-        return "method %s %s '%s' (%s)%s %s" % (self.access, TypeStr(self.type), self.name, ", ".join(
-            [str(v) for v in self.vars]), cv, str(self.specifiers))
+        return "method %s %s '%s' (%s)%s %s" % (self.access, TypeStr(self.retval.type), self.name, ", ".join([str(v) for v in self.vars]), cv, str(self.specifiers))
 
 
 class Destructor(Method):
@@ -2135,6 +2140,7 @@ def Parse(contents,log = None):
 
             if omit_mode:
                 new_class.omit = True
+                new_class.omit_mode = True
             if omit_next:
                 new_class.omit = True
                 omit_next = False
@@ -2188,6 +2194,9 @@ def Parse(contents,log = None):
             if new_class.parent.omit:
                 # Inherit omiting...
                 new_class.omit = True
+
+            if new_class.parent.omit_mode:
+                new_class.omit_mode = True
 
             if last_template_def:
                 new_class.specifiers.append(" ".join(last_template_def))
@@ -2403,13 +2412,19 @@ def Parse(contents,log = None):
 
         # Handle closing a compound block/composite type
         elif tokens[i] == '}':
-            if isinstance(current_block[-1], Class) and (tokens[i + 1] != ';'):
-                raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" %
-                                  current_block[-1].full_name)
+            if isinstance(current_block[-1], Class):
+                if (tokens[i + 1] != ';'):
+                    raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" % current_block[-1].full_name)
+
+                if current_block[-1].omit_mode and current_block[-1].IsPOD():
+                    # it was POD after all, don't remove it from import
+                    current_block[-1].omit = False
+
             if len(current_block) > 1:
                 current_block.pop()
             else:
                 raise ParserError("unmatched brace '{'")
+
             i += 1
             next_block = Block(current_block[-1]) # new anonymous scope
 
@@ -2421,12 +2436,15 @@ def Parse(contents,log = None):
             j = i - 1
             while j >= min_index and tokens[j] not in ['{', '}', ';', ":"]:
                 j -= 1
+
             identifier = tokens[j + 1:i]
-            if len(identifier) != 0 and not current_block[-1].omit:
+
+            if identifier:
                 if isinstance(current_block[-1], Class):
                     Attribute(current_block[-1], identifier)
                 else:
                     Variable(current_block[-1], identifier)
+
             i += 1
 
         # Parse constants and member constants
