@@ -3,6 +3,7 @@
 import os
 import subprocess
 import argparse
+import sys
 
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 THUNDER_TOOLS_DIR = os.path.dirname(CURRENT_DIR)
@@ -39,7 +40,7 @@ def run_script(script):
     try:
         script_path = scripts[script]
         full_path = os.path.join(THUNDER_TOOLS_DIR, script_path)
-        subprocess.run([python_distribution(), full_path], check=True, text=True, stderr=subprocess.PIPE)
+        subprocess.run([python_distribution(), full_path], check=True, text=True, stderr=sys.stderr, stdout=sys.stdout)
         print("Success")
     except subprocess.CalledProcessError as e:
         print(f"Error running the script: {e.stderr}")
