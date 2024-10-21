@@ -1,0 +1,23 @@
+string message;
+
+ASSERT(_service == nullptr);
+ASSERT(service != nullptr);
+ASSERT(_implementation == nullptr);
+ASSERT(_connectionId == 0);
+
+_service = service;
+_service->AddRef();
+_service->Register(&_notification);
+
+// Example
+_impl{{COMRPC}} = service->Root<Exchange::{{COMRPC}}>(_connectionId, 2000, _T("{{PLUGIN_NAME}}Implementation"));
+if (_impl{{COMRPC}} == nullptr) {
+~INDENT_INCREASE~
+    message = _T("Couldn't create instance of impl{{COMRPC}}");
+~INDENT_DECREASE~
+} else {
+    {{NESTED_QUERY}}
+~INDENT_DECREASE~
+}
+
+return (message);
