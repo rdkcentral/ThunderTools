@@ -738,10 +738,6 @@ def Evaluate(identifiers_):
     if identifiers:
         for identifier in identifiers:
             try:
-                identifier = identifier
-            except:
-                pass
-            try:
                 val.append(str(int(identifier, 16 if identifier[:2] == "0x" else 10)))
             except:
 
@@ -952,7 +948,7 @@ class Type:
         if self.IsPointer() and ref & Ref.POINTER:
             ref |= Ref.POINTER_TO_POINTER
         if isinstance(self.type, Typedef):
-            type = self.type.Resolve(self.ref | ref)
+            type = self.type.Resolve(self.ref | ref).Resolve()
         else:
             type = copy.deepcopy(self)
             type.ref |= ref
@@ -1156,7 +1152,7 @@ class Enum(Identifier, Block):
 
     def __str__(self):
         _str = ("enum " if not self.scoped else "enum class ")
-        _str += "%s : %s" % (self.Proto(), TypeStr(self.type))
+        _str += "%s : %s" % (self.Proto(), TypeStr(self.type.type))
         return _str
 
     def __repr__(self):
@@ -1559,24 +1555,27 @@ def __Tokenize(contents,log = None):
 
     defines = []
 
-    tokens = [s.strip() for s in re.split(r"([\r\n])", contents, flags=re.MULTILINE) if s]
+    tokens = contents.splitlines()
     eoltokens = []
     line = 1
     inComment = 0
     for token in tokens:
         if token.startswith("// @_file:"):
             line = 1
-        if token == '':
+            eoltokens.append(token)
+        else:
             if not inComment:
                 eoltokens.append("// @_line:" + str(line) + " ")
-            line = line + 1
-        elif (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
-            del eoltokens[-1]
-            eoltokens[-1] = eoltokens[-1][:-1] + token
-        else:
-            eoltokens.append(token)
 
-        inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
+            if (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
+                del eoltokens[-1]
+                eoltokens[-1] = eoltokens[-1][:-1] + token
+            else:
+                eoltokens.append(token)
+
+            line += 1
+
+            inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
     contents = "\n".join(eoltokens)
 
@@ -1628,7 +1627,7 @@ def __Tokenize(contents,log = None):
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
                            r"|(\+\+)|(--)|(\+=)|(-=)|(/=)|(\*=)|(%=)|(^=)|(&=)|(\|=)|(~=)"
-                           r"|([,:;~?=^/*%-\+&<>\{\}\(\)\[\]])"
+                           r"|([:;~?^/*%-\+&<>\{\}\(\)\[\]])"
                            r"|([\r\n\t ])")
 
                 if append:
@@ -1677,6 +1676,7 @@ def __Tokenize(contents,log = None):
                 raise ParserError("multi-line comment not closed")
 
             if ((token[:2] == "/*") or (token[:2] == "//")):
+
                 def _find(word, string):
                     return re.compile(r"[ \r\n/\*]({0})([-: \r\n\*]|$)".format(word)).search(string) != None
 
@@ -1765,20 +1765,20 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
-                if _find("@alt", token):
-                    tagtokens.append(__ParseParameterValue(token, "@alt"))
                 if _find("@alt:deprecated", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt:deprecated"))
-                if _find("@alt-deprecated", token):
-                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
-                if _find("@alt:obsolete", token):
+                elif _find("@alt:obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt:obsolete"))
-                if _find("@alt-obsolete", token):
+                elif _find("@alt-deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
+                elif _find("@alt-obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt-obsolete"))
-                if _find("@text:keep", token):
-                    tagtokens.append(__ParseParameterValue(token, "@text", True, True, "@text-global"))
-                elif _find("@text", token):
+                elif _find("@alt", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt"))
+
+                if _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
+
                 if _find("@encode:base64", token):
                     tagtokens.append("@ENCODEBASE64")
                 elif _find("@encode:hex", token):
@@ -1787,6 +1787,7 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ENCODEIP")
                 elif _find("@encode:mac", token):
                     tagtokens.append("@ENCODEMAC")
+
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
                 if _find("@maxlength", token):
@@ -1918,6 +1919,7 @@ def Parse(contents,log = None):
             line_numbers.append(current_line)
             files.append(current_file)
 
+
     global_namespace = Namespace(None)
 
     current_block = [global_namespace]
@@ -1986,10 +1988,10 @@ def Parse(contents,log = None):
             json_next = False
             tokens[i] = ";"
             i += 1
-        elif tokens[i] == "@TEXT-GLOBAL":
+        elif tokens[i] == "@TEXT":
             text_next = tokens[i + 1][0]
-            tokens[i] = ";"
-            tokens[i+1] = ";"
+            #tokens[i] = ";"
+            #tokens[i+1] = ";"
             i += 2
         elif tokens[i] == "@EXTENDED":
             extended_next = True
@@ -2280,6 +2282,7 @@ def Parse(contents,log = None):
                 raise ParserError("@event tag is invalid here")
 
             json_next = False
+            text_next = None
 
             # concatenate tokens to handle operators and destructors
             j = i - 1

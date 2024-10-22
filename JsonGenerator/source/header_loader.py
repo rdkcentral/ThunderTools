@@ -10,7 +10,7 @@
 # http://www.apache.org/licenses/LICENSE-2.0
 #
 # Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
+# distributed under the Lifcense is distributed on an "AS IS" BASIS,
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
@@ -20,7 +20,9 @@ import os
 import json
 import copy
 import posixpath
+import re
 from collections import OrderedDict
+from enum import Enum
 
 import config
 
@@ -28,6 +30,110 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pard
 
 import ProxyStubGenerator.CppParser as CppParser
 import ProxyStubGenerator.Interface as CppInterface
+
+
+class CaseConverter:
+    METHODS = 0
+    EVENTS = 1
+    PARAMS = 2
+    MEMBERS = 3
+    ENUMS = 4
+
+    class Format(Enum):
+        LOWER = "lower"             # lowercase
+        UPPER = "upper"             # UPPERCASE
+        LOWERSNAKE = "lowersnake"   # lower_snake_case
+        UPPERSNAKE = "uppersnake"   # UPPER_SNAKE_CASE
+        CAMEL = "camel"             # camelCase
+        PASCAL = "pascal"           # PascalCase
+        KEEP = "keep"               # ... keep as is
+
+        @staticmethod
+        def __to_pascal(string, uppercase=True):
+            _pattern = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+            _pascal = _pattern.sub('_', string.replace('__', '_').strip('_')).split('_')
+            _pascal = "".join([x.capitalize() for x in _pascal])
+            return (_pascal if uppercase else (_pascal[0].lower() + _pascal[1:]))
+
+        @staticmethod
+        def __to_snake(string, uppercase=True):
+            _pattern = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
+            _snake = _pattern.sub('_', string.replace('__', '_').strip('_'))
+            return (_snake.upper() if uppercase else _snake.lower())
+
+        @staticmethod
+        def transform(string, format):
+            if format == CaseConverter.Format.LOWER:
+                return string.lower()
+            elif format == CaseConverter.Format.UPPER:
+                return string.upper()
+            elif format == CaseConverter.Format.CAMEL:
+                return CaseConverter.Format.__to_pascal(string, False)
+            elif format == CaseConverter.Format.PASCAL:
+                return CaseConverter.Format.__to_pascal(string, True)
+            elif format == CaseConverter.Format.LOWERSNAKE:
+                return CaseConverter.Format.__to_snake(string, False)
+            elif format == CaseConverter.Format.UPPERSNAKE:
+                return CaseConverter.Format.__to_snake(string, True)
+            elif format == CaseConverter.Format.KEEP:
+                return string
+            else:
+                assert False, "invalid case format"
+
+    def __init__(self, convention=None):
+        self._convention = None # error situation
+
+        self._map = {
+            # [ methods, events, parameters, struct members, enums ]
+            config.CaseConvention.STANDARD: [self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.UPPERSNAKE],
+            config.CaseConvention.LEGACY: [self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.PASCAL],
+            config.CaseConvention.KEEP: [self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP],
+        }
+
+        self._map[config.CaseConvention.CUSTOM] = self._map[config.DEFAULT_CASE_CONVENTION]
+
+        if convention:
+            if isinstance(convention, str):
+                if convention == "standard":
+                    self._convention = config.CaseConvention.STANDARD
+                elif (convention == "legacy_lowercase") or (convention == "legacy"):
+                    self._convention = config.CaseConvention.LEGACY
+                elif (convention == "keep"):
+                    self._convention = config.CaseConvention.KEEP
+                elif convention.startswith("custom="):
+                    _custom = convention[7:].split(',')
+                    if len(_custom) == 5:
+                        self._convention = config.CaseConvention.CUSTOM
+                        if _custom[self.METHODS]:
+                            self._map[config.CaseConvention.CUSTOM][self.METHODS] = self.Format[_custom[self.METHODS].upper()]
+                        if _custom[self.EVENTS]:
+                            self._map[config.CaseConvention.CUSTOM][self.EVENTS] = self.Format[_custom[self.EVENTS].upper()]
+                        if _custom[self.PARAMS]:
+                            self._map[config.CaseConvention.CUSTOM][self.PARAMS] = self.Format[_custom[self.PARAMS].upper()]
+                        if _custom[self.MEMBERS]:
+                            self._map[config.CaseConvention.CUSTOM][self.MEMBERS] = self.Format[_custom[self.MEMBERS].upper()]
+                        if _custom[self.ENUMS]:
+                            self._map[config.CaseConvention.CUSTOM][self.ENUMS] = self.Format[_custom[self.ENUMS].upper()]
+            else:
+                self._convention = convention
+        else:
+            self._convention = config.DEFAULT_CASE_CONVENTION
+
+    @property
+    def convention(self):
+        return self._convention
+
+    @property
+    def is_legacy(self):
+        return (self._convention == config.CaseConvention.LEGACY)
+
+    def transform(self, input, attr):
+        assert input
+        return self.Format.transform(input, self.__format(attr))
+
+    def __format(self, attr):
+        assert self.convention
+        return self._map[self.convention][attr]
 
 
 class CppParseError(RuntimeError):
@@ -87,20 +193,23 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
         verify = face.obj.is_json or face.obj.is_event
 
-        _case_format = face.obj.meta.text if face.obj.meta.text else "lower"
+        _case_converter = CaseConverter(face.obj.meta.text)
 
-        def compute_name(obj, relay = None):
+        if not _case_converter.convention:
+            raise CppParseError(face.obj, "unknown interface-level @text parameter:%s" % face.obj.meta.text)
+        else:
+            log.Info("Case convention is %s" % _case_converter.convention.value)
+
+        def compute_name(obj, arg, relay=None):
             if not relay:
                 relay = obj
 
-            _default_name = relay.name if _case_format == "keep" else relay.name.lower()
+            _name = _case_converter.transform(relay.name, arg)
 
-            if obj.meta.text == _default_name:
-                log.WarnLine(method, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _default_name))
+            if obj.meta.text == _name:
+                log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
 
-            _name = obj.meta.text if obj.meta.text else _default_name
-
-            return (_name)
+            return (obj.meta.text if obj.meta.text else _name)
 
         schema["@interfaceonly"] = True
         schema["configuration"] = { "nodefault" : True }
@@ -130,10 +239,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
         info["title"] = info["class"] + " API"
         info["description"] = info["class"] + " JSON-RPC interface"
-
-        if _case_format == "keep":
-            info["legacy"] = True # suppress case warnings
-            log.Info("@text:keep is used!")
 
         schema["info"] = info
 
@@ -170,6 +275,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 raise CppParseError(var, "%s: undefined type" % " ".join(var_type))
 
             cppType = var_type.Type()
+
             is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
             is_bitmask = "bitmask" in meta.decorators
 
@@ -226,7 +332,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 # All other pointer types are not supported
                 else:
-                    raise CppParseError(var, "unable to convert C++ type to JSON type: %s - input pointer allowed only on interator or C-style buffer" % cppType.type)
+                    raise CppParseError(var, "unable to convert C++ type to JSON type: %s (input pointer allowed only on interator or C-style buffer)" % cppType.type)
 
             # Primitives
             else:
@@ -276,10 +382,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         #if autos != 0 and (autos != len(cppType.items)):
                         #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
 
-                    if _case_format == "keep":
-                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name for e in cppType.items] }
-                    else:
-                        enum_spec = { "enum": [e.meta.text if e.meta.text else e.name.replace("_"," ").title().replace(" ","") for e in cppType.items] }
+                    enum_spec = { "enum": [compute_name(e, _case_converter.ENUMS) for e in cppType.items] }
 
                     if var_type.Type().scoped:
                         enum_spec["scoped"] = True
@@ -318,7 +421,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         required = []
 
                         for p in kind.vars:
-                            name = compute_name(p)
+                            name = compute_name(p, _case_converter.MEMBERS)
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
@@ -355,7 +458,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
                         else:
-                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s" % cppType.type)
+                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing an interface is not possible)" % cppType.type)
 
                 elif isinstance(cppType, CppParser.Optional):
                     result = ConvertType(cppType.optional, meta=var.meta)
@@ -366,7 +469,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 # All other types are not supported
                 else:
-                    raise CppParseError(var, "unable to convert this C++ type to JSON type: %s" % cppType.type)
+                    raise CppParseError(var, "unable to convert this C++ type to JSON type: %s (unsupported type)" % cppType.type)
 
                 if result:
                     if var_type.IsPointer():
@@ -482,7 +585,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             for var in vars:
                 if var.meta.input or not var.meta.output:
                     if verify:
-                        if not var.type.IsConst() and (var.type.IsPointer() and not var.type.IsPointerToConst()):
+                        if not var.type.IsConst() and (not var.type.IsPointerToConst()):
                             if not var.meta.input:
                                 if var.type.IsPointer():
                                     raise CppParseError(var, "ambiguous non-const pointer parameter without @in/@out tag (forgot 'const'?)")
@@ -491,7 +594,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             elif not var.meta.output:
                                 log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                    var_name = "value" if (is_property and _case_format == "lower") else compute_name(var)
+                    var_name = "value" if (is_property and _case_converter.is_legacy) else compute_name(var, _case_converter.PARAMS)
 
                     if var_name.startswith("__unnamed") and not test:
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
@@ -562,7 +665,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    var_name = "value" if (is_property and _case_format == "lower") else compute_name(var)
+                    var_name = "value" if (is_property and _case_converter.is_legacy) else compute_name(var, _case_converter.PARAMS)
 
                     if var_name.startswith("__unnamed"):
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
@@ -584,6 +687,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         required.append(var_name)
 
             params["properties"] = properties
+
+            if is_property and len(properties) != 1:
+                raise CppParseError(var, "property getter must have exactly one output parameter")
 
             if len(properties) == 1:
                 return list(properties.values())[0]
@@ -625,6 +731,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
         for lookup_method, prefix, _methods in faces:
           for method in _methods:
 
+            if not method.IsVirtual() or method.IsDestructor():
+                continue
+
             event_params = EventParameters(method.vars)
 
             if method.is_excluded:
@@ -647,7 +756,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
-            method_name = compute_name(method.retval, method)
+            method_name = compute_name(method.retval, _case_converter.METHODS, relay=method)
 
             if method.retval.meta.alt == method_name:
                 log.WarnLine(method, "'%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
@@ -711,7 +820,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         _index = obj["index"][_index_idx]
 
                         if _index:
-                            _index["name"] = (method.vars[0].name if _case_format == "keep" else method.vars[0].name.capitalize())
+                            _index["name"] = _case_converter.transform(method.vars[0].name, _case_converter.PARAMS)
                             _index["@originalname"] = method.vars[0].name
 
                             if "enum" in _index:
@@ -808,7 +917,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 else:
                     raise CppParseError(method, "property method must have one parameter")
 
-            elif method.IsVirtual() and not method.IsDestructor() and not event_params and not method.retval.meta.lookup:
+            elif not event_params and not method.retval.meta.lookup:
                 var_type = ResolveTypedef(method.retval.type)
 
                 if var_type and ((isinstance(var_type.Type(), CppParser.Integer) and (var_type.Type().size == "long")) or not verify):
@@ -955,7 +1064,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     if params:
                         obj["params"] = params
 
-                    method_name = compute_name(method.retval, method)
+                    method_name = compute_name(method.retval, _case_converter.METHODS, relay=method)
 
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
