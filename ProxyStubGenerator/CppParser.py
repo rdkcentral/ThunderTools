@@ -2096,7 +2096,7 @@ def Parse(contents,log = None):
                 while tokens[j] != ";":
                     j += 1
                 # reuse typedef class but correct name accordingly
-                if not current_block[-1].omit:
+                if not current_block[-1].omit or current_block[-1].omit_mode:
                     typedef = Typedef(current_block[-1], tokens[i + 1:j])
                     if event_next:
                         typedef.is_event = True
