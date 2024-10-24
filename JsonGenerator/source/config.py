@@ -61,6 +61,14 @@ class RpcFormat(Enum):
     EXTENDED = "uncompliant-extended"
     COLLAPSED = "uncompliant-collapsed"
 
+class CaseConvention(Enum):
+    STANDARD = "standard"
+    LEGACY = "legacy"
+    KEEP = "keep"
+    CUSTOM = "custom"
+
+DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
+
 RPC_FORMAT = RpcFormat.COMPLIANT
 RPC_FORMAT_FORCED = False
 
@@ -90,6 +98,7 @@ def Parse(cmdline):
     global CLASSNAME_FROM_REF
     global LEGACY_ALT
     global AUTO_PREFIX
+    global DEFAULT_CASE_CONVENTION
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -195,9 +204,16 @@ def Parse(cmdline):
             dest="format",
             type=str,
             action="store",
-            default="flexible",
+            default="default-compliant",
             choices=["default-compliant", "force-compliant", "default-uncompliant-extended", "force-uncompliant-extended", "default-uncompliant-collapsed", "force-uncompliant-collapsed"],
             help="select JSON-RPC data format (default: default-compliant)")
+    cpp_group.add_argument("--case-convention",
+            dest="case_convention",
+            type=str,
+            metavar="CONVENTION",
+            action="store",
+            default=DEFAULT_CASE_CONVENTION.value,
+            help="select JSON-RPC case convention (default: %s)" % DEFAULT_CASE_CONVENTION.value)
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
     data_group.add_argument(
@@ -264,6 +280,13 @@ def Parse(cmdline):
             action="store",
             default=INDENT_SIZE,
             help="code indentation in spaces (default: %i)" % INDENT_SIZE)
+    data_group.add_argument("--framework-namespace",
+            dest="framework_namespace",
+            metavar="NS",
+            type=str,
+            action="store",
+            default=FRAMEWORK_NAMESPACE,
+            help="set framework namespace")
 
     doc_group = argparser.add_argument_group("Documentation output arguments (optional)")
     doc_group.add_argument("--no-style-warnings",
@@ -292,13 +315,6 @@ def Parse(cmdline):
             help="override interface source file revision to the commit id specified")
 
     ts_group = argparser.add_argument_group("Troubleshooting arguments (optional)")
-    doc_group.add_argument("--framework-namespace",
-            dest="framework_namespace",
-            metavar="NS",
-            type=str,
-            action="store",
-            default=FRAMEWORK_NAMESPACE,
-            help="set framework namespace")
     ts_group.add_argument("--verbose",
             dest="verbose",
             action="store_true",
@@ -333,6 +349,16 @@ def Parse(cmdline):
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
+
+    if args.case_convention == "standard":
+        DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
+    elif args.case_convention == "legacy" or args.case_convention == "legacy_lowercase":
+        DEFAULT_CASE_CONVENTION = CaseConvention.LEGACY
+    elif args.case_convention == "keep":
+        DEFAULT_CASE_CONVENTION = CaseConvention.KEEP
+    else:
+        print("Invalid case convention")
+        exit(1)
 
     if args.framework_namespace:
         FRAMEWORK_NAMESPACE = args.framework_namespace

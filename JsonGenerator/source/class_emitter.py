@@ -240,7 +240,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                     _optional_or_opaque = IsObjectOptionalOrOpaque(prop)
 
                     if (prop.optional and not prop.default_value):
-                        emit.Line("if (%s.%s.IsSet() == true) {" % (other, prop.actual_name))
+                        emit.Line("if (%s.%s.IsSet() == true) {" % (other,  _prop_name))
                         emit.Indent()
 
                     elif _optional_or_opaque:

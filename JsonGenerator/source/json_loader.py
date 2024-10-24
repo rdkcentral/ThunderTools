@@ -475,14 +475,15 @@ class JsonEnum(JsonRefCounted, JsonType):
             biggest = 0
 
             for idx, e in enumerate(self.cpp_enumerator_values):
-                if (e & (e-1) != 0) and (e != 0):
-                    is_bitmap = False
+                if isinstance(e, int):
+                    if (e & (e-1) != 0) and (e != 0):
+                        is_bitmap = False
 
-                if idx != e:
-                    same = False
+                    if idx != e:
+                        same = False
 
-                if e > biggest:
-                    biggest = e
+                    if e > biggest:
+                        biggest = e
 
             if same:
                 if not self.original_type:
