@@ -71,11 +71,11 @@ namespace Plugin {
 ~INDENT_DECREASE~
     private:
 ~INDENT_INCREASE~
+    {{USING_CONTAINER}}
     // Include the correct member variables for your plugin:
     // Note this is only an example, you are responsible for adding the correct members:
     uint32_t _example;
 
-    PluginHost::IShell* _service;
     {{MEMBER_IMPL}}
 ~INDENT_DECREASE~
     };

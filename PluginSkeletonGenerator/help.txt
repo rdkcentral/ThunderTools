@@ -1,5 +1,0 @@
-To run this tool:
-./PluginSkeletonGenerator.py or python3 PluginSkeletonGenerator.py
-
-Answer the questions accordingly.
-To see examples of what the skelton is capable of, see the examples folder.

@@ -17,22 +17,20 @@
  * limitations under the License.
  */
 
-#pragma once
-
+#include "Module.h"
 {{COMRPC_INTERFACE_INCLUDES}}
 
 namespace Thunder {
 namespace Plugin {
 ~INDENT_INCREASE~
-    SERVICE_REGISTRATION({{PLUGIN_NAME}}Implementation, 1, 0)
 
     class {{PLUGIN_NAME}}Implementation {{OOP_INHERITED_CLASS}} {
     public:
 ~INDENT_INCREASE~
         {{PLUGIN_NAME}}Implementation(const {{PLUGIN_NAME}}Implementation&) = delete;
         {{PLUGIN_NAME}}Implementation& operator=(const {{PLUGIN_NAME}}Implementation&) = delete;
-        {{PLUGIN_NAME}}({{PLUGIN_NAME}}&&) = delete;
-        {{PLUGIN_NAME}}& operator=({{PLUGIN_NAME}}&&) = delete;
+        {{PLUGIN_NAME}}Implementation({{PLUGIN_NAME}}Implementation&&) = delete;
+        {{PLUGIN_NAME}}Implementation& operator=({{PLUGIN_NAME}}Implementation&&) = delete;
 
         {{PLUGIN_NAME}}Implementation()
         ~INDENT_INCREASE~
@@ -41,6 +39,8 @@ namespace Plugin {
         {   
         }
         ~{{PLUGIN_NAME}}Implementation() override = default;
+        
+    {{CONFIG_CLASS}}
 ~INDENT_DECREASE~
     public:
 ~INDENT_INCREASE~
@@ -56,13 +56,16 @@ namespace Plugin {
 ~INDENT_DECREASE~
     private:
 ~INDENT_INCREASE~
-    {{CONFIG_CLASS}}
+{{USING_CONTAINER}}
+
     {{NOTIFY_METHOD}}
         // Note: test is just an example...
         uint32_t _test;
         {{OOP_MEMBERS}}
 ~INDENT_DECREASE~
     };
+    
+    SERVICE_REGISTRATION({{PLUGIN_NAME}}Implementation, 1, 0)
 ~INDENT_DECREASE~
 } // Plugin
 } // Thunder

@@ -46,6 +46,8 @@ def display_settings(
     print(f"JSONRPC Functionality: {jsonrpc}")
     print(f"JSONRPC Interfaces: {jsonrpc_interface if jsonrpc else 'N/A'} ")
     print(f"Out Of Process: {out_of_process}")
+    print(f"Plugin specific configuration: {plugin_config}")
+
     """
     print(f"Subsystem Support: {subsystems}")
     print(f"Subsystem Preconditions: {preconditions if subsystems else 'N/A'} ")
@@ -135,7 +137,7 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
             correctName = correctExtension            
             # CorrectName at this point will always return the correct interface name without the '.h'
             while True:
-                comrpc_confirm = input(f"The name of the interface in {tempName} is (enter to confirm or type the correct interface name) {correctName}: ")
+                comrpc_confirm = input(f"The name of the interface in {tempName} is {correctName} (enter to confirm or type the correct interface name): ")
                 if comrpc_confirm:
                     correctInitial = Utils.check_correct_comrpc(comrpc_confirm)
                     if not correctInitial:
@@ -167,7 +169,7 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
 
 def user_jsonrpc(comrpc_interface, jsonrpc_interfaces):
 
-    json_tag = get_boolean_input("Does your plugin require JSON-RPC functionality (@JSON tag): (Enter Y or N)\n")
+    json_tag = get_boolean_input("Does your plugin require JSON-RPC functionality (@json tag): (Enter Y or N)\n")
     if json_tag:
         jsonrpc_interface = Utils.replace_comrpc_to_jsonrpc(comrpc_interface)
         jsonrpc_interfaces.append(jsonrpc_interface)

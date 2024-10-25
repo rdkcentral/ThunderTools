@@ -22,4 +22,4 @@ public:
 ~INDENT_INCREASE~
 Core::JSON::String Example;
 ~INDENT_DECREASE~
-}
+};

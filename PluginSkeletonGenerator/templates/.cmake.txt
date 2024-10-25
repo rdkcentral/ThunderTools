@@ -29,6 +29,7 @@ message("Setup ${MODULE_NAME} v${PROJECT_VERSION}")
 
 set(PLUGIN_{{PLUGIN_NAME_CAPS}}_STARTMODE "Activated" CACHE STRING "Automatically start {{PLUGIN_NAME}} plugin")
 {{SET_MODE}}
+{{SET_CONFIG}}
 
 if(BUILD_REFERENCE)
 ~INDENT_INCREASE~
@@ -43,6 +44,7 @@ find_package(CompileSettingsDebug CONFIG REQUIRED)
 add_library(${MODULE_NAME} SHARED
 ~INDENT_INCREASE~
     {{SOURCE_FILES}}
+    Module.cpp
 ~INDENT_DECREASE~
 )
 

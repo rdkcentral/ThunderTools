@@ -10,7 +10,7 @@ class PluginGenerator:
     def __init__(self, blueprint_data) -> None:
         self.blueprint_data = blueprint_data
         self.directory = self.blueprint_data.plugin_name
-        os.makedirs(self.blueprint_data.plugin_name, exist_ok=True)
+        os.makedirs(self.blueprint_data.plugin_name, exist_ok=False)
         self.indenter = Indenter()
 
     def load_template(self, template_name):
@@ -55,6 +55,7 @@ class PluginGenerator:
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 def main():
+    print('[NOTE]: The output from this generator is a skeleton, therefore it uses example methods. Please correct the generated methods accordingly!')
     menu.menu()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 if __name__ == "__main__":

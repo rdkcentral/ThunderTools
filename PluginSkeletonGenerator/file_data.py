@@ -56,12 +56,14 @@ class HeaderData(FileData):
     def generate_comrpc_includes(self):
         includes = []
         for comrpc in self.comrpc_interfaces:
-            if comrpc == 'IConfiguration':
+            if comrpc == 'IConfiguration' and self.type == HeaderData.HeaderType.HEADER:
                 break
-            includes.append(f'#include <interfaces/{comrpc}>')
-        for interface in self.jsonrpc_interfaces:
-            if 'I' + interface[1:] in self.notification_interfaces:
-                includes.append(f'#include <interfaces/json/{Utils.replace_comrpc_to_jsonrpc(interface)}>')
+            includes.append(f'#include <interfaces/{comrpc}.h>')
+        if self.type == HeaderData.HeaderType.HEADER:
+            includes.append("#include <Module.h>")
+            for interface in self.jsonrpc_interfaces:
+                if 'I' + interface[1:] in self.notification_interfaces:
+                    includes.append(f'#include <interfaces/json/{Utils.replace_comrpc_to_jsonrpc(interface)}.h>')
         return '\n'.join(includes) if includes else 'rm\*n'
 
     def generate_inherited_classes(self):
@@ -83,14 +85,14 @@ class HeaderData(FileData):
     def notification_registers(self, interface):
         text = []
         text.append('\n~INDENT_INCREASE~')
-        text.append('\nASSERT(notification);')
+        text.append('\nASSERT(notification != nullptr);')
         text.append('\n_adminLock.Lock();')
-        text.append(f'''\nauto item = std::find(_notifications{interface}.begin(), _notifications{interface}.end(), notification);
-                ASSERT(item == _notifications{interface}.end());
-                if (item == _notifications{interface}.end()) {{
+        text.append(f'''\nauto item = std::find(_{interface[1:].lower()}Notification.begin(), _{interface[1:].lower()}Notification.end(), notification);
+                ASSERT(item == _{interface[1:].lower()}Notification.end());
+                if (item == _{interface[1:].lower()}Notification.end()) {{
                 ~INDENT_INCREASE~
                 notification->AddRef();
-                notifications{interface}.push_back(notification);
+                _{interface[1:].lower()}Notification.push_back(notification);
                 ~INDENT_DECREASE~
                 }}
 
@@ -101,16 +103,16 @@ class HeaderData(FileData):
     def notification_unregisters(self,interface):
         text = []
         text.append(f'''\n~INDENT_INCREASE~
-                ASSERT(notification);
+                ASSERT(notification != nullptr);
 
                 _adminLock.Lock();
-                auto item = std::find(_notifications{interface}.begin(), _notifications{interface}.end(), notification);
-                ASSERT(item != _notifications{interface}.end());
+                auto item = std::find(_{interface[1:].lower()}Notification.begin(), _{interface[1:].lower()}Notification.end(), notification);
+                ASSERT(item != _{interface[1:].lower()}Notification.end());
 
-                if (item != _notifications{interface}.end()) {{
+                if (item != _{interface[1:].lower()}Notification.end()) {{
                 ~INDENT_INCREASE~
-                _notifications{interface}.erase(item);
                 (*item)->Release();
+                _{interface[1:].lower()}Notification.erase(item);
                 ~INDENT_DECREASE~
                 }}
                 _adminLock.Unlock();
@@ -130,21 +132,31 @@ class HeaderData(FileData):
             if (inherited == 'IConfiguration'):
                 continue
             if self.type == HeaderData.HeaderType.HEADER:
-                methods.append(f"// {inherited} methods\n" f"void {inherited}Method1() override;\n")
+                methods.append(f"// {inherited} methods\n" f"uint32_t {inherited}Method1() override;")
                 if inherited in self.notification_interfaces:
                     methods.append(f'void Register(Exchange::{inherited}::INotification* notification) override;')
-                    methods.append(f'void Unregister(Exchange::{inherited}::INotification* notification) override;')
+                    methods.append(f'void Unregister(const Exchange::{inherited}::INotification* notification) override;')
+                    if f'J{inherited[1:]}' in self.jsonrpc_interfaces and self.out_of_process:
+                        methods.append(f'void {inherited}NotificationExample();')
             else:
                 methods.append(f'// {inherited} methods')
-                
-                methods.append(f'void {inherited}Method1() override {{\n\n}}\n')
-            if inherited in self.notification_interfaces:
+                if inherited in self.notification_interfaces:               
+                    methods.append(f'''uint32_t {inherited}Method1() override {{\n
+                                ~INDENT_INCREASE~
+                                // This function could be used to call a notify method
+                                Notify{inherited}();
+                                return Core::ERROR_NONE;
+                                ~INDENT_DECREASE~
+                                }}\n''')
+                else:
+                    methods.append(f'uint32_t {inherited}Method1() override {{\n~INDENT_INCREASE~\nreturn Core::ERROR_NONE;\n~INDENT_DECREASE~\n}}\n')
+            if inherited in self.notification_interfaces and self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION:
                 methods.append(f'void Register(Exchange::{inherited}::INotification* notification) override {{')
                 methods.append(self.notification_registers(inherited))
-                methods.append('}')
-                methods.append(f'void Unregister(Exchange::{inherited}::INotification* notification) override {{')
+                methods.append('}\n')
+                methods.append(f'void Unregister(const Exchange::{inherited}::INotification* notification) override {{')
                 methods.append(self.notification_unregisters(inherited))
-                methods.append('}')
+                methods.append('}\n')
 
         if self.comrpc_interfaces:
             if self.comrpc_interfaces[-1] == "IConfiguration":
@@ -158,7 +170,7 @@ class HeaderData(FileData):
         method = []
         if self.type == HeaderData.HeaderType.HEADER:
             method = [f'void {self.plugin_name}Method();']
-            if self.notification_interfaces:
+            if self.out_of_process:
                 method.append(f'void Deactivated(RPC::IRemoteConnection* connection);')
         return '\n'.join(method)
 
@@ -180,7 +192,7 @@ class HeaderData(FileData):
             for comrpc in self.comrpc_interfaces:
                 if comrpc == "IConfiguration":
                     break
-                aggregates.append(f'INTERFACE_AGGREGATE(Exchange::{comrpc}, _impl{comrpc})')
+                aggregates.append(f'INTERFACE_AGGREGATE(Exchange::{comrpc}, _impl{comrpc[1:]})')
         return ('\n').join(aggregates) if aggregates else 'rm\*n'
 
     def generate_module_plugin_name(self):
@@ -195,15 +207,15 @@ class HeaderData(FileData):
     def generate_interface_constructor(self):
         constructor = []
         if not self.comrpc_interfaces:
-            return ''
+            return 'rm\*n'
         
         if self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION:
             constructor = [f": Exchange::{self.comrpc_interfaces[0]}()"] + [f", Exchange::{comrpc}()" for comrpc in self.comrpc_interfaces[1:]]
-            constructor.append(', test(0)')
+            constructor.append(', _test(0)')
             if self.notification_interfaces:
                 constructor.append(', _adminLock()')
                 for interface in self.notification_interfaces:
-                    constructor.append(f', _notifications{interface}()')
+                    constructor.append(f', _{interface[1:].lower()}Notification()')
 
         if (not self.out_of_process and self.type == HeaderData.HeaderType.HEADER):
             if self.comrpc_interfaces:
@@ -217,21 +229,34 @@ class HeaderData(FileData):
     def generate_member_impl(self):
         members = []
         if self.out_of_process:
+            members.append("PluginHost::IShell* _service;")
+            members.append("uint32_t _connectionId;")
+        if self.out_of_process:
             for comrpc in self.comrpc_interfaces:
                 if comrpc == 'IConfiguration':
                     break
-                members.append(f"Exchange::{comrpc}* _impl{comrpc};")
-        if self.jsonrpc:
-            members.append("Core::SinkType<Notfication> _notification;")
+                members.append(f"Exchange::{comrpc}* _impl{comrpc[1:]};")
+                members.append(f"Core::SinkType<Notification> _notification;")
+        if self.notification_interfaces and not self.out_of_process:
+            members.append(f"mutable Core::CriticalSection _adminLock;")
+            for comrpc in self.notification_interfaces:
+                members.append(f'{comrpc[1:]}NotificationVector _{comrpc[1:].lower()}Notification;')
         return "\n".join(members) if members else 'rm\*n'
 
     def generate_member_constructor(self):
         members = []
         if self.out_of_process:
+            members.append(f", _service(nullptr)")
+            members.append(f", _connectionId(0)")
             for comrpc in self.comrpc_interfaces:
                 if comrpc == "IConfiguration":
                     break
-                members.append(f", _impl{comrpc}(nullptr)")
+                members.append(f", _impl{comrpc[1:]}(nullptr)")
+                members.append(f", _notification(*this)")
+        if self.notification_interfaces and not self.out_of_process:
+            members.append(f", _adminLock()")
+            for comrpc in self.notification_interfaces:
+                members.append(f", _{comrpc[1:].lower()}Notification()")
         return "\n".join(members) if members else 'rm\*n'
 
     def generate_notification_class(self):
@@ -258,7 +283,7 @@ class HeaderData(FileData):
         methods = []
         for inherited in self.notification_interfaces:
             if Utils.replace_comrpc_to_jsonrpc(inherited) in self.jsonrpc_interfaces:
-                methods.append(f'''void {inherited}Notification() override {{\n~INDENT_INCREASE~\nExchange::J{inherited[1:]}::Event::{inherited}Notification();\n~INDENT_DECREASE~\n}}\n''')
+                methods.append(f'''void {inherited}Notification() override {{\n~INDENT_INCREASE~\nExchange::J{inherited[1:]}::Event::{inherited}Notification(_parent);\n~INDENT_DECREASE~\n}}\n''')
             else:
                 methods.append(f'void {inherited}Notification() override {{\n\n}}')
         return ("\n").join(methods) if methods else 'rm\*n'
@@ -266,29 +291,37 @@ class HeaderData(FileData):
     def generate_oop_members(self):
         members = []
         if self.notification_interfaces:
-            members.append('Core::CriticalSection _adminLock;')
+            members.append('mutable Core::CriticalSection _adminLock;')
             for interface in self.notification_interfaces:
-                members.append(f'std::vector<Exchange::{interface}::INotification*> _notifications{interface};')
+                members.append(f'{interface[1:]}NotificationVector _{interface[1:].lower()}Notification;')
         return '\n'.join(members) if members else 'rm\*n'
     
     def generate_notify_method(self):
         methods = []
-
-        for interface in self.notification_interfaces:
-            methods.append(f'void Notify{interface}() override {{')
-            methods.append('\n~INDENT_INCREASE~')
-            methods.append('\n_adminLock.Lock();')
-            methods.append(f'''\nfor (auto* notification : _notifications{interface}) {{
-                        ~INDENT_INCREASE~
-                        notification->{interface}Notification();
-                        ~INDENT_DECREASE~
-                        }}
-                        _adminLock.Unlock();
-                        ~INDENT_DECREASE~
-                        }}\n''')
+        if self.out_of_process and self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION or not self.out_of_process and HeaderData.HeaderType.HEADER:
+            for interface in self.notification_interfaces:
+                methods.append(f'void Notify{interface}() const {{')
+                methods.append('\n~INDENT_INCREASE~')
+                methods.append('\n_adminLock.Lock();')
+                methods.append(f'''\nfor (auto* notification : _{interface[1:].lower()}Notification) {{
+                            ~INDENT_INCREASE~
+                            notification->{interface}Notification();
+                            ~INDENT_DECREASE~
+                            }}
+                            _adminLock.Unlock();
+                            ~INDENT_DECREASE~
+                            }}\n''')
             
         return ''.join(methods) if methods else 'rm\*n'
     
+    def generate_using_container(self):
+        usings = []
+        if (self.out_of_process and self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION) or \
+            (not self.out_of_process and self.type == HeaderData.HeaderType.HEADER):
+            for comrpc in self.notification_interfaces:
+                usings.append(f'using {comrpc[1:]}NotificationVector = std::vector<Exchange::{comrpc}::INotification*>;')
+        return '\n'.join(usings) if usings else 'rm\*n'
+
     def generate_keyword_map(self):
         return {
             "{{COMRPC_INTERFACE_INCLUDES}}": self.generate_comrpc_includes(),
@@ -308,7 +341,8 @@ class HeaderData(FileData):
             "{{NOTIFICATION_ENTRY}}" : self.generate_notification_entry(),
             "{{NOTIFICATION_FUNCTION}}" : self.generate_notification_function(),
             "{{OOP_MEMBERS}}" : self.generate_oop_members(),
-            "{{NOTIFY_METHOD}}" : self.generate_notify_method()
+            "{{NOTIFY_METHOD}}" : self.generate_notify_method(),
+            "{{USING_CONTAINER}}" : self.generate_using_container()
         }
 
     def generate_nested_map(self):
@@ -318,21 +352,23 @@ class HeaderData(FileData):
         }
 
     def generate_jsonrpc_event(self):
-        if self.jsonrpc or self.notification_interfaces:
+        if (self.jsonrpc or self.notification_interfaces) and self.out_of_process:
             template_name = global_variables.RPC_NOTIFICATION_CLASS_PATH
             template = FileUtils.read_file(template_name)
             code = FileUtils.replace_keywords(template, self.keywords)
             return code
  
     def generate_config(self):
+        code = []
         if self.plugin_config:
+            if self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION:
+                code.append('~INDENT_DECREASE~\nprivate:\n~INDENT_INCREASE~\n')
+                print("Hello)")
             if (not self.out_of_process) or (self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION):
                 template_name = global_variables.CONFIG_CLASS_PATH
                 template = FileUtils.read_file(template_name)
-                code = FileUtils.replace_keywords(template, self.keywords)
-                return code
-        return "rm\*n"
-
+                code.append(f'{FileUtils.replace_keywords(template, self.keywords)}')
+        return ''.join(code) if code else 'rm\*n'
 
 class SourceData(FileData):
     def __init__(
@@ -443,14 +479,39 @@ class SourceData(FileData):
     """
 
     def generate_plugin_method_impl(self):
-        if self.out_of_process:
-            method = [f"void {self.plugin_name}::Deactivated(RPC::IRemoteConnection* connection) {{\n\n}}\n"]
+        if self.out_of_process and self.notification_interfaces:
+            method = [f'''\nvoid {self.plugin_name}::Deactivated(RPC::IRemoteConnection* connection) {{
+                    ~INDENT_INCREASE~
+                    if (connection->Id() == _connectionId) {{
+                    ~INDENT_INCREASE~
+                    ASSERT(_service != nullptr);
+                    Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
+                    ~INDENT_DECREASE~
+                    }}
+                    ~INDENT_DECREASE~
+                    }}\n''']
             return "".join(method)
         return "rm\*n"
 
     def generate_inherited_method_impl(self):
+        methods = []
         if not self.out_of_process:
-            methods = [f"void {self.plugin_name}::{inherited}Method1() {{\n\n}}\n" for inherited in self.comrpc_interfaces]
+            for inherited in self.comrpc_interfaces:
+                methods.append(f'uint32_t {self.plugin_name}::{inherited}Method1() {{')
+                methods.append(f'~INDENT_INCREASE~')
+                if Utils.replace_comrpc_to_jsonrpc(inherited) in self.jsonrpc_interfaces:
+                    methods.append(f'''// Note this an example of a notification method that can call the JSONRPC interface equivalent.
+                                Exchange::{Utils.replace_comrpc_to_jsonrpc(inherited)}::Event::{inherited}Notification(*this);''')
+                methods.append(f'return Core::ERROR_NONE;')
+                methods.append(f'~INDENT_DECREASE~')
+                methods.append(f'}}')
+                if inherited in self.notification_interfaces:
+                    methods.append(f'void {self.plugin_name}::Register(Exchange::{inherited}::INotification* notification) {{')
+                    methods.append(HeaderData.notification_registers(None, inherited))
+                    methods.append('}\n')
+                    methods.append(f'void {self.plugin_name}::Unregister(const Exchange::{inherited}::INotification* notification) {{')
+                    methods.append(HeaderData.notification_unregisters(None, inherited))
+                    methods.append('}\n')
             return ("\n").join(methods)
         return 'rm\*n'
     
@@ -466,11 +527,11 @@ class SourceData(FileData):
                 break
             nested_query.append("\nrm\*n \n~INDENT_INCREASE~\n")
             if self.comrpc_interfaces[iteration] in self.notification_interfaces:
-                nested_query.append(f"_impl{self.comrpc_interfaces[iteration]}->Register(&notification);\n")
+                nested_query.append(f"_impl{self.comrpc_interfaces[iteration][1:]}->Register(&notification);\n")
             if any(Utils.replace_comrpc_to_jsonrpc(self.comrpc_interfaces[iteration]) in notif for notif in self.jsonrpc_interfaces):
-                nested_query.append(f'Exchange::{Utils.replace_comrpc_to_jsonrpc(self.comrpc_interfaces[iteration])}::Register(*this, impl{self.comrpc_interfaces[iteration]});\n')
-            nested_query.append(f"_impl{comrpc} = _impl{comrpc}->QueryInterface<Exchange::{comrpc}>();")
-            nested_query.append(f'''\nif (_impl{comrpc} == nullptr) {{
+                nested_query.append(f'Exchange::{Utils.replace_comrpc_to_jsonrpc(self.comrpc_interfaces[iteration])}::Register(*this, _impl{self.comrpc_interfaces[iteration][1:]});\n')
+            nested_query.append(f"_impl{comrpc[1:]} = _impl{comrpc[0][1:]}->QueryInterface<Exchange::{comrpc[1:]}>();")
+            nested_query.append(f'''\nif (_impl{comrpc[1:]} == nullptr) {{
                                 ~INDENT_INCREASE~
                                 message = _T("Couldn't create instance of _impl{comrpc}")
                                 ~INDENT_DECREASE~
@@ -488,21 +549,22 @@ class SourceData(FileData):
     def generate_nested_initialize(self, iteration):
       
         text = []
-        rootCOMRPC = self.comrpc_interfaces[0] if self.comrpc_interfaces else 'IPlugin'
+        rootCOMRPC = self.comrpc_interfaces[0][1:] if self.comrpc_interfaces else 'IPlugin'
 
         if self.comrpc_interfaces:
             text.append("\n~INDENT_INCREASE~\n")
-            text.append(f'_impl{self.comrpc_interfaces[iteration]}->Register(&_notification);\n')
+            if self.notification_interfaces:
+                text.append(f'_impl{self.comrpc_interfaces[iteration][1:]}->Register(&_notification);\n')
             if self.jsonrpc_interfaces:
                 if self.jsonrpc_interfaces[-1] == Utils.replace_comrpc_to_jsonrpc(self.comrpc_interfaces[iteration]):
-                        text.append(f'Exchange::{self.jsonrpc_interfaces[-1]}::Register(*this, impl{self.comrpc_interfaces[iteration]});\n')
+                        text.append(f'Exchange::{self.jsonrpc_interfaces[-1]}::Register(*this, _impl{self.comrpc_interfaces[iteration][1:]});\n')
         if self.plugin_config:
             #text.append("\n~INDENT_INCREASE~\n")
             text.append(f'''\nExchange::IConfiguration* configuration = _impl{rootCOMRPC}->QueryInterface<Exchange::IConfiguration>();
             ASSERT(configuration != nullptr);
             if (configuration != nullptr) {{
                 ~INDENT_INCREASE~
-                if (configuration->configure(service) != Core::ERROR_NONE) {{
+                if (configuration->Configure(service) != Core::ERROR_NONE) {{
                     ~INDENT_INCREASE~
                     message = _T("{self.plugin_name} could not be configured.");
                     ~INDENT_DECREASE~
@@ -514,40 +576,53 @@ class SourceData(FileData):
         return ''.join(text) if text else 'rm\*n'
     
     def generate_configure_implementation(self):
-        return 'Config config;\nconfig.FromString(service->ConfigLine());' if self.plugin_config else 'rm\*n'
+        return 'Config config;\nconfig.FromString(service->ConfigLine());\nTRACE(Trace::Information, (_T("This is just an example: [%s])"), config.Example));' if self.plugin_config else 'rm\*n'
     
     def generate_nested_deinitialize(self):
         text = []
         if not self.comrpc_interfaces:
             return ''
-        text.append(f'if (_impl{self.comrpc_interfaces[0]} != nullptr) {{')
+        text.append(f'if (_impl{self.comrpc_interfaces[0][1:]} != nullptr) {{')
         text.append(f'\n~INDENT_INCREASE~')
         if self.notification_interfaces:
             if self.notification_interfaces[0] == self.comrpc_interfaces[0]:
-                text.append(f'\n_impl{self.comrpc_interfaces[0]}->Unregister(&_notification);')
+                text.append(f'\n_impl{self.comrpc_interfaces[0][1:]}->Unregister(&_notification);')
         if Utils.replace_comrpc_to_jsonrpc(self.comrpc_interfaces[0]) in self.jsonrpc_interfaces:
                 text.append(f'\nExchange::{Utils.replace_comrpc_to_jsonrpc(self.comrpc_interfaces[0])}::Unregister(*this);')
 
         for comrpc in self.comrpc_interfaces[1:]:
             if comrpc == 'IConfiguration':
                 break
-            text.append(f'''\nif (_impl{comrpc} != nullptr) {{
-                    \n~INDENT_INCREASE~
-                    _impl{comrpc}->Release();''')
+            text.append(f'''\nif (_impl{comrpc[1:]} != nullptr) {{
+                    \n~INDENT_INCREASE~\n''')
             if Utils.replace_comrpc_to_jsonrpc(comrpc) in self.jsonrpc_interfaces:
                     text.append(f'\nExchange::{Utils.replace_comrpc_to_jsonrpc(comrpc)}::Unregister(*this);')
             if comrpc in self.notification_interfaces:
-                    text.append(f'\n_impl{comrpc}->Unregister(&_notification);')
-            text.append(f'\n_impl{comrpc} = nullptr;')
+                    text.append(f'\n_impl{comrpc[1:]}->Unregister(&_notification);')
+            text.append(f"\n_impl{comrpc[1:]}->Release();")
+            text.append(f'\n_impl{comrpc[1:]} = nullptr;')
             text.append('\n~INDENT_DECREASE~')
             text.append('\n}')
 
         text.append(f'''\nRPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));
-                \nVARIABLE_IS_NOT_USED uint32_t result = _impl{self.comrpc_interfaces[0]}->Release();
-                \n_impl{self.comrpc_interfaces[0]} = nullptr;''')
+                \nVARIABLE_IS_NOT_USED uint32_t result = _impl{self.comrpc_interfaces[0][1:]}->Release();
+                \n_impl{self.comrpc_interfaces[0][1:]} = nullptr;''')
         return ''.join(text)
     
- 
+    def generate_assert_implementation(self):
+        asserts = []
+        for comrpc in self.comrpc_interfaces:
+            if comrpc == 'IConfiguration':
+                continue
+            asserts.append(f'ASSERT(_impl{comrpc[1:]} == nullptr);')
+        return '\n'.join(asserts)
+    
+    def generate_register_notification(self):
+        return "_service->Register(&_notification);"
+    
+    def generate_unregister_notification(self):
+        return "_service->Unregister(&_notification);"
+    
     def generate_keyword_map(self):
         return {
             "{{INCLUDE}}": self.generate_include_statements(),
@@ -560,6 +635,7 @@ class SourceData(FileData):
             "{{REGISTER}}": self.generate_jsonrpc_register(),
             "{{JSONRPC_UNREGISTER}}": self.generate_jsonrpc_unregister(),
             "{{COMRPC}}": f'{self.comrpc_interfaces[0] if self.comrpc_interfaces else "Exchange::IPlugin"}',
+            "{{COMRPC[1:]}}" : f'{self.comrpc_interfaces[0][1:] if self.comrpc_interfaces else "Exchange::IPlugin"}',
             "{{JSONRPC_INTERFACE_INCLUDES}}": self.generate_jsonrpc_includes(),
             "{{PLUGIN_METHOD_IMPL}}": self.generate_plugin_method_impl(),
             "{{INHERITED_METHOD_IMPL}}": self.generate_inherited_method_impl(),
@@ -567,6 +643,9 @@ class SourceData(FileData):
             "{{NESTED_QUERY}}" : self.generate_nested_query(),
             "{{CONFIGURE_IP}}" : self.generate_configure_implementation(),
             "{{DEINITIALIZE}}" : self.generate_nested_deinitialize(),
+            "{{ASSERT_IMPL}}" : self.generate_assert_implementation(),
+            "{{REGISTER_NOTIFICATION}}" : self.generate_register_notification(),
+            "{{UNREGISTER_NOTIFICATION}}" : self.generate_unregister_notification()
         }
 
     def generate_nested_map(self):
@@ -608,11 +687,18 @@ class CMakeData(FileData):
         if self.out_of_process:
             s = (f'set(PLUGIN_{self.plugin_name.upper()}_MODE "Local" CACHE STRING "Controls if the plugin should run in its own process, in process or remote.")')
         return s if s else 'rm\*n'
+    
+    def generate_set_config(self):
+        s = ''
+        if self.plugin_config:
+            s = (f'set(PLUGIN_{self.plugin_name.upper()}_EXAMPLE "Example Text" CACHE STRING "Example String")')
+        return s if s else 'rm\*n'
 
     def generate_keyword_map(self):
         return {
                 "{{SOURCE_FILES}}": self.find_source_files(),
-                '{{SET_MODE}}' : self.generate_set_mode()
+                '{{SET_MODE}}' : self.generate_set_mode(),
+                "{{SET_CONFIG}}" : self.generate_set_config()
             }
 
     def find_source_files(self):
@@ -650,7 +736,12 @@ class JSONData(FileData):
         self.keywords.update(self.generate_nested_map())
 
     def generate_cppref(self):
-        return (",\n".join(f'"$cppref": "{{cppinterfacedir}}/{comrpc}.h"' for comrpc in self.comrpc_interfaces) if self.comrpc_interfaces else "rm\*n")
+        cppref = []
+        for comrpc in self.comrpc_interfaces:
+            if comrpc == 'IConfiguration':
+                break
+            cppref.append(f'"$cppref": "{{cppinterfacedir}}/{comrpc}.h"')
+        return ",\n".join(cppref) if cppref else 'rm\*n'
 
     def generate_json_info(self):
         template_name = global_variables.JSON_INFO
@@ -712,15 +803,18 @@ class ConfData(FileData):
         # self.keywords.update(self.generate_nested_map())
 
     def generate_config(self):
+        configuration = []
+        configuration.append("configuration = JSON()")
         if self.plugin_config:
-            return f'configuration = JSON() \nconfiguration.add("example,"mystring")'
-        return 'rm\*n'
-
+            configuration.append(f'configuration.add("example", "@PLUGIN_{self.plugin_name.upper()}_EXAMPLE@")')
+        return '\n'.join(configuration)
+    
     def generate_root(self):
         root = []
         if self.out_of_process:
-            root.append(f'root = JSON() \n root.add("mode", "@PLUGIN_{self.plugin_name.upper()}_MODE@)')
-        return ''.join(root) if root else 'rm\*n'
+            root.append(f'root = JSON() \n root.add("mode", "@PLUGIN_{self.plugin_name.upper()}_MODE@")')
+            root.append(f'configuration.add("root", root)')
+        return '\n'.join(root) if root else 'rm\*n'
 
     def generate_keyword_map(self):
         return {

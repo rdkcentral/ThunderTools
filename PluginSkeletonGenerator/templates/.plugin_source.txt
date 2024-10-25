@@ -36,7 +36,7 @@ namespace Plugin {
             // Controls
             {}
 ~INDENT_DECREASE~
-        )
+        );
 ~INDENT_DECREASE~
     }
 
@@ -54,9 +54,9 @@ void {{PLUGIN_NAME}}::Deinitialize({{VARIABLE_NOT_USED}}PluginHost::IShell* serv
 ~INDENT_DECREASE~
 }
 
-string {{PLUGIN_NAME}}::Information() {
+string {{PLUGIN_NAME}}::Information() const {
 ~INDENT_INCREASE~
-    return string()
+    return string();
 ~INDENT_DECREASE~
 }
 

@@ -40,4 +40,4 @@ private:
 ~INDENT_INCREASE~
     {{PLUGIN_NAME}}& _parent;
 ~INDENT_DECREASE~
-}
+};

@@ -1,14 +1,16 @@
 
 ASSERT(_service == service);
 
-service->Unregister(&_notification);
+{{UNREGISTER_NOTIFICATION}}
 
 {{DEINITIALIZE}}
+
     ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);
+
     // The process can disappear in the meantime...
     if (connection != nullptr) {
 ~INDENT_INCREASE~
-        // But if it did not dissapear in the meantime, forcefully terminate it. Shoot to kill 
+        // But if it did not disappear in the meantime, forcefully terminate it. Shoot to kill 
         connection->Terminate();
         connection->Release();
 ~INDENT_DECREASE~
