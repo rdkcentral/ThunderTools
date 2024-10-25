@@ -38,6 +38,7 @@ class CaseConverter:
     PARAMS = 2
     MEMBERS = 3
     ENUMS = 4
+    PROPERTY_PARAMS = 5
 
     class Format(Enum):
         LOWER = "lower"             # lowercase
@@ -47,6 +48,8 @@ class CaseConverter:
         CAMEL = "camel"             # camelCase
         PASCAL = "pascal"           # PascalCase
         KEEP = "keep"               # ... keep as is
+                # keep has side effect that property parameter does not
+                # change the name to "value" but keeps original name
 
         @staticmethod
         def __to_pascal(string, uppercase=True):
@@ -124,14 +127,17 @@ class CaseConverter:
         return self._convention
 
     @property
-    def is_legacy(self):
-        return (self._convention == config.CaseConvention.LEGACY)
+    def is_keep(self):
+        return (self._convention == config.CaseConvention.KEEP)
 
     def transform(self, input, attr):
         assert input
         return self.Format.transform(input, self.__format(attr))
 
     def __format(self, attr):
+        if attr == self.PROPERTY_PARAMS:
+            attr = self.PARAMS
+
         assert self.convention
         return self._map[self.convention][attr]
 
@@ -204,12 +210,15 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             if not relay:
                 relay = obj
 
-            _name = _case_converter.transform(relay.name, arg)
+            _orig_name = ("value" if ((arg == _case_converter.PROPERTY_PARAMS) and not _case_converter.is_keep) else relay.name)
+
+            _name = _case_converter.transform(_orig_name, arg)
 
             if obj.meta.text == _name:
                 log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
 
             return (obj.meta.text if obj.meta.text else _name)
+
 
         schema["@interfaceonly"] = True
         schema["configuration"] = { "nodefault" : True }
@@ -594,7 +603,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             elif not var.meta.output:
                                 log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                    var_name = "value" if (is_property and _case_converter.is_legacy) else compute_name(var, _case_converter.PARAMS)
+                    var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
 
                     if var_name.startswith("__unnamed") and not test:
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
@@ -665,7 +674,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    var_name = "value" if (is_property and _case_converter.is_legacy) else compute_name(var, _case_converter.PARAMS)
+                    var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
 
                     if var_name.startswith("__unnamed"):
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
