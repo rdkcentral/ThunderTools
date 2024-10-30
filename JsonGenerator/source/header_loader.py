@@ -415,7 +415,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         result = ["string", enum_spec]
 
                     if isinstance(var.type.Type(), CppParser.Typedef):
-                        result[1]["@register"] = False
+                        type = var.type.Type().type.type
+                        if not isinstance(type.parent, CppParser.Class) or type.parent.is_json:
+                            result[1]["@register"] = False
 
                     if meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
