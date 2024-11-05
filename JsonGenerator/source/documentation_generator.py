@@ -100,6 +100,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 # include information about enum values in description
                 enum = ""
+                default_enum = None
                 if "enum" in obj and "ids" in obj:
                     enums = []
                     endmarker = obj.get("@endmarker")
@@ -107,6 +108,8 @@ def Create(log, schema, path, indent_size = 4):
                         if e == endmarker:
                             break;
                         enums.append(obj["enum"][i])
+                        if "default" in obj and e == obj["default"]:
+                            default_enum = enums[-1]
 
                     if enums:
                         enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
@@ -150,7 +153,10 @@ def Create(log, schema, path, indent_size = 4):
                         row = row[:-1]
 
                     if "default" in obj:
-                        row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
+                        if "enum" in obj and default_enum:
+                            row += " (default: " + (italics("%s") % str(enums[obj["ids"].index(obj["default"])]) + ")")
+                        else:
+                            row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
 
                     if obj["type"] == "number":
                         # correct number to integer
@@ -164,9 +170,9 @@ def Create(log, schema, path, indent_size = 4):
                         if d["type"] == "string" or is_buffer:
                             str_text = "Decoded data" if d.get("encode") else "String"
                             if d["range"][0]:
-                                row += italics("%s length must be in range [%s..%s] bytes." % (str_text, d["range"][0], d["range"][1]))
+                                row += italics("%s length must be in range [%s..%s] chars." % (str_text, d["range"][0], d["range"][1]))
                             else:
-                                row += italics("%s length must be at most %s bytes." % (str_text, d["range"][1]))
+                                row += italics("%s length must be at most %s chars." % (str_text, d["range"][1]))
                         else:
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
@@ -209,7 +215,7 @@ def Create(log, schema, path, indent_size = 4):
                 return "$deprecated"
 
             obj_type = obj["type"]
-            default = obj["example"] if "example" in obj else obj["default"] if "default" in obj else ""
+            default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
             if not default and "enum" in obj:
                 default = obj["enum"][0]

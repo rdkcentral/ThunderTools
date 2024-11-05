@@ -154,7 +154,7 @@ class CppParseError(RuntimeError):
             super(CppParseError, self).__init__(msg)
 
 
-def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
+def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
 
     def StripFrameworkNamespace(identifier):
         return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
@@ -288,65 +288,80 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
             is_iterator = (isinstance(cppType, CppParser.Class) and cppType.is_iterator)
             is_bitmask = "bitmask" in meta.decorators
 
+            result = None
+
             # Pointers
             if var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"]) or var.array) and not no_array and not is_bitmask:
-                # Special case for serializing C-style buffers, that will be converted to base64 encoded strings
-                if isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and ("encode:base64" in meta.decorators):
-                    props = dict()
+                encoding = None
+                for x in meta.decorators:
+                    if x.startswith("encode:"):
+                        encoding = x[7:]
+                        break
+
+                # C-style buffers that will be converted to base64 encoded JSON strings
+                if isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and encoding:
+                    props = {}
+
+                    props["@originaltype"] = cppType.type
+                    props["encode"] = encoding
 
                     if meta.maxlength:
-                        props["length"] = " ".join(meta.maxlength)
+                        props["@length"] = " ".join(meta.maxlength)
                     elif meta.length:
-                        props["length"] = " ".join(meta.length)
+                        props["@length"] = " ".join(meta.length)
+                    elif var.array:
+                        props["@arraysize"] = var.array
 
-                    if "length" in props:
-                        props["@originaltype"] = cppType.type
+                    result = ["string", props]
 
-                    props["encode"] = (cppType.type != "char")
-
-                    if meta.range:
-                        props["range"] = meta.range
-
-                    return "string", props if props else None
-
+                # C-style buffers converted to JSON arrays (no encode tag)
                 elif isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and not var.array:
-                    return ["array", { "items": ConvertParameter(var, no_array=True), "length": " ".join(meta.length), "@arraysize": "#bylength" }]
+                    result = ["array", { "items": ConvertParameter(var, no_array=True), "@length": " ".join(meta.length) }]
 
+                # C-style buffers converted to JSON array (not char type or fixed array)
                 elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float)) and var.array:
-                    return ["array", { "items": ConvertParameter(var, no_array=True), "@arraysize": var.array }]
+                    if encoding:
+                        log.WarnLine(var, "'%s': @encode only possible on char buffers" % var.name)
 
-                # Special case for iterators, that will be converted to JSON arrays
+                    result = ["array", { "items": ConvertParameter(var, no_array=True), "@arraysize": var.array }]
+
+                # Iterators that will be converted to JSON arrays
                 elif is_iterator and len(cppType.args) == 2:
                     # Take element type from return value of the Current() method
                     currentMethod = next((x for x in cppType.methods if x.name == "Current"), None)
 
                     if currentMethod == None:
-                        raise CppParseError(var, "%s does not appear to a be an @iterator type" % cppType.type)
+                        raise CppParseError(var, "%s is not an @iterator type" % cppType.type)
 
-                    result = ["array", { "items": ConvertParameter(currentMethod.retval), "iterator": StripInterfaceNamespace(cppType.type) } ]
+                    props = {}
 
-                    if "extract" in meta.decorators:
-                        result[1]["@extract"] = True
-
-                    if var_type.IsPointerToPointer():
-                        result[1]["@bypointer"] = True
+                    props["items"] = ConvertParameter(currentMethod.retval)
+                    props["@iterator"] = StripInterfaceNamespace(cppType.type)
 
                     if var_type.IsPointerToConst():
                         raise CppParseError(var, "iterators must be passed as const pointers (not pointers to const)")
 
-                    if meta.range:
-                        log.WarnLine(var, "'%s': @restrict has no effect on iterators" % var.name)
+                    if not quiet:
+                        if meta.range:
+                            log.WarnLine(var, "'%s': @restrict has no effect on iterators" % var.name)
+                        if meta.length:
+                            log.WarnLine(var, "'%s': @length has no effect on iterators" % var.name)
+                        if meta.default:
+                            log.WarnLine(var, "'%s': @default has no effect on iterators" % var.name)
+                        if encoding:
+                            log.WarnLine(var, "'%s': @encode has no effect on iterators" % var.name)
 
-                    return result
+                    result = ["array", props]
 
                 # All other pointer types are not supported
                 else:
                     raise CppParseError(var, "unable to convert C++ type to JSON type: %s (input pointer allowed only on interator or C-style buffer)" % cppType.type)
 
+                if "extract" in meta.decorators:
+                    result[1]["@extract"] = True
+
             # Primitives
             else:
-                result = None
-
                 # String
                 if isinstance(cppType, CppParser.String):
                     if "opaque" in meta.decorators :
@@ -358,13 +373,14 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 elif isinstance(cppType, CppParser.Bool):
                     result = ["boolean", {} ]
 
-                    if meta.range:
+                    if meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on bools" % var.name)
 
                 # Integer
                 elif isinstance(cppType, CppParser.Integer):
                     size = 8 if cppType.size == "char" else 16 if cppType.size == "short" else \
                         32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
+
                     result = [ "integer", { "size": size, "signed": cppType.signed } ]
 
                 # Instance ID
@@ -385,39 +401,33 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 # Enums
                 elif isinstance(cppType, CppParser.Enum):
-
-                    #if len(cppType.items) > 1:
-                        #autos = [e.auto_value for e in cppType.items].count(True)
-                        #if autos != 0 and (autos != len(cppType.items)):
-                        #   raise CppParseError(var, "enumerator values in an enum must all be explicit or all be implied")
-
-                    enum_spec = { "enum": [compute_name(e, _case_converter.ENUMS) for e in cppType.items] }
+                    props = { "enum": [compute_name(e, _case_converter.ENUMS) for e in cppType.items] }
 
                     if var_type.Type().scoped:
-                        enum_spec["scoped"] = True
+                        props["scoped"] = True
 
-                    enum_spec["ids"] = [e.name for e in cppType.items]
+                    props["ids"] = [e.name for e in cppType.items]
 
                     if not cppType.items[0].auto_value:
-                        enum_spec["values"] = [e.value for e in cppType.items]
+                        props["values"] = [e.value for e in cppType.items]
 
                     for e in cppType.items:
                         if "endmarker" in e.meta.decorators:
-                            enum_spec["@endmarker"] = e.name
-                            break;
-
-                    if "bitmask" in meta.decorators or "bitmask" in var.type.Type().meta.decorators:
-                        enum_spec["type"] = "string"
-                        enum_spec["@bitmask"] = True
-                        enum_spec["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
-                        result = ["array", { "items": enum_spec } ]
-                    else:
-                        result = ["string", enum_spec]
+                            props["@endmarker"] = e.name
+                            break
 
                     if isinstance(var.type.Type(), CppParser.Typedef):
                         type = var.type.Type().type.type
                         if not isinstance(type.parent, CppParser.Class) or type.parent.is_json:
-                            result[1]["@register"] = False
+                            props["@register"] = False
+
+                    if "bitmask" in meta.decorators or "bitmask" in var.type.Type().meta.decorators:
+                        props["type"] = "string"
+                        props["@bitmask"] = True
+                        props["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
+                        result = ["array", { "items": props } ]
+                    else:
+                        result = ["string", props]
 
                     if meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
@@ -455,9 +465,14 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 properties[name]["@register"] = False
 
                             if "optional" not in p.meta.decorators:
-                                required.append(name)
-                            elif not quiet:
-                                log.Info(p, "'%s': @optional tag is deprecated, use Core::OptionalType instead" % p.name)
+                                if "@optionaltype" not in properties[name]:
+                                    required.append(name)
+                            else:
+                                properties[name]["optional"] = True
+                                ConvertDefault(p, properties[name]["type"], properties[name])
+
+                                if not quiet:
+                                    log.Info(p, "'%s': @optional tag is deprecated, use Core::OptionalType instead" % p.name)
 
                         return "object", { "properties": properties, "required": required }
 
@@ -475,35 +490,30 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     result = ConvertType(cppType.optional, meta=var.meta)
                     result[1]["@optionaltype"] = True
                     result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
-
                     ConvertDefault(var, result[0], result[1])
 
                 # All other types are not supported
                 else:
                     raise CppParseError(var, "unable to convert this C++ type to JSON type: %s (unsupported type)" % cppType.type)
 
-                if result:
-                    if var_type.IsPointer():
-                        result[1]["@bypointer"] = True
+                if var_type.IsPointer():
+                    result[1]["@bypointer"] = True
 
-                    if var_type.IsReference():
-                        result[1]["@byreference"] = True
+            if result:
+                if meta.range:
+                    result[1]["range"] = meta.range
 
-                    if var_type.IsPointerToConst():
-                        result[1]["@ptrtoconst"] = True
+                    if meta.default:
+                        if result[0] == "integer" or result[0] == "number":
+                            if float(meta.default[0]) < meta.range[0] or (float(meta.default[0]) > meta.range[1]):
+                                raise CppParseError(var, "default value is outside of restrict range")
+                        elif result[0] == "string" and not result[1].get("enum"):
+                            if len(meta.default[0]) - 2 < meta.range[0] or (len(meta.default[0]) -2  > meta.range[1]):
+                                raise CppParseError(var, "default value string length is outside of restrict range")
+            else:
+                assert False
 
-                    if meta.range:
-                        result[1]["range"] = meta.range
-
-                        if meta.default:
-                            if result[0] == "integer" or result[0] == "number":
-                                if float(meta.default[0]) < meta.range[0] or (float(meta.default[0]) > meta.range[1]):
-                                    raise CppParseError(var, "default value is outside of restrict range")
-                            elif result[0] == "string" and not result[1].get("enum"):
-                                if len(meta.default[0]) - 2 < meta.range[0] or (len(meta.default[0]) -2  > meta.range[1]):
-                                    raise CppParseError(var, "default value string length is outside of restrict range")
-
-                return result
+            return result
 
         def ExtractExample(var):
             egidx = var.meta.brief.index("(e.g.") if "(e.g." in var.meta.brief else None
@@ -535,11 +545,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 else:
                     properties["description"] = var.meta.brief.strip()
 
-
             return properties
 
         def EventParameters(vars):
             events = []
+
             for var in vars:
                 def ResolveTypedef(resolved, events, type):
                     if not isinstance(type, list):
@@ -558,6 +568,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                 resolved = []
                 events = ResolveTypedef(resolved, events, var.type)
+
             return events
 
         def ConvertDefault(var, type, converted):
@@ -624,11 +635,10 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                         converted["@position"] = vars.index(var)
 
                         if "optional" not in var.meta.decorators:
-                            required.append(var_name)
+                            if "@optionaltype" not in converted:
+                                required.append(var_name)
                         else:
-                            converted["@optional"] = True
                             converted["optional"] = True
-
                             ConvertDefault(var, converted["type"], converted)
 
                             if not test:
@@ -667,7 +677,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
         def BuildIndex(var, test=False):
             return BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
 
-        def BuildResult(vars, is_property=False):
+        def BuildResult(vars, is_property=False, test=False):
             params = {"type": "object"}
             properties = OrderedDict()
             required = []
@@ -695,7 +705,14 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                     properties[var_name]["@position"] = vars.index(var)
 
                     if "optional" not in var.meta.decorators:
-                        required.append(var_name)
+                        if "@optionaltype" not in properties[var_name]:
+                            required.append(var_name)
+                    else:
+                        properties[var_name]["optional"] = True
+                        ConvertDefault(var, properties[var_name]["type"], properties[var_name])
+
+                        if not test:
+                            log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
 
             params["properties"] = properties
 
@@ -881,9 +898,9 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 obj["readonly"] = True
 
                             if result_name not in obj:
-                                obj[result_name] = BuildResult([method.vars[value]], True)
+                                obj[result_name] = BuildResult([method.vars[value]], True, False)
                             else:
-                                test = BuildResult([method.vars[value]], True)
+                                test = BuildResult([method.vars[value]], True, True)
 
                                 if not test:
                                     raise CppParseError(method.vars[value], "property getter method must have one output parameter")
@@ -893,9 +910,6 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                                 if "@bypointer" in test and test["@bypointer"]:
                                     obj[result_name]["@bypointer"] = True
-
-                                if "@ptrtoconst" in test and test["@ptrtoconst"]:
-                                    obj[result_name]["@ptrtoconst"] = True
 
                             if obj[result_name] == None:
                                 raise CppParseError(method.vars[value], "property getter method must have one output parameter")
@@ -910,7 +924,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 obj["writeonly"] = True
 
                             if "params" not in obj:
-                                obj["params"] = BuildParameters(None, [method.vars[value]], rpc_format, True)
+                                obj["params"] = BuildParameters(None, [method.vars[value]], rpc_format, True, False)
                             else:
                                 test = BuildParameters(None, [method.vars[value]], rpc_format, True, True)
 
@@ -920,8 +934,8 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                                 if obj["params"]["type"] != test["type"]:
                                     raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*2)")
 
-                                if "@byreference" in test and test["@byreference"]:
-                                    obj["params"]["@byreference"] = True
+                                if "@bypointer" in test and test["@bypointer"]:
+                                    obj[result_name]["@bypointer"] = True
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(method.vars[value], "property setter method must have one input parameter")
@@ -1058,6 +1072,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                     params = BuildParameters(None, method.vars[varsidx:], rpc_format, False)
                     retvals = BuildResult(method.vars[varsidx:])
+
                     if retvals and retvals["type"] != "null":
                         raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
 
@@ -1115,9 +1130,11 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
     if interfaces:
         for face in interfaces:
-            schema = Build(face)
-            if schema:
-                schemas.append(schema)
+            if face.obj.full_name not in scanned:
+                schema = Build(face)
+                if schema:
+                    schemas.append(schema)
+                    scanned.append(face.obj.full_name)
 
         for s in schemas:
             lookups = s["@lookups"] if "@lookups" in s else []
@@ -1134,12 +1151,13 @@ def LoadInterface(file, log, all = False, include_paths = []):
     try:
         schemas = []
         includes = []
+        scanned = []
 
         tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
                    posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], config.FRAMEWORK_NAMESPACE, include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
-            their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, all, include_paths)
+            their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths)
 
             for s in their_schemas:
                 f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))

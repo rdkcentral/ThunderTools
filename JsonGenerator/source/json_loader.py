@@ -120,7 +120,7 @@ class JsonType():
                         or (((self.root.rpc_format != config.RpcFormat.COMPLIANT) and (self.grand_parent == parent)))):
                 self.description = self.grand_parent.summary
 
-        self.iterator = schema.get("iterator")
+        self.iterator = schema.get("@iterator")
         self.original_type = schema.get("@originaltype")
         self.do_create = (self.original_type == None)
         self.included_from = included

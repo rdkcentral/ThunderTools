@@ -696,9 +696,6 @@ class Identifier():
 
                 self.type = self.type[typeIdx]
 
-                if isinstance(self.type.type, Optional):
-                    self.meta.decorators.append("optional")
-
     def __str__(self):
         return str(self.type) if self.type else ""
 
