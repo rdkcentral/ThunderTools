@@ -223,9 +223,20 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, pro
     emit.Line("#pragma once")
 
     if is_json_source and prototypes:
-        assert False
+        emit.Line()
+        emit.Line("#if _IMPLEMENTATION_STUB")
+        emit.Line("// sample implementation class")
+        emit.Line("class JSONRPCImplementation {")
+        emit.Line("public:")
+        emit.Indent()
 
-    emit.Line()
+        for p in prototypes:
+            emit.Line("%s { %s}" % (p[0], "return (%s); " % p[1] if p[1] else ""))
+
+        emit.Unindent()
+        emit.Line("}; // class JSONRPCImplementation")
+        emit.Line("#endif // _IMPLEMENTATION_STUB")
+        emit.Line()
 
     if not config.NO_INCLUDES:
         emit.Line("#include \"Module.h\"")
@@ -427,14 +438,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     _EmitNoPushWarnings(prologue=True)
 
     if is_json_source:
-        assert False
+        emit.Line("using JSONRPC = %s;" % names.jsonrpc_alias)
+        emit.Line()
 
     impl_name = ((" " + names.impl) if impl_required else "")
 
     register_params = [ "%s& %s" % (names.jsonrpc_alias, names.module) ]
 
     if is_json_source:
-        assert False
+        register_params.append("IMPLEMENTATION&%s" % impl_name)
+        emit.Line("template<typename IMPLEMENTATION>")
 
     else:
         register_params.append("%s*%s" % (names.interface, impl_name))
@@ -818,15 +831,24 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.ExitBlock(conditions)
 
                     elif is_json_source:
-                        assert False
+                        response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
+                        initializer = ("(%s)" if isinstance(arg, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
 
+                        if is_readable and is_writeable:
+                            emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
+
+                        emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type, arg.temp_name, initializer))
                     else:
                         raise RPCEmitterError("arrays must be iterators: %s" % param.json_name)
 
                 # All Other
                 else:
                     if is_json_source:
-                        assert False
+                        response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
+                        initializer = ("(%s)" if isinstance(arg, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
+
+                        if is_readable and is_writeable:
+                            emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
                     else:
                         initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
 
@@ -893,7 +915,28 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             # Semi-automatic mode
             else:
-                assert False
+                parameters = []
+
+                if indexed:
+                    parameters.append(index_name)
+
+                for _, [ arg, _ ] in sorted_vars:
+                    parameters.append("%s" % (arg.temp_name))
+
+                if const_cast:
+                    emit.Line("%s = (static_cast<const IMPLEMENTATION&>(%s)).%s(%s);" % (error_code.temp_name, names.impl, m.function_name, ", ".join(parameters)))
+                else:
+                    emit.Line("%s = %s.%s(%s);" % (error_code.temp_name, names.impl, m.function_name, ", ".join(parameters)))
+
+                parameters = []
+
+                if indexed:
+                    parameters.append("const %s& %s" % (any_index.cpp_native_type, index_name))
+
+                for _, [ arg, type ] in sorted_vars:
+                    parameters.append("%s%s& %s" % ("const " if type == "r" else "", arg.cpp_type, arg.local_name))
+
+                prototypes.append(["uint32_t %s(%s)%s" % (m.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(m, JsonProperty) and m.readonly)) else "")), CoreError("none")])
 
             emit.Line()
 
