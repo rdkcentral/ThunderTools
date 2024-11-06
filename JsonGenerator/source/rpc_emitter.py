@@ -626,39 +626,39 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             sorted_vars = sorted(vars.items(), key=lambda x: x[1][0].schema["@position"])
 
-            for _, [arg, arg_type] in sorted_vars:
-                arg.flags = DottedDict()
-                arg.flags.prefix = ""
-                arg.access = arg_type
+            for _, [param, param_type] in sorted_vars:
+                param.flags = DottedDict()
+                param.flags.prefix = ""
+                param.access = param_type
 
-                if arg.schema.get("@bypointer"):
-                    arg.flags.prefix = "&"
+                if param.schema.get("@bypointer"):
+                    param.flags.prefix = "&"
 
-                if "encode" in arg.schema:
-                    arg.flags.encode = arg.schema["encode"]
+                if "encode" in param.schema:
+                    param.flags.encode = param.schema["encode"]
 
 
             # Tie buffer with length variables
-            for _, [arg, _] in sorted_vars:
-                if isinstance(arg, (JsonString, JsonArray)):
-                    length_value = arg.schema.get("@length")
-                    array_size_value = arg.schema.get("@arraysize")
+            for _, [param, _] in sorted_vars:
+                if isinstance(param, (JsonString, JsonArray)):
+                    length_value = param.schema.get("@length")
+                    array_size_value = param.schema.get("@arraysize")
 
                     if length_value:
                         for name, [var, type] in sorted_vars:
                             if name == length_value:
                                 if type == "w":
-                                    raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % arg.name)
+                                    raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % param.name)
                                 else:
                                     var.flags.is_buffer_length = True
-                                    arg.flags.length = var
+                                    param.flags.length = var
                                     break
 
-                        if not arg.flags.length:
-                            arg.flags.size = length_value
+                        if not param.flags.length:
+                            param.flags.size = length_value
 
                     elif array_size_value:
-                        arg.flags.size = array_size_value
+                        param.flags.size = array_size_value
 
             restrictions = Restrictions(test_set=True)
 
@@ -832,21 +832,21 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.ExitBlock(conditions)
 
                     elif is_json_source:
-                        response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
-                        initializer = ("(%s)" if isinstance(arg, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
+                        response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
+                        initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
 
                         if is_readable and is_writeable:
                             emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
 
-                        emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type, arg.temp_name, initializer))
+                        emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type, param.temp_name, initializer))
                     else:
                         raise RPCEmitterError("arrays must be iterators: %s" % param.json_name)
 
                 # All Other
                 else:
                     if is_json_source:
-                        response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
-                        initializer = ("(%s)" if isinstance(arg, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
+                        response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
+                        initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
 
                         if is_readable and is_writeable:
                             emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
@@ -921,8 +921,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if indexed:
                     parameters.append(index_name)
 
-                for _, [ arg, _ ] in sorted_vars:
-                    parameters.append("%s" % (arg.temp_name))
+                for _, [ param, _ ] in sorted_vars:
+                    parameters.append("%s" % (param.temp_name))
 
                 if const_cast:
                     emit.Line("%s = (static_cast<const IMPLEMENTATION&>(%s)).%s(%s);" % (error_code.temp_name, names.impl, m.function_name, ", ".join(parameters)))
@@ -934,8 +934,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if indexed:
                     parameters.append("const %s& %s" % (any_index.cpp_native_type, index_name))
 
-                for _, [ arg, type ] in sorted_vars:
-                    parameters.append("%s%s& %s" % ("const " if type == "r" else "", arg.cpp_type, arg.local_name))
+                for _, [ param, type ] in sorted_vars:
+                    parameters.append("%s%s& %s" % ("const " if type == "r" else "", param.cpp_type, param.local_name))
 
                 prototypes.append(["uint32_t %s(%s)%s" % (m.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(m, JsonProperty) and m.readonly)) else "")), CoreError("none")])
 
