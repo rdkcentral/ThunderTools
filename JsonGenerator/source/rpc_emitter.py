@@ -171,7 +171,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 elif isinstance(event.sendif_type, JsonEnum):
                     conv_index_name = (names.index + "Converted_")
                     emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (event.sendif_type.cpp_native_type, conv_index_name, names.index))
-                    emit.Line("return (_value.IsSet() == true) && (%s == %s));" % (names.filter, conv_index_name))
+                    emit.Line("return (%s == %s);" % (names.filter, conv_index_name))
 
                 else:
                     emit.Line("return (%s == %s);" % (names.filter, names.index))
@@ -569,6 +569,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if isinstance(index, JsonEnum):
                     emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (index.cpp_native_type, _index_name_converted, index_name))
                     _EmitRestrictions(_index_name_converted, extra="%s.IsSet() == false" % (_index_name_converted))
+                    _index_name_converted += ".Value()"
                 else:
                     emit.Line("%s %s{};" % (index.cpp_native_type, _index_name_converted))
                     _EmitRestrictions(_index_name_converted, extra="Core::FromString(%s, %s) == false" % (index_name, _index_name_converted))
