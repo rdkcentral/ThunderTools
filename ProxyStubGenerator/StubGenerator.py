@@ -154,7 +154,8 @@ def FindInterfaceClasses(tree, namespace):
                                 if not e.scoped:
                                     for item in e.items:
                                         if item.name == "ID":
-                                            faces.append(Interface(c, item.value, source_file))
+                                            if item.value != 0:
+                                                faces.append(Interface(c, item.value, source_file))
                                             has_id = True
                                             break
 

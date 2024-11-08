@@ -171,7 +171,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 elif isinstance(event.sendif_type, JsonEnum):
                     conv_index_name = (names.index + "Converted_")
                     emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (event.sendif_type.cpp_native_type, conv_index_name, names.index))
-                    emit.Line("return (_value.IsSet() == true) && (%s == %s));" % (names.filter, conv_index_name))
+                    emit.Line("return (%s == %s);" % (names.filter, conv_index_name))
 
                 else:
                     emit.Line("return (%s == %s);" % (names.filter, names.index))
@@ -236,8 +236,7 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, pro
         emit.Unindent()
         emit.Line("}; // class JSONRPCImplementation")
         emit.Line("#endif // _IMPLEMENTATION_STUB")
-
-    emit.Line()
+        emit.Line()
 
     if not config.NO_INCLUDES:
         emit.Line("#include \"Module.h\"")
@@ -557,7 +556,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Unindent()
                         emit.Line("}")
                 else:
-                    _EmitRestrictions(index_name, extra=("(%s.empty() == true)" % index_name))
+                    _EmitRestrictions(index_name, extra=("%s.empty() == true" % index_name))
                     _index_checked = True # still have to close the bracket...
 
             elif isinstance(index, (JsonInteger, JsonBoolean, JsonEnum)):
@@ -569,10 +568,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 if isinstance(index, JsonEnum):
                     emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (index.cpp_native_type, _index_name_converted, index_name))
-                    _EmitRestrictions(_index_name_converted, extra="((%s.IsSet() == false)" % (_index_name_converted))
+                    _EmitRestrictions(_index_name_converted, extra="%s.IsSet() == false" % (_index_name_converted))
+                    _index_name_converted += ".Value()"
                 else:
                     emit.Line("%s %s{};" % (index.cpp_native_type, _index_name_converted))
-                    _EmitRestrictions(_index_name_converted, extra="(Core::FromString(%s, %s) == false)" % (index_name, _index_name_converted))
+                    _EmitRestrictions(_index_name_converted, extra="Core::FromString(%s, %s) == false" % (index_name, _index_name_converted))
 
                 if _IsOptional(index) or _IsLegacyOptional(index):
                     emit.Line("else {")
@@ -598,7 +598,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             return _index_checked
 
-        def _Invoke(params, response, parent="", repsonse_parent="", const_cast=False, index=None, test_param=True):
+        def _Invoke(params, response, parent="", repsonse_parent="", const_cast=False, index=None, test_param=True, param_const_cast=False):
             vars = OrderedDict()
 
             _index_checks_emitted = _EmitIndexing(index) if index else False
@@ -626,26 +626,41 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             sorted_vars = sorted(vars.items(), key=lambda x: x[1][0].schema["@position"])
 
-            for _, [arg, _] in sorted_vars:
-                arg.flags = DottedDict()
-                arg.flags.prefix = ""
+            for _, [param, param_type] in sorted_vars:
+                param.flags = DottedDict()
+                param.flags.prefix = ""
+                param.access = param_type
+
+                if param.schema.get("@bypointer"):
+                    param.flags.prefix = "&"
+
+                if "encode" in param.schema:
+                    param.flags.encode = param.schema["encode"]
+
 
             # Tie buffer with length variables
-            for _, [arg, _] in sorted_vars:
-                length_var_name = arg.schema.get("length")
+            for _, [param, _] in sorted_vars:
+                if isinstance(param, (JsonString, JsonArray)):
+                    length_value = param.schema.get("@length")
+                    array_size_value = param.schema.get("@arraysize")
 
-                if isinstance(arg, (JsonString, JsonArray)) and length_var_name:
-                    for name, [var, type] in sorted_vars:
-                        if name == length_var_name:
-                            if type == "w":
-                                raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % arg.name)
-                            else:
-                                var.flags.is_buffer_length = True
-                                arg.flags.length = var
-                                break
+                    if length_value:
+                        for name, [var, type] in sorted_vars:
+                            if name == length_value:
+                                if type == "w":
+                                    raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % param.name)
+                                else:
+                                    var.flags.is_buffer_length = True
+                                    param.flags.length = var
+                                    break
+
+                        if not param.flags.length:
+                            param.flags.size = length_value
+
+                    elif array_size_value:
+                        param.flags.size = array_size_value
 
             restrictions = Restrictions(test_set=True)
-            buffer_restrictions_used = False
 
             if params:
                 restrictions.append(params, override=params.local_name, test_set=test_param)
@@ -662,214 +677,203 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             # Emit temporary variables and deserializing of JSON data
 
-            for _, [arg, arg_type] in sorted_vars:
-                if arg.flags.is_buffer_length:
+            for _, [param, param_type] in sorted_vars:
+                if param.flags.is_buffer_length:
                     continue
 
-                is_readable = ("r" in arg_type)
-                is_writeable = ("w" in arg_type)
+                is_readable = ("r" in param_type)
+                is_writeable = ("w" in param_type)
                 cv_qualifier = ("const " if not is_writeable else "") # don't consider volatile
 
                 # Take care of POD aggregation
-                cpp_name = ((parent + arg.cpp_name) if parent else arg.local_name)
+                cpp_name = ((parent + param.cpp_name) if parent else param.local_name)
 
-                if arg.schema.get("@bypointer"):
-                    arg.flags.prefix = "&"
+                # Encoded JSON strings to C-style buffer
+                if isinstance(param, JsonString) and (param.flags.length or param.flags.size) and param.flags.encode:
+                    conditions = Restrictions(reverse=True)
+                    length_param = param.flags.length
 
-                # Special case for C-style buffers
-                if isinstance(arg, JsonString) and arg.flags.length:
-                    assert not arg.optional
+                    assert not param.optional
 
-                    length = arg.flags.length
+                    if param.flags.length:
+                        size = length_param.temp_name
+                        length_cpp_name = parent + length_param.cpp_name
 
-                    buffer_restrictions = Restrictions(test_set=True, reverse=True, json=False)
+                        if length_param.optional and "r" in length_param.access:
+                            emit.Line("%s %s{};" % (length_param.cpp_native_type_opt, size))
+                            emit.Line("if (%s.IsSet() == true) { %s = %s.Value(); }" % (length_cpp_name, size, length_cpp_name))
+                        else:
+                            initializer = (length_cpp_name + ".Value()") if "r" in length_param.access else ""
+                            emit.Line("%s %s{%s};" % (length_param.cpp_native_type_opt, size, initializer))
 
-                    for name, [var, var_type] in sorted_vars:
-                        if name == length.local_name:
-                            initializer = (parent + var.cpp_name) if "r" in var_type else ""
-                            emit.Line("%s %s{%s};" % (var.cpp_native_type, var.temp_name, initializer))
-                            break
+                        emit.Line("%s* %s{nullptr};" % (param.original_type, param.temp_name))
 
-                    encode = arg.schema.get("encode")
+                        if length_param.optional:
+                            size += ".Value()"
 
-                    if not is_writeable and not encode:
-                        initializer = "%s.Value().data()" % cpp_name
-                        emit.Line("const %s* %s{%s};" % (arg.original_type, arg.temp_name, initializer))
+                        conditions.check_set(length_param)
+                        conditions.check_not_null(length_param)
+
+                        if length_param.size > 16:
+                            conditions.extend("(%s <= 0x400000) /* sanity! */" % size)
                     else:
-                        emit.Line("%s* %s{nullptr};" % (arg.original_type, arg.temp_name))
-                        emit.Line()
+                        size = param.flags.size
+                        emit.Line("%s %s[%s]{};" % (param.original_type, param.temp_name, size))
 
-                        emit.Line("if (%s != 0) {" % length.temp_name)
-                        emit.Indent()
+                    emit.EnterBlock(conditions)
 
-                        if not buffer_restrictions.present():
-                            buffer_restrictions.append(arg, relay=length, test_set=False)
-
-                        if not buffer_restrictions.present() and (length.size > 16):
-                            buffer_restrictions.extend("(%s <= 0x400000) /* sanity! */" % length.temp_name)
-
-                        if buffer_restrictions.present():
-                            buffer_restrictions_used = True
-                            emit.Line("if (%s) {" % buffer_restrictions.join())
-                            emit.Indent()
-
-                        emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (arg.temp_name, arg.original_type, length.temp_name))
-                        emit.Line("ASSERT(%s != nullptr);" % arg.temp_name)
+                    if length_param:
+                        emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (param.temp_name, param.original_type, size))
+                        emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
 
                     if is_readable:
-                        if encode:
-                            emit.Line("Core::FromString(%s, %s, %s, nullptr);" % (cpp_name, arg.temp_name, length.temp_name))
-                        elif is_writeable:
-                            emit.Line("::memcpy(%s, %s.Value().data(), %s);" % (arg.temp_name, cpp_name, length.temp_name))
+                        if param.flags.encode == "base64":
+                            if param.flags.size:
+                                size_var = param.TempName("Size_")
+                                emit.Line("uint16_t %s{%s};" % (size_var, size))
+                            else:
+                                size_var = size
 
-                    if buffer_restrictions.present():
-                        emit.Unindent()
-                        emit.Line("}")
-                        emit.Line("else {")
-                        emit.Indent()
-                        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
-                        emit.Unindent()
-                        emit.Line("}")
+                            emit.Line("Core::FromString(%s, %s, %s, nullptr);" % (cpp_name, param.temp_name, size_var))
+                        else:
+                            assert False, "unimplemented encoding: " + param.flags.encode
 
-                    if is_writeable or encode:
-                        emit.Unindent()
-                        emit.Line("}")
+                    emit.ExitBlock(conditions)
 
-                    emit.Line()
+                elif isinstance(param, JsonArray):
+                    # Array to iterator
+                    if param.iterator:
+                        emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
 
-                # Special case for iterators
-                elif isinstance(arg, JsonArray):
-                    face_name = "_" + arg.items.local_name.capitalize() + "IteratorType"
+                        if is_readable:
+                            elements_name = param.items.TempName("elements")
+                            iterator_name = param.items.TempName("iterator")
+                            impl_name = param.items.TempName("iteratorImplType")
 
-                    if arg.optional and is_readable:
-                        emit.Line("Core::OptionalType<%s*> %s{};" % (face_name, arg.temp_name))
-                        emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
-                        emit.Indent()
+                            if param.optional:
+                                emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
+                                emit.Indent()
 
-                    if arg.iterator:
-                        emit.Line("using %s = %s;" % (face_name, arg.iterator))
-
-                        if not is_writeable:
-                            arg.flags.release = False if (arg.optional and is_readable) else True
-
-                            elements_name = arg.items.TempName("elements")
-                            iterator_name = arg.items.TempName("iterator")
-                            impl_name = "_" + arg.items.local_name.capitalize() + "IteratorImplType"
-
-                            emit.Line("std::list<%s> %s{};" % (arg.items.cpp_native_type, elements_name))
+                            emit.Line("std::list<%s> %s{};" % (param.items.cpp_native_type, elements_name))
                             emit.Line("auto %s = %s.Elements();" % (iterator_name, cpp_name))
                             emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (iterator_name, elements_name, iterator_name))
-                            impl = (arg.iterator[:arg.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % face_name))
+                            impl = (param.iterator[:param.iterator.index('<')].replace("IIterator", "Iterator") + ("<%s>" % param.iterator))
                             emit.Line("using %s = %s;" % (impl_name, impl))
-                            initializer = "Core::ServiceType<%s>::Create<%s>(std::move(%s))" % (impl_name, face_name, elements_name)
-                            if arg.optional and is_readable:
-                                emit.Line("%s = %s;" % (arg.temp_name, initializer))
-                            else:
-                                emit.Line("%s* const %s{%s};" % (face_name, arg.temp_name, initializer))
-                            emit.Line("ASSERT(%s != nullptr); " % arg.temp_name)
+                            initializer = "Core::ServiceType<%s>::Create<%s>(std::move(%s))" % (impl_name, param.iterator, elements_name)
 
-                            if arg.schema.get("@byreference"):
-                                arg.flags.cast = "static_cast<%s* const&>(%s)" % (face_name, arg.temp_name)
+                            iterator = param.temp_name
+                            if param.optional:
+                                iterator += ".Value()"
+
+                            emit.Line("%s = %s;" % (param.temp_name, initializer))
+                            emit.Line("ASSERT(%s != nullptr); " % iterator)
+
+                            if param_const_cast:
+                                param.flags.cast = "static_cast<%s const&>(%s)" % (param.cpp_native_type_opt, param.temp_name)
+
+                            if param.optional:
+                                emit.Unindent()
+                                emit.Line("}")
 
                             emit.Line()
 
-                        elif not is_readable:
-                            if arg.optional:
-                                emit.Line("Core::OptionalType<%s*> %s{};" % (face_name, arg.temp_name))
+                    # array to bitmask
+                    elif param.items.schema.get("@bitmask"):
+                        if param.optional and is_readable:
+                            emit.Line("%s %s{};" % (param.items.cpp_native_type_opt, param.temp_name))
+                            emit.Line("if (%s.IsSet() == true) { %s = %s.Value(); }" % ( param.temp_name, cpp_name))
+                        else:
+                            initializer = cpp_name if is_readable else ""
+                            emit.Line("%s%s %s{%s};" % (cv_qualifier, param.items.cpp_native_type, param.temp_name, initializer))
+
+                    # array to fixed array
+                    elif (param.flags.size or param.flags.length):
+                        items = param.items
+                        length_param = param.flags.length
+                        conditions = Restrictions(reverse=True)
+
+                        assert not param.optional
+
+                        if length_param:
+                            size = length_param.temp_name
+
+                            if length_param.optional and "r" in length_param.access:
+                                length_cpp_name = parent + length_param.cpp_name
+                                emit.Line("%s %s{};" % (length_param.cpp_native_type_opt, size))
+                                emit.Line("if (%s.IsSet() == true) { %s = %s.Value(); }" % (length_cpp_name, size, length_cpp_name))
                             else:
-                                emit.Line("%s%s* %s{};" % ("const " if arg.schema.get("@ptrtoconst") else "", face_name, arg.temp_name))
+                                initializer = (parent + length_param.cpp_name + ".Value()") if "r" in length_param.access else ""
+                                emit.Line("%s %s{%s};" % (length_param.cpp_native_type_opt, size, initializer))
+
+                            emit.Line("%s* %s{};" % (items.cpp_native_type, param.temp_name))
+
+                            conditions.check_set(length_param)
+                            conditions.check_not_null(length_param)
+
+                            if length_param.optional:
+                                size += ".Value()"
                         else:
-                            raise RPCEmitterError("Read/write arrays (iterators) are not supported (see %s)" % arg.cpp_native_type_opt)
+                            size = param.flags.size
+                            emit.Line("%s %s[%s]{};" % (param.items.cpp_native_type, param.temp_name, size))
 
-                    elif arg.items.schema.get("@bitmask"):
-                        initializer = cpp_name if is_readable else ""
-                        emit.Line("%s%s %s{%s};" % (cv_qualifier, arg.items.cpp_native_type, arg.temp_name, initializer))
+                        emit.EnterBlock(conditions)
 
-                    elif arg.schema.get("@arraysize"):
-                        if "#" in arg.schema.get("@arraysize"):
-                            for name, [var, var_type] in sorted_vars:
-                                if name == arg.flags.length.local_name:
-                                    initializer = (parent + var.cpp_name) if "r" in var_type else ""
-                                    emit.Line("%s %s{%s};" % (var.cpp_native_type, var.temp_name, initializer))
-                                    break
-
-                            emit.Line("%s* %s{};" % (arg.items.cpp_native_type, arg.items.temp_name))
-                            emit.Line("if (%s != 0) {" % arg.flags.length.temp_name)
-                            emit.Indent()
-                            emit.Line("%s = static_cast<%s*>(ALLOCA(%s));" % (arg.items.temp_name, arg.items.cpp_native_type, arg.flags.length.temp_name))
-                            emit.Line("ASSERT(%s != nullptr);" % arg.items.temp_name)
-                            _len = arg.flags.length.temp_name
-                        else:
-                            emit.Line("%s %s[%s]{};" % (arg.items.cpp_native_type, arg.items.temp_name, arg.schema.get("@arraysize")))
-                            _len = arg.schema.get("@arraysize")
-                            emit.Line("{")
-                            emit.Indent()
+                        if length_param:
+                            emit.Line("%s = static_cast<%s*>(ALLOCA(%s));" % (param.temp_name, items.cpp_native_type, size))
+                            emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
 
                         if is_readable:
+                            emit.EnterBlock()
                             emit.Line("uint16_t i = 0;")
-                            emit.Line("auto it = %s.Elements();" % arg.local_name)
-                            emit.Line("while ((it.Next() != true) && (i < %s)) {" % _len)
-                            emit.Indent()
-                            emit.Line("%s[i++] = it.Current();" % (arg.items.temp_name))
-                            emit.Unindent()
-                            emit.Line("}")
+                            emit.Line("auto it = %s.Elements();" % (parent + param.cpp_name))
+                            emit.Line("while ((it.Next() == true) && (i < %s)) { %s[i++] = it.Current(); }" % (size, param.items.temp_name))
+                            emit.ExitBlock()
 
-                        emit.Unindent()
-                        emit.Line("}")
-                        emit.Line()
+                        emit.ExitBlock(conditions)
 
                     elif is_json_source:
-                        response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
-                        initializer = ("(%s)" if isinstance(arg, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
+                        response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
+                        initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
 
                         if is_readable and is_writeable:
                             emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
 
-                        emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type, arg.temp_name, initializer))
-
+                        emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type, param.temp_name, initializer))
                     else:
-                        raise RPCEmitterError("Arrays must be iterators: %s" % arg.json_name)
-
-                    if arg.optional and is_readable:
-                        emit.Unindent()
-                        emit.Line("}")
+                        raise RPCEmitterError("arrays must be iterators: %s" % param.json_name)
 
                 # All Other
                 else:
                     if is_json_source:
-                        response_cpp_name = (response_parent + arg.cpp_name) if response_parent else arg.local_name
-                        initializer = ("(%s)" if isinstance(arg, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
+                        response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
+                        initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
 
                         if is_readable and is_writeable:
                             emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
-
                     else:
-                        initializer = (("(%s)" if isinstance(arg, JsonObject) else "{%s}") % cpp_name) if is_readable and not arg.convert else "{}"
+                        initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
 
-                    if arg.optional and is_readable and (arg.default_value == None or not parent):
-                        emit.Line("%s %s{};" % (arg.cpp_native_type_opt, arg.temp_name))
+                    if param.optional and is_readable and (param.default_value == None or not parent):
+                        emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
                         emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
                         emit.Indent()
-                        emit.Line("%s = %s;" % (arg.temp_name, cpp_name))
+                        emit.Line("%s = %s;" % (param.temp_name, cpp_name))
                         emit.Unindent()
-                        if arg.default_value:
+
+                        if param.default_value:
                             emit.Line("}")
                             emit.Line("else {")
                             emit.Indent()
-                            emit.Line("%s = %s;" % (arg.temp_name, arg.default_value))
+                            emit.Line("%s = %s;" % (param.temp_name, param.default_value))
                             emit.Unindent()
+
                         emit.Line("}")
                         emit.Line()
                     else:
-                        emit.Line("%s%s %s%s;" % (cv_qualifier, (arg.cpp_type + "&") if is_json_source else arg.cpp_native_type_opt, arg.temp_name, initializer))
+                        emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type_opt, param.temp_name, initializer))
 
-                    if arg.convert and is_readable:
-                        emit.Line((arg.convert + ";") % (arg.temp_name, cpp_name))
-
-            if buffer_restrictions_used:
-                emit.Line()
-                emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
-                emit.Indent()
+                    if param.convert and is_readable:
+                        emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
 
             # Emit call to the implementation
             if not is_json_source: # Full automatic mode
@@ -894,15 +898,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if indexed:
                     function_params.append(index_name)
 
-                for _, [arg, _] in sorted_vars:
-                    function_params.append("%s%s" % (arg.flags.prefix, (arg.flags.cast if arg.flags.cast else arg.temp_name)))
+                for _, [param, _] in sorted_vars:
+                    function_params.append("%s%s" % (param.flags.prefix, (param.flags.cast if param.flags.cast else param.temp_name)))
 
+                emit.Line()
                 emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, m.function_name, ", ".join(function_params)))
-
-                for _, _record in sorted_vars:
-                    arg = _record[0]
-                    if arg.flags.release:
-                        emit.Line("%s->Release();" % arg.temp_name)
 
                 if lookup:
                     emit.Line("%s->Release();" % impl)
@@ -921,8 +921,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if indexed:
                     parameters.append(index_name)
 
-                for _, [ arg, _ ] in sorted_vars:
-                    parameters.append("%s" % (arg.temp_name))
+                for _, [ param, _ ] in sorted_vars:
+                    parameters.append("%s" % (param.temp_name))
 
                 if const_cast:
                     emit.Line("%s = (static_cast<const IMPLEMENTATION&>(%s)).%s(%s);" % (error_code.temp_name, names.impl, m.function_name, ", ".join(parameters)))
@@ -934,14 +934,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if indexed:
                     parameters.append("const %s& %s" % (any_index.cpp_native_type, index_name))
 
-                for _, [ arg, type ] in sorted_vars:
-                    parameters.append("%s%s& %s" % ("const " if type == "r" else "", arg.cpp_type, arg.local_name))
+                for _, [ param, type ] in sorted_vars:
+                    parameters.append("%s%s& %s" % ("const " if type == "r" else "", param.cpp_type, param.local_name))
 
                 prototypes.append(["uint32_t %s(%s)%s" % (m.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(m, JsonProperty) and m.readonly)) else "")), CoreError("none")])
-
-            if buffer_restrictions_used:
-                emit.Unindent()
-                emit.Line("}")
 
             emit.Line()
 
@@ -951,78 +947,108 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
                 emit.Indent()
 
-                for _, [arg, arg_type] in sorted_vars:
-                    if "w" not in arg_type:
+                for _, [param, param_type] in sorted_vars:
+                    if "w" not in param_type:
                         continue
 
-                    _rhs = arg.temp_name
-                    if arg.optional:
-                        _rhs += ".Value()"
-
-                    cpp_name = (repsonse_parent + arg.cpp_name) if repsonse_parent else arg.local_name
+                    rhs = param.temp_name
+                    cpp_name = (repsonse_parent + param.cpp_name) if repsonse_parent else param.local_name
 
                     # Special case for C-style buffers disguised as base64-encoded strings
-                    if isinstance(arg, JsonString) and "length" in arg.flags:
-                        length_var = arg.flags.get("length")
+                    if isinstance(param, JsonString) and (param.flags.length or param.flags.size) and param.flags.encode:
+                        length_param = param.flags.length
 
-                        emit.Line()
-                        emit.Line("if (%s != 0) {" % length_var.temp_name)
-                        emit.Indent()
+                        conditions = Restrictions(reverse=True)
 
-                        if arg.schema.get("encode"):
-                            encoded_name = arg.TempName("encoded_")
-                            emit.Line("%s %s;" % (arg.cpp_native_type, encoded_name))
-                            emit.Line("Core::ToString(%s, %s, true, %s);" % (arg.temp_name, length_var.temp_name, encoded_name))
+                        if length_param:
+                            conditions.check_set(length_param)
+                            conditions.check_not_null(length_param)
+
+                            size = length_param.temp_name
+
+                            if length_param.optional:
+                                # the length variable determines optionality of the buffer
+                                size += ".Value()"
+                        else:
+                            size = param.flags.size
+
+                        emit.EnterBlock(conditions)
+
+                        if param.flags.encode == "base64":
+                            encoded_name = param.TempName("encoded_")
+                            emit.Line("%s %s;" % (param.cpp_native_type, encoded_name))
+                            emit.Line("Core::ToString(%s, %s, true, %s);" % (param.temp_name, size, encoded_name))
                             emit.Line("%s = %s;" % (cpp_name, encoded_name))
                         else:
-                            emit.Line("%s = string(%s, %s);" % (cpp_name, arg.temp_name, length_var.temp_name))
+                            assert False, "unimplemented encoding: " + param.flags.encode
 
-                        emit.Unindent()
-                        emit.Line("}")
+                        emit.ExitBlock(conditions)
 
-                    # Special case for iterators disguised as arrays
-                    elif isinstance(arg, JsonArray):
-                        if arg.iterator:
-                            item_name = arg.items.TempName("item_")
+                    elif isinstance(param, JsonArray):
+                        if param.iterator:
+                            conditions = Restrictions(reverse=True)
+                            conditions.check_set(param)
+                            conditions.check_not_null(param)
 
-                            emit.Line("if (%s != nullptr) {" % _rhs)
-                            emit.Indent()
+                            if param.optional:
+                                rhs += ".Value()"
 
-                            emit.Line("%s %s{};" % (arg.items.cpp_native_type, item_name))
-                            emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (_rhs, item_name, cpp_name, item_name))
+                            emit.EnterBlock(conditions)
 
-                            if arg.schema.get("@extract"):
+                            item_name = param.items.TempName("item_")
+                            emit.Line("%s %s{};" % (param.items.cpp_native_type, item_name))
+                            emit.Line("while (%s->Next(%s) == true) { %s.Add() = %s; }" % (rhs, item_name, cpp_name, item_name))
+
+                            if param.schema.get("@extract"):
                                 emit.Line("%s.SetExtractOnSingle(true);" % (cpp_name))
 
-                            emit.Line("%s->Release();" % _rhs)
-                            emit.Unindent()
-                            emit.Line("}")
+                            emit.Line("%s->Release();" % rhs)
 
-                        elif arg.items.schema.get("@bitmask"):
-                            emit.Line("%s = %s;" % (cpp_name, _rhs))
+                            emit.ExitBlock(conditions)
 
-                        elif arg.schema.get("@arraysize"):
-                            if "#" in arg.schema.get("@arraysize"):
-                                _len = arg.flags.length.temp_name
+                        elif param.items.schema.get("@bitmask"):
+                            emit.Line("%s = %s;" % (cpp_name, rhs))
+
+                        elif (param.flags.length or param.flags.size):
+                            length_param = param.flags.length
+                            conditions = Restrictions(reverse=True)
+
+                            if length_param:
+                                conditions.check_set(length_param)
+                                conditions.check_not_null(length_param)
+                                size = length_param.temp_name
+
+                                if length_param.optional:
+                                    size += ".Value()"
                             else:
-                                _len = arg.schema.get("@arraysize")
+                                size = param.flags.size
+
+                            if conditions.count():
+                                emit.Line("if (%s) {" % conditions.join())
+                                emit.Indent()
 
                             emit.Line("%s.Clear();" % cpp_name)
-                            emit.Line("for (uint16_t i = 0; i < %s; i++) {" % _len)
-                            emit.Indent()
-                            emit.Line("%s.Add() = %s[i];" % (cpp_name, _rhs))
-                            emit.Unindent()
-                            emit.Line("}")
-                            pass
+                            emit.Line("for (uint16_t i = 0; i < %s; i++) { %s.Add() = %s[i]; }" % (size, cpp_name, rhs))
 
+                            if conditions.count():
+                                emit.Unindent()
+                                emit.Line("}")
+                                emit.Line("else {")
+                                emit.Indent()
+                                emit.Line("%s.Null(true);" % cpp_name)
+                                emit.Unindent()
+                                emit.Line("}")
+
+                            emit.Line()
                         else:
-                            raise RPCEmitterError("unable to serialize a non-iterator array: %s" % arg.json_name)
+                            raise RPCEmitterError("unable to serialize a non-iterator array: %s" % param.json_name)
 
                     # All others...
                     else:
-                        emit.Line("%s = %s;" % (cpp_name, _rhs + arg.convert_rhs))
+                        # assignment operator takes care of OptionalType
+                        emit.Line("%s = %s;" % (cpp_name, rhs + param.convert_rhs))
 
-                        if arg.schema.get("opaque") and not repsonse_parent: # if comes from a struct it already has a SetQuoted
+                        if param.schema.get("opaque") and not repsonse_parent: # if comes from a struct it already has a SetQuoted
                             emit.Line("%s.SetQuoted(false);" % (cpp_name))
 
                 emit.Unindent()
@@ -1139,7 +1165,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             if not is_write_only:
                 assert not response.is_void
-                _Invoke(None, response, params_parent, response_parent, const_cast=is_read_write, index=m.index[0] if indexes_are_different else None, test_param=not is_read_write)
+                maybe_index = m.index[0] if indexes_are_different else None
+                _Invoke(None, response, params_parent, response_parent, const_cast=is_read_write, index=maybe_index, test_param=not is_read_write)
 
                 if indexes_are_different:
                     index_name = any_index.local_name
@@ -1155,7 +1182,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("// write-only property set")
 
                 assert not params.is_void
-                _Invoke(params, None, params_parent, response_parent, index=m.index[1] if indexes_are_different else None, test_param=not is_read_write)
+                maybe_index = m.index[1] if indexes_are_different else None
+                _Invoke(params, None, params_parent, response_parent, index=maybe_index, test_param=not is_read_write, param_const_cast=is_read_write)
 
             if is_read_write:
                 emit.Line()
