@@ -81,7 +81,7 @@ def Create(log, schema, path, indent_size = 4):
             MdRow([":--------"] * len(columns))
 
         def ParamTable(name, object):
-            MdTableHeader(["Name", "Type", "Description"])
+            MdTableHeader(["Name", "Type", "M/O", "Description"])
 
             def _TableObj(name, obj, parentName="", parent=None, prefix="", parentOptional=False):
                 # determine if the attribute is optional
@@ -101,8 +101,8 @@ def Create(log, schema, path, indent_size = 4):
                 # include information about enum values in description
                 enum = ""
                 default_enum = None
+                enums = []
                 if "enum" in obj and "ids" in obj:
-                    enums = []
                     endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
@@ -111,8 +111,15 @@ def Create(log, schema, path, indent_size = 4):
                         if "default" in obj and e == obj["default"]:
                             default_enum = enums[-1]
 
+                elif "enum" in obj:
+                    for e in obj["enum"]:
+                        enums.append(e)
+
                     if enums:
-                        enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
+                        default_enum = enums[0]
+
+                if enums:
+                    enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
@@ -139,7 +146,8 @@ def Create(log, schema, path, indent_size = 4):
 
                     restricted = "range" in d
 
-                    row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
+                    # row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
+                    row = ""
 
                     if deprecated:
                         row = "<sup>" + italics("(deprecated)") + "</sup> " + row
@@ -179,7 +187,7 @@ def Create(log, schema, path, indent_size = 4):
                     if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
-                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
+                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], "optional" if optional else "mandatory", row])
 
                 if obj["type"] == "object":
                     if "required" not in obj and name and len(obj["properties"]) > 1:
@@ -883,7 +891,10 @@ def Create(log, schema, path, indent_size = 4):
 
                             if not head:
                                 MdParagraph("%s interface %s:" % (((ns + " ") if ns else "") + interface["info"]["class"], section))
-                                MdTableHeader([header.capitalize(), "Description"])
+                                if prop:
+                                    MdTableHeader([header.capitalize(), "R/W", "Description"])
+                                else:
+                                    MdTableHeader([header.capitalize(), "Description"])
                                 head = True
 
                             access = ""
@@ -892,9 +903,8 @@ def Create(log, schema, path, indent_size = 4):
                                 access = "read-only"
                             elif "writeonly" in contents and contents["writeonly"] == True:
                                 access = "write-only"
-
-                            if access:
-                                access = " (%s)" % access
+                            else:
+                                access = "read/write"
 
                             tags = ""
 
@@ -946,9 +956,11 @@ def Create(log, schema, path, indent_size = 4):
                             else:
                                 line += tags
 
-                            line += access
+                            if prop:
+                                MdRow([line, access, descr])
+                            else: 
+                                MdRow([line, descr])
 
-                            MdRow([line, descr])
                             emitted = True
 
                         skip_list.append(method)
