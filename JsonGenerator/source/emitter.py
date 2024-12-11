@@ -16,7 +16,7 @@
 # limitations under the License.
 
 class Emitter():
-    def __init__(self, file_name, indent_size, max_line_length = 220, autoindent=False):
+    def __init__(self, file_name, indent_size, max_line_length = 500, autoindent=False):
         self.file = open(file_name, "w") if file_name else None
         self.indent_size = indent_size
         self.indent = 0

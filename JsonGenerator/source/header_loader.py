@@ -253,6 +253,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         clash_msg = "JSON-RPC name clash detected"
 
+        passed_interfaces = []
+
         event_interfaces = set()
 
         for interface in face.obj.classes:
@@ -476,10 +478,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         return "object", { "properties": properties, "required": required }
 
-                    if cppType.full_name == "::%s::Core::JSONRPC::Context" % config.FRAMEWORK_NAMESPACE:
+                    if "Core::JSONRPC::Context" in cppType.full_name:
                         result = "@context", {}
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
+                    elif (not cppType.vars and cppType.methods):
+                        prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "integer", { "size": 32, "signed": False, "@lookupid": prefix } ]
+                        if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
+                            passed_interfaces.append({ "name": cppType.full_name, "id": "@generate", "type": "uint32_t", "prefix": prefix})
                     else:
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
@@ -737,8 +744,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             prefix = ""
 
         faces = []
-        faces.append((None, prefix, face.obj.methods))
+        faces.append((prefix, face.obj.methods))
 
+        """
         for method in face.obj.methods:
             if method.retval.meta.lookup:
                 var_type = ResolveTypedef(method.retval.type, method)
@@ -754,9 +762,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     schema["@lookups"].append(faces[-1][0][0])
                 else:
                     raise CppParseError(method, "lookup method for an unknown class")
+        """
 
-
-        for lookup_method, prefix, _methods in faces:
+        for prefix, _methods in faces:
           for method in _methods:
 
             if not method.IsVirtual() or method.IsDestructor():
@@ -942,7 +950,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 else:
                     raise CppParseError(method, "property method must have one parameter")
 
-            elif not event_params and not method.retval.meta.lookup:
+            elif not event_params:
                 var_type = ResolveTypedef(method.retval.type)
 
                 if var_type and ((isinstance(var_type.Type(), CppParser.Integer) and (var_type.Type().size == "long")) or not verify):
@@ -975,9 +983,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 if method.retval.meta.details:
                     obj["description"] = method.retval.meta.details.strip()
-
-                if lookup_method:
-                    obj["@lookup"] = lookup_method
 
                 if method.retval.meta.retval:
                     errors = []
@@ -1115,6 +1120,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     events[prefix + method_name] = obj
 
+        if passed_interfaces:
+            schema["@interfaces"] = passed_interfaces
+
         if methods:
             schema["methods"] = methods
 
@@ -1123,6 +1131,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         if events:
             schema["events"] = events
+
 
         return schema
 
@@ -1137,13 +1146,18 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     scanned.append(face.obj.full_name)
 
         for s in schemas:
-            lookups = s["@lookups"] if "@lookups" in s else []
-            for l in lookups:
-                for s2 in schemas:
-                    if StripFrameworkNamespace(s2["@fullname"]) == l:
-                        del s2["@generated"]
+            for face in (s["@interfaces"] if "@interfaces" in s else []):
+                for ss in schemas:
+                    if ss["@fullname"] == face["name"] and "methods" in ss:
+                        methods = ss["methods"]
+                        for k,_ in methods.items():
+                            new_k = face["prefix"].lower() + "::" + k
+                            s["methods"][new_k] = methods.pop(k)
+                            s["methods"][new_k]["@lookup"] = face
+                        ss["@generated"] = False
 
-        schemas = [s for s in schemas if "@generated" in s]
+
+        schemas = [s for s in schemas if s.get("@generated")]
 
     return schemas, []
 
