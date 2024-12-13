@@ -1,0 +1,5 @@
+startmode = {{PLUGIN_STARTMODE}}
+
+{{CONFIG}}
+
+{{OOP_ROOT}}
