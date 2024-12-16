@@ -194,6 +194,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         if face.obj.is_json:
             schema["mode"] = "auto"
             rpc_format = _EvaluateRpcFormat(face.obj)
+            assert not face.obj.is_event
         else:
             rpc_format = config.RpcFormat.COLLAPSED
 
@@ -479,10 +480,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         return "object", { "properties": properties, "required": required }
 
                     if "Core::JSONRPC::Context" in cppType.full_name:
-                        result = "@context", {}
+                        result = [ "@context", {} ]
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
-                    elif (not cppType.vars and cppType.methods):
+                    elif cppType.is_json:
                         prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
                         result =  [ "integer", { "size": 32, "signed": False, "@lookupid": prefix } ]
                         if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
@@ -491,7 +492,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
                         else:
-                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing an interface is not possible)" % cppType.type)
+                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-@json interface is not possible)" % cppType.type)
 
                 elif isinstance(cppType, CppParser.Optional):
                     result = ConvertType(cppType.optional, meta=var.meta)
