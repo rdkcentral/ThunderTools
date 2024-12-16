@@ -177,17 +177,25 @@ def Create(log, schema, path, indent_size = 4):
 
                         if d["type"] == "string" or is_buffer:
                             str_text = "Decoded data" if d.get("encode") else "String"
+                            val_text = "bytes" if d.get("encode") else "chars"
+
                             if d["range"][0]:
-                                row += italics("%s length must be in range [%s..%s] chars." % (str_text, d["range"][0], d["range"][1]))
+                                row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
                             else:
-                                row += italics("%s length must be at most %s chars." % (str_text, d["range"][1]))
+                                row += italics("%s length must be at most %s %s." % (str_text, d["range"][1], val_text))
                         else:
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
                     if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
-                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], "optional" if optional else "mandatory", row])
+                    if obj.get("@lookupid"):
+                        row += "<br>"
+                        row += italics("This item is an instance ID.")
+
+                    obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
+
+                    MdRow([prefix, obj_type, "optional" if optional else "mandatory", row])
 
                 if obj["type"] == "object":
                     if "required" not in obj and name and len(obj["properties"]) > 1:
@@ -398,13 +406,13 @@ def Create(log, schema, path, indent_size = 4):
                             props["result"]["description"] = props["summary"]
 
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
+                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"]["prefix"].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
 
             else:
                 MdHeader("Parameters", 3)
 
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* argument shell be passed within the designator, e.g. ``%s.1.%s``" % (props["@lookup"][2], classname, method))
+                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s``." % (props["@lookup"]["prefix"].lower(), classname, method))
 
                 if "params" in props:
                     ParamTable("params", props["params"])
