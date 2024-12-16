@@ -85,6 +85,8 @@ class Metadata:
         self.sourcelocation = ""
         self.brief = ""
         self.details = ""
+        self.pre = ""
+        self.post = ""
         self.input = False
         self.output = False
         self.length = None
@@ -426,6 +428,12 @@ class Identifier():
                     skip = 1
                 elif tag == "DETAILS":
                     self.meta.details = string[i + 1]
+                    skip = 1
+                elif tag == "PRE":
+                    self.meta.pre = string[i + 1]
+                    skip = 1
+                elif tag == "POST":
+                    self.meta.post = string[i + 1]
                     skip = 1
                 elif tag == "PARAM":
                     par = string[i + 1]
@@ -1825,6 +1833,8 @@ def __Tokenize(contents,log = None):
 
                 FindDoxyString("@brief", False, token, tagtokens)
                 FindDoxyString("@details", False, token, tagtokens)
+                FindDoxyString("@pre", False, token, tagtokens)
+                FindDoxyString("@post", False, token, tagtokens)
                 FindDoxyString("@param", True, token, tagtokens)
                 FindDoxyString("@retval", True, token, tagtokens)
 
@@ -1982,7 +1992,6 @@ def Parse(contents,log = None):
             i += 1
         elif tokens[i] == "@EVENT":
             event_next = True
-            json_next = False
             tokens[i] = ";"
             i += 1
         elif tokens[i] == "@TEXT":
@@ -2153,6 +2162,8 @@ def Parse(contents,log = None):
             if json_next:
                 new_class.is_json = True
                 new_class.json_version = json_version
+                if event_next:
+                    raise ParserError("@json iterface cannot also be @event")
             if prefix_next:
                 new_class.json_prefix = prefix_string
             if event_next:
