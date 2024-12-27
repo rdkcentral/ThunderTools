@@ -1773,7 +1773,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         #
 
         def EmitCompleteMethod():
-            emit.Line("uint32_t _Complete(RPC::Data::Frame::Reader& %s)" %  vars["reader"])
+            emit.Line("uint32_t _Complete(RPC::Data::Frame::Reader& %s) const" %  vars["reader"])
             emit.Line("{")
             emit.IndentInc()
             emit.Line("uint32_t result = Core::ERROR_NONE;")
