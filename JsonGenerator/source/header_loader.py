@@ -985,6 +985,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 if method.retval.meta.details:
                     obj["description"] = method.retval.meta.details.strip()
 
+                if method.retval.meta.pre:
+                    obj["preconditions"] = method.retval.meta.pre.strip()
+
+                if method.retval.meta.post:
+                    obj["postconditions"] = method.retval.meta.post.strip()
+
                 if method.retval.meta.retval:
                     errors = []
 
