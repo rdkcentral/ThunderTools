@@ -991,9 +991,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 if method.retval.meta.post:
                     obj["postconditions"] = method.retval.meta.post.strip()
 
-                if lookup_method:
-                    obj["@lookup"] = lookup_method
-
                 if method.retval.meta.retval:
                     errors = []
 
