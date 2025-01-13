@@ -51,6 +51,10 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
     # Build parameter list for the prototype
     parameters = [ ]
 
+    if "@lookup" in event.schema:
+        parameters.append("const %s* const %s" % ("LookupStorage", "_storage"))
+        parameters.append("const %s* const %s" % (event.schema["@lookup"]["name"], "_obj"))
+
     if event.sendif_type:
         parameters.append("const %s& %s" % (event.sendif_type.cpp_native_type, names.filter))
 
@@ -133,6 +137,10 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
         if not legacy:
             parameters.append(names.module)
 
+        if "@lookup" in event.schema:
+            parameters.append("_storage")
+            parameters.append("_obj")
+
         if not params.is_void:
             parameters.append(names.params)
 
@@ -145,10 +153,23 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
     if params_type == "object" or legacy:
         # Build parameters for the notification call
-        parameters = [ Tstring(event.json_name) ]
+        parameters = [ ]
+
+        if "@lookup" in event.schema:
+            parameters.append("Core::Format(%s, _instanceId)" % (Tstring(event.json_name.replace("#ID", "#%u"))))
+        else:
+            parameters.append(Tstring(event.json_name))
 
         if not params.is_void:
             parameters.append(names.params if legacy else params.local_name)
+
+        if "@lookup" in event.schema:
+            emit.Line("ASSERT(_storage != nullptr);")
+            emit.Line("ASSERT(_obj != nullptr);")
+            emit.Line()
+            emit.Line("const uint32_t _instanceId = _storage->%s.InstanceId(_obj);" % (event.schema["@lookup"]["prefix"]))
+            emit.Line("if (_instanceId != 0) {")
+            emit.Indent()
 
         if event.sendif_type:
             if not legacy:
@@ -209,6 +230,10 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
             if config.LEGACY_ALT and event.alternative:
                 Emit([Tstring(event.alternative)] + parameters[1:])
+
+        if "@lookup" in event.schema:
+            emit.Unindent()
+            emit.Line("}")
 
     emit.Unindent()
     emit.Line("}")
@@ -332,7 +357,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Indent()
         emit.Line("LookupStorage() = default;")
         emit.Line("~LookupStorage() = default;")
-        emit.Line("LookupStorage(const LookupStorage&) = delete;") 
+        emit.Line("LookupStorage(const LookupStorage&) = delete;")
         emit.Line("LookupStorage(LookupStorage&&) = delete;")
         emit.Line("LookupStorage& operator=(const LookupStorage&) = delete;")
         emit.Line("LookupStorage& operator=(LookupStorage&&) = delete;")
@@ -343,9 +368,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Indent()
 
         for face in interfaces:
-            emit.Line("void Closed(%s*, const uint32_t channelId, const std::function<void(const uint32_t, const uint32_t, %s*)>& callback = nullptr) { %s.Closed(channelId, callback); }" % (trim(face["name"]),  trim(face["name"]), face["prefix"]))
+            emit.Line("void Callback(%s*, const std::function<void(const bool, %s*)>& callback = nullptr) { %s.Callback(callback); }" % (trim(face["name"]), trim(face["name"]), face["prefix"]))
+            emit.Line("void Closed(%s*, const uint32_t channelId) { %s.Closed(channelId); }" % (trim(face["name"]), face["prefix"]))
+            emit.Line()
 
-        emit.Line()
         emit.Unindent()
         emit.Line("public:")
         emit.Indent()
@@ -353,36 +379,61 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         for face in interfaces:
             emit.Line("PluginHost::LookupStorageType<%s, uint32_t> %s;" % (trim(face["name"]), face["prefix"]))
 
-        emit.Line()
-
         emit.Unindent()
         emit.Line("};")
         emit.Line()
 
 
-    def _EmitStorageEvents(interfaces):
+    def _EmitLinkEvents(interfaces):
         assert interfaces
 
         emit.Line("namespace Link {")
         emit.Indent()
         emit.Line()
 
-        emit.Line("void Closed(LookupStorage* storage, const uint32& channelId, const std::function<void(uint32_t, uint32_t, Core::IUnknown*)>& callback = nullptr)")
+        emit.Line("// Call this when the websocket channel is disconnected. Resources which are tied to that channel will be released.")
+        emit.Line("void Closed(LookupStorage* _storage, const uint32& _channelId)")
         emit.Line("{")
         emit.Indent()
-        emit.Line("ASSERT(storage != nullptr);")
-        emit.Line("ASSERT(channelId != 0);")
+        emit.Line("ASSERT(_storage != nullptr);")
+        emit.Line("ASSERT(_channelId != 0);")
 
         for face in interfaces:
             emit.Line()
-            emit.Line("storage->Closed((%s*){}, channelId, callback);" % trim(face["name"]))
+            emit.Line("_storage->Closed((%s*){}, _channelId);" % trim(face["name"]))
 
         emit.Unindent()
         emit.Line("}")
 
         emit.Unindent()
         emit.Line()
-        emit.Line("}")
+        emit.Line("} // namespace Link")
+        emit.Line()
+
+    def _EmitLiftimeCallbacks(interfaces):
+        assert interfaces
+
+        emit.Line("namespace Lifetime {")
+        emit.Indent()
+        emit.Line()
+
+        for face in interfaces:
+            emit.Line("// This allows to set up a callback signalling that an object has been acquired or released.")
+            emit.Line("template<typename T>")
+            emit.Line("void Callback(LookupStorage* _storage, const std::function<void(const bool acquired, T* object)>& _callback)")
+            emit.Line("{")
+            emit.Indent()
+            emit.Line("ASSERT(_storage != nullptr);")
+
+            emit.Line()
+            emit.Line("_storage->Callback((T*){}, _callback);")
+
+            emit.Unindent()
+            emit.Line("}")
+
+        emit.Unindent()
+        emit.Line()
+        emit.Line("} // namespace Link")
         emit.Line()
 
     def _EmitNoPushWarnings(prologue = True):
@@ -1083,6 +1134,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     methods = [x for x in methods_and_properties if not isinstance(x, (JsonNotification, JsonProperty))]
     events = [x for x in root.properties if isinstance(x, JsonNotification)]
     listener_events = [x for x in events if x.is_status_listener]
+    lookup_events = [x for x in events if "@lookup" in x.schema]
     alt_events = [x for x in events if x.alternative]
     lookup_methods = [x for x in methods_and_properties if x.schema.get("@lookup)")]
 
@@ -1098,7 +1150,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     names['namespace'] = ("J" + root.json_name)
     names['interface'] = (root.info["interface"] if "interface" in root.info else ("I" + root.json_name))
-    names['jsonrpc_alias'] = ("PluginHost::%s" % ("JSONRPCSupportsEventStatus" if listener_events else "JSONRPC"))
+    names['jsonrpc_alias'] = ("PluginHost::%s" % ("JSONRPCSupportsEventStatus" if listener_events or lookup_events else "JSONRPC"))
     names['context_alias'] = "Core::JSONRPC::Context"
 
     impl_required = methods_and_properties or listener_events
@@ -1158,7 +1210,38 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
 
 
-    emit.Line("%s.RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (names.module, Tstring(names.namespace)))
+        emit.Line("%s.RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (names.module, Tstring(names.namespace)))
+
+        if lookup_events:
+            emit.Line()
+            emit.Line("// Install subscription assessor")
+            emit.Line()
+            emit.Line("%s.SetSubscribeAssessor([%s](const uint32_t channel, const string& event, const string& client) -> bool {" % (names.module, names.storage))
+            emit.Indent()
+            emit.Indent()
+            emit.Line("bool result = true;")
+            emit.Line("const uint32_t id = Core::JSONRPC::Message::InstanceId(event);")
+            emit.Line()
+            emit.Line("if (id != 0) {")
+            emit.Indent()
+            emit.Line("const string prefix = Core::JSONRPC::Message::Prefix(event);")
+            emit.Line("result = false;")
+            emit.Line()
+
+            for i,ev in enumerate(lookup_events):
+                emit.Line("%sif (prefix == _T(\"%s\")) {" % ("else " if i != 0 else "", ev.schema["@lookup"]["prefix"].lower()))
+                emit.Indent()
+                emit.Line("result = %s->%s.Exists(channel, id);" % (names.storage, ev.schema["@lookup"]["prefix"]))
+                emit.Unindent()
+                emit.Line("}")
+            emit.Unindent()
+            emit.Line("}")
+            emit.Line()
+            emit.Line("return (result);")
+            emit.Unindent()
+            emit.Line("});")
+            emit.Unindent()
+            emit.Line()
 
     if module_required:
         emit.Line()
@@ -1399,6 +1482,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     if listener_events:
         _EmitEventStatusListenerRegistration(listener_events, is_json_source, prologue=False)
 
+    if lookup_events:
+        emit.Line()
+        emit.Line("// Uninstall subscription assessor")
+        emit.Line("%s.SetSubscribeAssessor(nullptr);" % names.module)
+
     if storage_required:
         emit.Line()
         emit.Line("ASSERT(%s != nullptr);" % names.storage)
@@ -1414,7 +1502,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         _EmitEvents(events)
 
     if storage_required:
-        _EmitStorageEvents(root.schema.get("@interfaces"))
+        _EmitLinkEvents(root.schema.get("@interfaces"))
+        _EmitLiftimeCallbacks(root.schema.get("@interfaces"))
 
     # Restore warnings level
     _EmitNoPushWarnings(prologue=False)

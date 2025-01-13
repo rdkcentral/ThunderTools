@@ -1155,13 +1155,22 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         for s in schemas:
             for face in (s["@interfaces"] if "@interfaces" in s else []):
                 for ss in schemas:
-                    if ss["@fullname"] == face["name"] and "methods" in ss:
-                        methods = ss["methods"]
-                        for k,_ in methods.items():
-                            new_k = face["prefix"].lower() + "::" + k
-                            s["methods"][new_k] = methods.pop(k)
-                            s["methods"][new_k]["@lookup"] = face
-                        ss["@generated"] = False
+                    if ss["@fullname"] == face["name"]:
+                        if "methods" in ss:
+                            methods = ss["methods"]
+                            for k,_ in methods.items():
+                                new_k = face["prefix"].lower() + "::" + k
+                                s["methods"][new_k] = methods.pop(k)
+                                s["methods"][new_k]["@lookup"] = face
+                            ss["@generated"] = False
+
+                        if "events" in ss:
+                            events = ss["events"]
+                            for k,_ in events.items():
+                                new_k = face["prefix"].lower() + "#ID::" + k
+                                s["events"][new_k] = events.pop(k)
+                                s["events"][new_k]["@lookup"] = face
+                            ss["@generated"] = False
 
 
         schemas = [s for s in schemas if s.get("@generated")]
