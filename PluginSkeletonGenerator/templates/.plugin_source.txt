@@ -23,8 +23,10 @@
 namespace Thunder {
 namespace Plugin {
 ~INDENT_INCREASE~
+
     namespace {
 ~INDENT_INCREASE~
+
         static Metadata<{{PLUGIN_NAME}}>metadata( 
 ~INDENT_INCREASE~
             // Version
@@ -42,7 +44,7 @@ namespace Plugin {
 
 // Implement all methods from {{PLUGIN_NAME}}.h
 
-const string {{PLUGIN_NAME}}::Initialize(PluginHost::IShell* service) {
+const string {{PLUGIN_NAME}}::Initialize({{VARIABLE_NOT_USED_INITIAL}}PluginHost::IShell* service) {
 ~INDENT_INCREASE~
     {{INITIALIZE_IMPLEMENTATION}}
 ~INDENT_DECREASE~
@@ -56,7 +58,7 @@ void {{PLUGIN_NAME}}::Deinitialize({{VARIABLE_NOT_USED}}PluginHost::IShell* serv
 
 string {{PLUGIN_NAME}}::Information() const {
 ~INDENT_INCREASE~
-    return string();
+    return (string());
 ~INDENT_DECREASE~
 }
 
@@ -66,7 +68,6 @@ void {{PLUGIN_NAME}}::{{PLUGIN_NAME}}Method() {
 
 {{PLUGIN_METHOD_IMPL}}
 {{INHERITED_METHOD_IMPL}}
-
 ~INDENT_DECREASE~
 } // Plugin
 } // Thunder

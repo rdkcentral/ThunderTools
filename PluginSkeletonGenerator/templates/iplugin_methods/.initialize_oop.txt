@@ -14,8 +14,6 @@ _impl{{COMRPC[1:]}} = service->Root<Exchange::{{COMRPC}}>(_connectionId, 2000, _
 if (_impl{{COMRPC[1:]}} == nullptr) {
 ~INDENT_INCREASE~
     message = _T("Couldn't create instance of impl{{COMRPC[1:]}}");
-~INDENT_DECREASE~
-} else {
     {{NESTED_QUERY}}
 ~INDENT_DECREASE~
 }

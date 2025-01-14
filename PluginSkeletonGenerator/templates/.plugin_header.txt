@@ -18,7 +18,8 @@
  */
 
 #pragma once
-~INDENT_RESET~
+
+#include "Module.h"
 {{COMRPC_INTERFACE_INCLUDES}}
 
 namespace Thunder {
@@ -29,9 +30,9 @@ namespace Plugin {
     public:
 ~INDENT_INCREASE~
     {{PLUGIN_NAME}}(const {{PLUGIN_NAME}}&) = delete;
-    {{PLUGIN_NAME}} &operator=(const {{PLUGIN_NAME}}&) = delete;
+    {{PLUGIN_NAME}}& operator=(const {{PLUGIN_NAME}}&) = delete;
     {{PLUGIN_NAME}}({{PLUGIN_NAME}}&&) = delete;
-    {{PLUGIN_NAME}} &operator=({{PLUGIN_NAME}}&&) = delete;
+    {{PLUGIN_NAME}}& operator=({{PLUGIN_NAME}}&&) = delete;
 
     {{PLUGIN_NAME}}()
     ~INDENT_INCREASE~
@@ -44,20 +45,16 @@ namespace Plugin {
     }
 
     ~{{PLUGIN_NAME}}() override = default;
-~INDENT_DECREASE~
-    private:
-~INDENT_INCREASE~
+{{ADD_PRIVATE_FIELD}}
     {{CONFIG_CLASS}}
     {{JSONRPC_EVENT}}
-~INDENT_DECREASE~
-    public:
-~INDENT_INCREASE~
+{{ADD_PUBLIC_FIELD}}
     // IPlugin Methods
     const string Initialize(PluginHost::IShell* service) override;
     void Deinitialize(PluginHost::IShell* service) override;
     string Information() const override;
-
     {{INHERITED_METHOD}}
+
     // Plugin Methods
     {{PLUGIN_METHOD}}
 
@@ -72,6 +69,8 @@ namespace Plugin {
     private:
 ~INDENT_INCREASE~
     {{USING_CONTAINER}}
+    
+    {{NOTIFY_METHOD_IP}}
     // Include the correct member variables for your plugin:
     // Note this is only an example, you are responsible for adding the correct members:
     uint32_t _example;

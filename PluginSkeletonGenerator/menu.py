@@ -134,7 +134,7 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
             if not correctInitial or not correctExtension:
                 time.sleep(2)
                 continue
-            correctName = correctExtension            
+            correctName = correctExtension      
             # CorrectName at this point will always return the correct interface name without the '.h'
             while True:
                 comrpc_confirm = input(f"The name of the interface in {tempName} is {correctName} (enter to confirm or type the correct interface name): ")
@@ -149,7 +149,11 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
                         break
                 else:
                     break
-
+            if correctName in comrpc_interfaces:
+                print("\n=======================================")
+                print("[Error]: Interface has already been defined previously!")
+                print("=======================================")
+                continue      
             comrpc_interfaces.append(correctName)
             notification = get_boolean_input("\nDoes your interface contain a notification: (Enter Y or N)\n")
             if notification:
