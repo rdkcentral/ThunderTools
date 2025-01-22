@@ -474,9 +474,14 @@ class JsonEnum(JsonRefCounted, JsonType):
             is_bitmap = True
             biggest = 0
 
+            try:
+                endmarker = self.cpp_enumerators.index(self.schema.get('@endmarker'))
+            except:
+                endmarker = None
+
             for idx, e in enumerate(self.cpp_enumerator_values):
                 if isinstance(e, int):
-                    if (e & (e-1) != 0) and (e != 0):
+                    if (e & (e-1) != 0) and (e != 0) and endmarker != idx:
                         is_bitmap = False
 
                     if idx != e:
