@@ -208,17 +208,20 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             log.Info("Case convention is %s" % _case_converter.convention.value)
 
         def compute_name(obj, arg, relay=None):
-            if not relay:
-                relay = obj
+            if isinstance(obj, str):
+                return _case_converter.transform(obj, arg)
+            else:
+                if not relay:
+                    relay = obj
 
-            _orig_name = ("value" if ((arg == _case_converter.PROPERTY_PARAMS) and not _case_converter.is_keep) else relay.name)
+                _orig_name = ("value" if ((arg == _case_converter.PROPERTY_PARAMS) and not _case_converter.is_keep) else relay.name)
 
-            _name = _case_converter.transform(_orig_name, arg)
+                _name = _case_converter.transform(_orig_name, arg)
 
-            if obj.meta.text == _name:
-                log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
+                if obj.meta.text == _name:
+                    log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
 
-            return (obj.meta.text if obj.meta.text else _name)
+                return (obj.meta.text if obj.meta.text else _name)
 
 
         schema["@interfaceonly"] = True
@@ -326,7 +329,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if encoding:
                         log.WarnLine(var, "'%s': @encode only possible on char buffers" % var.name)
 
-                    result = ["array", { "items": ConvertParameter(var, no_array=True), "@arraysize": var.array }]
+                    result = ["array", { "items": ConvertParameter(var, no_array=True), "@arraysize": var.array, "@proto" : var.ProtoFmt() }]
 
                 # Iterators that will be converted to JSON arrays
                 elif is_iterator and len(cppType.args) == 2:
@@ -411,6 +414,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     props["ids"] = [e.name for e in cppType.items]
 
+                    if not cppType.items:
+                        raise CppParseError(var, "%s: no enumerators in enum" % cppType.name)
+
                     if not cppType.items[0].auto_value:
                         props["values"] = [e.value for e in cppType.items]
 
@@ -484,15 +490,39 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif cppType.is_json:
-                        prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
-                        result =  [ "integer", { "size": 32, "signed": False, "@lookupid": prefix } ]
+                        objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "integer", { "size": 32, "signed": False, "@lookupid": objprefix } ]
                         if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
-                            passed_interfaces.append({ "name": cppType.full_name, "id": "@generate", "type": "uint32_t", "prefix": prefix})
+                            passed_interfaces.append({ "name": cppType.full_name, "id": "@generate", "type": "uint32_t", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
                     else:
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
                         else:
-                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-@json interface is not possible)" % cppType.type)
+                            if "async" in method.retval.meta.decorators:
+                                async_method = dict()
+                                for im in cppType.methods:
+                                    if im.IsVirtual() and not im.IsDestructor():
+                                        if not async_method:
+                                            async_method["name"] = prefix + compute_name(method.retval, _case_converter.EVENTS, method)
+                                            async_method["@originalname"] = im.name
+                                            async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
+                                            async_method["params"] = BuildParameters(None, im.vars, rpc_format)
+
+                                            if BuildResult(im.vars)["type"] != "null":
+                                                raise CppParseError(im, "async callback method must not return anything")
+
+                                            if not isinstance(im.retval.Type().type, CppParser.Void):
+                                                raise CppParseError(im, "async callback method must have void return value")
+                                        else:
+                                            log.WarnLine(var, "'%s': callback interface has mulitple methods; the first one ('%s') will be used for JSON-RPC notification" % (cppType.name, async_method["@originalname"]))
+                                            break
+
+                                if async_method:
+                                    result = [ "string", { "@async": async_method } ]
+                                else:
+                                    raise CppParseError(var, "callback interface has no methods defined")
+                            else:
+                                raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-@json interface is not possible)" % cppType.type)
 
                 elif isinstance(cppType, CppParser.Optional):
                     result = ConvertType(cppType.optional, meta=var.meta)
@@ -506,6 +536,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 if var_type.IsPointer():
                     result[1]["@bypointer"] = True
+
+                if var_type.IsReference():
+                    result[1]["@byreference"] = True
+
+                if var_type.CVString():
+                    result[1]["@cv"] = var_type.CVString()
+
+                if var.Proto():
+                    result[1]["@proto"] = var.ProtoFmt()
 
             if result:
                 if meta.range:
@@ -552,6 +591,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     properties["description"] = pair[1]
                 else:
                     properties["description"] = var.meta.brief.strip()
+
+            if var.meta.is_deprecated:
+                properties["deprecated"] = True
 
             return properties
 
@@ -612,7 +654,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             properties = OrderedDict()
             required = []
 
+            method_asynchronous = False
+
             for var in vars:
+                if isinstance(var.type, list):
+                    raise CppParseError(var, "unknown type ")
+
                 if var.meta.input or not var.meta.output:
                     if verify:
                         if not var.type.IsConst() and (not var.type.IsPointerToConst()):
@@ -630,6 +677,18 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
 
                     converted = ConvertParameter(var, test)
+
+                    if converted["type"] == "string" and "@async" in converted:
+                        if method_asynchronous:
+                            raise CppParseError(method, "multiple callbacks defined")
+                        var_name = compute_name("Id", _case_converter.PARAMS)
+                        method_asynchronous = True
+
+                    if var_name in list(properties.keys()):
+                        if "@async" in converted:
+                            raise CppParseError(var, "parameter name already exists")
+                        else:
+                            raise CppParseError(var, "parameter name already exists")
 
                     if converted["type"] == "@context":
                         if obj:
@@ -829,6 +888,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             obj = None
 
             if method.retval.meta.is_property or (prefix + method_name) in properties:
+                if "async" in method.retval.meta.decorators:
+                    raise CppParseError(method, "a property cannot be asynchronous")
+
                 try:
                     obj = properties[prefix + method_name]
                 except:
@@ -962,10 +1024,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     if params:
                         obj["params"] = params
+                        if "async" in method.retval.meta.decorators:
+                            obj["@async"] = True
 
                         #if "properties" in params and params["properties"]:
                         #    if method.name.lower() in [x.lower() for x in params["required"]]:
                         #        raise CppParseError(method, "parameters must not use the same name as the method")
+
 
                     obj["result"] = BuildResult(method.vars)
                     methods[prefix + method_name] = obj
@@ -1126,6 +1191,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             obj["altisobsolete"] = method.retval.meta.alt_is_obsolete
 
                     events[prefix + method_name] = obj
+                else:
+                    log.Info("Omitting method %s()" % method.name)
 
         if passed_interfaces:
             schema["@interfaces"] = passed_interfaces
@@ -1138,7 +1205,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         if events:
             schema["events"] = events
-
 
         return schema
 
@@ -1159,17 +1225,40 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if "methods" in ss:
                             methods = ss["methods"]
                             for k,_ in methods.items():
-                                new_k = face["prefix"].lower() + "::" + k
-                                s["methods"][new_k] = methods.pop(k)
+                                split_k = k.split("::")
+                                split_k.insert(-1, face["prefix"].lower())
+                                new_k = "::".join(split_k)
+                                if "methods" not in s:
+                                    s["methods"] = {}
+                                s["methods"][new_k] = methods.get(k)
                                 s["methods"][new_k]["@lookup"] = face
+                            ss.pop("methods")
+                            ss["@generated"] = False
+
+                        if "properties" in ss:
+                            properties = ss["properties"]
+                            for k,_ in properties.items():
+                                split_k = k.split("::")
+                                split_k.insert(-1, face["prefix"].lower())
+                                new_k = "::".join(split_k)
+                                if "properties" not in s:
+                                    s["properties"] = {}
+                                s["properties"][new_k] = properties.get(k)
+                                s["properties"][new_k]["@lookup"] = face
+                            ss.pop("properties")
                             ss["@generated"] = False
 
                         if "events" in ss:
                             events = ss["events"]
                             for k,_ in events.items():
-                                new_k = face["prefix"].lower() + "#ID::" + k
-                                s["events"][new_k] = events.pop(k)
+                                split_k = k.split("::")
+                                split_k.insert(-1, face["prefix"].lower() + "#ID")
+                                new_k = "::".join(split_k)
+                                if "events" not in s:
+                                    s["events"] = {}
+                                s["events"][new_k] = events.get(k)
                                 s["events"][new_k]["@lookup"] = face
+                            ss.pop("events")
                             ss["@generated"] = False
 
 

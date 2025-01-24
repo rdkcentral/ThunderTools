@@ -59,7 +59,7 @@ def Scoped(root, obj, full = True):
         # Prepend with the outer namespace
         if o.parent and o.parent.included_from:
             scope = "%s::" % o.parent.included_from + scope
-        else:
+        elif root:
             scope = "%s::" % root.cpp_class + scope
 
         if full:
@@ -114,7 +114,10 @@ class JsonType():
             while self.grand_parent and not isinstance(self.grand_parent, JsonMethod):
                 self.grand_parent = self.grand_parent.parent
 
-        if self.grand_parent:
+            if self.grand_parent == self:
+                self.grand_parent = None
+
+        if self.grand_parent and self.root:
             if not self.description and \
                     (((self.root.rpc_format == config.RpcFormat.COMPLIANT) and (self.grand_parent == parent.parent)) \
                         or (((self.root.rpc_format != config.RpcFormat.COMPLIANT) and (self.grand_parent == parent)))):
@@ -129,13 +132,15 @@ class JsonType():
         # Do some sanity check on the type name
         if parent and not isinstance(parent, JsonArray):
             if not is_generated and not self.original_name:
+                # Identifier from .json, still verify name casing
+
                 if not self.name.replace("_", "").isalnum():
                     raise JsonParseError("Invalid characters in identifier name: '%s'" % self.print_name)
 
                 if self.name[0] == "_":
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
-                if not self.grand_parent or not self.grand_parent.parent.legacy:
+                if not self.grand_parent or (self.grand_parent.parent and not self.grand_parent.parent.legacy):
                     if not self.name.islower():
                         log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
                     elif "_" in self.name:
@@ -145,9 +150,10 @@ class JsonType():
                 if self.original_name[0] == "_":
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
 
-                if not self.grand_parent or not self.grand_parent.parent.legacy:
+                if not self.grand_parent or (self.grand_parent.parent and not self.grand_parent.parent.legacy):
+                    # verify if not snake_case :)
                     if "_" in self.original_name:
-                        log.Warn("'%s': snake_case identifiers are supported, however PascalCase names are recommended " % self.original_name)
+                        log.Warn("'%s': snake_case identifiers are supported, however PascalCase/camelCase names are recommended " % self.original_name)
 
         # Do some sanity check on the description text
         if self.description and not isinstance(self, JsonMethod):
@@ -183,7 +189,7 @@ class JsonType():
 
     @property
     def print_name(self):
-        return (self.parent.print_name + "/" + self.name)
+        return (self.parent.print_name + "/" + self.name) if self.parent else self.name
 
     @property
     def json_name(self):
@@ -251,11 +257,30 @@ class JsonType():
         assert False, "cpp_native_type accessed on JsonType"
 
     @property
+    def cpp_native_type_cv(self):
+        if self.schema.get("@cv"):
+            return self.schema.get("@cv") + " " + self.cpp_native_type
+
+    @property
     def cpp_native_type_opt(self):
         if self.optional:
             return ("Core::OptionalType<%s>" % self.cpp_native_type)
         else:
             return self.cpp_native_type
+
+    @property
+    def cpp_native_type_opt_cv(self):
+        if self.optional:
+            cv = ""
+            if self.schema.get("@cv"):
+                cv = self.schema.get("@cv") + " "
+            return ("%sCore::OptionalType<%s>" % (cv, self.cpp_native_type))
+        else:
+            return self.cpp_native_type_cv
+
+    @property
+    def cpp_native_type_proto(self):
+        return self.schema.get("@proto") if self.schema.get("@proto") else ""
 
     def cpp_native_type_opt_v(self, toggle=False):
         if self.optional and toggle:
@@ -273,7 +298,7 @@ class JsonType():
 
     @property
     def root(self):
-        return self.parent.root
+        return self.parent.root if self.parent else None
 
     # Whether a copy constructor would be needed if this type is a member of a class
     @property
@@ -586,7 +611,7 @@ class JsonObject(JsonRefCounted, JsonType):
 
                 # Use the declared parameter position only if the interface comes from a C++ header,
                 # otherwise order parameters as seen in the JSON meta file.
-                if ("@generated" not in self.root.schema) or ("@position" not in new_obj.schema):
+                if self.root and (("@generated" not in self.root.schema) or ("@position" not in new_obj.schema)):
                     new_obj.schema["@position"] = idx
 
                 idx += 1
@@ -616,6 +641,9 @@ class JsonObject(JsonRefCounted, JsonType):
 
         if not self.properties:
             log.Error("No properties in object %s" % self.print_name)
+
+    def finalize(self):
+        pass
 
     @property
     def cpp_name(self):
@@ -656,9 +684,9 @@ class JsonObject(JsonRefCounted, JsonType):
                         classname = MakeObject(self.properties[0].cpp_name)
                     elif isinstance(self.parent, JsonProperty):
                         classname = MakeObject(self.parent.cpp_name)
-                    elif self.root.rpc_format != config.RpcFormat.COMPLIANT and isinstance(self.parent, JsonArray) and isinstance(self.parent.parent, JsonProperty):
+                    elif self.root and (self.root.rpc_format != config.RpcFormat.COMPLIANT and isinstance(self.parent, JsonArray) and isinstance(self.parent.parent, JsonProperty)):
                         classname = MakeObject(self.parent.parent.cpp_name)
-                    elif self.root.rpc_format == config.RpcFormat.COMPLIANT and isinstance(self.parent, JsonArray):
+                    elif (not self.root or (self.root.rpc_format == config.RpcFormat.COMPLIANT)) and isinstance(self.parent, JsonArray):
                         classname = (MakeObject(self.parent.cpp_name) + "Elem")
                     else:
                         classname = MakeObject(self.cpp_name)
@@ -695,7 +723,7 @@ class JsonObject(JsonRefCounted, JsonType):
 
     @property
     def is_copy_ctor_needed(self):
-        if config.ALWAYS_EMIT_COPY_CTOR or self.parent.is_copy_ctor_needed:
+        if config.ALWAYS_EMIT_COPY_CTOR or (self.parent and self.parent.is_copy_ctor_needed):
             return True
 
         # Check if a copy constructor is needed by scanning all duplicate classes
@@ -788,6 +816,9 @@ class JsonMethod(JsonObject):
         if "@originalname" in schema:
             method_schema["@originalname"] = schema["@originalname"]
 
+        if "@originaltype" in schema:
+            method_schema["@originaltype"] = schema["@originaltype"]
+
         if "@lookup" in schema:
             method_schema["@lookup"] = schema["@lookup"]
 
@@ -796,6 +827,7 @@ class JsonMethod(JsonObject):
 
         self.context = schema.get("context")
 
+        self.callback = None
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
@@ -818,17 +850,29 @@ class JsonMethod(JsonObject):
         if "alt" in schema:
             self.alternative = schema.get("alt")
 
-            if not self.grand_parent and self.grand_parent.parent.legacy:
-                if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                    log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-                elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                    log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
+            if not self.original_name:
+                # Identifier form .json, still verify name casing
+                if not self.grand_parent or (self.grand_parent.parent and not self.grand_parent.parent.legacy):
+                    if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
+                        log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
+                    elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
+                        log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
         else:
             self.alternative = None
 
+        if not property:
+            if isinstance(self.properties[0], JsonObject):
+                for prop in self.properties[0].properties:
+                    if "@async" in prop.schema:
+                        if self.callback:
+                            assert False, "repeated async callback"
+
+                        event = JsonNotification(self.json_name, self.parent, prop.schema["@async"], included)
+                        self.callback = JsonCallback(self.json_name, self.parent, event, prop.schema["@async"], included)
+
     @property
     def rpc_format(self):
-        return self.root.rpc_format
+        return self.root.rpc_format if self.root else config.RpcFormat.COMPLIANT
 
     @property
     def params(self):
@@ -882,6 +926,11 @@ class JsonNotification(JsonMethod):
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
 
+class JsonCallback(JsonMethod):
+    def __init__(self, name, parent, notification, schema, included=None):
+        JsonMethod.__init__(self, name, parent, schema, included)
+        self.notification = notification
+        self.notification.sendif_type = JsonItem("id", self, { "type": "string"})
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
