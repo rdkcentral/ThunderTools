@@ -29,7 +29,7 @@ def IsObjectRestricted(argument):
 
 def IsObjectOptionalOrOpaque(argument):
         _by_required = ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"])
-        return (argument.schema.get("opaque") or argument.schema.get("@optional") or _by_required) and not argument.optional
+        return (argument.schema.get("opaque") or argument.schema.get("optional") or _by_required) and not argument.optional
 
 def IsObjectOptional(argument):
     if argument.optional or IsObjectOptionalOrOpaque(argument):
@@ -62,12 +62,46 @@ class Restrictions:
         if (len(self.__cond) == 1):
             return self.__cond[0]
         elif (len(self.__cond) > 1):
-            return ((" %s " % ("&&" if self.__reverse else "||")).join(self.__cond))
+            return ((" %s " % ("&&" if self.__reverse else "||")).join(['(' + x + ')' for x in self.__cond]))
         else:
             return self.__comp[2]
 
     def extend(self, element, pos=None):
         self.__cond.insert(pos if pos else len(self.__cond), element)
+
+    def check_set(self, argument, pos=None):
+        if argument.optional:
+            self.__cond.insert(pos if pos else len(self.__cond), "%s.IsSet() == true" % argument.temp_name)
+
+    def check_not_set(self, argument, pos=None):
+        if argument.optional:
+            self.__cond.insert(pos if pos else len(self.__cond), "%s.IsSet() == false" % argument.temp_name)
+
+    def check_null(self, argument, pos=None):
+        name = argument.temp_name
+        if argument.optional:
+            name += ".Value()"
+        if isinstance(argument, JsonInteger):
+            self.__cond.insert(pos if pos else len(self.__cond), "%s == 0" % name)
+        elif isinstance(argument, JsonString):
+            self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == true" % name)
+        elif argument.iterator:
+            self.__cond.insert(pos if pos else len(self.__cond), "%s == nullptr" % name)
+        else:
+            assert False, "invalid type"
+
+    def check_not_null(self, argument, pos=None):
+        name = argument.temp_name
+        if argument.optional:
+            name += ".Value()"
+        if isinstance(argument, JsonInteger):
+            self.__cond.insert(pos if pos else len(self.__cond), "%s != 0" % name)
+        elif isinstance(argument, JsonString):
+            self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == false" % name)
+        elif argument.iterator:
+            self.__cond.insert(pos if pos else len(self.__cond), "%s != nullptr" % name)
+        else:
+            assert False, "invalid type"
 
     def append(self, argument, relay=None, override=None, test_set=None):
         if test_set == None:
@@ -82,19 +116,19 @@ class Restrictions:
             if test_set:
                 if IsObjectOptional(relay):
                     if self.__reverse:
-                        self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == true))" % (name, name))
+                        self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == true)" % (name, name))
                     else:
-                        self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == false))" % (name, name))
+                        self.__cond.append("(%s.IsSet() == true) && (%s.IsDataValid() == false)" % (name, name))
                 else:
                     if self.__reverse:
-                        self.__cond.append("((%s.IsSet() == true) && (%s.IsDataValid() == true))" % (name, name))
+                        self.__cond.append("(%s.IsSet() == true) && (%s.IsDataValid() == true)" % (name, name))
                     else:
-                        self.__cond.append("((%s.IsSet() == false) || (%s.IsDataValid() == false))" % (name, name))
+                        self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == false)" % (name, name))
             else:
                 if self.__reverse:
-                    self.__cond.append("(%s.IsDataValid() == true)" % name)
+                    self.__cond.append("%s.IsDataValid() == true" % name)
                 else:
-                    self.__cond.append("(%s.IsDataValid() == false)" % name)
+                    self.__cond.append("%s.IsDataValid() == false" % name)
 
         elif IsObjectRestricted(argument):
             tests = []
@@ -104,24 +138,24 @@ class Restrictions:
             if isinstance(relay, JsonString):
                 if range:
                     if range[0] != 0:
-                        tests.append("(%s%s.size() %s %s)" % (name, (".Value()" if self.__json else ""), self.__comp[0], range[0]))
+                        tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json else ""), self.__comp[0], range[0]))
 
-                    tests.append("(%s%s.size() %s %s)" % (name, (".Value()" if self.__json else ""), self.__comp[1], range[1]))
+                    tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json else ""), self.__comp[1], range[1]))
 
             elif not isinstance(relay, JsonObject):
                 if range:
                     if range[0] or relay.schema.get("signed"):
-                        tests.append("(%s %s %s)" % (name, self.__comp[0], range[0]))
+                        tests.append("%s %s %s" % (name, self.__comp[0], range[0]))
 
-                    tests.append("(%s %s %s)" % (name, self.__comp[1], range[1]))
+                    tests.append("%s %s %s" % (name, self.__comp[1], range[1]))
 
             if tests:
                 if test_set and self.__json:
                     if IsObjectOptional(argument):
                         if self.__reverse:
-                            self.__cond.append("((%s.IsSet() == false) || (%s))" % (name, " &&".join(tests)))
+                            self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " &&".join(tests)))
                         else:
-                            self.__cond.append("((%s.IsSet() == true) && (%s))" % (name, " || ".join(tests)))
+                            self.__cond.append("(%s.IsSet() == true) && (%s)" % (name, " || ".join(tests)))
                     else:
                         if self.__reverse:
                             self.__cond.append("((%s.IsSet() == true) && (%s))" % (name, " && ".join(tests)))
@@ -131,7 +165,7 @@ class Restrictions:
                     self.__cond.extend(tests)
 
         elif test_set and self.__json and not IsObjectOptional(relay):
-            self.__cond.append("(%s.IsSet() == %s)" % (name, self.__comp[2]))
+            self.__cond.append("%s.IsSet() == %s" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):
     count = 0
@@ -240,7 +274,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                     _optional_or_opaque = IsObjectOptionalOrOpaque(prop)
 
                     if (prop.optional and not prop.default_value):
-                        emit.Line("if (%s.%s.IsSet() == true) {" % (other, prop.actual_name))
+                        emit.Line("if (%s.%s.IsSet() == true) {" % (other,  _prop_name))
                         emit.Indent()
 
                     elif _optional_or_opaque:

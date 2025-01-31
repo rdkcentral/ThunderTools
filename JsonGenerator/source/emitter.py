@@ -16,12 +16,13 @@
 # limitations under the License.
 
 class Emitter():
-    def __init__(self, file_name, indent_size, max_line_length = 160):
+    def __init__(self, file_name, indent_size, max_line_length = 600, autoindent=False):
         self.file = open(file_name, "w") if file_name else None
         self.indent_size = indent_size
         self.indent = 0
         self.threshold = max_line_length
         self.lines = []
+        self.__autoindent = autoindent
 
     def __del__(self):
         pass
@@ -36,9 +37,19 @@ class Emitter():
 
     def Line(self, text = ""):
         if text != "":
+            text = str(text).rstrip()
+
+            if self.__autoindent and text[-1] == '{':
+                self.Indent()
+
             commented = "// " if "//" in text else ""
-            text = (" " * self.indent) + str(text)
+            text = (" " * self.indent) + text
             iteration = 1
+
+            if self.__autoindent and len(self.lines) and self.lines[-1].endswith("}"):
+                self.lines.append("")
+
+            unindent = (text == "}")
 
             while len(text) > (self.threshold * iteration):
                 index = text.rfind(",", 0, self.threshold * iteration)
@@ -50,9 +61,11 @@ class Emitter():
 
             self.lines.append(text)
 
+            if self.__autoindent and unindent:
+                self.Unindent()
+
         elif len(self.lines) and self.lines[-1] != "":
             self.lines.append("")
-
 
     def Indent(self):
         self.indent += self.indent_size
@@ -76,3 +89,21 @@ class Emitter():
         if self.file:
             for line in self.lines:
                 self.file.write(line + "\n")
+
+    def EnterBlock(self, conditions=None):
+        if conditions:
+            if conditions.count():
+                if len(self.lines) and self.lines[-1] != "":
+                    self.lines.append("")
+                self.Line("if (%s) {" % conditions.join())
+                self.Indent()
+        else:
+            self.Line("{")
+            self.Indent()
+
+    def ExitBlock(self, conditions=None):
+        if conditions:
+            if not conditions.count():
+                return
+        self.Unindent()
+        self.Line("}")

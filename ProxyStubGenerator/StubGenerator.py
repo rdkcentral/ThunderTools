@@ -154,7 +154,8 @@ def FindInterfaceClasses(tree, namespace):
                                 if not e.scoped:
                                     for item in e.items:
                                         if item.name == "ID":
-                                            faces.append(Interface(c, item.value, source_file))
+                                            if item.value != 0:
+                                                faces.append(Interface(c, item.value, source_file))
                                             has_id = True
                                             break
 
@@ -290,7 +291,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     else:
                         return "16"
 
-                if len(length) == 1:
+                if isinstance(length, list) and len(length) == 1:
                     if length[0] == "void":
                         return [_Convert(param.Type().size), None]
                     elif length[0] == "return":
@@ -302,6 +303,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 size = "8"
 
+                value = 0
                 expr = "".join(length)
                 try:
                     value = eval(expr)
@@ -312,7 +314,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                 except:
                     pass
 
-                return [size, None]
+                return [size, value]
 
 
             def Convert(paramtype, retval, vars, hresult=False):
@@ -323,14 +325,24 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                 meta = paramtype.meta
                 p = param.Type()
 
+                if isinstance(p, CppParser.Optional):
+                    optional_type = Convert(p.optional, retval, vars, hresult)
+                    optional_type.append("optional = true")
+                    print(optional_type)
+                    return optional_type
+
                 if isinstance(p, CppParser.Integer):
                     length_param = None
+                    length_value = None
 
                     if param.IsPointer():
-                        parsed = ParseLength(param, meta.length if meta.length else meta.maxlength, retval, vars)
+                        parsed = ParseLength(param, paramtype.array if paramtype.array else meta.length if meta.length else meta.maxlength, retval, vars)
 
                         if parsed[1]:
-                            length_param = parsed[1]
+                            if (isinstance(parsed[1], str)):
+                                length_param = parsed[1]
+                            elif (isinstance(parsed[1], int)):
+                                length_value = parsed[1]
 
                         value = "BUFFER" + parsed[0]
                     else:
@@ -367,6 +379,8 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                     if length_param:
                         rvalue.append("length_param = \"%s\"" % length_param)
+                    elif length_value:
+                        rvalue.append("length_value = %i" % length_value)
 
                     return rvalue
 
@@ -394,7 +408,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                         for v in kind.vars:
                             param_info = Convert(v, None, kind.vars)
                             text = []
-                            text.append("name = " + v.name)
+                            text.append('name = "%s"' % v.name)
 
                             if param_info:
                                 text.extend(param_info)
@@ -423,7 +437,11 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     if name not in enums_list:
                         data = dict()
                         for e in p.items:
-                            data[e.value] = e.name
+                            if (isinstance(e.value, int)):
+                                data[e.value] = e.name
+                            else:
+                                log.Warn("unable to evaluate enum value '%s'" % "".join([str(x) for x in e.value]))
+
                         enums_list[name] = data
 
                     value =  ["type = Type.ENUM" + signed + value, "enum = \"%s\"" % name]
@@ -1755,7 +1773,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         #
 
         def EmitCompleteMethod():
-            emit.Line("uint32_t _Complete(RPC::Data::Frame::Reader& %s)" %  vars["reader"])
+            emit.Line("uint32_t _Complete(RPC::Data::Frame::Reader& %s) const" %  vars["reader"])
             emit.Line("{")
             emit.IndentInc()
             emit.Line("uint32_t result = Core::ERROR_NONE;")

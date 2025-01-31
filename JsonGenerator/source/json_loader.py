@@ -120,7 +120,7 @@ class JsonType():
                         or (((self.root.rpc_format != config.RpcFormat.COMPLIANT) and (self.grand_parent == parent)))):
                 self.description = self.grand_parent.summary
 
-        self.iterator = schema.get("iterator")
+        self.iterator = schema.get("@iterator")
         self.original_type = schema.get("@originaltype")
         self.do_create = (self.original_type == None)
         self.included_from = included
@@ -474,15 +474,21 @@ class JsonEnum(JsonRefCounted, JsonType):
             is_bitmap = True
             biggest = 0
 
+            try:
+                endmarker = self.cpp_enumerators.index(self.schema.get('@endmarker'))
+            except:
+                endmarker = None
+
             for idx, e in enumerate(self.cpp_enumerator_values):
-                if (e & (e-1) != 0) and (e != 0):
-                    is_bitmap = False
+                if isinstance(e, int):
+                    if (e & (e-1) != 0) and (e != 0) and endmarker != idx:
+                        is_bitmap = False
 
-                if idx != e:
-                    same = False
+                    if idx != e:
+                        same = False
 
-                if e > biggest:
-                    biggest = e
+                    if e > biggest:
+                        biggest = e
 
             if same:
                 if not self.original_type:
@@ -974,7 +980,7 @@ class JsonRpcSchema(JsonType):
         _AddMethods("events", schema, lambda name, obj, method: JsonNotification(name, obj, method))
 
         if not self.methods:
-            raise JsonParseError("no methods, properties or events defined in %s" % self.print_name)
+            raise JsonParseError("no methods, properties or events defined in %s" % self.schema["@fullname"] if "@fullname" in self.schema else self.name)
 
     @property
     def root(self):

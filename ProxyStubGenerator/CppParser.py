@@ -85,6 +85,8 @@ class Metadata:
         self.sourcelocation = ""
         self.brief = ""
         self.details = ""
+        self.pre = ""
+        self.post = ""
         self.input = False
         self.output = False
         self.length = None
@@ -427,6 +429,12 @@ class Identifier():
                 elif tag == "DETAILS":
                     self.meta.details = string[i + 1]
                     skip = 1
+                elif tag == "PRE":
+                    self.meta.pre = string[i + 1]
+                    skip = 1
+                elif tag == "POST":
+                    self.meta.post = string[i + 1]
+                    skip = 1
                 elif tag == "PARAM":
                     par = string[i + 1]
                     if par.endswith(":"):
@@ -696,9 +704,6 @@ class Identifier():
 
                 self.type = self.type[typeIdx]
 
-                if isinstance(self.type.type, Optional):
-                    self.meta.decorators.append("optional")
-
     def __str__(self):
         return str(self.type) if self.type else ""
 
@@ -737,10 +742,6 @@ def Evaluate(identifiers_):
     val = []
     if identifiers:
         for identifier in identifiers:
-            try:
-                identifier = identifier
-            except:
-                pass
             try:
                 val.append(str(int(identifier, 16 if identifier[:2] == "0x" else 10)))
             except:
@@ -855,6 +856,7 @@ class Namespace(Block):
         self.namespaces = []
         self.methods = []
         self.omit = False
+        self.omit_mode = False
         self.stub = -False
         if self.parent != None:                                                                 # case for global namespace
             if isinstance(self.parent, Namespace):
@@ -951,7 +953,7 @@ class Type:
         if self.IsPointer() and ref & Ref.POINTER:
             ref |= Ref.POINTER_TO_POINTER
         if isinstance(self.type, Typedef):
-            type = self.type.Resolve(self.ref | ref)
+            type = self.type.Resolve(self.ref | ref).Resolve()
         else:
             type = copy.deepcopy(self)
             type.ref |= ref
@@ -1041,6 +1043,7 @@ class Class(Identifier, Block):
         self.ancestors = [] # parent classes
         self._current_access = "public"
         self.omit = False
+        self.omit_mode = False
         self.stub = False
         self.is_json = False
         self.json_version = ""
@@ -1055,6 +1058,9 @@ class Class(Identifier, Block):
 
         if sum([1 for x in self.parent.classes if x.name == name]) == 0:
             self.parent.classes.append(self)
+
+    def IsPOD(self):
+        return (not self.methods and self.vars)
 
     def IsAbstract(self):
         return any([m.IsPureVirtual() for m in self.methods])
@@ -1123,6 +1129,7 @@ class Union(Identifier, Block):
         self.classes = []
         self._current_access = "public"
         self.omit = False
+        self.omit_mode = False
         self.stub = False
         self.parent.unions.append(self)
 
@@ -1150,7 +1157,7 @@ class Enum(Identifier, Block):
 
     def __str__(self):
         _str = ("enum " if not self.scoped else "enum class ")
-        _str += "%s : %s" % (self.Proto(), TypeStr(self.type))
+        _str += "%s : %s" % (self.Proto(), TypeStr(self.type.type))
         return _str
 
     def __repr__(self):
@@ -1298,8 +1305,7 @@ class Method(Function):
 
     def __repr__(self):
         cv = " " + self.CVString() if self.CVString() else ""
-        return "method %s %s '%s' (%s)%s %s" % (self.access, TypeStr(self.type), self.name, ", ".join(
-            [str(v) for v in self.vars]), cv, str(self.specifiers))
+        return "method %s %s '%s' (%s)%s %s" % (self.access, TypeStr(self.retval.type), self.name, ", ".join([str(v) for v in self.vars]), cv, str(self.specifiers))
 
 
 class Destructor(Method):
@@ -1554,24 +1560,27 @@ def __Tokenize(contents,log = None):
 
     defines = []
 
-    tokens = [s.strip() for s in re.split(r"([\r\n])", contents, flags=re.MULTILINE) if s]
+    tokens = contents.splitlines()
     eoltokens = []
     line = 1
     inComment = 0
     for token in tokens:
         if token.startswith("// @_file:"):
             line = 1
-        if token == '':
+            eoltokens.append(token)
+        else:
             if not inComment:
                 eoltokens.append("// @_line:" + str(line) + " ")
-            line = line + 1
-        elif (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
-            del eoltokens[-1]
-            eoltokens[-1] = eoltokens[-1][:-1] + token
-        else:
-            eoltokens.append(token)
 
-        inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
+            if (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
+                del eoltokens[-1]
+                eoltokens[-1] = eoltokens[-1][:-1] + token
+            else:
+                eoltokens.append(token)
+
+            line += 1
+
+            inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
     contents = "\n".join(eoltokens)
 
@@ -1623,7 +1632,7 @@ def __Tokenize(contents,log = None):
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
                            r"|(\+\+)|(--)|(\+=)|(-=)|(/=)|(\*=)|(%=)|(^=)|(&=)|(\|=)|(~=)"
-                           r"|([,:;~?=^/*%-\+&<>\{\}\(\)\[\]])"
+                           r"|([:;~?^/*%-\+&<>\{\}\(\)\[\]])"
                            r"|([\r\n\t ])")
 
                 if append:
@@ -1672,6 +1681,7 @@ def __Tokenize(contents,log = None):
                 raise ParserError("multi-line comment not closed")
 
             if ((token[:2] == "/*") or (token[:2] == "//")):
+
                 def _find(word, string):
                     return re.compile(r"[ \r\n/\*]({0})([-: \r\n\*]|$)".format(word)).search(string) != None
 
@@ -1760,20 +1770,20 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
-                if _find("@alt", token):
-                    tagtokens.append(__ParseParameterValue(token, "@alt"))
                 if _find("@alt:deprecated", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt:deprecated"))
-                if _find("@alt-deprecated", token):
-                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
-                if _find("@alt:obsolete", token):
+                elif _find("@alt:obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt:obsolete"))
-                if _find("@alt-obsolete", token):
+                elif _find("@alt-deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
+                elif _find("@alt-obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt-obsolete"))
-                if _find("@text:keep", token):
-                    tagtokens.append(__ParseParameterValue(token, "@text", True, True, "@text-global"))
-                elif _find("@text", token):
+                elif _find("@alt", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt"))
+
+                if _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
+
                 if _find("@encode:base64", token):
                     tagtokens.append("@ENCODEBASE64")
                 elif _find("@encode:hex", token):
@@ -1782,6 +1792,7 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ENCODEIP")
                 elif _find("@encode:mac", token):
                     tagtokens.append("@ENCODEMAC")
+
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
                 if _find("@maxlength", token):
@@ -1822,6 +1833,8 @@ def __Tokenize(contents,log = None):
 
                 FindDoxyString("@brief", False, token, tagtokens)
                 FindDoxyString("@details", False, token, tagtokens)
+                FindDoxyString("@pre", False, token, tagtokens)
+                FindDoxyString("@post", False, token, tagtokens)
                 FindDoxyString("@param", True, token, tagtokens)
                 FindDoxyString("@retval", True, token, tagtokens)
 
@@ -1913,6 +1926,7 @@ def Parse(contents,log = None):
             line_numbers.append(current_line)
             files.append(current_file)
 
+
     global_namespace = Namespace(None)
 
     current_block = [global_namespace]
@@ -1978,13 +1992,12 @@ def Parse(contents,log = None):
             i += 1
         elif tokens[i] == "@EVENT":
             event_next = True
-            json_next = False
             tokens[i] = ";"
             i += 1
-        elif tokens[i] == "@TEXT-GLOBAL":
+        elif tokens[i] == "@TEXT":
             text_next = tokens[i + 1][0]
-            tokens[i] = ";"
-            tokens[i+1] = ";"
+            #tokens[i] = ";"
+            #tokens[i+1] = ";"
             i += 2
         elif tokens[i] == "@EXTENDED":
             extended_next = True
@@ -2089,7 +2102,7 @@ def Parse(contents,log = None):
                 while tokens[j] != ";":
                     j += 1
                 # reuse typedef class but correct name accordingly
-                if not current_block[-1].omit:
+                if not current_block[-1].omit or current_block[-1].omit_mode:
                     typedef = Typedef(current_block[-1], tokens[i + 1:j])
                     if event_next:
                         typedef.is_event = True
@@ -2135,6 +2148,7 @@ def Parse(contents,log = None):
 
             if omit_mode:
                 new_class.omit = True
+                new_class.omit_mode = True
             if omit_next:
                 new_class.omit = True
                 omit_next = False
@@ -2148,6 +2162,8 @@ def Parse(contents,log = None):
             if json_next:
                 new_class.is_json = True
                 new_class.json_version = json_version
+                if event_next:
+                    raise ParserError("@json iterface cannot also be @event")
             if prefix_next:
                 new_class.json_prefix = prefix_string
             if event_next:
@@ -2188,6 +2204,9 @@ def Parse(contents,log = None):
             if new_class.parent.omit:
                 # Inherit omiting...
                 new_class.omit = True
+
+            if new_class.parent.omit_mode:
+                new_class.omit_mode = True
 
             if last_template_def:
                 new_class.specifiers.append(" ".join(last_template_def))
@@ -2271,6 +2290,7 @@ def Parse(contents,log = None):
                 raise ParserError("@event tag is invalid here")
 
             json_next = False
+            text_next = None
 
             # concatenate tokens to handle operators and destructors
             j = i - 1
@@ -2403,13 +2423,19 @@ def Parse(contents,log = None):
 
         # Handle closing a compound block/composite type
         elif tokens[i] == '}':
-            if isinstance(current_block[-1], Class) and (tokens[i + 1] != ';'):
-                raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" %
-                                  current_block[-1].full_name)
+            if isinstance(current_block[-1], Class):
+                if (tokens[i + 1] != ';'):
+                    raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" % current_block[-1].full_name)
+
+                if current_block[-1].omit_mode and current_block[-1].IsPOD():
+                    # it was POD after all, don't remove it from import
+                    current_block[-1].omit = False
+
             if len(current_block) > 1:
                 current_block.pop()
             else:
                 raise ParserError("unmatched brace '{'")
+
             i += 1
             next_block = Block(current_block[-1]) # new anonymous scope
 
@@ -2421,12 +2447,15 @@ def Parse(contents,log = None):
             j = i - 1
             while j >= min_index and tokens[j] not in ['{', '}', ';', ":"]:
                 j -= 1
+
             identifier = tokens[j + 1:i]
-            if len(identifier) != 0 and not current_block[-1].omit:
+
+            if identifier:
                 if isinstance(current_block[-1], Class):
                     Attribute(current_block[-1], identifier)
                 else:
                     Variable(current_block[-1], identifier)
+
             i += 1
 
         # Parse constants and member constants

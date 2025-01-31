@@ -1,7 +1,7 @@
 # If not stated otherwise in this file or this component's license file the
 # following copyright and licenses apply:
 #
-# Copyright 2020 Metrological
+# Copyright 2020 Metrological 
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -81,7 +81,7 @@ def Create(log, schema, path, indent_size = 4):
             MdRow([":--------"] * len(columns))
 
         def ParamTable(name, object):
-            MdTableHeader(["Name", "Type", "Description"])
+            MdTableHeader(["Name", "Type", "M/O", "Description"])
 
             def _TableObj(name, obj, parentName="", parent=None, prefix="", parentOptional=False):
                 # determine if the attribute is optional
@@ -100,16 +100,26 @@ def Create(log, schema, path, indent_size = 4):
 
                 # include information about enum values in description
                 enum = ""
+                default_enum = None
+                enums = []
                 if "enum" in obj and "ids" in obj:
-                    enums = []
                     endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
                             break;
                         enums.append(obj["enum"][i])
+                        if "default" in obj and e == obj["default"]:
+                            default_enum = enums[-1]
+
+                elif "enum" in obj:
+                    for e in obj["enum"]:
+                        enums.append(e)
 
                     if enums:
-                        enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
+                        default_enum = enums[0]
+
+                if enums:
+                    enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
@@ -136,7 +146,8 @@ def Create(log, schema, path, indent_size = 4):
 
                     restricted = "range" in d
 
-                    row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
+                    # row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
+                    row = ""
 
                     if deprecated:
                         row = "<sup>" + italics("(deprecated)") + "</sup> " + row
@@ -150,7 +161,10 @@ def Create(log, schema, path, indent_size = 4):
                         row = row[:-1]
 
                     if "default" in obj:
-                        row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
+                        if "enum" in obj and default_enum:
+                            row += " (default: " + (italics("%s") % str(enums[obj["ids"].index(obj["default"])]) + ")")
+                        else:
+                            row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
 
                     if obj["type"] == "number":
                         # correct number to integer
@@ -163,17 +177,25 @@ def Create(log, schema, path, indent_size = 4):
 
                         if d["type"] == "string" or is_buffer:
                             str_text = "Decoded data" if d.get("encode") else "String"
+                            val_text = "bytes" if d.get("encode") else "chars"
+
                             if d["range"][0]:
-                                row += italics("%s length must be in range [%s..%s] bytes." % (str_text, d["range"][0], d["range"][1]))
+                                row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
                             else:
-                                row += italics("%s length must be at most %s bytes." % (str_text, d["range"][1]))
+                                row += italics("%s length must be at most %s %s." % (str_text, d["range"][1], val_text))
                         else:
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
                     if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
-                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
+                    if obj.get("@lookupid"):
+                        row += "<br>"
+                        row += italics("This item is an instance ID.")
+
+                    obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
+
+                    MdRow([prefix, obj_type, "optional" if optional else "mandatory", row])
 
                 if obj["type"] == "object":
                     if "required" not in obj and name and len(obj["properties"]) > 1:
@@ -209,7 +231,7 @@ def Create(log, schema, path, indent_size = 4):
                 return "$deprecated"
 
             obj_type = obj["type"]
-            default = obj["example"] if "example" in obj else obj["default"] if "default" in obj else ""
+            default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
             if not default and "enum" in obj:
                 default = obj["enum"][0]
@@ -289,6 +311,11 @@ def Create(log, schema, path, indent_size = 4):
                     text += '.'
 
                 MdParagraph(text)
+
+            if "preconditions" in props:
+                MdParagraph("Preconditions: %s" % props["preconditions"])
+            if "postconditions" in props:
+                MdParagraph("Postconditions: %s" % props["postconditions"])
 
             if is_property:
                 if "readonly" in props and props["readonly"]:
@@ -384,13 +411,13 @@ def Create(log, schema, path, indent_size = 4):
                             props["result"]["description"] = props["summary"]
 
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"][2].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
+                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"]["prefix"].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
 
             else:
                 MdHeader("Parameters", 3)
 
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* argument shell be passed within the designator, e.g. ``%s.1.%s``" % (props["@lookup"][2], classname, method))
+                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s``." % (props["@lookup"]["prefix"].lower(), classname, method))
 
                 if "params" in props:
                     ParamTable("params", props["params"])
@@ -877,7 +904,10 @@ def Create(log, schema, path, indent_size = 4):
 
                             if not head:
                                 MdParagraph("%s interface %s:" % (((ns + " ") if ns else "") + interface["info"]["class"], section))
-                                MdTableHeader([header.capitalize(), "Description"])
+                                if prop:
+                                    MdTableHeader([header.capitalize(), "R/W", "Description"])
+                                else:
+                                    MdTableHeader([header.capitalize(), "Description"])
                                 head = True
 
                             access = ""
@@ -886,9 +916,8 @@ def Create(log, schema, path, indent_size = 4):
                                 access = "read-only"
                             elif "writeonly" in contents and contents["writeonly"] == True:
                                 access = "write-only"
-
-                            if access:
-                                access = " (%s)" % access
+                            else:
+                                access = "read/write"
 
                             tags = ""
 
@@ -940,9 +969,11 @@ def Create(log, schema, path, indent_size = 4):
                             else:
                                 line += tags
 
-                            line += access
+                            if prop:
+                                MdRow([line, access, descr])
+                            else: 
+                                MdRow([line, descr])
 
-                            MdRow([line, descr])
                             emitted = True
 
                         skip_list.append(method)
