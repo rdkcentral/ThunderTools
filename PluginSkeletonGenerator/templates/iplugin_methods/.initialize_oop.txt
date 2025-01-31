@@ -10,7 +10,7 @@ _service->AddRef();
 {{REGISTER_NOTIFICATION}}
 
 // Example
-_impl{{COMRPC[1:]}} = service->Root<Exchange::{{COMRPC}}>(_connectionId, 2000, _T("{{PLUGIN_NAME}}Implementation"));
+_impl{{COMRPC[1:]}} = service->Root<Exchange::{{COMRPC}}>(_connectionId, timeout, _T("{{PLUGIN_NAME}}Implementation"));
 if (_impl{{COMRPC[1:]}} == nullptr) {
 ~INDENT_INCREASE~
     message = _T("Couldn't create instance of impl{{COMRPC[1:]}}");

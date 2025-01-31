@@ -56,6 +56,7 @@ class PluginGenerator:
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 def main():
     print('[NOTE]: The output from this generator is a skeleton, therefore it uses example methods. Please correct the generated methods accordingly!')
+    print('[NOTE]: This generator does not include all the options available for a plugin! ')
     menu.menu()
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~#
 if __name__ == "__main__":

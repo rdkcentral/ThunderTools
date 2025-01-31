@@ -1,6 +1,12 @@
 class Notification : {{NOTIFICATION_CLASS}} {
 public:
 ~INDENT_INCREASE~
+    Notification(const Notification&) = delete;
+    Notification& operator=(const Notification&) = delete;
+    Notification(Notification&&) = delete;
+    Notification& operator=(Notification&&) = delete;
+    Notification() = delete;
+
     explicit Notification({{PLUGIN_NAME}}& parent)
 ~INDENT_INCREASE~
         : RPC::IRemoteConnection::INotification()
@@ -11,11 +17,6 @@ public:
     }
 
     ~Notification() override = default;
-    Notification() = delete;
-    Notification(const Notification&) = delete;
-    Notification& operator=(const Notification&) = delete;
-    Notification(Notification&&) = delete;
-    Notification& operator=(Notification&&) = delete;
 
     void Activated(RPC::IRemoteConnection*) override
     {

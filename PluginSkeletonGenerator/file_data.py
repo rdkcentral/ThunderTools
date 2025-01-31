@@ -84,10 +84,11 @@ class HeaderData(FileData):
     def notification_registers(self, interface):
         text = []
         text.append('\n~INDENT_INCREASE~')
-        text.append('\nASSERT(notification != nullptr);')
+        text.append('\nASSERT(notification != nullptr);\n')
         text.append('\n_adminLock.Lock();')
         text.append(f'''\nauto item = std::find(_{interface[1:].lower()}Notification.begin(), _{interface[1:].lower()}Notification.end(), notification);
                 ASSERT(item == _{interface[1:].lower()}Notification.end());
+
                 if (item == _{interface[1:].lower()}Notification.end()) {{
                 ~INDENT_INCREASE~
                 notification->AddRef();
@@ -111,7 +112,7 @@ class HeaderData(FileData):
                 if (item != _{interface[1:].lower()}Notification.end()) {{
                 ~INDENT_INCREASE~
                 _{interface[1:].lower()}Notification.erase(item);
-                (*item)->Release();
+                notification->Release();
                 ~INDENT_DECREASE~
                 }}
                 _adminLock.Unlock();
@@ -133,8 +134,8 @@ class HeaderData(FileData):
             if self.type == HeaderData.HeaderType.HEADER:
                 methods.append(f'\n// {inherited} methods')
                 if inherited in self.notification_interfaces:
-                    methods.append(f'void Register(Exchange::{inherited}::INotification* notification) override;')
-                    methods.append(f'void Unregister(const Exchange::{inherited}::INotification* notification) override;')
+                    methods.append(f'Core::hresult Register(Exchange::{inherited}::INotification* notification) override;')
+                    methods.append(f'Core::hresult Unregister(const Exchange::{inherited}::INotification* notification) override;')
                 methods.append(f'void {inherited}Example() override;')
             else:
                 methods.append(f'// {inherited} methods')
@@ -149,11 +150,17 @@ class HeaderData(FileData):
                 else:
                     methods.append(f'uint32_t {inherited}Method1() override {{\n~INDENT_INCREASE~\nreturn Core::ERROR_NONE;\n~INDENT_DECREASE~\n}}\n')
             if inherited in self.notification_interfaces and self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION:
-                methods.append(f'void Register(Exchange::{inherited}::INotification* notification) override {{')
+                methods.append(f'Core::hresult Register(Exchange::{inherited}::INotification* notification) override {{')
                 methods.append(self.notification_registers(inherited))
+                methods.append('~INDENT_INCREASE~')
+                methods.append('return Core::ERROR_NONE;')
+                methods.append('~INDENT_DECREASE~')
                 methods.append('}\n')
-                methods.append(f'void Unregister(const Exchange::{inherited}::INotification* notification) override {{')
+                methods.append(f'Core::hresult Unregister(const Exchange::{inherited}::INotification* notification) override {{')
                 methods.append(self.notification_unregisters(inherited))
+                methods.append('~INDENT_INCREASE~')
+                methods.append('return Core::ERROR_NONE;')
+                methods.append('~INDENT_DECREASE~')
                 methods.append('}\n')
 
         if self.comrpc_interfaces:
@@ -334,7 +341,21 @@ class HeaderData(FileData):
         for interface in self.notification_interfaces:
             methods.append(f'void Notify{interface}() const;')
            
-        return ''.join(methods) if methods else 'rm\*n'
+        return '\n'.join(methods) if methods else 'rm\*n'
+    
+    def generate_definitions(self):
+        if self.jsonrpc:
+            return '#include <definitions/definitions.h>'
+        return 'rm\*n'
+    
+    def generate_timeout(self):
+        timeout = []
+
+        if self.out_of_process:
+            timeout.append("// Timeout (2000ms) may be changed if necassary, however, it must not exceed RPC::CommunicationTimeOut")
+            timeout.append("\nstatic constexpr uint32_t timeout = 2000;")
+
+        return "".join(timeout) if timeout else 'rm\*n'
     
     def generate_keyword_map(self):
         return {
@@ -359,7 +380,9 @@ class HeaderData(FileData):
             "{{USING_CONTAINER}}" : self.generate_using_container(),
             "{{ADD_PRIVATE_FIELD}}" : self.generate_private_field(),
             "{{ADD_PUBLIC_FIELD}}" : self.generate_public_field(),
-            "{{NOTIFY_METHOD_IP}}" : self.generate_notify_ip()
+            "{{NOTIFY_METHOD_IP}}" : self.generate_notify_ip(),
+            "{{DEFINITIONS}}" : self.generate_definitions(),
+            "{{STATIC_TIMEOUT}}" : self.generate_timeout()
         }
 
     def generate_nested_map(self):
@@ -512,15 +535,15 @@ class SourceData(FileData):
                 if inherited in self.notification_interfaces:
                      methods.append(f'''// Note this an example of a notification method.
                                 Notify{inherited}();''')
-                if f'J{inherited[1:]}' in self.jsonrpc_interfaces:
-                    methods.append(f'''// Note this an example of a notification method that can call the JSONRPC interface equivalent.
-                                Exchange::{Utils.replace_comrpc_to_jsonrpc(inherited)}::Event::{inherited}Notification(*this);''')
                 methods.append(f'return Core::ERROR_NONE;')
                 methods.append(f'~INDENT_DECREASE~')
                 methods.append(f'}}\n')
                 if inherited in self.notification_interfaces:
                     methods.append(f'void {self.plugin_name}::Register(Exchange::{inherited}::INotification* notification) {{')
                     methods.append(HeaderData.notification_registers(None, inherited))
+                    methods.append('~INDENT_INCREASE~')
+                    methods.append('return Core::ERROR_NONE;')
+                    methods.append('~INDENT_DECREASE~')
                     methods.append('}\n')
                     methods.append(f'void {self.plugin_name}::Unregister(const Exchange::{inherited}::INotification* notification) {{')
                     methods.append(HeaderData.notification_unregisters(None, inherited))
@@ -533,9 +556,13 @@ class SourceData(FileData):
                                 notification->{inherited}Notification();
                                 ~INDENT_DECREASE~
                                 }}
-                                _adminLock.Unlock();
-                                ~INDENT_DECREASE~
-                                }}\n''')
+                                _adminLock.Unlock();\n''')
+                    if f'J{inherited[1:]}' in self.jsonrpc_interfaces:
+                        methods.append(f'''// Note this an example of a notification method that can call the JSONRPC interface equivalent.
+                                Exchange::{Utils.replace_comrpc_to_jsonrpc(inherited)}::Event::{inherited}Notification(*this);\n''')
+                    methods.append("return Core::ERROR_NONE;")
+                    methods.append("~INDENT_DECREASE~")
+                    methods.append("}")
             return ("\n").join(methods)
         return 'rm\*n'
     
@@ -606,8 +633,8 @@ class SourceData(FileData):
                     message = _T("{self.plugin_name} could not be configured.");
                     ~INDENT_DECREASE~
                 }}
-            ~INDENT_DECREASE~
             configuration->Release();
+            ~INDENT_DECREASE~
             }}''')
         return ''.join(text) if text else 'rm\*n'
     
@@ -728,12 +755,24 @@ class CMakeData(FileData):
         if self.plugin_config:
             s = (f'set(PLUGIN_{self.plugin_name.upper()}_EXAMPLE "Example Text" CACHE STRING "Example String")')
         return s if s else 'rm\*n'
+    
+    def generate_find_definition(self):
+        if self.jsonrpc:
+            return 'find_package(${NAMESPACE}Definitions REQUIRED)'
+        return 'rm\*n'
+    
+    def generate_target_definition(self):
+        if self.jsonrpc:
+            return '${NAMESPACE}Definitions::${NAMESPACE}Definitions'
+        return 'rm\*n'
 
     def generate_keyword_map(self):
         return {
                 "{{SOURCE_FILES}}": self.find_source_files(),
                 '{{SET_MODE}}' : self.generate_set_mode(),
-                "{{SET_CONFIG}}" : self.generate_set_config()
+                "{{SET_CONFIG}}" : self.generate_set_config(),
+                '{{FIND_DEFINITION}}' : self.generate_find_definition(),
+                '{{TARGET_DEFINITION}}' : self.generate_target_definition()
             }
 
     def find_source_files(self):
@@ -782,7 +821,7 @@ class JSONData(FileData):
         template_name = global_variables.JSON_INFO
         template = FileUtils.read_file(template_name)
         code = FileUtils.replace_keywords(template, self.keywords)
-        return code
+        return code if code else "rm\*n"
 
     def generate_json_configuration(self):
         code = []
@@ -796,7 +835,7 @@ class JSONData(FileData):
         template_name = global_variables.JSON_INTERFACE
         template = FileUtils.read_file(template_name)
         code = FileUtils.replace_keywords(template, self.keywords)
-        return code
+        return code if code else "rm\*n"
 
     def generate_keyword_map(self):
         return {
@@ -840,14 +879,14 @@ class ConfData(FileData):
     def generate_config(self):
         configuration = []
         if self.plugin_config:
-            configuration.append("configuration = JSON()")
+            configuration.append("\nconfiguration = JSON()")
             configuration.append(f'configuration.add("example", "@PLUGIN_{self.plugin_name.upper()}_EXAMPLE@")')
-        return '\n'.join(configuration)
+        return '\n'.join(configuration) if configuration else 'rm\*n'
     
     def generate_root(self):
         root = []
         if self.out_of_process:
-            root.append(f'root = JSON() \n root.add("mode", "@PLUGIN_{self.plugin_name.upper()}_MODE@")')
+            root.append(f'\nroot = JSON() \n root.add("mode", "@PLUGIN_{self.plugin_name.upper()}_MODE@")')
             root.append(f'configuration.add("root", root)')
         return '\n'.join(root) if root else 'rm\*n'
 
@@ -857,14 +896,3 @@ class ConfData(FileData):
             "{{OOP_ROOT}}" : self.generate_root(),
             '{{CONFIG}}' : self.generate_config()
         }
-
-
-# Not in use currently, may use later on to track rather than hardcode
-class PluginData:
-    # todo: store data such as class names, filenames etc
-    def __init__(self) -> None:
-        self.classes = []
-        self.file_names = []
-
-    def add_class(self, class_name):
-        pass

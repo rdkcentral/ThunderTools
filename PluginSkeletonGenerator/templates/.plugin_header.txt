@@ -68,6 +68,7 @@ namespace Plugin {
 ~INDENT_DECREASE~
     private:
 ~INDENT_INCREASE~
+    {{STATIC_TIMEOUT}}
     {{USING_CONTAINER}}
     
     {{NOTIFY_METHOD_IP}}

@@ -38,7 +38,8 @@ if(BUILD_REFERENCE)
 endif()
 
 find_package(${NAMESPACE}Plugins REQUIRED)
-find_package(${NAMESPACE}Definitions REQUIRED)
+{{FIND_DEFINITION}}
+find_package(${NAMESPACE}Messaging REQUIRED)
 find_package(CompileSettingsDebug CONFIG REQUIRED)
 
 add_library(${MODULE_NAME} SHARED
@@ -59,7 +60,8 @@ target_link_libraries(${MODULE_NAME}
     PRIVATE
         CompileSettingsDebug::CompileSettingsDebug
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
-        ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
+        {{TARGET_DEFINITION}}
+        ${NAMESPACE}Messaging::${NAMESPACE}Messaging)
 ~INDENT_DECREASE~
 
 target_include_directories(${MODULE_NAME}
