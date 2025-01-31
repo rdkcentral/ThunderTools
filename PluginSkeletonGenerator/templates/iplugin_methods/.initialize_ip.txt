@@ -1,0 +1,6 @@
+string message;
+
+ASSERT(service != nullptr);
+{{CONFIGURE_IP}}
+{{REGISTER}}
+return (message);
