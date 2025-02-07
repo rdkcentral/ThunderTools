@@ -1280,6 +1280,7 @@ def LoadInterface(file, log, all = False, include_paths = []):
 
             for s in their_schemas:
                 f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))
+
                 if not f:
                     schemas.append(s)
 
