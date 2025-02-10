@@ -1,0 +1,15 @@
+~INDENT_INCREASE~
+Exchange::IConfiguration* config{{COMRPC}}= _impl{self.comrpc_interfaces[0]}->QueryInterface<Exchange::IConfiguration>();
+ASSERT (config{{COMRPC}}!= nullptr);
+
+if (config{{COMRPC}} != nullptr) {
+    ~INDENT_INCREASE~
+    if (config{{COMRPC}}>Configure(service) != Core::ERROR_NONE) {
+        ~INDENT_INCREASE~
+        message = _T("{{PLUGIN_NAME}} could not be configured.");
+        ~INDENT_DECREASE~
+    }
+~INDENT_DECREASE~
+config{{COMRPC}}->Release();
+}
+~INDENT_DECREASE~

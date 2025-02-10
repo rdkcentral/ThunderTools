@@ -1,0 +1,5 @@
+"interface": {
+    ~INDENT_INCREASE~  
+    {{cppref}}
+    ~INDENT_DECREASE~  
+  }
