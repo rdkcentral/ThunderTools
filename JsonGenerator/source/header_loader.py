@@ -686,7 +686,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     if var_name in list(properties.keys()):
                         if "@async" in converted:
-                            raise CppParseError(var, "parameter name already exists")
+                            raise CppParseError(var, "only one interface parameter is allowed for async method")
                         else:
                             raise CppParseError(var, "parameter name already exists")
 
