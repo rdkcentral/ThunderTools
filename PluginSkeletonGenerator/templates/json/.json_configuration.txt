@@ -1,0 +1,25 @@
+"configuration": {
+    ~INDENT_INCREASE~  
+    "type": "object",
+    "properties": {
+        ~INDENT_INCREASE~
+      "configuration": {
+        ~INDENT_INCREASE~
+        "type": "object",
+        "required": [],
+        "properties": {
+            ~INDENT_INCREASE~
+          "example": {
+            ~INDENT_INCREASE~
+            "type": "string",
+            "description": "Note: This is an example!"
+            ~INDENT_DECREASE~
+          }
+          ~INDENT_DECREASE~
+        }
+        ~INDENT_DECREASE~
+      }
+      ~INDENT_DECREASE~
+    }
+    ~INDENT_DECREASE~
+},
