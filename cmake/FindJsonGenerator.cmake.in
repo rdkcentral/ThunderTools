@@ -44,10 +44,6 @@ function(JsonGenerator)
 
     set(_execute_command ${JSON_GENERATOR})
 
-    if(NOT Argument_CASE_CONVENTION)
-        set(Argument_CASE_CONVENTION legacy)
-    endif()
-
     if(Argument_CODE)
         list(APPEND _execute_command  "--code")
     endif()
