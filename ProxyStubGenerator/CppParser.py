@@ -416,6 +416,8 @@ class Identifier():
                     self.meta.decorators.append("endmarker")
                 elif tag == "PROPERTY":
                     self.meta.is_property = True
+                elif tag == "ASYNC":
+                    self.meta.decorators.append("async")
                 elif tag == "LOOKUP":
                     self.meta.lookup = string[i + 1]
                     if self.meta.lookup:
@@ -721,6 +723,12 @@ class Identifier():
             return ("%s[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
         else:
             return self.Proto()
+
+    def ProtoFmt(self):
+        if self.array:
+            return ("%s @[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
+        else:
+            return "%s @" % self.Proto()
 
     def Signature(self, override=None):
         if self.array:
@@ -1722,6 +1730,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@INDEX")
                 if _find("@property", token):
                     tagtokens.append("@PROPERTY")
+                if _find("@async", token):
+                    tagtokens.append("@ASYNC")
                 if _find("@lookup", token):
                     tagtokens.append(__ParseParameterValue(token, "@lookup", False))
                 if _find("@deprecated", token):

@@ -14,6 +14,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from pprint import pprint
 
 import copy
 from collections import OrderedDict
@@ -30,7 +31,11 @@ class RPCEmitterError(RuntimeError):
     pass
 
 class DottedDict(dict):
-    __getattr__ = dict.get
+    def __getattr__(self, item):
+        try:
+            return self[item]
+        except KeyError as e:
+            return None
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
@@ -69,9 +74,6 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
         elif params_type == "json":
             if params.properties and params.do_create:
                 for p in params.properties:
-                    if p.properties:
-                        return
-
                     parameters.append("const %s& %s" % (p.cpp_type, p.local_name))
             else:
                 parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
@@ -328,10 +330,7 @@ def _EmitVersionCode(emit, version):
 def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     def trim(identifier):
-        if identifier.startswith(ns):
-            return str(identifier).replace(ns + "::", "")
-        elif identifier.startswith("::" + config.FRAMEWORK_NAMESPACE):
-            return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
+        return str(identifier).replace(ns + "::", "").replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
     def _EmitHandlerInterface(listener_events):
         assert listener_events
@@ -436,6 +435,70 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line("} // namespace Link")
         emit.Line()
 
+    def _GenerateImplName(id):
+        stripped = "::" + "::".join(id.split("::")[2:])
+        return (stripped.replace("::I","").replace("::","") + "Implementation")
+
+    def _EmitAsyncCallbackImpl(method):
+        impl_name = _GenerateImplName(method.original_type)
+        face_name = trim(method.original_type)
+        emit.Line("class %s : public %s {" % (impl_name, face_name))
+        emit.Indent()
+        emit.Unindent()
+        emit.Line("public:")
+        emit.Indent()
+        emit.Line("%s() = delete;" % (impl_name))
+        emit.Line("%s(const %s&) = delete;" % (impl_name, impl_name))
+        emit.Line("%s(%s&&) = delete;" % (impl_name, impl_name))
+        emit.Line("%s& operator=(%s&&) = delete;" % (impl_name, impl_name))
+        emit.Line("%s& operator=(const %s&) = delete;" % (impl_name, impl_name))
+        emit.Line()
+        emit.Line("%s(%s& module, const string& id)" % (impl_name, names.jsonrpc_alias))
+        emit.Indent()
+        emit.Line(": _module(module)")
+        emit.Line(", _id(id)")
+        emit.Unindent()
+        emit.Line("{")
+        emit.Line("}")
+        emit.Line("~%s() override" % (impl_name))
+        emit.Line("{")
+        emit.Line("}")
+        emit.Line()
+
+        initializer = []
+        sorted_vars = _BuildVars(method.params if (method.params and not method.params.is_void) else None, None)
+
+        for vname, [vtype, _, _] in sorted_vars:
+            initializer.append(trim(vtype.cpp_native_type_proto.replace('@', vname)))
+
+        emit.Line("void %s(%s) override" % (method.original_name, ", ".join(initializer)))
+        emit.Line("{")
+        emit.Indent()
+
+        params = [ "_module", "_id" ]
+        for vname, _  in sorted_vars:
+            params.append(vname)
+
+        emit.Line("Async::%s::%s(%s);" % (method.json_name.capitalize(), method.original_name, ", ".join(params)))
+        emit.Unindent()
+        emit.Line("}")
+        emit.Line()
+
+        emit.Line("BEGIN_INTERFACE_MAP(%s)" % (impl_name))
+        emit.Indent()
+        emit.Line("INTERFACE_ENTRY(%s)" % (face_name))
+        emit.Unindent()
+        emit.Line("END_INTERFACE_MAP")
+        emit.Line()
+        emit.Unindent()
+        emit.Line("private:")
+        emit.Indent()
+        emit.Line("%s& _module;" % names.jsonrpc_alias)
+        emit.Line("string _id;")
+        emit.Unindent()
+        emit.Line("};")
+        emit.Line()
+
     def _EmitNoPushWarnings(prologue = True):
         if prologue:
             if not config.NO_PUSH_WARNING:
@@ -457,10 +520,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("POP_WARNING()")
                 emit.Line()
 
-    def _EmitEvents(events):
+    def _EmitEvents(events, namespace = None):
         assert events
 
-        emit.Line("namespace Event {")
+        if not namespace:
+            namespace = "Event"
+
+        emit.Line("namespace %s {" % namespace)
         emit.Indent()
         emit.Line()
 
@@ -475,7 +541,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     EmitEvent(emit, root, event, "native")
 
         emit.Unindent()
-        emit.Line("} // namespace Event")
+        emit.Line("} // namespace %s" % namespace)
         emit.Line()
 
     def _EmitAlternativeEventsRegistration(alt_events, prologue=True):
@@ -635,62 +701,73 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         if params:
             if isinstance(params, JsonObject) and params.do_create:
                 for param in params.properties:
-                    vars[param.local_name] = [param, "r"]
+                    vars[param.local_name] = [param, "r", DottedDict()]
+                    vars[param.local_name][2].var = vars[param.local_name]
             else:
-                vars[params.local_name] = [params, "r"]
+                vars[params.local_name] = [params, "r", DottedDict()]
+                vars[params.local_name][2].var = vars[params.local_name]
 
         if response:
             if isinstance(response, JsonObject) and response.do_create:
                 for resp in response.properties:
                     if resp.local_name not in vars:
-                        vars[resp.local_name] = [resp, "w"]
+                        vars[resp.local_name] = [resp, "w", DottedDict()]
+                        vars[resp.local_name][2].var = vars[resp.local_name]
                     else:
                         vars[resp.local_name][1] += "w"
+                        vars[resp.local_name][2].var = vars[resp.local_name]
             else:
                 if response.local_name not in vars:
-                    vars[response.local_name] = [response, "w"]
+                    vars[response.local_name] = [response, "w", DottedDict()]
+                    vars[response.local_name][2].var = vars[response.local_name]
                 else:
                     vars[response.local_name][1] += "w"
+                    vars[response.local_name][2].var = vars[response.local_name]
 
         sorted_vars = sorted(vars.items(), key=lambda x: x[1][0].schema["@position"])
 
-        for _, [param, param_type] in sorted_vars:
-            param.flags = DottedDict()
-            param.flags.prefix = ""
-            param.access = param_type
+        for _, [param, param_type, param_meta] in sorted_vars:
+            param_meta.access = param_type
+            param_meta.flags = DottedDict()
+            param_meta.flags.parent = param
+            param_meta.flags.prefix = ""
 
             if "encode" in param.schema:
-                param.flags.encode = param.schema["encode"]
+                param_meta.flags.encode = param.schema["encode"]
 
-            if "@lookupid" in param.schema:
+            if "@async" in param.schema:
+                param_meta.flags.asynchronous = True
+
+            elif "@lookupid" in param.schema:
                 if param_type == "w":
-                    param.flags.store_lookup = param.schema["@lookupid"]
+                    param_meta.flags.store_lookup = param.schema["@lookupid"]
                 elif param_type == "r":
-                    param.flags.dispose_lookup = param.schema["@lookupid"]
+                    param_meta.flags.dispose_lookup = param.schema["@lookupid"]
+
             elif param.schema.get("@bypointer"):
-                param.flags.prefix = "&"
+                param_meta.flags.prefix = "&"
 
         # Tie buffer with length variables
-        for _, [param, _] in sorted_vars:
+        for _, [param, _, param_meta] in sorted_vars:
             if isinstance(param, (JsonString, JsonArray)):
                 length_value = param.schema.get("@length")
                 array_size_value = param.schema.get("@arraysize")
 
                 if length_value:
-                    for name, [var, type] in sorted_vars:
+                    for name, [var, var_type, var_meta] in sorted_vars:
                         if name == length_value:
-                            if type == "w":
+                            if var_type == "w":
                                 raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % param.name)
                             else:
-                                var.flags.is_buffer_length = True
-                                param.flags.length = var
+                                var_meta.flags.is_buffer_length = True
+                                param_meta.flags.length = [var, var_meta]
                                 break
 
-                    if not param.flags.length:
-                        param.flags.size = length_value
+                    if not param_meta.flags.length:
+                        param_meta.flags.size = length_value
 
                 elif array_size_value:
-                    param.flags.size = array_size_value
+                    param_meta.flags.size = array_size_value
 
         return sorted_vars
 
@@ -700,6 +777,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         restrictions = Restrictions(test_set=True)
         call_conditions = Restrictions(test_set=False)
+        async_event = None
 
         if params:
             restrictions.append(params, override=params.local_name, test_set=test_param)
@@ -716,8 +794,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         # Emit temporary variables and deserializing of JSON data
 
-        for _, [param, param_type] in sorted_vars:
-            if param.flags.is_buffer_length:
+        async_param = None
+
+        for _, [param, param_type, param_meta] in sorted_vars:
+            if param_meta.flags.is_buffer_length:
                 continue
 
             is_readable = ("r" in param_type)
@@ -728,35 +808,46 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             cpp_name = ((parent + param.cpp_name) if parent else param.local_name)
 
             # Encoded JSON strings to C-style buffer
-            if isinstance(param, JsonString) and (param.flags.length or param.flags.size) and param.flags.encode:
+            if isinstance(param, JsonString) and param_meta.flags.asynchronous:
+                asyncid_param = param.TempName("_asyncId")
+                async_event = method.callback.notification.json_name
+                async_param = param.temp_name
+                initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
+                emit.Line("%s%s %s%s;" % (cv_qualifier, param.cpp_native_type, asyncid_param, initializer))
+                emit.Line("%s* %s = Core::ServiceType<%s>::Create<%s>(%s, %s);" % (param.original_type, param.temp_name, _GenerateImplName(param.original_type), param.original_type, names.module, asyncid_param))
+                emit.Line("const uint32_t _subscribe_result__ = %s.Subscribe(%s.ChannelId(), %s, %s, true /* one-off */);" % (names.module,  names.context, Tstring(async_event), asyncid_param))
+                emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
+                call_conditions.extend("_subscribe_result__ == Core::ERROR_NONE")
+
+            elif isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size) and param_meta.flags.encode:
                 conditions = Restrictions(reverse=True)
-                length_param = param.flags.length
+                length_param = param_meta.flags.length
 
                 assert not param.optional
 
-                if param.flags.length:
-                    size = length_param.temp_name
-                    length_cpp_name = parent + length_param.cpp_name
+                if param_meta.flags.length:
+                    size = length_param[0].temp_name
+                    length_cpp_name = parent + length_param[0].cpp_name
 
-                    if length_param.optional and "r" in length_param.access:
-                        emit.Line("%s %s{};" % (length_param.cpp_native_type_opt, size))
+                    if length_param[0].optional and "r" in length_param[1].access:
+                        emit.Line("%s %s{};" % (length_param[0].cpp_native_type_opt, size))
                         emit.Line("if (%s.IsSet() == true) { %s = %s.Value(); }" % (length_cpp_name, size, length_cpp_name))
                     else:
-                        initializer = (length_cpp_name + ".Value()") if "r" in length_param.access else ""
-                        emit.Line("%s %s{%s};" % (length_param.cpp_native_type_opt, size, initializer))
+                        initializer = (length_cpp_name + ".Value()") if "r" in length_param[1].access else ""
+                        emit.Line("%s %s{%s};" % (length_param[0].cpp_native_type_opt, size, initializer))
 
                     emit.Line("%s* %s{nullptr};" % (param.original_type, param.temp_name))
 
-                    if length_param.optional:
+                    if length_param[0].optional:
                         size += ".Value()"
 
-                    conditions.check_set(length_param)
-                    conditions.check_not_null(length_param)
+                    conditions.check_set(length_param[0])
+                    conditions.check_not_null(length_param[0])
 
-                    if length_param.size > 16:
+                    if length_param[0].size > 16:
                         conditions.extend("(%s <= 0x400000) /* sanity! */" % size)
                 else:
-                    size = param.flags.size
+                    size = param_meta.flags.size
                     emit.Line("%s %s[%s]{};" % (param.original_type, param.temp_name, size))
 
                 emit.EnterBlock(conditions)
@@ -766,8 +857,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
 
                 if is_readable:
-                    if param.flags.encode == "base64":
-                        if param.flags.size:
+                    if param_meta.flags.encode == "base64":
+                        if param_meta.flags.size:
                             size_var = param.TempName("Size_")
                             emit.Line("uint16_t %s{%s};" % (size_var, size))
                         else:
@@ -775,7 +866,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         emit.Line("Core::FromString(%s, %s, %s, nullptr);" % (cpp_name, param.temp_name, size_var))
                     else:
-                        assert False, "unimplemented encoding: " + param.flags.encode
+                        assert False, "unimplemented encoding: " + param_meta.flags.encode
 
                 emit.ExitBlock(conditions)
 
@@ -808,7 +899,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("ASSERT(%s != nullptr); " % iterator)
 
                         if param_const_cast:
-                            param.flags.cast = "static_cast<%s const&>(%s)" % (param.cpp_native_type_opt, param.temp_name)
+                            param_meta.flags.cast = "static_cast<%s const&>(%s)" % (param.cpp_native_type_opt, param.temp_name)
 
                         if param.optional:
                             emit.Unindent()
@@ -826,33 +917,33 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("%s%s %s{%s};" % (cv_qualifier, param.items.cpp_native_type, param.temp_name, initializer))
 
                 # array to fixed array
-                elif (param.flags.size or param.flags.length):
+                elif (param_meta.flags.size or param_meta.flags.length):
                     items = param.items
-                    length_param = param.flags.length
+                    length_param = param_meta.flags.length
                     conditions = Restrictions(reverse=True)
 
                     assert not param.optional
 
                     if length_param:
-                        size = length_param.temp_name
+                        size = length_param[0].temp_name
 
-                        if length_param.optional and "r" in length_param.access:
-                            length_cpp_name = parent + length_param.cpp_name
-                            emit.Line("%s %s{};" % (length_param.cpp_native_type_opt, size))
+                        if length_param[0].optional and "r" in length_param[1].access:
+                            length_cpp_name = parent + length_param[0].cpp_name
+                            emit.Line("%s %s{};" % (length_param[0].cpp_native_type_opt, size))
                             emit.Line("if (%s.IsSet() == true) { %s = %s.Value(); }" % (length_cpp_name, size, length_cpp_name))
                         else:
-                            initializer = (parent + length_param.cpp_name + ".Value()") if "r" in length_param.access else ""
-                            emit.Line("%s %s{%s};" % (length_param.cpp_native_type_opt, size, initializer))
+                            initializer = (parent + length_param[0].cpp_name + ".Value()") if "r" in length_param[1].access else ""
+                            emit.Line("%s %s{%s};" % (length_param[0].cpp_native_type_opt, size, initializer))
 
                         emit.Line("%s* %s{};" % (items.cpp_native_type, param.temp_name))
 
-                        conditions.check_set(length_param)
-                        conditions.check_not_null(length_param)
+                        conditions.check_set(length_param[0])
+                        conditions.check_not_null(length_param[1])
 
-                        if length_param.optional:
+                        if length_param[0].optional:
                             size += ".Value()"
                     else:
-                        size = param.flags.size
+                        size = param_meta.flags.size
                         emit.Line("%s %s[%s]{};" % (param.items.cpp_native_type, param.temp_name, size))
 
                     emit.EnterBlock(conditions)
@@ -914,12 +1005,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if param.convert and is_readable:
                     emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
 
-                if param.flags.store_lookup or param.flags.dispose_lookup:
+                if param_meta.flags.store_lookup or param_meta.flags.dispose_lookup:
                     emit.Line("%s* _real%s{};" % (param.original_type, param.temp_name))
-                    param.flags.prefix += "_real"
+                    param_meta.flags.prefix += "_real"
 
-                if param.flags.dispose_lookup:
-                    emit.Line("_real%s = %s->%s.Dispose(%s, %s);" % (param.temp_name, names.storage, param.flags.dispose_lookup, names.context, param.temp_name))
+                if param_meta.flags.dispose_lookup:
+                    emit.Line("_real%s = %s->%s.Dispose(%s, %s);" % (param.temp_name, names.storage, param_meta.flags.dispose_lookup, names.context, param.temp_name))
                     call_conditions.extend("_real%s != nullptr" % param.temp_name)
 
 
@@ -944,8 +1035,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if index_name:
                 function_params.append(index_name)
 
-            for _, [param, _] in sorted_vars:
-                function_params.append("%s%s" % (param.flags.prefix, (param.flags.cast if param.flags.cast else param.temp_name)))
+            for _, [param, _, param_meta] in sorted_vars:
+                function_params.append("%s%s" % (param_meta.flags.prefix, (param_meta.flags.cast if param_meta.flags.cast else param.temp_name)))
 
             emit.Line()
 
@@ -960,12 +1051,28 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if lookup:
                 emit.Line("%s->Release();" % impl)
 
+            if method.callback:
+                emit.Line()
+                emit.Line("if (%s != Core::ERROR_NONE) {" % (error_code.temp_name))
+                emit.Indent()
+                emit.Line("%s.Unsubscribe(%s.ChannelId(), %s, %s);" % (names.module, names.context, Tstring(method.callback.notification.json_name), param.TempName("_asyncId")))
+                emit.Unindent()
+                emit.Line("}")
+
             if call_conditions.count():
                 emit.Unindent()
                 emit.Line("}")
                 emit.Line("else {")
                 emit.Indent()
                 emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+                emit.Unindent()
+                emit.Line("}")
+
+            if async_param:
+                emit.Line()
+                emit.Line("if (%s != nullptr) {" % async_param)
+                emit.Indent()
+                emit.Line("%s->Release();" % async_param)
                 emit.Unindent()
                 emit.Line("}")
 
@@ -976,7 +1083,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if index_name:
                 parameters.append(index_name)
 
-            for _, [ param, _ ] in sorted_vars:
+            for _, [ param, _, _ ] in sorted_vars:
                 parameters.append("%s" % (param.temp_name))
 
             if const_cast:
@@ -989,7 +1096,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if index_name:
                 parameters.append("const %s& %s" % (any_index.cpp_native_type, index_name))
 
-            for _, [ param, type ] in sorted_vars:
+            for _, [ param, type, _ ] in sorted_vars:
                 parameters.append("%s%s& %s" % ("const " if type == "r" else "", param.cpp_type, param.local_name))
 
             prototypes.append(["uint32_t %s(%s)%s" % (method.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(method, JsonProperty) and method.readonly)) else "")), CoreError("none")])
@@ -1002,7 +1109,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
             emit.Indent()
 
-            for _, [param, param_type] in sorted_vars:
+            for _, [param, param_type, param_meta] in sorted_vars:
                 if "w" not in param_type:
                     continue
 
@@ -1010,32 +1117,32 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 cpp_name = (repsonse_parent + param.cpp_name) if repsonse_parent else param.local_name
 
                 # Special case for C-style buffers disguised as base64-encoded strings
-                if isinstance(param, JsonString) and (param.flags.length or param.flags.size) and param.flags.encode:
-                    length_param = param.flags.length
+                if isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size) and param_meta.flags.encode:
+                    length_param = param_meta.flags.length
 
                     conditions = Restrictions(reverse=True)
 
                     if length_param:
-                        conditions.check_set(length_param)
-                        conditions.check_not_null(length_param)
+                        conditions.check_set(length_param[0])
+                        conditions.check_not_null(length_param[0])
 
-                        size = length_param.temp_name
+                        size = length_param[0].temp_name
 
-                        if length_param.optional:
+                        if length_param[0].optional:
                             # the length variable determines optionality of the buffer
                             size += ".Value()"
                     else:
-                        size = param.flags.size
+                        size = param_meta.flags.size
 
                     emit.EnterBlock(conditions)
 
-                    if param.flags.encode == "base64":
+                    if param_meta.flags.encode == "base64":
                         encoded_name = param.TempName("encoded_")
                         emit.Line("%s %s;" % (param.cpp_native_type, encoded_name))
                         emit.Line("Core::ToString(%s, %s, true, %s);" % (param.temp_name, size, encoded_name))
                         emit.Line("%s = %s;" % (cpp_name, encoded_name))
                     else:
-                        assert False, "unimplemented encoding: " + param.flags.encode
+                        assert False, "unimplemented encoding: " + param_meta.flags.encode
 
                     emit.ExitBlock(conditions)
 
@@ -1064,19 +1171,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     elif param.items.schema.get("@bitmask"):
                         emit.Line("%s = %s;" % (cpp_name, rhs))
 
-                    elif (param.flags.length or param.flags.size):
-                        length_param = param.flags.length
+                    elif (param_meta.flags.length or param_meta.flags.size):
+                        length_param = param_meta.flags.length
                         conditions = Restrictions(reverse=True)
 
                         if length_param:
-                            conditions.check_set(length_param)
-                            conditions.check_not_null(length_param)
-                            size = length_param.temp_name
+                            conditions.check_set(length_param[0])
+                            conditions.check_not_null(length_param[0])
+                            size = length_param[0].temp_name
 
-                            if length_param.optional:
+                            if length_param[0].optional:
                                 size += ".Value()"
                         else:
-                            size = param.flags.size
+                            size = param_meta.flags.size
 
                         if conditions.count():
                             emit.Line("if (%s) {" % conditions.join())
@@ -1100,7 +1207,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 # All others...
                 else:
-                    if param.flags.store_lookup:
+                    if param_meta.flags.store_lookup:
                         emit.Line("%s = %s->%s.Store(_real%s, %s);" % (param.temp_name, names.storage, param.cpp_name, param.temp_name, names.context))
                         emit.Line("_real%s->Release();" % param.temp_name)
 
@@ -1133,6 +1240,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     methods_and_properties = [x for x in root.properties if not isinstance(x, (JsonNotification))]
     methods = [x for x in methods_and_properties if not isinstance(x, (JsonNotification, JsonProperty))]
     events = [x for x in root.properties if isinstance(x, JsonNotification)]
+    async_events = []
+    async_methods = []
     listener_events = [x for x in events if x.is_status_listener]
     lookup_events = [x for x in events if "@lookup" in x.schema]
     alt_events = [x for x in events if x.alternative]
@@ -1157,11 +1266,67 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     module_required = (impl_required or (alt_events and not config.LEGACY_ALT))
     storage_required = (root.schema.get("@interfaces") != None)
 
+    processed_vars = []
+
+    for m in methods_and_properties:
+        is_property = isinstance(m, JsonProperty)
+        has_index = is_property and m.index
+
+        if is_property:
+            # Normalize property params/repsonse to match methods
+            if m.properties[1].is_void and not m.writeonly:
+                # Try to detect the uncompliant format
+                params = copy.copy(m.properties[0] if not m.readonly else m.properties[1])
+                response = copy.copy(m.properties[0] if not m.writeonly else m.properties[1])
+            else:
+                params = copy.copy(m.properties[0])
+                response = copy.copy(m.properties[1])
+
+            params.Rename("Params")
+            response.Rename("Result")
+        else:
+            params = copy.copy(m.properties[0])
+            response = copy.copy(m.properties[1])
+
+        normalized_params = params if (params and not params.is_void) else None
+        normalized_response = response if (response and not response.is_void) else None
+
+        sorted_vars = _BuildVars(normalized_params, normalized_response)
+
+        has_lookup_params = False
+        has_async_params = False
+
+        for _, [param, _, param_meta] in sorted_vars:
+            if param_meta.flags.store_lookup or param_meta.flags.dispose_lookup:
+                has_lookup_params = True
+                break
+
+        if m.callback:
+            async_events.append(m.callback.notification)
+            async_methods.append(m.callback)
+
+        m.processed_vars = [params, response, normalized_params, normalized_response, sorted_vars, has_lookup_params, (m.callback != None)]
+
     if listener_events and not is_json_source:
         _EmitHandlerInterface(listener_events)
 
     if storage_required:
         _EmitStorageClass(root.schema.get("@interfaces"))
+
+    if async_events:
+        emit.Line("namespace Async {")
+        emit.Indent()
+        emit.Line()
+
+        for aev in async_events:
+            _EmitEvents([aev], aev.name.capitalize())
+
+        emit.Unindent()
+        emit.Line("} // namespace Async")
+        emit.Line()
+
+    for m in async_methods:
+        _EmitAsyncCallbackImpl(m)
 
     _EmitNoPushWarnings(prologue=True)
 
@@ -1229,11 +1394,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
 
             for i,ev in enumerate(lookup_events):
-                emit.Line("%sif (prefix == _T(\"%s\")) {" % ("else " if i != 0 else "", ev.schema["@lookup"]["prefix"].lower()))
+                emit.Line("%sif (prefix == _T(\"%s\")) {" % ("else " if i != 0 else "", ev.schema["@lookup"]["fullprefix"]))
                 emit.Indent()
                 emit.Line("result = %s->%s.Exists(channel, id);" % (names.storage, ev.schema["@lookup"]["prefix"]))
                 emit.Unindent()
                 emit.Line("}")
+
             emit.Unindent()
             emit.Line("}")
             emit.Line()
@@ -1260,35 +1426,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         is_property = isinstance(m, JsonProperty)
         has_index = is_property and m.index
 
-        if is_property:
-            # Normalize property params/repsonse to match methods
-            if m.properties[1].is_void and not m.writeonly:
-                # Try to detect the uncompliant format
-                params = copy.deepcopy(m.properties[0] if not m.readonly else m.properties[1])
-                response = copy.deepcopy(m.properties[0] if not m.writeonly else m.properties[1])
-            else:
-                params = copy.deepcopy(m.properties[0])
-                response = copy.deepcopy(m.properties[1])
-
-            params.Rename("Params")
-            response.Rename("Result")
-            emit.Line("// %sProperty: %s%s" % ("Indexed " if has_index else "", m.Headline(), " (r/o)" if m.readonly else (" (w/o)" if m.writeonly else "")))
-        else:
-            params = copy.deepcopy(m.properties[0])
-            response = copy.deepcopy(m.properties[1])
-            emit.Line("// Method: %s" % m.Headline())
-
-        normalized_params = params if (params and not params.is_void) else None
-        normalized_response = response if (response and not response.is_void) else None
-
-        sorted_vars = _BuildVars(normalized_params, normalized_response)
-
-        has_lookup_params = False
-
-        for _, [param, _] in sorted_vars:
-            if param.flags.store_lookup or param.flags.dispose_lookup:
-                has_lookup_params = True
-                break
+        params, response, normalized_params, normalized_response, sorted_vars, has_lookup_params, has_async_params = m.processed_vars
 
         any_index = (m.index[0] if m.index[0] else m.index[1]) if has_index else None
         indexes_are_different = not m.index[2] if has_index else False
@@ -1297,11 +1435,17 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         has_context = not is_property and m.context
         lookup = m.schema.get("@lookup")
 
-        needs_context = has_context or has_lookup_params or lookup
+        needs_module = has_async_params
+        needs_context = has_context or has_lookup_params or lookup or has_async_params
         needs_storage = has_lookup_params or lookup
         needs_id = (lookup != None)
         needs_index = has_index
         needs_handler = needs_context or needs_id or needs_index
+
+        if is_property:
+            emit.Line("// %sProperty: %s%s" % ("Indexed " if has_index else "", m.Headline(), " (r/o)" if m.readonly else (" (w/o)" if m.writeonly else "")))
+        else:
+            emit.Line("// Method: %s" % m.Headline())
 
         # Emit method prologue
         template_params = [ params.cpp_type, response.cpp_type ]
@@ -1346,13 +1490,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         if not response.is_void:
             lambda_params.append("%s& %s" % (response.cpp_type, response.local_name))
 
-        catches = []
-        catches.append("%s%s" % ("&" if is_json_source else "", names.impl))
+        captures = []
+        captures.append("%s%s" % ("&" if is_json_source else "", names.impl))
+
+        if needs_module:
+            captures.append("&" + names.module)
 
         if needs_storage:
-            catches.append(names.storage)
+            captures.append(names.storage)
 
-        emit.Line("[%s](%s) -> uint32_t {" % (", ".join(catches), ", ".join(lambda_params)))
+        emit.Line("[%s](%s) -> uint32_t {" % (", ".join(captures), ", ".join(lambda_params)))
         emit.Indent()
 
         # Emit the function body

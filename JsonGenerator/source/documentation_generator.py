@@ -1,7 +1,7 @@
 # If not stated otherwise in this file or this component's license file the
 # following copyright and licenses apply:
 #
-# Copyright 2020 Metrological 
+# Copyright 2020 Metrological
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -125,7 +125,7 @@ def Create(log, schema, path, indent_size = 4):
                     prefix += "?." if optional else "."
 
                 prefix += name
-                description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else "*...*"
+                description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else "*...*" if "@async" not in obj else ""
                 if description and description[0].islower():
                     description = description[0].upper() + description[1:]
 
@@ -190,10 +190,19 @@ def Create(log, schema, path, indent_size = 4):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
                     if obj.get("@lookupid"):
-                        row += "<br>"
+                        if row:
+                            row += "<br>"
                         row += italics("This item is an instance ID.")
 
-                    obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
+                    if obj.get("@async"):
+                        if row:
+                            row += "<br>"
+                        row += italics("This item is the client ID returned back in the notification carrying the asynchronous result.")
+
+                    if "@async" in obj:
+                        obj_type = "string (async ID)"
+                    else:
+                        obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
 
                     MdRow([prefix, obj_type, "optional" if optional else "mandatory", row])
 
@@ -233,6 +242,9 @@ def Create(log, schema, path, indent_size = 4):
             obj_type = obj["type"]
             default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
+            if not default and "@async" in obj:
+                default = "myid.completed"
+
             if not default and "enum" in obj:
                 default = obj["enum"][0]
 
@@ -265,13 +277,14 @@ def Create(log, schema, path, indent_size = 4):
                 json_data += "{ %s }" % ", ".join(
                     list(map(lambda p: ExampleObj(p, obj["properties"][p]),
                              obj["properties"]))[0:obj["maxProperties"] if "maxProperties" in obj else None])
-                json_data = json_data.replace("$deprecated, ", "")
+                json_data = json_data.replace("$deprecated, ", "").replace(", $deprecated","")
 
             return json_data
 
         def MethodDump(method, props, classname, section, header, is_notification=False, is_property=False, include=None):
             method = (method.rsplit(".", 1)[1] if "." in method else method)
             type = "property" if is_property else "notification" if is_notification else "method"
+            is_async = False
 
             log.Info("Emitting documentation for %s '%s'..." % (type, method))
 
@@ -367,7 +380,7 @@ def Create(log, schema, path, indent_size = 4):
                     if props["index"][1] and ("type" not in props["index"][1]):
                         props["index"][1]["type"] = "string"
 
-                    extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``." % (
+                    extra_paragraph = "> The *%s* parameter shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``." % (
                         props["index"][0]["name"].lower(), classname, method, props["index"][0]["name"].lower().replace(' ', '-'))
 
                     if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
@@ -414,10 +427,24 @@ def Create(log, schema, path, indent_size = 4):
                     MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"]["prefix"].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
 
             else:
-                MdHeader("Parameters", 3)
+                if is_notification:
+                    if "id" in props:
+                        if "name" not in props["id"] or "example" not in props["id"]:
+                            raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
+
+                        MdHeader("Parameters", 3)
+                        MdParagraph("> The *%s* parameter shall be passed within the client ID during registration, e.g. *%s.myid*" %
+                                    (props["id"]["name"], props["id"]["example"]))
+
+                    MdHeader("Notification Parameters", 3)
+                else:
+                    MdHeader("Parameters", 3)
 
                 if "@lookup" in props:
                     MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s``." % (props["@lookup"]["prefix"].lower(), classname, method))
+
+                if "@async" in props:
+                    MdParagraph("> This method is asynchronous.")
 
                 if "params" in props:
                     ParamTable("params", props["params"])
@@ -427,14 +454,6 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         MdParagraph("This method takes no parameters.")
 
-                if is_notification:
-                    if "id" in props:
-                        if "name" not in props["id"] or "example" not in props["id"]:
-                            raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
-
-                        MdParagraph("> The *%s* argument will be passed within the designator, e.g. *%s.client.%s*." %
-                                    (props["id"]["name"], props["id"]["example"], method))
-
             if "result" in props:
                 MdHeader("Result", 3)
                 ParamTable("result", props["result"])
@@ -443,17 +462,25 @@ def Create(log, schema, path, indent_size = 4):
                 MdHeader("Errors", 3)
                 ErrorTable(props["errors"])
 
+            if "@async" in props and "params" in props:
+                MdHeader("Asynchronous Result", 3)
+                for k,v in props["params"]["properties"].items():
+                        if v.get("@async"):
+                            ParamTable("result", v["@async"]["params"])
+                            is_async = True
+                            async_param = v["@async"]
+
             MdHeader("Example", 3)
 
             if is_notification:
-                callmethod = "client." + method
+                callmethod = "myid." + method
             elif is_property:
                 callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"][0]["example"])) if "index" in props and "example" in props["index"][0] else "")
             else:
                 callmethod = "%s.1.%s" % (classname, method)
 
             if "id" in props and "example" in props["id"]:
-                callmethod = props["id"]["example"] + ".client." + method
+                callmethod = props["id"]["example"] + ".myid." + method
 
             jsonError = "Failed to generate JSON example for %s" % method
             jsonResponse = jsonError
@@ -462,7 +489,7 @@ def Create(log, schema, path, indent_size = 4):
             if is_notification:
                 MdHeader("Registration", 4)
 
-                client = "client"
+                client = "myid"
 
                 if "id" in props and "example" in props["id"]:
                     client = props["id"]["example"] + "." + client
@@ -506,12 +533,10 @@ def Create(log, schema, path, indent_size = 4):
                 if is_property:
                     MdHeader("Set Request", 4)
                     callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"][1]["example"])) if "index" in props and "example" in props["index"][1] else "")
-
                 elif is_notification:
-                    MdHeader("Message", 4)
+                    MdHeader("Notification", 4)
                 else:
                     MdHeader("Request", 4)
-
 
                 try:
                     jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
@@ -524,11 +549,16 @@ def Create(log, schema, path, indent_size = 4):
 
                 MdCode(jsonRequest, "json")
 
+                if is_notification and "id" in props:
+                    MdParagraph("> The *%s* parameter is passed within the designator, e.g. *%s.myid.%s*." %
+                                (props["id"]["name"], props["id"]["example"], method))
+
                 if not is_notification and not is_property:
                     if "result" not in props:
                         props["result"] = { "type": "null" }
 
                     MdHeader("Response", 4)
+
                     try:
                         jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
                                                     object_pairs_hook=OrderedDict), indent=2)
@@ -537,6 +567,18 @@ def Create(log, schema, path, indent_size = 4):
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")
+
+                    if is_async:
+                        MdHeader("Asynchronous Response", 4)
+
+                        try:
+                            jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "method": "%s"%s }' % ("myid.completed."+method, ", " + ExampleObj("params", async_param["params"], True)),
+                                                        object_pairs_hook=OrderedDict), indent=2)
+                        except:
+                            jsonResponse = jsonError
+                            log.Error(jsonError)
+
+                        MdCode(jsonResponse, "json")
 
                 if is_property:
                     MdHeader("Set Response", 4)
@@ -971,7 +1013,7 @@ def Create(log, schema, path, indent_size = 4):
 
                             if prop:
                                 MdRow([line, access, descr])
-                            else: 
+                            else:
                                 MdRow([line, descr])
 
                             emitted = True
