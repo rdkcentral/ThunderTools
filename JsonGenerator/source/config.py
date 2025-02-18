@@ -68,6 +68,7 @@ class CaseConvention(Enum):
     CUSTOM = "custom"
 
 DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
+IGNORE_SOURCE_CASE_CONVENTION = False
 
 RPC_FORMAT = RpcFormat.COMPLIANT
 RPC_FORMAT_FORCED = False
@@ -99,6 +100,7 @@ def Parse(cmdline):
     global LEGACY_ALT
     global AUTO_PREFIX
     global DEFAULT_CASE_CONVENTION
+    global IGNORE_SOURCE_CASE_CONVENTION
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -214,6 +216,11 @@ def Parse(cmdline):
             action="store",
             default=DEFAULT_CASE_CONVENTION.value,
             help="select JSON-RPC case convention (default: %s)" % DEFAULT_CASE_CONVENTION.value)
+    cpp_group.add_argument("--ignore-source-case-convention",
+            dest="ignore_source_case_convention",
+            action="store_true",
+            default=False,
+            help="ignore case convention specified by source header file (default: don't ignore)")
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
     data_group.add_argument(
@@ -349,6 +356,7 @@ def Parse(cmdline):
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
+    IGNORE_SOURCE_CASE_CONVENTION = args.ignore_source_case_convention
 
     if args.case_convention == "standard":
         DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
