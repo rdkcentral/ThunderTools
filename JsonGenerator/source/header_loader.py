@@ -130,6 +130,10 @@ class CaseConverter:
     def is_keep(self):
         return (self._convention == config.CaseConvention.KEEP)
 
+    @property
+    def is_legacy(self):
+        return (self._convention == config.CaseConvention.LEGACY)
+
     def transform(self, input, attr):
         assert input
         return self.Format.transform(input, self.__format(attr))
@@ -252,6 +256,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         info["title"] = info["class"] + " API"
         info["description"] = info["class"] + " JSON-RPC interface"
+
+        if _case_converter.is_legacy:
+            info["@legacylowercase"] = True
 
         schema["info"] = info
 
