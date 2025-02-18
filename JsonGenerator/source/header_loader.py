@@ -95,7 +95,7 @@ class CaseConverter:
 
         self._map[config.CaseConvention.CUSTOM] = self._map[config.DEFAULT_CASE_CONVENTION]
 
-        if convention:
+        if convention and not config.IGNORE_SOURCE_CASE_CONVENTION:
             if isinstance(convention, str):
                 if convention == "standard":
                     self._convention = config.CaseConvention.STANDARD
