@@ -785,9 +785,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         log.InfoLine(self.identifier, "'%s': @maxlength not specified for this inbound buffer, assuming same as @length" % self.trace_proto)
 
                 if (self.is_buffer and self.is_output and not self.max_length):
-                    raise TypenameError(self.identifier, "'%s': can't deduce maximum length of this inbound buffer, use @maxlength" % self.trace_proto)
+                    raise TypenameError(self.identifier, "'%s': can't deduce maximum length of this outbound buffer, use @maxlength" % self.trace_proto)
 
-                if (self.is_buffer and self.max_length and not self.length):
+                if (self.is_buffer and self.is_input and self.max_length and not self.length):
                     log.WarnLine(self.identifier, "'%s': length of this inbound buffer is not specified; using @maxlength, but this may be inefficient" % self.trace_proto)
                     self.length = self.max_length
 
@@ -1051,7 +1051,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Raw buffers
                 elif self.is_buffer:
                     assert self.max_length, "Invalid type for buffer " + self.name
-                    return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_rvalue)
+                    return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_rvalue)
 
                 # Strings
                 elif self.is_string:
@@ -1398,6 +1398,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         params = [EmitParam(interface, v, (p.name + "." + v.name)) for v in kind.vars]
                         for pp in params:
                             WriteParameter(pp)
+                    elif p.is_buffer:
+                        if p.max_length and p.max_length.is_output:
+                            emit.Line("%s.Buffer<%s>((%s == nullptr? 0 : %s), %s);" % (vars["writer"], p.max_length.type_name, p.as_rvalue, p.max_length.as_rvalue, p.as_rvalue))
+                            WriteParameter(p.max_length)
+                        else:
+                            emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
                     else:
                         emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
 
@@ -1695,12 +1701,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif p.is_buffer:
                         CheckFrame(p)
                         CheckSize(p)
-
-                        if p.length and p.length.is_output:
-                            emit.Line("%s = %s.%s;" % (p.length.as_lvalue, vars["reader"], p.read_rpc_type))
-                        else:
-                            # No one's interested in the return length, perhaps it's sent via method's return value
-                            emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
+                        emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
+                        if p.max_length and p.max_length.is_output:
+                            ReadParameter(p.max_length)
 
                     elif p.is_string:
                         CheckFrame(p)
