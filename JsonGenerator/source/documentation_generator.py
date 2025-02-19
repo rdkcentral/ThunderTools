@@ -868,8 +868,9 @@ def Create(log, schema, path, indent_size = 4):
                 MdParagraph(("The plugin is designed to be loaded and executed within the Thunder framework. "
                             "For more information about the framework refer to [[Thunder](#ref.Thunder)]."))
 
-        if info.get("@legacylowercase"):
-            MdParagraph("> This interface uses legacy ```lowercase``` naming convention. With the next major release the naming convention will change to ```camelCase```.")
+        if document_type == "interface":
+            if info.get("@legacylowercase"):
+                MdParagraph("> This interface uses legacy ```lowercase``` naming convention. With the next major release the naming convention will change to ```camelCase```.")
 
         if document_type == "plugin":
             MdHeader("Configuration")
@@ -932,6 +933,9 @@ def Create(log, schema, path, indent_size = 4):
 
                     format = face["info"]["format"] if "format" in face["info"] else global_rpc_format.value
                     MdBody("- %s (version %s) (%s format)" % (wl, rpc_version.GetVersionString(face["info"]), format))
+
+                    if face["info"].get("@legacylowercase"):
+                        MdParagraph("> This interface uses legacy ```lowercase``` naming convention. With the next major release the naming convention will change to ```camelCase```.")
 
                 MdBr()
 
