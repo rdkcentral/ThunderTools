@@ -9,9 +9,17 @@ import global_variables
 class PluginGenerator:
     def __init__(self, blueprint_data) -> None:
         self.blueprint_data = blueprint_data
-        self.directory = self.blueprint_data.plugin_name
-        os.makedirs(self.blueprint_data.plugin_name, exist_ok=False)
+        self.directory = self.get_unique_directory_name(self.blueprint_data.plugin_name)
+        os.makedirs(self.directory, exist_ok=False)
         self.indenter = Indenter()
+
+    def get_unique_directory_name(self, directory):
+        base_directory = directory
+        postfix = 1
+        while os.path.exists(directory):
+            directory = f"{base_directory}_{postfix}"
+            postfix += 1
+        return directory
 
     def load_template(self, template_name):
         return FileUtils.read_file(template_name)
