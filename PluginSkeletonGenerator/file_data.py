@@ -3,6 +3,7 @@
 from utils import FileUtils, Utils
 from enum import Enum
 import global_variables
+from datetime import datetime
 
 class FileData:
     def __init__(self,plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces) -> None:
@@ -13,13 +14,15 @@ class FileData:
         self.jsonrpc = jsonrpc
         self.plugin_config = plugin_config
         self.notification_interfaces = notification_interfaces
+        self.current_year = str(datetime.now().year)
 
         self.keywords = self.generate_keywords_map()
 
     def generate_keywords_map(self):
         return {
             "{{PLUGIN_NAME}}": self.plugin_name,
-            "{{PLUGIN_NAME_CAPS}}": self.plugin_name.upper()
+            "{{PLUGIN_NAME_CAPS}}": self.plugin_name.upper(),
+            "{{YEAR_OF_GENERATION}}": self.current_year
         }
 
 class HeaderData(FileData):
@@ -382,7 +385,8 @@ class HeaderData(FileData):
             "{{ADD_PUBLIC_FIELD}}" : self.generate_public_field(),
             "{{NOTIFY_METHOD_IP}}" : self.generate_notify_ip(),
             "{{DEFINITIONS}}" : self.generate_definitions(),
-            "{{STATIC_TIMEOUT}}" : self.generate_timeout()
+            "{{STATIC_TIMEOUT}}" : self.generate_timeout(),
+            "{{YEAR_OF_GENERATION}}": self.current_year
         }
 
     def generate_nested_map(self):
