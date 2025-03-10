@@ -132,6 +132,15 @@ class ObjectTracker:
                 elif "enum" in rhs:
                     return False
 
+                if "@optionaltype" in lhs:
+                    if "@optionaltype" in rhs:
+                        if lhs["@optionaltype"] != rhs["@optionaltype"]:
+                            return False
+                    else:
+                        return False
+                elif "@optionaltype" in rhs:
+                    return False
+
                 if "items" in lhs:
                     if "items" in rhs:
                         if not _CompareType(lhs["items"], rhs["items"]):

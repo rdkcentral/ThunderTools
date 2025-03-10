@@ -90,20 +90,23 @@ class Emitter():
             for line in self.lines:
                 self.file.write(line + "\n")
 
-    def EnterBlock(self, conditions=None):
+    def EnterBlock(self, conditions=None, scoped=False):
         if conditions:
             if conditions.count():
                 if len(self.lines) and self.lines[-1] != "":
                     self.lines.append("")
                 self.Line("if (%s) {" % conditions.join())
                 self.Indent()
+            elif scoped:
+                self.Line("{")
+                self.Indent()
         else:
             self.Line("{")
             self.Indent()
 
-    def ExitBlock(self, conditions=None):
+    def ExitBlock(self, conditions=None, scoped=False):
         if conditions:
-            if not conditions.count():
+            if not conditions.count() and not scoped:
                 return
         self.Unindent()
         self.Line("}")

@@ -330,8 +330,11 @@ class Identifier():
                     type_found = True
                 nest2 -= 1
             elif token == "<":
-                type.append("<")
-                type_found = False
+                if not nest2:
+                    type.append("<")
+                    type_found = False
+                else:
+                    type[-1] += " <"
                 nest2 += 1
             elif token == ">":
                 type[-1] += " >"
@@ -343,7 +346,7 @@ class Identifier():
                 if token == "::" or type[-1].endswith("::"):
                     type[-1] += token
                 else:
-                    type[-1] += " " + token
+                    type[-1] += " " + (" ".join(token) if isinstance(token,list) else token)
 
             # handle pointer/reference markers
             elif token[0] == "@":
@@ -666,7 +669,7 @@ class Identifier():
                 elif type == "ccstring":
                     self.type[i] = Type(String(cc=True))
                 elif type == "std::string":
-                    self.type[i] = Type(String(True))
+                    self.type[i] = Type(String(std=True))
                 elif type == "__stubgen_integer":
                     self.type[i] = Type(BuiltinInteger(True))
                 elif type == "__stubgen_undetermined_integer":
@@ -734,7 +737,7 @@ class Identifier():
         if self.array:
             return ("%s %s[%s]" % (self.type.Proto("nocv|noref|noptr"), override if override != None else self.name, self.array))
         else:
-            return (self.Proto() + " " + override if override != None else self.name)
+            return (self.Proto() + " " + (override if override != None else self.name))
 
 
 def Evaluate(identifiers_):
@@ -815,7 +818,7 @@ class Name:
             ASSERT_ISVALID(name)
         self.parent = parent_block
         # come up with an unique name if none given
-        uniqueId = "__unnamed_" + self.__class__.__name__.lower() + "_" + uuid.uuid4().hex[:8]
+        uniqueId = "__anonymous_" + self.__class__.__name__.lower() + "_" + uuid.uuid4().hex[:8]
         parentName = "" if self.parent == None else self.parent.full_name
         self.name = uniqueId if (not name and self.parent != None) else name
         self.full_name = parentName + ("" if not self.name else "::" + self.name)
@@ -1183,6 +1186,7 @@ class Enum(Identifier, Block):
                 return item
         return None
 
+
 # Holds functions
 class Function(Block, Name):
     def __init__(self, parent_block, name, ret_type, valid_specifiers=["static", "extern", "inline"]):
@@ -1216,10 +1220,12 @@ class Function(Block, Name):
 
 # Holds variables and constants
 class Temporary(Identifier, Name):
-    def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"], meta=None):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value) if value else None
+        if meta:
+            self.meta = meta
 
     def __str__(self):
         return self.Proto()
@@ -1228,6 +1234,25 @@ class Temporary(Identifier, Name):
         value = ValueStr(self.value) if self.value else None
         return "variable %s %s '%s'%s" % (str(self.specifiers), TypeStr(self.type), str(self.name),
                                           (" = " + value) if value else "")
+
+class DynamicArray(Intrinsic):
+    def __init__(self, container, subtype):
+        Intrinsic.__init__(self, "%s<%s>" % (container, subtype.Proto()))
+        self.element = subtype
+
+class Vector(DynamicArray):
+    def __init__(self, subtype):
+        DynamicArray.__init__(self, "std::vector", subtype)
+
+class VectorElement(Temporary):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=[], meta=None):
+        Temporary.__init__(self, parent_block, string, value, valid_specifiers, meta)
+
+
+class OptionalElement(Temporary):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=[], meta=None):
+        Temporary.__init__(self, parent_block, string, value, valid_specifiers, meta)
+
 
 class Variable(Identifier, Name):
     def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
@@ -1443,12 +1468,13 @@ class InstantiatedTemplateClass(Class):
 
 class TemplateClass(Class):
     def ParseArguments(self, string):
-        groups = re.findall(r'<(?:[^<>]*|<[^<>]*>)*>', string)
-        if groups:
-            stringParams = [s.strip() for s in re.split(r',\s*(?![^<>]*\))', groups[0][1:-1].strip())]
-            return stringParams
-        else:
-            return []
+        # This is greatly simplified!!!
+        # Templates with multiple arguments that itself are template with multiple arguments will not work!!!
+        if string.count('<') != string.count('>') and string.count('<') > 0:
+            raise ParserError("unbalanced template angle brackets in <%s>" % string)
+        params = [x.strip() for x in string[string.find('<')+1:string.rfind('>')-1].strip().split(',')]
+        return params
+
 
     def __init__(self, parent_block, name, params):
         Class.__init__(self, parent_block, name)
@@ -1495,57 +1521,66 @@ class TemplateClass(Class):
         instance.is_iterator = self.is_iterator
         instance.meta = self.meta
 
-        for t in self.typedefs:
-            newTypedef = copy.copy(t)
-            newTypedef.parent = instance
-            newTypedef.type = copy.copy(t.type)
-            _Substitute(newTypedef)
-            instance.typedefs.append(newTypedef)
-
-        for v in self.vars:
-            newAttr = copy.copy(v)
-            newAttr.parent = instance
-            newAttr.type = copy.copy(v.type)
-            newAttr.value = copy.copy(v.value)
-            _Substitute(newAttr)
-            instance.vars.append(newAttr)
-
-        for e in self.enums:
-            newEnum = copy.copy(e)
-            newEnum.items = []
-            newEnum.parent = instance
-            _Substitute(newEnum)
-            for i in e.items:
-                newItem = copy.copy(i)
-                newItem.type = copy.copy(i.type)
-                newItem.value = copy.copy(i.value)
-                _Substitute(newItem)
-                newEnum.items.append(newItem)
-            instance.enums.append(newEnum)
-
-        for m in self.methods:
-            newMethod = copy.copy(m)
-            newMethod.vars = []
-            newMethod.parent = instance
-            if not isinstance(m, Destructor):
-                newMethod.retval = copy.copy(m.retval)
-                newMethod.retval.type = copy.copy(m.retval.type)
-                _Substitute(newMethod.retval)
-                for p in m.vars:
-                    newVar = copy.copy(p)
-                    newVar.type = copy.copy(p.type)
-                    newVar.value = copy.copy(p.value)
-                    _Substitute(newVar)
-                    newMethod.vars.append(newVar)
-            instance.methods.append(newMethod)
-
-        if ((self.parent.name == "Core") and ("OptionalType" in self.name)):
+        if ((self.parent.name == "Core") and (self.name == "OptionalType")):
             # take over as Optional if this is OptionalType instance
             if len(instance.args) == 1:
-                instance = Optional(Temporary(parent, instance.args[0].split()))
+                instance = Optional(OptionalElement(parent, instance.args[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
+
+        elif ((self.parent.name == "std") and (self.name == "vector")):
+            if len(instance.args) == 1:
+                instance = Vector(VectorElement(parent, instance.args[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("Invalid template arguments to %s" % instance)
+
+        else:
+
+            for t in self.typedefs:
+                newTypedef = copy.copy(t)
+                newTypedef.parent = instance
+                newTypedef.type = copy.copy(t.type)
+                _Substitute(newTypedef)
+                instance.typedefs.append(newTypedef)
+
+            for v in self.vars:
+                newAttr = copy.copy(v)
+                newAttr.parent = instance
+                newAttr.type = copy.copy(v.type)
+                newAttr.value = copy.copy(v.value)
+                _Substitute(newAttr)
+                instance.vars.append(newAttr)
+
+            for e in self.enums:
+                newEnum = copy.copy(e)
+                newEnum.items = []
+                newEnum.parent = instance
+                _Substitute(newEnum)
+                for i in e.items:
+                    newItem = copy.copy(i)
+                    newItem.type = copy.copy(i.type)
+                    newItem.value = copy.copy(i.value)
+                    _Substitute(newItem)
+                    newEnum.items.append(newItem)
+                instance.enums.append(newEnum)
+
+            for m in self.methods:
+                newMethod = copy.copy(m)
+                newMethod.vars = []
+                newMethod.parent = instance
+                if not isinstance(m, Destructor):
+                    newMethod.retval = copy.copy(m.retval)
+                    newMethod.retval.type = copy.copy(m.retval.type)
+                    _Substitute(newMethod.retval)
+                    for p in m.vars:
+                        newVar = copy.copy(p)
+                        newVar.type = copy.copy(p.type)
+                        newVar.value = copy.copy(p.value)
+                        _Substitute(newVar)
+                        newMethod.vars.append(newVar)
+                instance.methods.append(newMethod)
 
         return instance
 
@@ -1681,7 +1716,7 @@ def __Tokenize(contents,log = None):
                         raise ParserError("unmatched parenthesis in %s expression" % tag)
 
                 if mandatory and not tokens:
-                    raise ParserError("Missing parameter to " + tag)
+                    raise ParserError("missing parameter to " + tag)
 
                 return tokens
 
@@ -1834,8 +1869,13 @@ def __Tokenize(contents,log = None):
                         if desc:
                             tagtokens.append(tag.upper())
                             if hasParam:
-                                tagtokens.append(desc.split(" ",1)[0])
-                                tagtokens.append(desc.split(" ",1)[1])
+                                splitted = desc.split(" ", 1)
+                                if len(splitted) > 1:
+                                    tagtokens.append(splitted[0])
+                                    tagtokens.append(splitted[1])
+                                else:
+                                    raise ParserError("not enough parameters to %s tag" % tag)
+
                             else:
                                 tagtokens.append(desc)
                             if end != None:
