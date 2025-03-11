@@ -1,5 +1,6 @@
 import json
 from os import wait
+import os
 from file_data import FileData, HeaderData, SourceData, CMakeData, JSONData, ConfData
 from PluginSkeletonGenerator import PluginGenerator
 from utils import Utils
@@ -64,6 +65,9 @@ def menu():
     notification_interfaces = []
 
     plugin_name = str(user_plugin_name())
+    if (os.path.isdir(plugin_name)):
+        print(f'Error: There exists a directory with the name {plugin_name} in this location!')
+        return -1
     out_of_process = user_out_of_process()
     jsonrpc = user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notification_interfaces)
     plugin_config = user_plugin_configuration(comrpc_interfaces, out_of_process)

@@ -18,13 +18,9 @@ To use the `PluginSkeletonGenerator.py`, follow these steps:
     ```sh
     git clone https://github.com/your-repo/ThunderTools.git
     ```
-2. Navigate to the `PluginSkeletonGenerator` directory:
+2. Run the interactive script, in the location where you want to create a plugin:
     ```sh
-    cd ThunderTools/PluginSkeletonGenerator
-    ```
-3. Run the interactive script:
-    ```sh
-    python PluginSkeletonGenerator.py
+    python PluginSkeletonGenerator/PluginSkeletonGenerator.py
     ```
 
 ## Requirements

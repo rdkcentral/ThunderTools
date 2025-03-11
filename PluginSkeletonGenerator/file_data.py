@@ -271,19 +271,22 @@ class HeaderData(FileData):
         classes = []
         classes.append(f"public RPC::IRemoteConnection::INotification")
         for interface in self.jsonrpc_interfaces:
-            classes.append(f", public Exchange::I{interface[1:]}::INotification")
+            if f'I{interface[1:]}' in self.notification_interfaces:
+                classes.append(f", public Exchange::I{interface[1:]}::INotification")
         return "".join(classes)
     
     def generate_notification_constructor(self):
         members = []
         for notif in self.jsonrpc_interfaces:
-            members.append(f', Exchange::I{notif[1:]}::INotification()')
+            if f'I{notif[1:]}' in self.notification_interfaces:
+                members.append(f', Exchange::I{notif[1:]}::INotification()')
         return '\n'.join(members) if members else 'rm\*n'
     
     def generate_notification_entry(self):
         entries = []
         for entry in self.jsonrpc_interfaces:
-            entries.append(f'INTERFACE_ENTRY(Exchange::I{entry[1:]}::INotification)')
+            if f'I{entry[1:]}' in self.notification_interfaces:
+                entries.append(f'INTERFACE_ENTRY(Exchange::I{entry[1:]}::INotification)')
         return '\n'.join(entries) if entries else 'rm\*n'
         
     def generate_notification_function(self):
@@ -882,8 +885,10 @@ class ConfData(FileData):
 
     def generate_config(self):
         configuration = []
-        if self.plugin_config:
+
+        if self.out_of_process or (not self.out_of_process and self.plugin_config):
             configuration.append("\nconfiguration = JSON()")
+        if self.plugin_config:
             configuration.append(f'configuration.add("example", "@PLUGIN_{self.plugin_name.upper()}_EXAMPLE@")')
         return '\n'.join(configuration) if configuration else 'rm\*n'
     
