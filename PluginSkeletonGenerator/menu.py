@@ -9,9 +9,9 @@ import time
 # Helpers for menu options
 
 
-def generate_files(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces):
+def generate_files(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces, interface_locations):
 
-    data = FileData(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces)
+    data = FileData(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces, interface_locations)
     plugin_generator = PluginGenerator(data)
 
     file_map = {
@@ -23,7 +23,7 @@ def generate_files(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_pr
     }
 
     for file_data, generate in file_map.items():
-        instance = file_data(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces)
+        instance = file_data(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces, interface_locations)
         instance.populate_keywords()
         plugin_generator.blueprint_data = instance
         generate()
@@ -37,7 +37,8 @@ def display_settings(
     out_of_process,
     jsonrpc,
     plugin_config,
-    notification_interfaces
+    notification_interfaces,
+    interface_locations
 ):
     print("=======================================")
     print("You have chosen the following settings:")
@@ -48,6 +49,7 @@ def display_settings(
     print(f"JSONRPC Interfaces: {jsonrpc_interface if jsonrpc else 'N/A'} ")
     print(f"Out Of Process: {out_of_process}")
     print(f"Plugin specific configuration: {plugin_config}")
+    print(f"Interfaces and their locations: {interface_locations if interface_locations else 'None'}")
 
     """
     print(f"Subsystem Support: {subsystems}")
@@ -63,16 +65,18 @@ def menu():
     comrpc_interfaces = []
     jsonrpc_interfaces = []
     notification_interfaces = []
+    interface_locations = []
 
     plugin_name = str(user_plugin_name())
     if (os.path.isdir(plugin_name)):
         print(f'Error: There exists a directory with the name {plugin_name} in this location!')
         return -1
+    
     out_of_process = user_out_of_process()
-    jsonrpc = user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notification_interfaces)
+    jsonrpc = user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notification_interfaces, interface_locations)
     plugin_config = user_plugin_configuration(comrpc_interfaces, out_of_process)
 
-    display_settings(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces)
+    display_settings(plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces, interface_locations)
 
     generate_files(
         plugin_name,
@@ -81,7 +85,8 @@ def menu():
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     )
 
 
@@ -104,7 +109,7 @@ def user_plugin_name():
     return name
 
 
-def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notification_interfaces):
+def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notification_interfaces, interface_locations):
 
     myBool = True
     iteration = 0
@@ -116,13 +121,30 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
     while myBool:
 
         print(f"\nNumber of succesfully defined interfaces: {iteration}")
+
+        defineInterface = input("Press ENTER to continue, else to quit defining interfaces, enter q: ")
+        if defineInterface.lower() == 'q':
+            if out_of_process and not comrpc_interfaces:
+                print("An out of process plugin requires a COMRPC interface.")
+                continue
+            else:
+                break
+
+        interfaceLocation = input(
+            "\nWhere is your interface located?"
+            "\nThe default location is: ThunderInterfaces/interfaces"
+            "\nPress ENTER to continue, or define a custom location: "
+        )
+
+        # if not interfaceLocation, default location is 'interface'
+        if not interfaceLocation:
+            interfaceLocation = 'interfaces'
+
         tempName = input(
-            "What C++ IDL interface header file (COMRPC Interface) is your interface in?"
+            "\nWhat C++ IDL interface header file (COMRPC Interface) is your interface in?"
             "\nExample: IHello.h"
-            "\n[Note]: Do not define: IPlugin, IConfiguration, JSONRPC. They are automatically configured accordingly!"
-            "\nTo quit defining interfaces, press ENTER \n"
+            "\n[Note]: Do not define: IPlugin, IConfiguration, JSONRPC. They are automatically configured accordingly!\n"
             )
-        
         if tempName:
             correctInitial = Utils.check_correct_comrpc(tempName)
             correctExtension = Utils.extract_interface(tempName)
@@ -163,24 +185,33 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
             if notification:
                     notification_interfaces.append(correctName)
 
-            json_tag = user_jsonrpc(correctName, jsonrpc_interfaces)
+            json_tag = user_jsonrpc(correctName, jsonrpc_interfaces, interface_locations)
             if json_tag:
                 jsonrpc = True
             iteration += 1
+
+            interface_locations.append((interfaceLocation, correctName))
         else:
-            if out_of_process and not comrpc_interfaces:
-                print("An out of process plugin requires a COMRPC interface.")
-            else:
-                myBool = False
+            print("\nError processing interface header file name. Try again.")
     return jsonrpc 
 
 
-def user_jsonrpc(comrpc_interface, jsonrpc_interfaces):
+def user_jsonrpc(comrpc_interface, jsonrpc_interfaces, interface_locations):
 
     json_tag = get_boolean_input("Does your plugin require JSON-RPC functionality (@json tag): (Enter Y or N)\n")
     if json_tag:
+        interfaceLocation = input(
+            "\nWhere is your JSON interface located?"
+            "\nThe default location is: ThunderInterfaces/interfaces/json"
+            "\nPress ENTER to continue, or define a custom location: "
+        )
+        if not interfaceLocation:
+            interfaceLocation = 'interfaces/json'
+
         jsonrpc_interface = Utils.replace_comrpc_to_jsonrpc(comrpc_interface)
         jsonrpc_interfaces.append(jsonrpc_interface)
+
+        interface_locations.append((interfaceLocation, jsonrpc_interface))
         return True
     return False
 

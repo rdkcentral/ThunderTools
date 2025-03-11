@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
 
+from codecs import lookup
 from utils import FileUtils, Utils
 from enum import Enum
 import global_variables
 from datetime import datetime
 
 class FileData:
-    def __init__(self,plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces) -> None:
+    def __init__(self,plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces, interface_locations) -> None:
         self.plugin_name = plugin_name
         self.comrpc_interfaces = comrpc_interfaces if comrpc_interfaces else []
         self.jsonrpc_interfaces = jsonrpc_interfaces if jsonrpc_interfaces else []
@@ -14,9 +15,12 @@ class FileData:
         self.jsonrpc = jsonrpc
         self.plugin_config = plugin_config
         self.notification_interfaces = notification_interfaces
+        self.interface_locations = interface_locations
         self.current_year = str(datetime.now().year)
-
         self.keywords = self.generate_keywords_map()
+
+        # Dictionary for finding the location of a interface.. Quick fix.
+        self.lookup = {second: first for first, second in interface_locations}
 
     def generate_keywords_map(self):
         return {
@@ -38,7 +42,8 @@ class HeaderData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -47,7 +52,8 @@ class HeaderData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.type = HeaderData.HeaderType.HEADER
         self.keywords = self.keywords.copy()
@@ -61,11 +67,13 @@ class HeaderData(FileData):
         for comrpc in self.comrpc_interfaces:
             if comrpc == 'IConfiguration' and self.type == HeaderData.HeaderType.HEADER:
                 break
-            includes.append(f'#include <interfaces/{comrpc}.h>')
+            location = self.lookup.get(comrpc, 'interfaces')
+            includes.append(f'#include <{location}/{comrpc}.h>')
         if self.type == HeaderData.HeaderType.HEADER and self.out_of_process:
             for interface in self.jsonrpc_interfaces:
                 if 'I' + interface[1:] in self.notification_interfaces:
-                    includes.append(f'#include <interfaces/json/{Utils.replace_comrpc_to_jsonrpc(interface)}.h>')
+                    location = self.lookup.get(interface, 'interfaces/json')
+                    includes.append(f'#include <{location}/{Utils.replace_comrpc_to_jsonrpc(interface)}.h>')
         return '\n'.join(includes) if includes else 'rm\*n'
 
     def generate_inherited_classes(self):
@@ -425,7 +433,8 @@ class SourceData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -434,7 +443,8 @@ class SourceData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
         # self.preconditions = preconditions if preconditions else []
@@ -513,9 +523,14 @@ class SourceData(FileData):
         includes = []
         for jsonrpc in self.jsonrpc_interfaces:
             if 'I' + jsonrpc[1:] in self.notification_interfaces:
-                continue
+                if self.out_of_process:
+                    continue
+                else:
+                    location = self.lookup.get(jsonrpc, 'interfaces/json')
+                    includes.append(f"#include <{location}/{jsonrpc}.h>")
             else:
-                includes.append(f"#include <interfaces/json/{jsonrpc}.h>")
+                location = self.lookup.get(jsonrpc, 'interfaces/json')
+                includes.append(f"#include <{location}/{jsonrpc}.h>")
         return "\n".join(includes) if includes else 'rm\*n'
 
     def generate_plugin_method_impl(self):
@@ -734,7 +749,8 @@ class CMakeData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -743,7 +759,8 @@ class CMakeData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
 
@@ -799,7 +816,8 @@ class JSONData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -808,7 +826,8 @@ class JSONData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
 
@@ -866,7 +885,8 @@ class ConfData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -875,7 +895,8 @@ class ConfData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
 
