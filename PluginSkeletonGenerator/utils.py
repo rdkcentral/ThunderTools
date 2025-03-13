@@ -35,7 +35,7 @@ class Indenter():
         self.INDENT_RESET = '~INDENT_RESET~'
         self.INDENT_INCREASE = '~INDENT_INCREASE~'
         self.INDENT_DECREASE = '~INDENT_DECREASE~'
-        self.REMOVE_LINE = 'rm\*n'
+        self.REMOVE_LINE = 'rm\\*n'
 
     def create_indent_map(self):
         return {
