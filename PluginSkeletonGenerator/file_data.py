@@ -1,11 +1,13 @@
 #!/usr/bin/env python3
 
+from codecs import lookup
 from utils import FileUtils, Utils
 from enum import Enum
 import global_variables
+from datetime import datetime
 
 class FileData:
-    def __init__(self,plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces) -> None:
+    def __init__(self,plugin_name, comrpc_interfaces, jsonrpc_interfaces, out_of_process, jsonrpc, plugin_config, notification_interfaces, interface_locations) -> None:
         self.plugin_name = plugin_name
         self.comrpc_interfaces = comrpc_interfaces if comrpc_interfaces else []
         self.jsonrpc_interfaces = jsonrpc_interfaces if jsonrpc_interfaces else []
@@ -13,13 +15,18 @@ class FileData:
         self.jsonrpc = jsonrpc
         self.plugin_config = plugin_config
         self.notification_interfaces = notification_interfaces
-
+        self.interface_locations = interface_locations
+        self.current_year = str(datetime.now().year)
         self.keywords = self.generate_keywords_map()
+
+        # Dictionary for finding the location of a interface.. Quick fix.
+        self.lookup = {second: first for first, second in interface_locations}
 
     def generate_keywords_map(self):
         return {
             "{{PLUGIN_NAME}}": self.plugin_name,
-            "{{PLUGIN_NAME_CAPS}}": self.plugin_name.upper()
+            "{{PLUGIN_NAME_CAPS}}": self.plugin_name.upper(),
+            "{{YEAR_OF_GENERATION}}": self.current_year
         }
 
 class HeaderData(FileData):
@@ -35,7 +42,8 @@ class HeaderData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -44,7 +52,8 @@ class HeaderData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.type = HeaderData.HeaderType.HEADER
         self.keywords = self.keywords.copy()
@@ -58,11 +67,13 @@ class HeaderData(FileData):
         for comrpc in self.comrpc_interfaces:
             if comrpc == 'IConfiguration' and self.type == HeaderData.HeaderType.HEADER:
                 break
-            includes.append(f'#include <interfaces/{comrpc}.h>')
+            location = self.lookup.get(comrpc, 'interfaces')
+            includes.append(f'#include <{location}/{comrpc}.h>')
         if self.type == HeaderData.HeaderType.HEADER and self.out_of_process:
             for interface in self.jsonrpc_interfaces:
                 if 'I' + interface[1:] in self.notification_interfaces:
-                    includes.append(f'#include <interfaces/json/{Utils.replace_comrpc_to_jsonrpc(interface)}.h>')
+                    location = self.lookup.get(interface, 'interfaces/json')
+                    includes.append(f'#include <{location}/{Utils.replace_comrpc_to_jsonrpc(interface)}.h>')
         return '\n'.join(includes) if includes else 'rm\*n'
 
     def generate_inherited_classes(self):
@@ -268,19 +279,22 @@ class HeaderData(FileData):
         classes = []
         classes.append(f"public RPC::IRemoteConnection::INotification")
         for interface in self.jsonrpc_interfaces:
-            classes.append(f", public Exchange::I{interface[1:]}::INotification")
+            if f'I{interface[1:]}' in self.notification_interfaces:
+                classes.append(f", public Exchange::I{interface[1:]}::INotification")
         return "".join(classes)
     
     def generate_notification_constructor(self):
         members = []
         for notif in self.jsonrpc_interfaces:
-            members.append(f', Exchange::I{notif[1:]}::INotification()')
+            if f'I{notif[1:]}' in self.notification_interfaces:
+                members.append(f', Exchange::I{notif[1:]}::INotification()')
         return '\n'.join(members) if members else 'rm\*n'
     
     def generate_notification_entry(self):
         entries = []
         for entry in self.jsonrpc_interfaces:
-            entries.append(f'INTERFACE_ENTRY(Exchange::I{entry[1:]}::INotification)')
+            if f'I{entry[1:]}' in self.notification_interfaces:
+                entries.append(f'INTERFACE_ENTRY(Exchange::I{entry[1:]}::INotification)')
         return '\n'.join(entries) if entries else 'rm\*n'
         
     def generate_notification_function(self):
@@ -382,7 +396,8 @@ class HeaderData(FileData):
             "{{ADD_PUBLIC_FIELD}}" : self.generate_public_field(),
             "{{NOTIFY_METHOD_IP}}" : self.generate_notify_ip(),
             "{{DEFINITIONS}}" : self.generate_definitions(),
-            "{{STATIC_TIMEOUT}}" : self.generate_timeout()
+            "{{STATIC_TIMEOUT}}" : self.generate_timeout(),
+            "{{YEAR_OF_GENERATION}}": self.current_year
         }
 
     def generate_nested_map(self):
@@ -418,7 +433,8 @@ class SourceData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -427,7 +443,8 @@ class SourceData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
         # self.preconditions = preconditions if preconditions else []
@@ -506,9 +523,14 @@ class SourceData(FileData):
         includes = []
         for jsonrpc in self.jsonrpc_interfaces:
             if 'I' + jsonrpc[1:] in self.notification_interfaces:
-                continue
+                if self.out_of_process:
+                    continue
+                else:
+                    location = self.lookup.get(jsonrpc, 'interfaces/json')
+                    includes.append(f"#include <{location}/{jsonrpc}.h>")
             else:
-                includes.append(f"#include <interfaces/json/{jsonrpc}.h>")
+                location = self.lookup.get(jsonrpc, 'interfaces/json')
+                includes.append(f"#include <{location}/{jsonrpc}.h>")
         return "\n".join(includes) if includes else 'rm\*n'
 
     def generate_plugin_method_impl(self):
@@ -727,7 +749,8 @@ class CMakeData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -736,7 +759,8 @@ class CMakeData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
 
@@ -792,7 +816,8 @@ class JSONData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -801,7 +826,8 @@ class JSONData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
 
@@ -859,7 +885,8 @@ class ConfData(FileData):
         out_of_process,
         jsonrpc,
         plugin_config,
-        notification_interfaces
+        notification_interfaces,
+        interface_locations
     ) -> None:
         super().__init__(
             plugin_name,
@@ -868,7 +895,8 @@ class ConfData(FileData):
             out_of_process,
             jsonrpc,
             plugin_config,
-            notification_interfaces
+            notification_interfaces,
+            interface_locations
         )
         self.keywords = self.keywords.copy()
 
@@ -878,8 +906,10 @@ class ConfData(FileData):
 
     def generate_config(self):
         configuration = []
-        if self.plugin_config:
+
+        if self.out_of_process or (not self.out_of_process and self.plugin_config):
             configuration.append("\nconfiguration = JSON()")
+        if self.plugin_config:
             configuration.append(f'configuration.add("example", "@PLUGIN_{self.plugin_name.upper()}_EXAMPLE@")')
         return '\n'.join(configuration) if configuration else 'rm\*n'
     

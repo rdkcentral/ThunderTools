@@ -1,0 +1,6 @@
+# Ignore all new folders
+*/*
+
+# Except for the current existing ones
+!*/templates
+!*/tests

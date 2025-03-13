@@ -95,12 +95,15 @@ class Utils():
 
     @staticmethod
     def extract_interface(interface):
-        extension = interface[-2:]
-        if extension != ".h":
-            return False
-        return interface[:-2]
+        if interface:
+            extension = interface[-2:]
+            if extension != ".h":
+                return False
+            return interface[:-2]
+        return False
     
     # Currently check to see if interface name begins with I
     @staticmethod
     def check_correct_comrpc(interface):
-        return True if interface[0] == "I" else False
+        if interface:
+            return True if interface[0] == "I" else False
