@@ -85,7 +85,7 @@ class Restrictions:
             self.__cond.insert(pos if pos else len(self.__cond), "%s == 0" % name)
         elif isinstance(argument, JsonString):
             self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == true" % name)
-        elif argument.iterator:
+        elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s == nullptr" % name)
         else:
             assert False, "invalid type"
@@ -98,7 +98,7 @@ class Restrictions:
             self.__cond.insert(pos if pos else len(self.__cond), "%s != 0" % name)
         elif isinstance(argument, JsonString):
             self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == false" % name)
-        elif argument.iterator:
+        elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s != nullptr" % name)
         else:
             assert False, "invalid type"
@@ -135,15 +135,20 @@ class Restrictions:
 
             range = argument.schema.get("range")
 
-            if isinstance(relay, JsonString):
-                if range:
+            if range:
+                if isinstance(relay, JsonString):
                     if range[0] != 0:
                         tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json else ""), self.__comp[0], range[0]))
 
                     tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json else ""), self.__comp[1], range[1]))
 
-            elif not isinstance(relay, JsonObject):
-                if range:
+                elif isinstance(relay, JsonArray):
+                    if range[0]:
+                        tests.append("%s.Length() %s %s" % (name, self.__comp[0], range[0]))
+
+                    tests.append("%s.Length() %s %s" % (name, self.__comp[1], range[1]))
+
+                elif not isinstance(relay, JsonObject):
                     if range[0] or relay.schema.get("signed"):
                         tests.append("%s %s %s" % (name, self.__comp[0], range[0]))
 
@@ -287,13 +292,17 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                         else:
                             _optional_or_opaque = False # invalid @optional...
 
-                    if isinstance(prop, JsonArray) and type == "conv" and prop.schema.get("@arraysize"):
+                    if isinstance(prop, JsonArray) and type == "conv" and (prop.schema.get("@arraysize") or prop.schema.get("@container")):
                         emit.Line("%s.Clear();" % prop.cpp_name)
-                        emit.Line("for (uint16_t i = 0; i < %s; i++) {" % (prop.schema.get("@arraysize")))
-                        emit.Indent()
-                        emit.Line("%s.Add() = %s.%s[i];" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
-                        emit.Unindent()
-                        emit.Line("}")
+
+                        if prop.schema.get("@arraysize"):
+                            emit.Line("for (uint16_t _i = 0; _i < %s; _i++) {" % (prop.schema.get("@arraysize")))
+                            emit.Indent()
+                            emit.Line("%s.Add() = %s.%s[_i];" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                            emit.Unindent()
+                            emit.Line("}")
+                        elif prop.schema.get("@container"):
+                            emit.Line("for (auto const& _element : %s.%s%s) { %s.Add() = _element; }" % (other, (_prop_name + prop.convert_rhs), ".Value()" if prop.optional else "",  prop.cpp_name))
                     else:
                         emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
 
@@ -389,16 +398,22 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
                 conv = (prop.convert if prop.convert else "%s = %s")
 
-                if isinstance(prop, JsonArray) and prop.schema.get("@arraysize"):
+                if isinstance(prop, JsonArray) and (prop.schema.get("@arraysize") or (prop.schema.get("@container"))):
                     emit.Line("{")
                     emit.Indent()
-                    emit.Line("uint16_t i = 0;")
-                    emit.Line("auto it = %s.Elements();" % prop.cpp_name)
-                    emit.Line("while ((it.Next() != true) && (i < %s)) {" % prop.schema.get("@arraysize"))
-                    emit.Indent()
-                    emit.Line("%s[i++] = it.Current();" % ("_value." + prop.actual_name))
-                    emit.Unindent()
-                    emit.Line("}")
+
+                    if prop.schema.get("@arraysize"):
+                        emit.Line("uint16_t _i = 0;")
+                        emit.Line("auto _it = %s.Elements();" % prop.cpp_name)
+                        emit.Line("while ((_it.Next() == true) && (_i < %s)) {" % prop.schema.get("@arraysize"))
+                        emit.Indent()
+                        emit.Line("%s[_i++] = _it.Current();" % ("_value." + prop.actual_name))
+                        emit.Unindent()
+                        emit.Line("}")
+                    elif prop.schema.get("@container"):
+                        emit.Line("auto _it = %s.Elements();" % prop.cpp_name)
+                        emit.Line("while (_it.Next() == true) { %s%s.push_back(_it.Current()); }" % ("_value." + prop.actual_name, ".Value()" if prop.optional else ""))
+
                     emit.Unindent()
                     emit.Line("}")
                 else:

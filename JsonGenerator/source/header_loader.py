@@ -303,8 +303,22 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             result = None
 
+            if (meta.maxlength and meta.maxlength != ["void"]) and (not meta.length or meta.length == ["void"]) and meta.input:
+                meta.length = meta.maxlength
+                meta.maxlength = None
+                log.WarnLine(var, "'%s': no @length tag, using @maxlegth for actual return buffer size" % var.name)
+            elif (not meta.maxlength or meta.maxlength == ["void"]) and (meta.length and meta.length != ["void"]) and meta.output:
+                log.WarnLine(var, "'%s': no @maxlength tag, using @length for maximum return buffer size" % var.name)
+
+            if isinstance(cppType, CppParser.Optional) and (not var.array or no_array):
+                result = ConvertType(cppType.optional, meta=var.meta)
+                result[1]["@optionaltype"] = True
+                result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
+                ConvertDefault(var, result[0], result[1])
+
             # Pointers
-            if var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"]) or var.array) and not no_array and not is_bitmask:
+            elif var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"]) or var.array) and not no_array and not is_bitmask:
+
                 encoding = None
                 for x in meta.decorators:
                     if x.startswith("encode:"):
@@ -318,21 +332,30 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     props["@originaltype"] = cppType.type
                     props["encode"] = encoding
 
-                    if meta.maxlength:
-                        props["@length"] = " ".join(meta.maxlength)
-                    elif meta.length:
+                    if meta.output and meta.maxlength:
+                        props["@maxlength"] = " ".join(meta.maxlength)
+
+                    if meta.length:
                         props["@length"] = " ".join(meta.length)
                     elif var.array:
                         props["@arraysize"] = var.array
+                    else:
+                        assert False
 
                     result = ["string", props]
 
                 # C-style buffers converted to JSON arrays (no encode tag)
                 elif isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and not var.array:
-                    result = ["array", { "items": ConvertParameter(var, no_array=True), "@length": " ".join(meta.length) }]
+                    props = {}
+                    props["items"] = ConvertParameter(var, no_array=True)
+                    props["@length"] = " ".join(meta.length)
+                    if meta.output and meta.maxlength:
+                        props["@maxlength"] = " ".join(meta.maxlength)
+
+                    result = ["array", props]
 
                 # C-style buffers converted to JSON array (not char type or fixed array)
-                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float)) and var.array:
+                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
                     if encoding:
                         log.WarnLine(var, "'%s': @encode only possible on char buffers" % var.name)
 
@@ -372,6 +395,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 if "extract" in meta.decorators:
                     result[1]["@extract"] = True
+
+            elif var_type.IsPointer() and not isinstance(cppType, CppParser.Class) and not no_array and not is_bitmask:
+                raise CppParseError(var, "unable to convert C++ type to JSON type, missing @length?")
 
             # Primitives
             else:
@@ -447,6 +473,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     if meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
+
+                # std::vector
+                elif isinstance(cppType, CppParser.DynamicArray):
+                    if isinstance(cppType.element.Type().type, (CppParser.Optional, CppParser.DynamicArray)):
+                        raise CppParseError(var, "usupported type for std::vector element")
+                    result = ["array", { "items": ConvertParameter(cppType.element), "@container": "vector" }]
 
                 # POD objects
                 elif isinstance(cppType, CppParser.Class):
@@ -530,12 +562,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                     raise CppParseError(var, "callback interface has no methods defined")
                             else:
                                 raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-@json interface is not possible)" % cppType.type)
-
-                elif isinstance(cppType, CppParser.Optional):
-                    result = ConvertType(cppType.optional, meta=var.meta)
-                    result[1]["@optionaltype"] = True
-                    result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
-                    ConvertDefault(var, result[0], result[1])
 
                 # All other types are not supported
                 else:
@@ -862,7 +888,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             method_name = compute_name(method.retval, _case_converter.METHODS, relay=method)
 
             if method.retval.meta.alt == method_name:
-                log.WarnLine(method, "'%s': alternative name is same as original name ('%s')" % (method.name, method.retval.meta.text))
+                log.WarnLine(method, "'%s': alternative name is same as default ('%s')" % (method.name, method.retval.meta.alt))
 
             if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:

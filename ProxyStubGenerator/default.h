@@ -25,8 +25,6 @@
 
 #pragma once
 
-#include <stdint.h>
-
 /* @define EXTERNAL */
 /* @define DEPRECATED */
 /* @define VARIABLE_IS_NOT_USED */
@@ -43,6 +41,9 @@ namespace std {
   typedef __stubgen_undetermined_integer ssize_t;
   typedef __stubgen_undetermined_integer time_t;
   typedef __stubgen_undetermined_integer clock_t;
+
+  template<typename T>
+  struct vector;
 }
 
 namespace __FRAMEWORK_NAMESPACE__ {

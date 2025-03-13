@@ -780,6 +780,10 @@ class JsonArray(JsonType):
     def cpp_native_type(self):
         if self.iterator:
             return "%s*" % self.iterator
+        elif "@container" in self.schema:
+            return "std::%s<%s>" % (self.schema["@container"], self._items.cpp_native_type)
+        elif "@arraysize" in self.schema:
+            return "%s @[%s]" % (self._items.cpp_native_type, self.schema["@arraysize"])
         else:
             return "std::list<%s>" % self._items.cpp_native_type
 

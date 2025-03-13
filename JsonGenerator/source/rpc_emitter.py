@@ -67,7 +67,10 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
         if params_type == "native":
             if params.properties and params.do_create:
                 for p in params.properties:
-                    parameters.append("const %s& %s" % (p.cpp_native_type_opt, p.local_name))
+                    if "@" in p.cpp_native_type_opt:
+                        parameters.append("const %s" % (p.cpp_native_type_opt).replace("@", p.local_name))
+                    else:
+                        parameters.append("const %s& %s" % (p.cpp_native_type_opt, p.local_name))
             else:
                 parameters.append("const %s& %s" % (params.cpp_native_type_opt, params.local_name))
 
@@ -103,6 +106,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
 
     # Convert the parameters to JSON types
     if params_type != "object" or legacy:
+
         if not params.is_void:
             emit.Line("%s %s;" % (params.cpp_type, names.params))
 
@@ -112,7 +116,14 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                         emit.Line("if (%s.IsSet() == true) {" % (p.local_name))
                         emit.Indent()
 
-                    emit.Line("%s.%s = %s;" % (names.params, p.cpp_name, p.local_name))
+                    if isinstance(p, JsonArray) and (params_type == "native"):
+                        if "@container" in p.schema:
+                            emit.Line("for (auto const& _item__ : %s) { %s.%s.Add() = _item__; }" % (p.local_name, names.params, p.cpp_name))
+                        elif "@arraysize" in p.schema:
+                            emit.Line("for (uint16_t _i__ = 0; _i__ < %s; _i__++) { %s.%s.Add() = %s[_i__]; }" % (p.schema["@arraysize"], names.params, p.cpp_name, p.local_name))
+                    else:
+                        emit.Line("%s.%s = %s;" % (names.params, p.cpp_name, p.local_name))
+
                     if p.schema.get("opaque"):
                         emit.Line("%s.%s.SetQuoted(false);" % (names.params, p.cpp_name))
 
@@ -124,7 +135,11 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                     emit.Line("if (%s.IsSet() == true) {" % (params.local_name))
                     emit.Indent()
 
-                emit.Line("%s = %s;" % (names.params, params.local_name))
+                if isinstance(params, JsonArray) and (params_type == "native"):
+                    emit.Line("for (auto const& _item__ : %s) { %s.Add() = _item__; }" % (p.local_name, names.params))
+                else:
+                    emit.Line("%s = %s;" % (names.params, params.local_name))
+
                 if params.schema.get("opaque"):
                     emit.Line("%s.SetQuoted(false);" % names.params)
 
@@ -751,19 +766,31 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         for _, [param, _, param_meta] in sorted_vars:
             if isinstance(param, (JsonString, JsonArray)):
                 length_value = param.schema.get("@length")
+                maxlength_value = param.schema.get("@maxlength")
                 array_size_value = param.schema.get("@arraysize")
 
+                if maxlength_value:
+                    if maxlength_value[0].isalpha():
+                        for name, [var, _, var_meta] in sorted_vars:
+                            if name == maxlength_value:
+                                var_meta.flags.is_buffer_length = True
+                                param_meta.flags.maxlength = [var, var_meta]
+                                break
+
+                        if not param_meta.flags.maxlength:
+                            raise RPCEmitterError("@maxlength parameter not found: %s" % maxlength_value)
+
                 if length_value:
-                    for name, [var, var_type, var_meta] in sorted_vars:
-                        if name == length_value:
-                            if var_type == "w":
-                                raise RPCEmitterError("'%s': parameter pointed to by @length is output only" % param.name)
-                            else:
+                    if length_value[0].isalpha():
+                        for name, [var, _, var_meta] in sorted_vars:
+                            if name == length_value:
                                 var_meta.flags.is_buffer_length = True
                                 param_meta.flags.length = [var, var_meta]
                                 break
 
-                    if not param_meta.flags.length:
+                        if not param_meta.flags.length:
+                            raise RPCEmitterError("@length parameter not found: %s" % length_value)
+                    else:
                         param_meta.flags.size = length_value
 
                 elif array_size_value:
@@ -807,7 +834,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             # Take care of POD aggregation
             cpp_name = ((parent + param.cpp_name) if parent else param.local_name)
 
-            # Encoded JSON strings to C-style buffer
             if isinstance(param, JsonString) and param_meta.flags.asynchronous:
                 asyncid_param = param.TempName("_asyncId")
                 async_event = method.callback.notification.json_name
@@ -819,13 +845,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
                 call_conditions.extend("_subscribe_result__ == Core::ERROR_NONE")
 
+            # Encoded JSON strings to C-style buffer
             elif isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size) and param_meta.flags.encode:
-                conditions = Restrictions(reverse=True)
                 length_param = param_meta.flags.length
+                maxlength_param = param_meta.flags.maxlength
+                have_real_maxlength = maxlength_param and (not length_param or( maxlength_param[0].json_name != length_param[0].json_name))
 
                 assert not param.optional
 
-                if param_meta.flags.length:
+                if length_param:
                     size = length_param[0].temp_name
                     length_cpp_name = parent + length_param[0].cpp_name
 
@@ -836,27 +864,63 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         initializer = (length_cpp_name + ".Value()") if "r" in length_param[1].access else ""
                         emit.Line("%s %s{%s};" % (length_param[0].cpp_native_type_opt, size, initializer))
 
-                    emit.Line("%s* %s{nullptr};" % (param.original_type, param.temp_name))
+                    if have_real_maxlength:
+                        if maxlength_param[0].optional:
+                            raise RPCEmitterError("@maxlength parameter must not be of Core::OptionalType: %s" % maxlength_param[0].json_name)
+
+                        initializer = (parent + maxlength_param[0].cpp_name + ".Value()") if "r" in maxlength_param[1].access else ""
+                        emit.Line("%s %s{%s};" % (maxlength_param[0].cpp_native_type_opt, maxlength_param[0].temp_name, initializer))
+
+                    emit.Line("%s* %s{};" % (param.original_type, param.temp_name))
 
                     if length_param[0].optional:
                         size += ".Value()"
-
-                    conditions.check_set(length_param[0])
-                    conditions.check_not_null(length_param[0])
-
-                    if length_param[0].size > 16:
-                        conditions.extend("(%s <= 0x400000) /* sanity! */" % size)
                 else:
                     size = param_meta.flags.size
                     emit.Line("%s %s[%s]{};" % (param.original_type, param.temp_name, size))
 
-                emit.EnterBlock(conditions)
-
                 if length_param:
-                    emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (param.temp_name, param.original_type, size))
+                    conditions = Restrictions(reverse=True)
+                    if is_readable:
+                        if have_real_maxlength:
+                            alloca_param = "std::max(%s, %s)" % (size, maxlength_param[0].temp_name)
+                            conditions.extend("%s != 0" % alloca_param)
+                            if length_param[0].size > 16:
+                                conditions.extend("%s <= 0x100000" % size)
+                            if maxlength_param[0].size > 16:
+                                conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
+                        else:
+                            alloca_param = size
+                            conditions.check_set(length_param[0])
+                            conditions.check_not_null(length_param[0])
+                            if length_param[0].size > 16:
+                                conditions.extend("%s <= 0x100000" % size)
+                    elif maxlength_param:
+                        alloca_param = maxlength_param[0].temp_name
+                        conditions.check_set(maxlength_param[0])
+                        conditions.check_not_null(maxlength_param[0])
+                        if maxlength_param[0].size > 16:
+                            conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
+                    else:
+                        # fallback to @length
+                        alloca_param = size
+                        conditions.check_set(length_param[0])
+                        conditions.check_not_null(length_param[0])
+                        if length_param[0].size > 16:
+                            conditions.extend("%s <= 0x100000" % size)
+
+                    emit.EnterBlock(conditions)
+                    emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (param.temp_name, param.original_type, alloca_param))
                     emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
+                    emit.ExitBlock(conditions)
 
                 if is_readable:
+                    conditions = Restrictions(reverse=True)
+                    if length_param:
+                        conditions.extend("%s != nullptr" % param.temp_name)
+
+                    emit.EnterBlock(conditions, scoped=True)
+
                     if param_meta.flags.encode == "base64":
                         if param_meta.flags.size:
                             size_var = param.TempName("Size_")
@@ -864,11 +928,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         else:
                             size_var = size
 
-                        emit.Line("Core::FromString(%s, %s, %s, nullptr);" % (cpp_name, param.temp_name, size_var))
+                        emit.Line("Core::FromString(%s.Value(), %s, %s, nullptr);" % (cpp_name, param.temp_name, size_var))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
 
-                emit.ExitBlock(conditions)
+                    emit.ExitBlock(conditions, scoped=True)
 
             elif isinstance(param, JsonArray):
                 # Array to iterator
@@ -920,8 +984,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 elif (param_meta.flags.size or param_meta.flags.length):
                     items = param.items
                     length_param = param_meta.flags.length
-                    conditions = Restrictions(reverse=True)
-
+                    maxlength_param = param_meta.flags.maxlength
+                    have_real_maxlength = maxlength_param and (not length_param or( maxlength_param[0].json_name != length_param[0].json_name))
                     assert not param.optional
 
                     if length_param:
@@ -935,31 +999,90 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             initializer = (parent + length_param[0].cpp_name + ".Value()") if "r" in length_param[1].access else ""
                             emit.Line("%s %s{%s};" % (length_param[0].cpp_native_type_opt, size, initializer))
 
-                        emit.Line("%s* %s{};" % (items.cpp_native_type, param.temp_name))
+                        if have_real_maxlength:
+                            if maxlength_param[0].optional:
+                                raise RPCEmitterError("@maxlength parameter must not be of Core::OptionalType: %s" % maxlength_param[0].json_name)
 
-                        conditions.check_set(length_param[0])
-                        conditions.check_not_null(length_param[1])
+                            initializer = (parent + maxlength_param[0].cpp_name + ".Value()") if "r" in maxlength_param[1].access else ""
+                            emit.Line("%s %s{%s};" % (maxlength_param[0].cpp_native_type_opt, maxlength_param[0].temp_name, initializer))
+
+                        emit.Line("%s* %s{};" % (items.cpp_native_type, param.temp_name))
 
                         if length_param[0].optional:
                             size += ".Value()"
                     else:
                         size = param_meta.flags.size
-                        emit.Line("%s %s[%s]{};" % (param.items.cpp_native_type, param.temp_name, size))
-
-                    emit.EnterBlock(conditions)
+                        emit.Line("%s %s[%s]{};" % (param.items.cpp_native_type_opt, param.temp_name, size))
 
                     if length_param:
-                        emit.Line("%s = static_cast<%s*>(ALLOCA(%s));" % (param.temp_name, items.cpp_native_type, size))
+                        conditions = Restrictions(reverse=True)
+                        if is_readable:
+                            if have_real_maxlength:
+                                alloca_param = "std::max(%s, %s)" % (size, maxlength_param[0].temp_name)
+                                conditions.extend(alloca_param + " != 0")
+                                if length_param[0].size > 16:
+                                    conditions.extend("%s <= 0x100000" % size)
+                                if maxlength_param[0].size > 16:
+                                    conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
+                            else:
+                                alloca_param = size
+                                conditions.check_set(length_param[0])
+                                conditions.check_not_null(length_param[0])
+                                if length_param[0].size > 16:
+                                    conditions.extend("%s <= 0x100000" % size)
+                        elif maxlength_param:
+                            alloca_param = maxlength_param[0].temp_name
+                            conditions.check_set(maxlength_param[0])
+                            conditions.check_not_null(maxlength_param[0])
+                            if maxlength_param[0].size > 16:
+                                conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
+                        else:
+                            # fallback to @length
+                            alloca_param = size
+                            conditions.check_set(maxlength_param[0])
+                            conditions.check_not_null(maxlength_param[0])
+                            if maxlength_param[0].size > 16:
+                                conditions.extend("%s <= 0x100000" % size)
+
+                        emit.EnterBlock(conditions)
+                        emit.Line("%s = static_cast<%s*>(ALLOCA(%s));" % (param.temp_name, items.cpp_native_type, alloca_param))
                         emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
+                        emit.ExitBlock(conditions)
 
                     if is_readable:
-                        emit.EnterBlock()
-                        emit.Line("uint16_t i = 0;")
-                        emit.Line("auto it = %s.Elements();" % (parent + param.cpp_name))
-                        emit.Line("while ((it.Next() == true) && (i < %s)) { %s[i++] = it.Current(); }" % (size, param.items.temp_name))
-                        emit.ExitBlock()
+                        conditions = Restrictions(reverse=True)
+                        if length_param:
+                            conditions.extend("%s != nullptr" % param.temp_name)
 
-                    emit.ExitBlock(conditions)
+                        emit.EnterBlock(conditions, scoped=True)
+                        emit.Line("uint16_t _i = 0;")
+                        emit.Line("auto _it = %s.Elements();" % (parent + param.cpp_name))
+                        emit.Line("while ((_it.Next() == true) && (_i < %s)) { %s[_i++] = _it.Current(); }" % (size, param.items.temp_name))
+                        emit.ExitBlock(conditions, scoped=True)
+
+                elif param.schema.get("@container"):
+
+                    emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
+
+                    if is_readable:
+                        initializer=""
+                        iterator_name = param.items.TempName("iterator")
+                        vector_name = param.temp_name
+
+                        if param.optional:
+                            fixed_name = param.TempName("fixed")
+                            emit.Line("%s %s{};" % (param.cpp_native_type, fixed_name))
+                            emit.Line("if (%s.IsSet() == true) {" % (parent + param.cpp_name))
+                            vector_name = fixed_name
+                            emit.Indent()
+
+                        emit.Line("auto %s = %s.Elements();" % (iterator_name, cpp_name))
+                        emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (iterator_name, vector_name, iterator_name))
+
+                        if param.optional:
+                            emit.Line("%s = std::move(%s);" % (param.temp_name, fixed_name))
+                            emit.Unindent()
+                            emit.Line("}")
 
                 elif is_json_source:
                     response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
@@ -1117,14 +1240,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 cpp_name = (repsonse_parent + param.cpp_name) if repsonse_parent else param.local_name
 
                 # Special case for C-style buffers disguised as base64-encoded strings
-                if isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size) and param_meta.flags.encode:
-                    length_param = param_meta.flags.length
+                if isinstance(param, JsonString) and param_meta.flags.encode:
+                    assert (param_meta.flags.length or param_meta.flags.size)
 
+                    length_param = param_meta.flags.length
                     conditions = Restrictions(reverse=True)
 
                     if length_param:
                         conditions.check_set(length_param[0])
                         conditions.check_not_null(length_param[0])
+                        conditions.extend("%s != nullptr" % param.temp_name)
 
                         size = length_param[0].temp_name
 
@@ -1134,17 +1259,17 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     else:
                         size = param_meta.flags.size
 
-                    emit.EnterBlock(conditions)
+                    emit.EnterBlock(conditions, scoped=True)
 
                     if param_meta.flags.encode == "base64":
                         encoded_name = param.TempName("encoded_")
                         emit.Line("%s %s;" % (param.cpp_native_type, encoded_name))
                         emit.Line("Core::ToString(%s, %s, true, %s);" % (param.temp_name, size, encoded_name))
-                        emit.Line("%s = %s;" % (cpp_name, encoded_name))
+                        emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
 
-                    emit.ExitBlock(conditions)
+                    emit.ExitBlock(conditions, scoped=True)
 
                 elif isinstance(param, JsonArray):
                     if param.iterator:
@@ -1155,7 +1280,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if param.optional:
                             rhs += ".Value()"
 
-                        emit.EnterBlock(conditions)
+                        emit.EnterBlock(conditions, scoped=True)
 
                         item_name = param.items.TempName("item_")
                         emit.Line("%s %s{};" % (param.items.cpp_native_type, item_name))
@@ -1166,7 +1291,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         emit.Line("%s->Release();" % rhs)
 
-                        emit.ExitBlock(conditions)
+                        emit.ExitBlock(conditions, scoped=True)
 
                     elif param.items.schema.get("@bitmask"):
                         emit.Line("%s = %s;" % (cpp_name, rhs))
@@ -1178,6 +1303,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if length_param:
                             conditions.check_set(length_param[0])
                             conditions.check_not_null(length_param[0])
+                            conditions.check_not_null(param)
                             size = length_param[0].temp_name
 
                             if length_param[0].optional:
@@ -1190,7 +1316,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Indent()
 
                         emit.Line("%s.Clear();" % cpp_name)
-                        emit.Line("for (uint16_t i = 0; i < %s; i++) { %s.Add() = %s[i]; }" % (size, cpp_name, rhs))
+                        emit.Line("for (uint16_t _i = 0; _i < %s; _i++) { %s.Add() = %s[_i]; }" % (size, cpp_name, rhs))
 
                         if conditions.count():
                             emit.Unindent()
@@ -1200,8 +1326,28 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("%s.Null(true);" % cpp_name)
                             emit.Unindent()
                             emit.Line("}")
+                            emit.Line()
 
-                        emit.Line()
+                    elif param.schema.get("@container"):
+                        conditions = Restrictions(reverse=True)
+                        conditions.check_set(param)
+
+                        if conditions.count():
+                            emit.Line("if (%s) {" % conditions.join())
+                            emit.Indent()
+
+                        emit.Line("%s.Clear();" % cpp_name)
+                        emit.Line("for (auto const& _elem__ : %s%s ) { %s.Add() = _elem__; }" % (param.temp_name, ".Value()" if param.optional else "", cpp_name))
+
+                        if conditions.count():
+                            emit.Unindent()
+                            emit.Line("}")
+                            emit.Line("else {")
+                            emit.Indent()
+                            emit.Line("%s.Null(true);" % cpp_name)
+                            emit.Unindent()
+                            emit.Line("}")
+                            emit.Line()
                     else:
                         raise RPCEmitterError("unable to serialize a non-iterator array: %s" % param.json_name)
 

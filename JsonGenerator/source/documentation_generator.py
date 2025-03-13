@@ -39,7 +39,7 @@ def Create(log, schema, path, indent_size = 4):
             return "*%s*" % string
 
         def link(string, caption=None):
-            return "[%s](#%s)" % (caption if caption else string.split(".", 1)[1].replace("_", " "), string)
+            return "[%s](#%s)" % (caption if caption else string.split(".", 1)[1].replace("_", " "), string.replace('.','_').replace("::", "__"))
 
         def weblink(string, link):
             return "[%s](%s)" % (string,link)
@@ -49,10 +49,10 @@ def Create(log, schema, path, indent_size = 4):
 
         def MdHeader(string, level=1, id="head", section=None):
             if level < 3:
-                emit.Line("<a name=\"%s\"></a>" % (id + "." + string.replace(" ", "_")))
+                emit.Line("<a id=\"%s\"></a>" % (id + "_" + string.replace(" ", "_").replace("::","__")))
 
             if id != "head":
-                string += " [<sup>%s</sup>](#head.%s)" % (id, section)
+                string += " [<sup>%s</sup>](#head_%s)" % (id, section)
 
             emit.Line("%s %s" % ("#" * level, "*%s*" % string if id != "head" else string))
             MdBr()
@@ -183,26 +183,32 @@ def Create(log, schema, path, indent_size = 4):
                                 row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
                             else:
                                 row += italics("%s length must be at most %s %s." % (str_text, d["range"][1], val_text))
+                        elif d["type"] == "array":
+                            if d["range"][0]:
+                                row += italics("Array length must be in range [%s..%s] elements." % (d["range"][0], d["range"][1]))
+                            else:
+                                row += italics("Array length must be at most %s elements." % (d["range"][1]))
                         else:
                             row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
                     if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
-                    if obj.get("@lookupid"):
-                        if row:
-                            row += "<br>"
-                        row += italics("This item is an instance ID.")
-
                     if obj.get("@async"):
                         if row:
                             row += "<br>"
-                        row += italics("This item is the client ID returned back in the notification carrying the asynchronous result.")
 
-                    if "@async" in obj:
                         obj_type = "string (async ID)"
                     else:
                         obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
+
+                    if obj.get("@lookupid"):
+                        if row == "...":
+                            row = ""
+                        elif row:
+                            row += "<br>"
+
+                        obj_type += " (instance ID)"
 
                     MdRow([prefix, obj_type, "optional" if optional else "mandatory", row])
 
@@ -212,8 +218,9 @@ def Create(log, schema, path, indent_size = 4):
 
                     for pname, props in obj["properties"].items():
                         _TableObj(pname, props, parentName + "/" + name, obj, prefix, False)
+
                 elif obj["type"] == "array":
-                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", optional)
+                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", False)
 
             _TableObj(name, object, "")
             MdBr()
@@ -243,10 +250,10 @@ def Create(log, schema, path, indent_size = 4):
             default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
             if not default and "@async" in obj:
-                default = "myid.completed"
+                default = "myid-completed"
 
             if not default and "enum" in obj:
-                default = obj["enum"][0]
+                default = obj["enum"][1 if len(obj["enum"]) > 1 else 0]
 
             json_data = '"%s": ' % name if name else ''
 
@@ -256,7 +263,7 @@ def Create(log, schema, path, indent_size = 4):
                 if default and not str(default).lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this integer type (see '%s')" % (name, default))
 
-                json_data += '%s' % (default if default else 0)
+                json_data += '%s' % (default if default else 0 if "@lookupid" not in obj else 1)
             elif obj_type == "number":
                 if default and not str(default).replace('.','').lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this numeric (floating-point) type (see '%s')" % (name, default))
@@ -367,8 +374,45 @@ def Create(log, schema, path, indent_size = 4):
                 events = [props["events"]] if isinstance(props["events"], str) else props["events"]
                 MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), events))))
 
-            if "@lookup" in props:
-                method = method.replace("::", "#1::")
+            if is_notification:
+                if "@lookup" in props:
+                    _obj_prefix = props["@lookup"]["prefix"].lower()
+                    _registrant = "%s#<%s-id>::register" % (_obj_prefix, _obj_prefix)
+                    _registrant2 ="%s#1::register" % (_obj_prefix)
+                    notification_event = method[method.rfind(':') + 1:]
+                    notification_generic_method = "<clientid>." + ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
+                    notification_example_method = "myid." + "#1::".join(method.rsplit("::", 1))
+                else:
+                    _registrant = "register"
+                    _registrant2 = "register"
+                    notification_event = method
+                    notification_generic_method = method
+                    notification_example_method = method
+
+                if "id" in props:
+                    notification_generic_method = "<id>." + notification_generic_method
+                    notification_example_method = (props["id"]["example"] if "example" in props["id"] else "?") + "." + notification_example_method
+
+                generic_method = "%s.1.%s" % (classname, _registrant)
+                call_method ="%s.1.%s" % (classname, _registrant2)
+            else:
+                if "@lookup" in props:
+                    _obj_prefix = props["@lookup"]["prefix"].lower()
+                    _example_callee = "#1::".join(method.rsplit("::", 1))
+                    _callee = ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
+                else:
+                    _example_callee = method
+                    _callee = method
+
+                generic_method = "%s.1.%s" % (classname, _callee)
+                call_method = "%s.1.%s" % (classname, _example_callee)
+
+                if is_property and "index" in props:
+                    call_method += ("@" + str(props["index"][0]["example"]) if "example" in props["index"][0] else "?")
+                    generic_method += "@<index>"
+
+                if "@async" in props:
+                    async_example_method = "myid-complete." + method
 
             if is_property:
                 if "index" in props:
@@ -423,28 +467,31 @@ def Create(log, schema, path, indent_size = 4):
                         elif "summary" in props:
                             props["result"]["description"] = props["summary"]
 
+                    ParamTable("(property)", props["result"])
+
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s%s``." % (props["@lookup"]["prefix"].lower(), classname, orig_method2.replace("::", "<%s>::" % props["@lookup"][2].lower()) , "@" + props["index"][0]["example"] if "index" in props else ""))
+                    MdParagraph("> The *%s instance ID* shall be passed within the designator, e.g. ``%s``." % (props["@lookup"]["prefix"].lower(), generic_method))
 
             else:
                 if is_notification:
                     if "id" in props:
+                        MdHeader("Parameters", 3)
+
                         if "name" not in props["id"] or "example" not in props["id"]:
                             raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
 
-                        MdHeader("Parameters", 3)
                         MdParagraph("> The *%s* parameter shall be passed within the client ID during registration, e.g. *%s.myid*" %
                                     (props["id"]["name"], props["id"]["example"]))
 
                     MdHeader("Notification Parameters", 3)
                 else:
+                    if "@async" in props:
+                        MdParagraph("> This method is asynchronous.")
+
+                    if "result" in props and "@lookupid" in props["result"]:
+                        MdParagraph("> This method creates an instance of a *%s* object." % props["result"]["@lookupid"].lower())
+
                     MdHeader("Parameters", 3)
-
-                if "@lookup" in props:
-                    MdParagraph("> The *%s* instance ID shell be passed within the designator, e.g. ``%s.1.%s``." % (props["@lookup"]["prefix"].lower(), classname, method))
-
-                if "@async" in props:
-                    MdParagraph("> This method is asynchronous.")
 
                 if "params" in props:
                     ParamTable("params", props["params"])
@@ -454,7 +501,10 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         MdParagraph("This method takes no parameters.")
 
-            if "result" in props:
+                if "@lookup" in props:
+                    MdParagraph("> The *%s* instance ID shall be passed within the registration designator, e.g. ``%s``." % (props["@lookup"]["prefix"].lower(), generic_method))
+
+            if "result" in props and not property:
                 MdHeader("Result", 3)
                 ParamTable("result", props["result"])
 
@@ -464,23 +514,14 @@ def Create(log, schema, path, indent_size = 4):
 
             if "@async" in props and "params" in props:
                 MdHeader("Asynchronous Result", 3)
+
                 for k,v in props["params"]["properties"].items():
-                        if v.get("@async"):
-                            ParamTable("result", v["@async"]["params"])
-                            is_async = True
-                            async_param = v["@async"]
+                    if v.get("@async"):
+                        ParamTable("result", v["@async"]["params"])
+                        is_async = True
+                        async_param = v["@async"]
 
             MdHeader("Example", 3)
-
-            if is_notification:
-                callmethod = "myid." + method
-            elif is_property:
-                callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"][0]["example"])) if "index" in props and "example" in props["index"][0] else "")
-            else:
-                callmethod = "%s.1.%s" % (classname, method)
-
-            if "id" in props and "example" in props["id"]:
-                callmethod = props["id"]["example"] + ".myid." + method
 
             jsonError = "Failed to generate JSON example for %s" % method
             jsonResponse = jsonError
@@ -494,7 +535,7 @@ def Create(log, schema, path, indent_size = 4):
                 if "id" in props and "example" in props["id"]:
                     client = props["id"]["example"] + "." + client
 
-                text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s.1.register", "params": {"event": "%s", "id": "%s" } }' % (classname, method, client)
+                text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s", "params": {"event": "%s", "id": "%s" } }' % (call_method, notification_event, client)
                 try:
                     jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
                 except:
@@ -507,7 +548,7 @@ def Create(log, schema, path, indent_size = 4):
                 if not writeonly:
                     MdHeader("Get Request", 4)
 
-                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % callmethod
+                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % call_method
 
                     try:
                         jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
@@ -532,7 +573,6 @@ def Create(log, schema, path, indent_size = 4):
             if not readonly:
                 if is_property:
                     MdHeader("Set Request", 4)
-                    callmethod = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"][1]["example"])) if "index" in props and "example" in props["index"][1] else "")
                 elif is_notification:
                     MdHeader("Notification", 4)
                 else:
@@ -540,7 +580,7 @@ def Create(log, schema, path, indent_size = 4):
 
                 try:
                     jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
-                                                        ('"id": 42, ' if not is_notification else "", callmethod,
+                                                        ('"id": 42, ' if not is_notification else "", call_method if not is_notification else notification_example_method,
                                                         (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
                                                         object_pairs_hook=OrderedDict), indent=2)
                 except:
@@ -549,9 +589,12 @@ def Create(log, schema, path, indent_size = 4):
 
                 MdCode(jsonRequest, "json")
 
-                if is_notification and "id" in props:
-                    MdParagraph("> The *%s* parameter is passed within the designator, e.g. *%s.myid.%s*." %
-                                (props["id"]["name"], props["id"]["example"], method))
+                if is_notification:
+                    MdParagraph("> The *client ID* parameter is passed within the notification designator, e.g. ``%s``." % notification_example_method)
+
+                    if  "id" in props:
+                        MdParagraph("> The *%s* parameter is passed within the designator, e.g. *%s.myid.%s*." %
+                                    (props["id"]["name"], props["id"]["example"], method))
 
                 if not is_notification and not is_property:
                     if "result" not in props:
@@ -572,13 +615,14 @@ def Create(log, schema, path, indent_size = 4):
                         MdHeader("Asynchronous Response", 4)
 
                         try:
-                            jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "method": "%s"%s }' % ("myid.completed."+method, ", " + ExampleObj("params", async_param["params"], True)),
+                            jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "method": "%s"%s }' % (async_example_method, ", " + ExampleObj("params", async_param["params"], True)),
                                                         object_pairs_hook=OrderedDict), indent=2)
                         except:
                             jsonResponse = jsonError
                             log.Error(jsonError)
 
                         MdCode(jsonResponse, "json")
+                        MdParagraph("> The *async ID* parameter is passed within the notification designator, e.g. ``%s``." % async_example_method)
 
                 if is_property:
                     MdHeader("Set Response", 4)
@@ -948,6 +992,9 @@ def Create(log, schema, path, indent_size = 4):
 
                 if section in interface:
                     for method, contents in interface[section].items():
+                        if "#" in method and (section == "events" and "@lookup" in contents):
+                            method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
+
                         if contents and method not in skip_list and "#" not in method:
                             ns = interface["info"]["namespace"] if "namespace" in interface["info"] else ""
 
@@ -1051,6 +1098,9 @@ def Create(log, schema, path, indent_size = 4):
             for interface in interfaces:
                 if section in interface:
                     for method, props in interface[section].items():
+                        if "#" in method and (section == "events" and "@lookup" in props):
+                            method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
+
                         if props and method not in skip_list and "#" not in method:
                             to_skip = MethodDump(method, props, plugin_class, section_name, header, event, prop)
 
