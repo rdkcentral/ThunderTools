@@ -74,7 +74,7 @@ class HeaderData(FileData):
                 if 'I' + interface[1:] in self.notification_interfaces:
                     location = self.lookup.get(interface, 'interfaces/json')
                     includes.append(f'#include <{location}/{Utils.replace_comrpc_to_jsonrpc(interface)}.h>')
-        return '\n'.join(includes) if includes else 'rm\*n'
+        return '\n'.join(includes) if includes else 'rm\\*n'
 
     def generate_inherited_classes(self):
         inheritance = ['PluginHost::IPlugin']
@@ -133,10 +133,10 @@ class HeaderData(FileData):
     def generate_inherited_methods(self):
         if (not self.out_of_process and self.type != HeaderData.HeaderType.HEADER) or \
         (self.out_of_process and self.type != HeaderData.HeaderType.HEADER_IMPLEMENTATION):
-            return 'rm\*n'
+            return 'rm\\*n'
         
         if not self.comrpc_interfaces:
-            return 'rm\*n'
+            return 'rm\\*n'
 
         methods = []
         for inherited in self.comrpc_interfaces:
@@ -200,7 +200,7 @@ class HeaderData(FileData):
         if (self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION) or \
         (not self.out_of_process) and (self.type == HeaderData.HeaderType.HEADER):
             entries.extend(f'INTERFACE_ENTRY(Exchange::{comrpc})' for comrpc in self.comrpc_interfaces)
-        return '\n'.join(entries) if entries else 'rm\*n'
+        return '\n'.join(entries) if entries else 'rm\\*n'
 
     def generate_interface_aggregate(self):
         aggregates = []
@@ -209,7 +209,7 @@ class HeaderData(FileData):
                 if comrpc == "IConfiguration":
                     break
                 aggregates.append(f'INTERFACE_AGGREGATE(Exchange::{comrpc}, _impl{comrpc[1:]})')
-        return ('\n').join(aggregates) if aggregates else 'rm\*n'
+        return ('\n').join(aggregates) if aggregates else 'rm\\*n'
 
     def generate_module_plugin_name(self):
         return f'Plugin_{self.plugin_name}'
@@ -223,7 +223,7 @@ class HeaderData(FileData):
     def generate_interface_constructor(self):
         constructor = []
         if not self.comrpc_interfaces:
-            return 'rm\*n'
+            return 'rm\\*n'
         
         if self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION:
             constructor = [f": Exchange::{self.comrpc_interfaces[0]}()"] + [f", Exchange::{comrpc}()" for comrpc in self.comrpc_interfaces[1:]]
@@ -240,7 +240,7 @@ class HeaderData(FileData):
                 if comrpc == 'IConfiguration':
                     continue
                 constructor.append(f", Exchange::{comrpc}()")
-        return "\n".join(constructor) if constructor else "rm\*n"
+        return "\n".join(constructor) if constructor else "rm\\*n"
 
     def generate_member_impl(self):
         members = []
@@ -257,7 +257,7 @@ class HeaderData(FileData):
             members.append(f"mutable Core::CriticalSection _adminLock;")
             for comrpc in self.notification_interfaces:
                 members.append(f'{comrpc[1:]}NotificationContainer _{comrpc[1:].lower()}Notification;')
-        return "\n".join(members) if members else 'rm\*n'
+        return "\n".join(members) if members else 'rm\\*n'
 
     def generate_member_constructor(self):
         members = []
@@ -273,7 +273,7 @@ class HeaderData(FileData):
             members.append(f", _adminLock()")
             for comrpc in self.notification_interfaces:
                 members.append(f", _{comrpc[1:].lower()}Notification()")
-        return "\n".join(members) if members else 'rm\*n'
+        return "\n".join(members) if members else 'rm\\*n'
 
     def generate_notification_class(self):
         classes = []
@@ -288,14 +288,14 @@ class HeaderData(FileData):
         for notif in self.jsonrpc_interfaces:
             if f'I{notif[1:]}' in self.notification_interfaces:
                 members.append(f', Exchange::I{notif[1:]}::INotification()')
-        return '\n'.join(members) if members else 'rm\*n'
+        return '\n'.join(members) if members else 'rm\\*n'
     
     def generate_notification_entry(self):
         entries = []
         for entry in self.jsonrpc_interfaces:
             if f'I{entry[1:]}' in self.notification_interfaces:
                 entries.append(f'INTERFACE_ENTRY(Exchange::I{entry[1:]}::INotification)')
-        return '\n'.join(entries) if entries else 'rm\*n'
+        return '\n'.join(entries) if entries else 'rm\\*n'
         
     def generate_notification_function(self):
         methods = []
@@ -303,7 +303,7 @@ class HeaderData(FileData):
             if f'I{inherited[1:]}' in self.notification_interfaces:
                 methods.append(f'''void {inherited}Notification() override {{\n~INDENT_INCREASE~\nExchange::J{inherited[1:]}::Event::{inherited}Notification(_parent);\n~INDENT_DECREASE~\n}}\n''')
 
-        return ("\n").join(methods) if methods else 'rm\*n'
+        return ("\n").join(methods) if methods else 'rm\\*n'
     
     def generate_oop_members(self):
         members = []
@@ -311,7 +311,7 @@ class HeaderData(FileData):
             members.append('mutable Core::CriticalSection _adminLock;')
             for interface in self.notification_interfaces:
                 members.append(f'{interface[1:]}NotificationContainer _{interface[1:].lower()}Notification;')
-        return '\n'.join(members) if members else 'rm\*n'
+        return '\n'.join(members) if members else 'rm\\*n'
     
     def generate_notify_method(self):
         methods = []
@@ -329,7 +329,7 @@ class HeaderData(FileData):
                             ~INDENT_DECREASE~
                             }}\n''')
             
-        return ''.join(methods) if methods else 'rm\*n'
+        return ''.join(methods) if methods else 'rm\\*n'
     
     def generate_using_container(self):
         usings = []
@@ -337,11 +337,11 @@ class HeaderData(FileData):
             (not self.out_of_process and self.type == HeaderData.HeaderType.HEADER):
             for comrpc in self.notification_interfaces:
                 usings.append(f'using {comrpc[1:]}NotificationContainer = std::vector<Exchange::{comrpc}::INotification*>;')
-        return '\n'.join(usings) if usings else 'rm\*n'
+        return '\n'.join(usings) if usings else 'rm\\*n'
     
     def generate_private_field(self):
         if not self.out_of_process and not self.plugin_config:
-            return 'rm\*n'
+            return 'rm\\*n'
         return '~INDENT_DECREASE~\nprivate:\n~INDENT_INCREASE~'
 
     def generate_public_field(self):
@@ -349,18 +349,18 @@ class HeaderData(FileData):
     
     def generate_notify_ip(self):
         if self.out_of_process:
-            return 'rm\*n'
+            return 'rm\\*n'
         
         methods = []
         for interface in self.notification_interfaces:
             methods.append(f'void Notify{interface}() const;')
            
-        return '\n'.join(methods) if methods else 'rm\*n'
+        return '\n'.join(methods) if methods else 'rm\\*n'
     
     def generate_definitions(self):
         if self.jsonrpc:
             return '#include <definitions/definitions.h>'
-        return 'rm\*n'
+        return 'rm\\*n'
     
     def generate_timeout(self):
         timeout = []
@@ -369,7 +369,7 @@ class HeaderData(FileData):
             timeout.append("// Timeout (2000ms) may be changed if necassary, however, it must not exceed RPC::CommunicationTimeOut")
             timeout.append("\nstatic constexpr uint32_t timeout = 2000;")
 
-        return "".join(timeout) if timeout else 'rm\*n'
+        return "".join(timeout) if timeout else 'rm\\*n'
     
     def generate_keyword_map(self):
         return {
@@ -422,7 +422,7 @@ class HeaderData(FileData):
                 template_name = global_variables.CONFIG_CLASS_PATH
                 template = FileUtils.read_file(template_name)
                 code.append(f'{FileUtils.replace_keywords(template, self.keywords)}')
-        return ''.join(code) if code else 'rm\*n'
+        return ''.join(code) if code else 'rm\\*n'
 
 class SourceData(FileData):
     def __init__(
@@ -494,7 +494,7 @@ class SourceData(FileData):
     def generate_jsonrpc_register(self):
 
         if not self.jsonrpc_interfaces:
-            return 'rm\*n'
+            return 'rm\\*n'
 
         registers = []
         '''
@@ -505,7 +505,7 @@ class SourceData(FileData):
             registers.append(f"Exchange::{jsonrpc}::Register(*this, this);")
 
         registers = ("\n").join(registers)
-        return registers if registers else "rm\*n"
+        return registers if registers else "rm\\*n"
 
     def generate_jsonrpc_unregister(self):
         registers = []
@@ -517,7 +517,7 @@ class SourceData(FileData):
                 registers.append(f"Exchange::{jsonrpc}::Unregister(*this);")
 
         registers = ("\n").join(registers)
-        return registers if registers else "rm\*n"
+        return registers if registers else "rm\\*n"
 
     def generate_jsonrpc_includes(self):
         includes = []
@@ -531,7 +531,7 @@ class SourceData(FileData):
             else:
                 location = self.lookup.get(jsonrpc, 'interfaces/json')
                 includes.append(f"#include <{location}/{jsonrpc}.h>")
-        return "\n".join(includes) if includes else 'rm\*n'
+        return "\n".join(includes) if includes else 'rm\\*n'
 
     def generate_plugin_method_impl(self):
         if self.out_of_process:
@@ -546,7 +546,7 @@ class SourceData(FileData):
                     ~INDENT_DECREASE~
                     }}\n''']
             return "".join(method)
-        return "rm\*n"
+        return "rm\\*n"
 
     def generate_inherited_method_impl(self):
         methods = []
@@ -586,7 +586,7 @@ class SourceData(FileData):
                     methods.append("~INDENT_DECREASE~")
                     methods.append("}")
             return ("\n").join(methods)
-        return 'rm\*n'
+        return 'rm\\*n'
     
     def generate_nested_query(self):
         nested_query = []
@@ -658,10 +658,10 @@ class SourceData(FileData):
             configuration->Release();
             ~INDENT_DECREASE~
             }}''')
-        return ''.join(text) if text else 'rm\*n'
+        return ''.join(text) if text else 'rm\\*n'
     
     def generate_configure_implementation(self):
-        return 'Config config;\nconfig.FromString(service->ConfigLine());\nTRACE(Trace::Information, (_T("This is just an example: [%s])"), config.Example.Value().c_str()));' if self.plugin_config else 'rm\*n'
+        return 'Config config;\nconfig.FromString(service->ConfigLine());\nTRACE(Trace::Information, (_T("This is just an example: [%s])"), config.Example.Value().c_str()));' if self.plugin_config else 'rm\\*n'
     
     def generate_nested_deinitialize(self):
         text = []
@@ -772,23 +772,23 @@ class CMakeData(FileData):
         s = ''
         if self.out_of_process:
             s = (f'set(PLUGIN_{self.plugin_name.upper()}_MODE "Local" CACHE STRING "Controls if the plugin should run in its own process, in process, container or remote.")')
-        return s if s else 'rm\*n'
+        return s if s else 'rm\\*n'
     
     def generate_set_config(self):
         s = ''
         if self.plugin_config:
             s = (f'set(PLUGIN_{self.plugin_name.upper()}_EXAMPLE "Example Text" CACHE STRING "Example String")')
-        return s if s else 'rm\*n'
+        return s if s else 'rm\\*n'
     
     def generate_find_definition(self):
         if self.jsonrpc:
             return 'find_package(${NAMESPACE}Definitions REQUIRED)'
-        return 'rm\*n'
+        return 'rm\\*n'
     
     def generate_target_definition(self):
         if self.jsonrpc:
             return '${NAMESPACE}Definitions::${NAMESPACE}Definitions'
-        return 'rm\*n'
+        return 'rm\\*n'
 
     def generate_keyword_map(self):
         return {
@@ -841,13 +841,13 @@ class JSONData(FileData):
             if comrpc == 'IConfiguration':
                 break
             cppref.append(f'"$cppref": "{{cppinterfacedir}}/{comrpc}.h"')
-        return ",\n".join(cppref) if cppref else 'rm\*n'
+        return ",\n".join(cppref) if cppref else 'rm\\*n'
 
     def generate_json_info(self):
         template_name = global_variables.JSON_INFO
         template = FileUtils.read_file(template_name)
         code = FileUtils.replace_keywords(template, self.keywords)
-        return code if code else "rm\*n"
+        return code if code else "rm\\*n"
 
     def generate_json_configuration(self):
         code = []
@@ -855,13 +855,13 @@ class JSONData(FileData):
             template_name = global_variables.JSON_CONFIGURATION
             template = FileUtils.read_file(template_name)
             code = FileUtils.replace_keywords(template, self.keywords)
-        return code if code else "rm\*n"
+        return code if code else "rm\\*n"
 
     def generate_json_interface(self):
         template_name = global_variables.JSON_INTERFACE
         template = FileUtils.read_file(template_name)
         code = FileUtils.replace_keywords(template, self.keywords)
-        return code if code else "rm\*n"
+        return code if code else "rm\\*n"
 
     def generate_keyword_map(self):
         return {
@@ -911,14 +911,14 @@ class ConfData(FileData):
             configuration.append("\nconfiguration = JSON()")
         if self.plugin_config:
             configuration.append(f'configuration.add("example", "@PLUGIN_{self.plugin_name.upper()}_EXAMPLE@")')
-        return '\n'.join(configuration) if configuration else 'rm\*n'
+        return '\n'.join(configuration) if configuration else 'rm\\*n'
     
     def generate_root(self):
         root = []
         if self.out_of_process:
             root.append(f'\nroot = JSON() \n root.add("mode", "@PLUGIN_{self.plugin_name.upper()}_MODE@")')
             root.append(f'configuration.add("root", root)')
-        return '\n'.join(root) if root else 'rm\*n'
+        return '\n'.join(root) if root else 'rm\\*n'
 
     def generate_keyword_map(self):
         return {
