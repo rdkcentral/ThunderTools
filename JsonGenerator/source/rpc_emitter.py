@@ -894,13 +894,20 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             conditions.check_set(length_param[0])
                             conditions.check_not_null(length_param[0])
                             if length_param[0].size > 16:
-                                conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
-                    else:
+                                conditions.extend("%s <= 0x100000" % size)
+                    elif maxlength_param:
                         alloca_param = maxlength_param[0].temp_name
                         conditions.check_set(maxlength_param[0])
                         conditions.check_not_null(maxlength_param[0])
                         if maxlength_param[0].size > 16:
                             conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
+                    else:
+                        # fallback to @length
+                        alloca_param = size
+                        conditions.check_set(length_param[0])
+                        conditions.check_not_null(length_param[0])
+                        if length_param[0].size > 16:
+                            conditions.extend("%s <= 0x100000" % size)
 
                     emit.EnterBlock(conditions)
                     emit.Line("%s = reinterpret_cast<%s*>(ALLOCA(%s));" % (param.temp_name, param.original_type, alloca_param))
@@ -1023,12 +1030,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                                 conditions.check_not_null(length_param[0])
                                 if length_param[0].size > 16:
                                     conditions.extend("%s <= 0x100000" % size)
-                        else:
+                        elif maxlength_param:
                             alloca_param = maxlength_param[0].temp_name
                             conditions.check_set(maxlength_param[0])
                             conditions.check_not_null(maxlength_param[0])
                             if maxlength_param[0].size > 16:
                                 conditions.extend("%s <= 0x100000" % maxlength_param[0].temp_name)
+                        else:
+                            # fallback to @length
+                            alloca_param = size
+                            conditions.check_set(maxlength_param[0])
+                            conditions.check_not_null(maxlength_param[0])
+                            if maxlength_param[0].size > 16:
+                                conditions.extend("%s <= 0x100000" % size)
 
                         emit.EnterBlock(conditions)
                         emit.Line("%s = static_cast<%s*>(ALLOCA(%s));" % (param.temp_name, items.cpp_native_type, alloca_param))
