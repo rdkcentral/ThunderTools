@@ -132,7 +132,7 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
 
         interfaceLocation = input(
             "\nWhere is your interface located?"
-            "\nThe default location is: ThunderInterfaces/interfaces"
+            "\nThe default location is: interfaces"
             "\nPress ENTER to continue, or define a custom location: "
         )
 
@@ -185,12 +185,13 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
             if notification:
                     notification_interfaces.append(correctName)
 
+            interface_locations.append((interfaceLocation, correctName))
+
             json_tag = user_jsonrpc(correctName, jsonrpc_interfaces, interface_locations)
             if json_tag:
                 jsonrpc = True
             iteration += 1
 
-            interface_locations.append((interfaceLocation, correctName))
         else:
             print("\nError processing interface header file name. Try again.")
     return jsonrpc 
@@ -200,21 +201,20 @@ def user_jsonrpc(comrpc_interface, jsonrpc_interfaces, interface_locations):
 
     json_tag = get_boolean_input("Does your plugin require JSON-RPC functionality (@json tag): (Enter Y or N)\n")
     if json_tag:
-        interfaceLocation = input(
-            "\nWhere is your JSON interface located?"
-            "\nThe default location is: ThunderInterfaces/interfaces/json"
-            "\nPress ENTER to continue, or define a custom location: "
-        )
-        if not interfaceLocation:
-            interfaceLocation = 'interfaces/json'
+
+        # Assume that json interface is located in the provided interface location (automatic or user defined) + json
+        interfaceLocation = get_interface_location(comrpc_interface, interface_locations)
+        print(interfaceLocation)
 
         jsonrpc_interface = Utils.replace_comrpc_to_jsonrpc(comrpc_interface)
         jsonrpc_interfaces.append(jsonrpc_interface)
-
         interface_locations.append((interfaceLocation, jsonrpc_interface))
         return True
     return False
 
+def get_interface_location(comrpc_interface, interface_locations):
+    location = (next((pair[0] for pair in interface_locations if pair[1] == comrpc_interface), 'interfaces'))
+    return '/'.join([location,'json'])
 
 def user_out_of_process():
     out_of_process = get_boolean_input("\nIs your plugin expected to work out of process: (Enter Y or N)\n")
