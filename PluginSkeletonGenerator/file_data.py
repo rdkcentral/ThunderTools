@@ -147,11 +147,11 @@ class HeaderData(FileData):
                 if inherited in self.notification_interfaces:
                     methods.append(f'Core::hresult Register(Exchange::{inherited}::INotification* notification) override;')
                     methods.append(f'Core::hresult Unregister(const Exchange::{inherited}::INotification* notification) override;')
-                methods.append(f'void {inherited}Example() override;')
+                methods.append(f'Core::hresult {inherited}Example() override;')
             else:
                 methods.append(f'// {inherited} methods')
                 if inherited in self.notification_interfaces:               
-                    methods.append(f'''uint32_t {inherited}Method1() override {{\n
+                    methods.append(f'''Core::hresult {inherited}Method1() override {{\n
                                 ~INDENT_INCREASE~
                                 // Perharps, this function could be used to call a notify method. Note: This is just an example
                                 Notify{inherited}();
@@ -159,7 +159,7 @@ class HeaderData(FileData):
                                 ~INDENT_DECREASE~
                                 }}\n''')
                 else:
-                    methods.append(f'uint32_t {inherited}Method1() override {{\n~INDENT_INCREASE~\nreturn Core::ERROR_NONE;\n~INDENT_DECREASE~\n}}\n')
+                    methods.append(f'Core::hresult {inherited}Method1() override {{\n~INDENT_INCREASE~\nreturn Core::ERROR_NONE;\n~INDENT_DECREASE~\n}}\n')
             if inherited in self.notification_interfaces and self.type == HeaderData.HeaderType.HEADER_IMPLEMENTATION:
                 methods.append(f'Core::hresult Register(Exchange::{inherited}::INotification* notification) override {{')
                 methods.append(self.notification_registers(inherited))
@@ -552,7 +552,7 @@ class SourceData(FileData):
         methods = []
         if not self.out_of_process:
             for inherited in self.comrpc_interfaces:
-                methods.append(f'uint32_t {self.plugin_name}::{inherited}Example() {{')
+                methods.append(f'Core::hresult {self.plugin_name}::{inherited}Example() {{')
                 methods.append(f'~INDENT_INCREASE~')
                 if inherited in self.notification_interfaces:
                      methods.append(f'''// Note this an example of a notification method.
