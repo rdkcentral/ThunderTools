@@ -250,7 +250,7 @@ def Create(log, schema, path, indent_size = 4):
             default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
             if not default and "@async" in obj:
-                default = "myid-completed"
+                default = "myid-complete"
 
             if not default and "enum" in obj:
                 default = obj["enum"][1 if len(obj["enum"]) > 1 else 0]
@@ -368,7 +368,7 @@ def Create(log, schema, path, indent_size = 4):
                 MdParagraph(props["description"])
 
             if "statuslistener" in props:
-                MdParagraph("> If applicable, this notification may be sent out during registration, reflecting the current status.")
+                MdParagraph("> This notification may also be triggered by client registration.")
 
             if "events" in props:
                 events = [props["events"]] if isinstance(props["events"], str) else props["events"]
@@ -380,17 +380,17 @@ def Create(log, schema, path, indent_size = 4):
                     _registrant = "%s#<%s-id>::register" % (_obj_prefix, _obj_prefix)
                     _registrant2 ="%s#1::register" % (_obj_prefix)
                     notification_event = method[method.rfind(':') + 1:]
-                    notification_generic_method = "<clientid>." + ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
+                    notification_generic_method = "<client-id>." + ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
                     notification_example_method = "myid." + "#1::".join(method.rsplit("::", 1))
                 else:
                     _registrant = "register"
                     _registrant2 = "register"
                     notification_event = method
-                    notification_generic_method = method
-                    notification_example_method = method
+                    notification_generic_method = "<client-id>." + method
+                    notification_example_method = "myid." + method
 
                 if "id" in props:
-                    notification_generic_method = "<id>." + notification_generic_method
+                    notification_generic_method = "<%s>.%s" % (props["id"]["name"].lower(), notification_generic_method)
                     notification_example_method = (props["id"]["example"] if "example" in props["id"] else "?") + "." + notification_example_method
 
                 generic_method = "%s.1.%s" % (classname, _registrant)
@@ -400,6 +400,7 @@ def Create(log, schema, path, indent_size = 4):
                     _obj_prefix = props["@lookup"]["prefix"].lower()
                     _example_callee = "#1::".join(method.rsplit("::", 1))
                     _callee = ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
+                    generic_lookup_method = _callee
                 else:
                     _example_callee = method
                     _callee = method
@@ -412,6 +413,7 @@ def Create(log, schema, path, indent_size = 4):
                     generic_method += "@<index>"
 
                 if "@async" in props:
+                    async_generic_method = "<async-id>." + method
                     async_example_method = "myid-complete." + method
 
             if is_property:
@@ -424,8 +426,8 @@ def Create(log, schema, path, indent_size = 4):
                     if props["index"][1] and ("type" not in props["index"][1]):
                         props["index"][1]["type"] = "string"
 
-                    extra_paragraph = "> The *%s* parameter shall be passed as the index to the property, e.g. ``%s.1.%s@<%s>``." % (
-                        props["index"][0]["name"].lower(), classname, method, props["index"][0]["name"].lower().replace(' ', '-'))
+                    extra_paragraph = "> The *%s* parameter shall be passed as the index to the property, i.e. ``%s@<%s>``." % (
+                        props["index"][0]["name"].lower(), method, props["index"][0]["name"].lower().replace(' ', '-'))
 
                     if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
                         extra_paragraph += " The index is optional."
@@ -468,10 +470,6 @@ def Create(log, schema, path, indent_size = 4):
                             props["result"]["description"] = props["summary"]
 
                     ParamTable("(property)", props["result"])
-
-                if "@lookup" in props:
-                    MdParagraph("> The *%s instance ID* shall be passed within the designator, e.g. ``%s``." % (props["@lookup"]["prefix"].lower(), generic_method))
-
             else:
                 if is_notification:
                     if "id" in props:
@@ -480,8 +478,7 @@ def Create(log, schema, path, indent_size = 4):
                         if "name" not in props["id"] or "example" not in props["id"]:
                             raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
 
-                        MdParagraph("> The *%s* parameter shall be passed within the client ID during registration, e.g. *%s.myid*" %
-                                    (props["id"]["name"], props["id"]["example"]))
+                        MdParagraph("> The *%s* parameter shall be passed within the *id* parameter to the ``register`` call, i.e. ``<%s>.<client-id>``." % (props["id"]["name"], props["id"]["name"].lower()))
 
                     MdHeader("Notification Parameters", 3)
                 else:
@@ -501,10 +498,11 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         MdParagraph("This method takes no parameters.")
 
+            if not is_notification:
                 if "@lookup" in props:
-                    MdParagraph("> The *%s* instance ID shall be passed within the registration designator, e.g. ``%s``." % (props["@lookup"]["prefix"].lower(), generic_method))
+                    MdParagraph("> The *%s instance ID* shall be passed within the method designator, i.e. ``%s``." % (props["@lookup"]["prefix"].lower(), generic_lookup_method))
 
-            if "result" in props and not property:
+            if "result" in props and not is_property:
                 MdHeader("Result", 3)
                 ParamTable("result", props["result"])
 
@@ -590,11 +588,10 @@ def Create(log, schema, path, indent_size = 4):
                 MdCode(jsonRequest, "json")
 
                 if is_notification:
-                    MdParagraph("> The *client ID* parameter is passed within the notification designator, e.g. ``%s``." % notification_example_method)
+                    MdParagraph("> The *client ID* parameter is passed within the notification designator, i.e. ``%s``." % notification_generic_method)
 
-                    if  "id" in props:
-                        MdParagraph("> The *%s* parameter is passed within the designator, e.g. *%s.myid.%s*." %
-                                    (props["id"]["name"], props["id"]["example"], method))
+                    if "id" in props:
+                        MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``." % (props["id"]["name"], notification_generic_method))
 
                 if not is_notification and not is_property:
                     if "result" not in props:
@@ -622,7 +619,7 @@ def Create(log, schema, path, indent_size = 4):
                             log.Error(jsonError)
 
                         MdCode(jsonResponse, "json")
-                        MdParagraph("> The *async ID* parameter is passed within the notification designator, e.g. ``%s``." % async_example_method)
+                        MdParagraph("> The *async ID* parameter is passed within the notification designator, i.e. ``%s``." % async_generic_method)
 
                 if is_property:
                     MdHeader("Set Response", 4)
