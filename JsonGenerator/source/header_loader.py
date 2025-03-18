@@ -451,7 +451,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         raise CppParseError(var, "%s: no enumerators in enum" % cppType.name)
 
                     if not cppType.items[0].auto_value:
-                        props["values"] = [e.value for e in cppType.items]
+                        try:
+                            props["values"] = [int(e.value) for e in cppType.items]
+                        except:
+                            log.InfoLine(var, "'%s': unparsable enum values" % var.name)
 
                     for e in cppType.items:
                         if "endmarker" in e.meta.decorators:
