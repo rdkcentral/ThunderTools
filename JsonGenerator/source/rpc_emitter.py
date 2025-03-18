@@ -829,7 +829,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             is_readable = ("r" in param_type)
             is_writeable = ("w" in param_type)
-            cv_qualifier = ("const " if not is_writeable else "") # don't consider volatile
+            cv_qualifier = ("const " if (not is_writeable and not param.convert) else "") # don't consider volatile
+
+            if param.convert and param_const_cast:
+                param_meta.flags.cast = "static_cast<%s const&>(%s)" % (param.cpp_native_type_opt, param.temp_name)
 
             # Take care of POD aggregation
             cpp_name = ((parent + param.cpp_name) if parent else param.local_name)
@@ -1110,7 +1113,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
                     emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
                     emit.Indent()
-                    emit.Line("%s = %s;" % (param.temp_name, cpp_name))
+                    if param.convert and is_readable:
+                        emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
+                    else:
+                        emit.Line("%s = %s;" % (param.temp_name, cpp_name))
                     emit.Unindent()
 
                     if param.default_value:
@@ -1125,8 +1131,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 else:
                     emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type_opt, param.temp_name, initializer))
 
-                if param.convert and is_readable:
-                    emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
+                    if param.convert and is_readable:
+                        emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
 
                 if param_meta.flags.store_lookup or param_meta.flags.dispose_lookup:
                     emit.Line("%s* _real%s{};" % (param.original_type, param.temp_name))
