@@ -132,7 +132,7 @@ def user_comrpc(out_of_process, comrpc_interfaces, jsonrpc_interfaces, notificat
 
         interfaceLocation = input(
             "\nWhere is your interface located?"
-            "\nThe default location is: interfaces"
+            "\nThe default include path is: interfaces (<interfaces/IExample.h)"
             "\nPress ENTER to continue, or define a custom location: "
         )
 
@@ -204,7 +204,7 @@ def user_jsonrpc(comrpc_interface, jsonrpc_interfaces, interface_locations):
 
         # Assume that json interface is located in the provided interface location (automatic or user defined) + json
         interfaceLocation = get_interface_location(comrpc_interface, interface_locations)
-        print(interfaceLocation)
+        print(f"The generated jsonrpc code is expected to be inside:  {interfaceLocation}")
 
         jsonrpc_interface = Utils.replace_comrpc_to_jsonrpc(comrpc_interface)
         jsonrpc_interfaces.append(jsonrpc_interface)
