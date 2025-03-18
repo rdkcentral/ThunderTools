@@ -829,7 +829,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             is_readable = ("r" in param_type)
             is_writeable = ("w" in param_type)
-            cv_qualifier = ("const " if not is_writeable else "") # don't consider volatile
+            cv_qualifier = ("const " if (not is_writeable and not param.convert) else "") # don't consider volatile
 
             # Take care of POD aggregation
             cpp_name = ((parent + param.cpp_name) if parent else param.local_name)
