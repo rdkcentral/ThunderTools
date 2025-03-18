@@ -204,7 +204,7 @@ def user_jsonrpc(comrpc_interface, jsonrpc_interfaces, interface_locations):
 
         # Assume that json interface is located in the provided interface location (automatic or user defined) + json
         interfaceLocation = get_interface_location(comrpc_interface, interface_locations)
-        print(f"The generated jsonrpc code is expected to be:  {interfaceLocation}")
+        print(f"The generated jsonrpc code is expected to be inside:  {interfaceLocation}")
 
         jsonrpc_interface = Utils.replace_comrpc_to_jsonrpc(comrpc_interface)
         jsonrpc_interfaces.append(jsonrpc_interface)
