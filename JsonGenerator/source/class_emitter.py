@@ -274,7 +274,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 _prop_name = (prop.actual_name if type == "conv" else prop.cpp_name)
 
                 if _move:
-                    emit.Line("%s = std::move(%s.%s);" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                    emit.Line("%s = std::move(%s.%s);" % (prop.cpp_name, other, _prop_name))
                 else:
                     _optional_or_opaque = IsObjectOptionalOrOpaque(prop)
 
@@ -298,13 +298,13 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                         if prop.schema.get("@arraysize"):
                             emit.Line("for (uint16_t _i = 0; _i < %s; _i++) {" % (prop.schema.get("@arraysize")))
                             emit.Indent()
-                            emit.Line("%s.Add() = %s.%s[_i];" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                            emit.Line("%s.Add() = %s.%s[_i];" % (prop.cpp_name, other, _prop_name))
                             emit.Unindent()
                             emit.Line("}")
                         elif prop.schema.get("@container"):
-                            emit.Line("for (auto const& _element : %s.%s%s) { %s.Add() = _element; }" % (other, (_prop_name + prop.convert_rhs), ".Value()" if prop.optional else "",  prop.cpp_name))
+                            emit.Line("for (auto const& _element : %s.%s%s) { %s.Add() = _element; }" % (other, (_prop_name), ".Value()" if prop.optional else "", prop.cpp_name))
                     else:
-                        emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + prop.convert_rhs))
+                        emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + (prop.convert_rhs if (type == "conv") else "")))
 
                     if (prop.optional and not prop.default_value) or _optional_or_opaque:
                         emit.Unindent()

@@ -402,7 +402,7 @@ class JsonInstanceId(JsonNative, JsonType):
 
     @property
     def cpp_native_type(self):
-        return "Core::instnance_id"
+        return "Core::instance_id"
 
 
 class JsonRefCounted():
