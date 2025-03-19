@@ -107,16 +107,21 @@ class CaseConverter:
                     _custom = convention[7:].split(',')
                     if len(_custom) == 5:
                         self._convention = config.CaseConvention.CUSTOM
-                        if _custom[self.METHODS]:
-                            self._map[config.CaseConvention.CUSTOM][self.METHODS] = self.Format[_custom[self.METHODS].upper()]
-                        if _custom[self.EVENTS]:
-                            self._map[config.CaseConvention.CUSTOM][self.EVENTS] = self.Format[_custom[self.EVENTS].upper()]
-                        if _custom[self.PARAMS]:
-                            self._map[config.CaseConvention.CUSTOM][self.PARAMS] = self.Format[_custom[self.PARAMS].upper()]
-                        if _custom[self.MEMBERS]:
-                            self._map[config.CaseConvention.CUSTOM][self.MEMBERS] = self.Format[_custom[self.MEMBERS].upper()]
-                        if _custom[self.ENUMS]:
-                            self._map[config.CaseConvention.CUSTOM][self.ENUMS] = self.Format[_custom[self.ENUMS].upper()]
+                        try:
+                            if _custom[self.METHODS]:
+                                self._map[config.CaseConvention.CUSTOM][self.METHODS] = self.Format[_custom[self.METHODS].upper()]
+                            if _custom[self.EVENTS]:
+                                self._map[config.CaseConvention.CUSTOM][self.EVENTS] = self.Format[_custom[self.EVENTS].upper()]
+                            if _custom[self.PARAMS]:
+                                self._map[config.CaseConvention.CUSTOM][self.PARAMS] = self.Format[_custom[self.PARAMS].upper()]
+                            if _custom[self.MEMBERS]:
+                                self._map[config.CaseConvention.CUSTOM][self.MEMBERS] = self.Format[_custom[self.MEMBERS].upper()]
+                            if _custom[self.ENUMS]:
+                                self._map[config.CaseConvention.CUSTOM][self.ENUMS] = self.Format[_custom[self.ENUMS].upper()]
+                        except KeyError as e:
+                            raise CppParseError(None, "invalid @text:custom case parameter: %s (expect one of: upper, lower, uppersnake, lowersnake, pascal, camel, keep) " % e)
+                    else:
+                        raise CppParseError(None, "expected 5 case parameters for @text:custom (methods,events,params,members,enums)")
             else:
                 self._convention = convention
         else:
@@ -1203,7 +1208,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if params:
                         obj["params"] = params
 
-                    method_name = compute_name(method.retval, _case_converter.METHODS, relay=method)
+                    method_name = compute_name(method.retval, _case_converter.EVENTS, relay=method)
 
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
