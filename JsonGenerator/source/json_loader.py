@@ -140,20 +140,9 @@ class JsonType():
                 if self.name[0] == "_":
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
-                if not self.grand_parent or (self.grand_parent.parent and not self.grand_parent.parent.legacy):
-                    if not self.name.islower():
-                        log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
-                    elif "_" in self.name:
-                        log.Warn("'%s': snake_case identifiers are supported, however flatcase names are recommended" % self.print_name)
-
             if self.original_name: # identifier comming from the C++ world
                 if self.original_name[0] == "_":
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
-
-                if not self.grand_parent or (self.grand_parent.parent and not self.grand_parent.parent.legacy):
-                    # verify if not snake_case :)
-                    if "_" in self.original_name:
-                        log.Warn("'%s': snake_case identifiers are supported, however PascalCase/camelCase names are recommended " % self.original_name)
 
         # Do some sanity check on the description text
         if self.description and not isinstance(self, JsonMethod):
@@ -853,14 +842,6 @@ class JsonMethod(JsonObject):
 
         if "alt" in schema:
             self.alternative = schema.get("alt")
-
-            if not self.original_name:
-                # Identifier form .json, still verify name casing
-                if not self.grand_parent or (self.grand_parent.parent and not self.grand_parent.parent.legacy):
-                    if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                        log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-                    elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                        log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
         else:
             self.alternative = None
 
