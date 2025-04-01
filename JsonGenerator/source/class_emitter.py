@@ -323,7 +323,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line("%s(const %s&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
             elif type == "move":
                 assert not optional_type
-                emit.Line("%s(%s&&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
+                emit.Line("%s(%s&&%s) noexcept %s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
             elif type == "conv":
                 assert not delete
                 emit.Line("%s(const %s&%s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
@@ -368,7 +368,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line("%s& operator=(const %s&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
             elif type == "move":
                 assert not optional_type
-                emit.Line("%s& operator=(%s&&%s)%s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
+                emit.Line("%s& operator=(%s&&%s) noexcept %s" % (json_obj.cpp_class, json_obj.cpp_class, _other, _delete_str))
             elif type == "conv":
                 assert not delete
                 emit.Line("%s& operator=(const %s&%s)" % (json_obj.cpp_class, json_obj.cpp_native_type_opt_v(optional_type), _other))
