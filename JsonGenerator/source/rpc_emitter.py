@@ -204,7 +204,7 @@ def EmitEvent(emit, root, event, params_type, legacy = False):
                 if isinstance(event.sendif_type, JsonInteger):
                     conv_index_name = (names.index + "Converted_")
                     emit.Line("%s %s{};" % (event.sendif_type.cpp_native_type, conv_index_name))
-                    emit.Line("return ((Core::FromString(%s, %s) == true) && (%s == %s));" % (names.designator, names.index, names.filter, conv_index_name))
+                    emit.Line("return ((Core::FromString(%s, %s) == true) && (%s == %s));" % (names.index, conv_index_name, names.filter, conv_index_name))
 
                 elif isinstance(event.sendif_type, JsonEnum):
                     conv_index_name = (names.index + "Converted_")
