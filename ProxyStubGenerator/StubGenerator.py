@@ -18,7 +18,7 @@
 # limitations under the License.
 
 #
-# WPE Framework proxy stub code generator
+# Thunder proxy stub code generator
 #
 
 import re
@@ -1893,11 +1893,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line()
 
             if ENABLE_INSTANCE_VERIFICATION:
-                emit.Line("if (RPC::Administrator::Instance().IsValid(UnknownProxyType::Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
+                emit.Line("if (RPC::Administrator::Instance().IsValid(static_cast<const ProxyStub::UnknownProxy&>(*this).Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
                             % (vars["implementation"]))
                 emit.Line()
 
-            emit.Line("result = UnknownProxyType::Complete(%s, id, how);" % vars["implementation"])
+            emit.Line("result = static_cast<const ProxyStub::UnknownProxy&>(*this).Complete(%s, id, how);" % vars["implementation"])
             emit.Line("if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }")
             emit.IndentDec()
             emit.Line("}")
@@ -2011,7 +2011,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                     elif p.return_proxy:
-                        emit.Line("%s = reinterpret_cast<%s>(Interface(%s.%s, %s));" % \
+                        emit.Line("%s = reinterpret_cast<%s>(static_cast<const ProxyStub::UnknownProxy&>(*this).Interface(%s.%s, %s));" % \
                                 (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
 
                     else:
@@ -2040,7 +2040,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             hresult = AuxIdentifier(CppParser.Integer(HRESULT), (CppParser.Ref.VALUE), vars["hresult"])
 
-            emit.Line("IPCMessage %s(UnknownProxyType::Message(%s));" % (vars["message"], index))
+            emit.Line("IPCMessage %s(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(%s));" % (vars["message"], index))
             emit.Line()
 
             if input_params:
@@ -2062,7 +2062,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 instances.append("{ 0, 0 }")
 
                 emit.Line("const RPC::InstanceRecord passedInstances[] = { %s };" % ", ".join(instances))
-                emit.Line("UnknownProxyType::Channel()->CustomData(passedInstances);")
+                emit.Line("static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(passedInstances);")
                 emit.Line()
 
             reuse_hresult = (retval and retval.is_hresult)
@@ -2077,7 +2077,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             _const_hresult = (not reuse_hresult and not ENABLE_SECURE)
             lhs = ("%s%s = " % (("const " if _const_hresult else ""), hresult.temporary_no_cv)) if check_invoke else ""
 
-            emit.Line("%sUnknownProxyType::Invoke(%s);" % (lhs, vars["message"]))
+            emit.Line("%sstatic_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(%s);" % (lhs, vars["message"]))
 
             if check_invoke:
                 emit.Line("if (%s == Core::ERROR_NONE) {" % hresult.as_rvalue)
@@ -2152,7 +2152,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if ENABLE_INSTANCE_VERIFICATION and proxy_params:
                 emit.Line()
-                emit.Line("UnknownProxyType::Channel()->CustomData(nullptr);")
+                emit.Line("static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(nullptr);")
 
             if EMIT_TRACES:
                 emit.Line()
