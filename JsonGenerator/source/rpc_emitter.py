@@ -205,7 +205,7 @@ def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
                 # If the event has an id specified (i.e. uses "send-if"), generate code for this too:
                 # only call if extracted  designator id matches the index.
                 if has_client:
-                    emit.Line("if ((%s.empty() == false) {" % (names.filterclient))
+                    emit.Line("if (%s.empty() == false) {" % (names.filterclient))
                 else:
                     emit.Line("if (%s == nullptr) {" % names.sendif)
 
