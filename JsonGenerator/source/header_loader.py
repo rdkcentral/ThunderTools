@@ -315,6 +315,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             elif (not meta.maxlength or meta.maxlength == ["void"]) and (meta.length and meta.length != ["void"]) and meta.output:
                 log.WarnLine(var, "'%s': no @maxlength tag, using @length for maximum return buffer size" % var.name)
 
+            encoding = None
+            for x in meta.decorators:
+                if x.startswith("encode:"):
+                    encoding = x[7:]
+                    break
+
             if isinstance(cppType, CppParser.Optional) and (not var.array or no_array):
                 result = ConvertType(cppType.optional, meta=var.meta)
                 result[1]["@optionaltype"] = True
@@ -323,12 +329,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             # Pointers
             elif var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"]) or var.array) and not no_array and not is_bitmask:
-
-                encoding = None
-                for x in meta.decorators:
-                    if x.startswith("encode:"):
-                        encoding = x[7:]
-                        break
 
                 # C-style buffers that will be converted to base64 encoded JSON strings
                 if isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and encoding:
@@ -486,7 +486,19 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 elif isinstance(cppType, CppParser.DynamicArray):
                     if isinstance(cppType.element.Type().type, (CppParser.Optional, CppParser.DynamicArray)):
                         raise CppParseError(var, "usupported type for std::vector element")
-                    result = ["array", { "items": ConvertParameter(cppType.element), "@container": "vector" }]
+
+                    props = { "items": ConvertParameter(cppType.element), "@container": "vector" }
+
+                    if encoding:
+                        if not isinstance(cppType.element.Type().type, CppParser.Integer) or cppType.element.Type().type.size != "char":
+                            raise CppParseError(var, "invalid type for encoded std::vector")
+
+                        props["encode"] = encoding
+                        props["@originaltype"] = cppType.type
+                        props["encode"] = encoding
+                        result = ["string", props]
+                    else:
+                        result = ["array", props]
 
                 # POD objects
                 elif isinstance(cppType, CppParser.Class):
@@ -945,8 +957,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 if len(method.vars) == 1 or (len(method.vars) == 2 and indexed_property):
                     if indexed_property:
-                        if method.vars[0].type.IsPointer():
-                            raise CppParseError(method.vars[0], "index to a property must not be a pointer")
+                        #if method.vars[0].type.IsPointer():
+                        #    raise CppParseError(method.vars[0], "index to a property must not be a pointer")
 
                         if not method.vars[0].type.IsConst() and method.vars[0].type.IsReference():
                             raise CppParseError(method.vars[0], "index to a property must be an const input parameter")
@@ -974,7 +986,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                     _index["example"] = ("0" if _index["type"] == "integer" else "xyz")
 
                             if _index["type"] not in ["integer", "string", "boolean"]:
-                                raise CppParseError(method.vars[0], "index to a property must be integer, enum, boolean or string type")
+                                raise CppParseError(method.vars[0], "index to a property must be integer, enum, boolean, string, encoded array of bytes or encoded std::vector of bytes")
                         else:
                             raise CppParseError(method.vars[0], "failed to determine type of index")
 
@@ -1174,6 +1186,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
+                                obj["id"]["@originalname"] = "designatorId"
 
                                 if "example" not in obj["id"]:
                                     obj["id"]["example"] = "0" if obj["id"]["type"] == "integer" else "abc"

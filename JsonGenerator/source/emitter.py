@@ -110,3 +110,24 @@ class Emitter():
                 return
         self.Unindent()
         self.Line("}")
+
+    def If(self, conditions):
+        if conditions:
+            self.EnterBlock(conditions)
+            return conditions.present()
+        return False
+
+    def Endif(self, conditions):
+        if conditions:
+            self.ExitBlock(conditions)
+
+    def Else(self, conditions):
+        self.Endif(conditions)
+        if conditions:
+            self.Line("else {")
+            self.Indent()
+            return conditions.present()
+        return False
+
+
+

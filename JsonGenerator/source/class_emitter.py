@@ -103,7 +103,7 @@ class Restrictions:
         else:
             assert False, "invalid type"
 
-    def append(self, argument, relay=None, override=None, test_set=None):
+    def append(self, argument, relay=None, override=None, test_set=None, json=True):
         if test_set == None:
             test_set = self.__test_set
 
@@ -112,7 +112,7 @@ class Restrictions:
 
         name = relay.temp_name if not override else override
 
-        if isinstance(relay, JsonObject) and self.__json:
+        if isinstance(relay, JsonObject) and self.__json and json:
             if test_set:
                 if IsObjectOptional(relay):
                     if self.__reverse:
@@ -138,9 +138,9 @@ class Restrictions:
             if range:
                 if isinstance(relay, JsonString):
                     if range[0] != 0:
-                        tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json else ""), self.__comp[0], range[0]))
+                        tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json and json else ""), self.__comp[0], range[0]))
 
-                    tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json else ""), self.__comp[1], range[1]))
+                    tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json and json else ""), self.__comp[1], range[1]))
 
                 elif isinstance(relay, JsonArray):
                     if range[0]:
@@ -155,7 +155,7 @@ class Restrictions:
                     tests.append("%s %s %s" % (name, self.__comp[1], range[1]))
 
             if tests:
-                if test_set and self.__json:
+                if test_set and self.__json and json:
                     if IsObjectOptional(argument):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " &&".join(tests)))
@@ -169,7 +169,7 @@ class Restrictions:
                 else:
                     self.__cond.extend(tests)
 
-        elif test_set and self.__json and not IsObjectOptional(relay):
+        elif test_set and self.__json and json and not IsObjectOptional(relay):
             self.__cond.append("%s.IsSet() == %s" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):

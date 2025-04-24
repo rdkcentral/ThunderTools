@@ -258,6 +258,13 @@ class JsonType():
             return self.cpp_native_type
 
     @property
+    def original_type_opt(self):
+        if self.optional:
+            return ("Core::OptionalType<%s>" % self.original_type)
+        else:
+            return self.cpp_original_type
+
+    @property
     def cpp_native_type_opt_cv(self):
         if self.optional:
             cv = ""
@@ -915,7 +922,7 @@ class JsonCallback(JsonMethod):
     def __init__(self, name, parent, notification, schema, included=None):
         JsonMethod.__init__(self, name, parent, schema, included)
         self.notification = notification
-        self.notification.sendif_type = JsonItem("id", self, { "type": "string"})
+        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "designatorId"})
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
