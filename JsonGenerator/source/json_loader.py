@@ -447,6 +447,22 @@ class JsonTime(JsonNative, JsonType):
         else:
             raise JsonParseError("Time format %s is not supported" % self.time_type)
 
+class JsonMacAddress(JsonNative, JsonType):
+    def __init__(self, name, parent, schema):
+        JsonType.__init__(self, name, parent, schema)
+
+    @property
+    def cpp_class(self):
+        return CoreJson("String")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::MACAddress"
+
+    @property
+    def convert_rhs(self):
+        return ".ToString()"
+
 
 class JsonEnum(JsonRefCounted, JsonType):
     def __init__(self, name, parent, schema, enum_type, included = None):
@@ -1068,6 +1084,8 @@ def JsonItem(name, parent, schema, included=None):
             return JsonEnum(name, parent, schema, schema["type"], included)
         elif (schema["type"] == "string") and ("time" in schema):
             return JsonTime(name, parent, schema, schema["time"])
+        elif (schema["type"] == "string") and ("@macaddress" in schema):
+            return JsonMacAddress(name, parent, schema)
         elif schema["type"] == "instanceid":
             return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":

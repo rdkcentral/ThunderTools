@@ -141,8 +141,10 @@ class Restrictions:
             range = argument.schema.get("range")
 
             if range:
-                if isinstance(relay, JsonString):
+                if isinstance(relay, (JsonString, JsonMacAddress)):
                     encode = relay.schema.get("encode")
+                    if isinstance(relay, JsonMacAddress):
+                        encode = "mac"
 
                     if self.__adjust and encode:
                         adjusted = copy.copy(range)

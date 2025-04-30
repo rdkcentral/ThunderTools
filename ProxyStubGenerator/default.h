@@ -55,6 +55,8 @@ namespace __FRAMEWORK_NAMESPACE__ {
   namespace Core {
     typedef __stubgen_instance_id instance_id;
     typedef __stubgen_time Time;
+    typedef __stubgen_macaddress MACAddress;
+
     typedef uint32_t hresult;
 
     template<typename T>

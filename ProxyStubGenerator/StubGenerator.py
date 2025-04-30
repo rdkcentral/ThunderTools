@@ -1133,6 +1133,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 elif self.is_string:
                     return ("Text<%s>()" % self.peek_length.proto_no_cv) if self.peek_length.proto_no_cv != "uint16_t" else "Text()"
 
+                # MacAddress
+                elif isinstance(self.kind, CppParser.MacAddress):
+                    return "Buffer<uint8_t>(6, %s)" % self.as_lvalue
+
                 # The integral types
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger, CppParser.Enum)):
                     return "Number<%s>()" % self.type_name
@@ -1171,6 +1175,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Strings
                 elif self.is_string:
                     return ("Text<%s>(%s)" % (self.peek_length.proto_no_cv, self.as_rvalue)) if self.peek_length.proto_no_cv != "uint16_t" else ("Text(%s)" % (self.as_rvalue))
+
+                # MacAddress
+                elif isinstance(self.kind, CppParser.MacAddress):
+                    return "Buffer<uint8_t>(6, %s)" % self.as_lvalue
 
                 # The integral types
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
@@ -1211,6 +1219,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "1" # always one byte
+                elif isinstance(self.kind, CppParser.MacAddress):
+                    return "6" # always six bytes
                 elif isinstance(self.kind, CppParser.DynamicArray):
                     return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
                 else:
@@ -1465,6 +1475,19 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                     if p.is_array:
                         emit.Line("ASSERT(%s == (%s * sizeof(%s)));" % (p.length.name, p.identifier.array, p.type_name))
+
+                elif isinstance(p.kind, CppParser.MacAddress):
+
+                    if not p.suppress_type:
+                        length = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.VALUE | CppParser.Ref.CONST, (p.name[1:] + "Length"))
+                        buffer = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.POINTER | CppParser.Ref.POINTER_TO_CONST, (p.name[1:] + "Buffer"))
+                        emit.Line("%s{};" % buffer.temporary)
+
+                        emit.Line("%s = %s.LockBuffer<uint8_t>(%s);" % (length.temporary, vars["reader"], buffer.name))
+                        emit.Line("ASSERT(%s == 6);" % (length.name))
+                        emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], length.name))
+
+                        emit.Line("%s{%s};" % (p.temporary_no_cv, buffer.as_rvalue))
 
                 else:
                     param_ = "%s = %s.%s;" % (p.as_lvalue if p.optional else p.temporary, vars["reader"], p.read_rpc_type)
@@ -1994,6 +2017,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                         if p.max_length and p.max_length.is_output:
                             ReadParameter(p.max_length)
+
+                    elif isinstance(p.kind, CppParser.MacAddress):
+                        emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
 
                     elif p.is_compound:
                         if p.optional:

@@ -200,6 +200,10 @@ class Time(Intrinsic):
     def __init__(self):
         Intrinsic.__init__(self, "Core::Time::microsecondsfromepoch")
 
+class MacAddress(Intrinsic):
+    def __init__(self):
+        Intrinsic.__init__(self, "Core::MACAddress")
+
 
 class Optional(Intrinsic):
     def __init__(self, subtype):
@@ -678,6 +682,8 @@ class Identifier():
                     self.type[i] = Type(InstanceId())
                 elif type == "__stubgen_time":
                     self.type[i] = Type(Time())
+                elif type == "__stubgen_macaddress":
+                    self.type[i] = Type(MacAddress())
                 else:
                     found = []
                     __Search(global_namespace, found, self.type[i])
