@@ -16,6 +16,7 @@ import os
 
 import config
 import trackers
+import math
 from json_loader import *
 
 def IsObjectRestricted(argument):
@@ -42,11 +43,13 @@ def IsObjectOptional(argument):
     return False
 
 class Restrictions:
-    def __init__(self, test_set=True, reverse=False, json=True):
+    def __init__(self, test_set=True, reverse=False, json=True, adjust=True, original_name=False):
         self.__test_set = test_set
         self.__reverse = reverse
         self.__comp = ['<', '>', "false" ] if not reverse else ['>=', '<=', "true"]
         self.__json = json
+        self.__adjust = adjust
+        self.__original_name = original_name
         self.reset()
 
     def reset(self):
@@ -71,15 +74,17 @@ class Restrictions:
 
     def check_set(self, argument, pos=None):
         if argument.optional:
-            self.__cond.insert(pos if pos else len(self.__cond), "%s.IsSet() == true" % argument.temp_name)
+            name = argument.original_name if self.__original_name else argument.temp_name
+            self.__cond.insert(pos if pos else len(self.__cond), "%s.IsSet() == true" % name)
 
     def check_not_set(self, argument, pos=None):
         if argument.optional:
+            name = argument.original_name if self.__original_name else argument.temp_name
             self.__cond.insert(pos if pos else len(self.__cond), "%s.IsSet() == false" % argument.temp_name)
 
     def check_null(self, argument, pos=None):
-        name = argument.temp_name
-        if argument.optional:
+        name = argument.original_name if self.__original_name else argument.temp_name
+        if argument.optional and not self.__original_name:
             name += ".Value()"
         if isinstance(argument, JsonInteger):
             self.__cond.insert(pos if pos else len(self.__cond), "%s == 0" % name)
@@ -91,8 +96,8 @@ class Restrictions:
             assert False, "invalid type"
 
     def check_not_null(self, argument, pos=None):
-        name = argument.temp_name
-        if argument.optional:
+        name = argument.original_name if self.__original_name else argument.temp_name
+        if argument.optional and not self.__original_name:
             name += ".Value()"
         if isinstance(argument, JsonInteger):
             self.__cond.insert(pos if pos else len(self.__cond), "%s != 0" % name)
@@ -110,7 +115,7 @@ class Restrictions:
         if not relay:
             relay = argument
 
-        name = relay.temp_name if not override else override
+        name = override if override else (relay.original_name if self.__original_name else relay.temp_name)
 
         if isinstance(relay, JsonObject) and self.__json and json:
             if test_set:
@@ -137,10 +142,27 @@ class Restrictions:
 
             if range:
                 if isinstance(relay, JsonString):
-                    if range[0] != 0:
-                        tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json and json else ""), self.__comp[0], range[0]))
+                    encode = relay.schema.get("encode")
 
-                    tests.append("%s%s.size() %s %s" % (name, (".Value()" if self.__json and json else ""), self.__comp[1], range[1]))
+                    if self.__adjust and encode:
+                        adjusted = copy.copy(range)
+
+                        if encode == "mac":
+                            adjusted[0] = (range[0]*2 + range[0] - 1) if range[0] else 0
+                            adjusted[1] = (range[1]*2 + range[1] - 1) if range[1] else 0
+                        elif encode == "hex":
+                            adjusted[0] = range[0]*2
+                            adjusted[1] = range[1]*2
+                        elif encode == "base64":
+                            adjusted[0] = (math.ceil(range[0]/3))*4
+                            adjusted[1] = (math.ceil(range[1]/3))*4
+                    else:
+                        adjusted = range
+
+                    if adjusted[0] != 0:
+                        tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), (".size()" if self.__adjust else ""), self.__comp[0], adjusted[0]))
+
+                    tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), (".size()" if self.__adjust else ""), self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
                     if range[0]:

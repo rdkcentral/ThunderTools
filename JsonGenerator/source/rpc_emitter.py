@@ -74,7 +74,8 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    default_conditions.extend("%s.empty() == true" % param.original_name)
+    default_conditions.extend("%s.empty() == false" % param.original_name)
+
     emit.If(default_conditions)
     if param.default_value:
         emit.Line("%s = %s;" % (opt_name, param.default_value))
@@ -91,28 +92,33 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
         EmitLocals()
 
     if isinstance(param, JsonString):
+        converted_length = "sizeof(%s)" % converted
         if "@arraysize" in param.schema:
             if encode == "base64":
-                converted_length = param.TempName("convLength_")
-                emit.Line("uint16_t %s(sizeof(%s));" % (converted_length, converted))
-                emit.Line("const bool %s = (Core::FromString(%s, %s, %s) == sizeof(%s));" % (converted_result, param.original_name, converted, converted_length, converted))
+                converted_length_param = param.TempName("convLength_")
+                emit.Line("uint16_t %s(%s);" % (converted_length_param, converted_length))
+                emit.Line("const uint16_t %s = Core::FromString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length_param))
+                converted_result = converted_length_param
             elif encode == "hex":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, sizeof(%s)) == %s);" % (converted_result, param.original_name, converted, converted, array_size))
+                emit.Line("const uint16_t %s = Core::FromHexString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length))
             elif encode == "mac":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, sizeof(%s), TCHAR(':')) == %s);" % (converted_result, param.original_name, converted, converted, array_size))
+                emit.Line("const uint16_t %s = Core::FromHexString(%s, %s, %s, TCHAR(':'));" % (converted_result, param.original_name, converted, converted_length))
             else:
                 assert False, "bad encode for array"
 
         elif "@container" in param.schema:
-            converted_length = (str(param.schema.get("range")[1]) + " + 1") if "range" in param.schema else "-1"
+            converted_length = (str(param.schema.get("range")[1])) if "range" in param.schema else "-1"
             needs_move = True
 
             if encode == "base64":
-                emit.Line("const bool %s = (Core::FromString(%s, %s, %s) != 0);" % (converted_result, param.original_name, converted, converted_length))
+                converted_length_param  = param.TempName("convLength_")
+                emit.Line("uint32_t %s(%s);" % (converted_length_param, converted_length))
+                emit.Line("const uint32_t %s = Core::FromString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length_param))
+                converted_result = converted_length_param
             elif encode == "hex":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0);" % (converted_result, param.original_name, converted, converted_length))
+                emit.Line("const uint32_t %s = Core::FromHexString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length))
             elif encode == "mac":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.original_name, converted, converted_length))
+                emit.Line("const uint32_t %s = Core::FromHexString(%s, %s, %s, TCHAR(':'));" % (converted_result, param.original_name, converted, converted_length))
             else:
                 assert False, "bad encode for std::vector"
 
@@ -126,9 +132,10 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
 
     if restrictions:
         if has_conversion:
-            restrictions.extend("%s == false" % converted_result)
-
-        restrictions.append(param, override=converted)
+            if isinstance(param, JsonString):
+                restrictions.append(param, override=converted_result)
+            else:
+                restrictions.extend("%s == false" %  converted_result)
 
         if emit_restrictions:
             if emit.If(restrictions):
@@ -158,7 +165,11 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     return converted, error_condition_emitted
 
 
-def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
+def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False, legacy_array=False):
+
+    def trim(identifier):
+        return str(identifier).replace(ns + "::", "").replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
+
     names = DottedDict()
     names['module'] = "_module"
     names['instance_id'] = "_instanceId"
@@ -188,14 +199,22 @@ def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
 
     if not params.is_void:
         if params_type == "native":
+
+            def CheckLegacyArray(p):
+                return legacy_array and ((isinstance(p, JsonArray) and not p.schema.get("@container") and not p.schema.get("@arraysize")) \
+                    or (isinstance(p, JsonString) and p.schema.get("encode")))
+
             if params.properties and params.do_create:
                 for p in params.properties:
-                    if "@" in p.cpp_native_type_opt:
-                        parameters.append("const %s" % (p.cpp_native_type_opt).replace("@", p.local_name))
+                    if CheckLegacyArray(p):
+                        parameters.append("const string& %s" % p.local_name)
                     else:
-                        parameters.append("const %s& %s" % (p.cpp_native_type_opt, p.local_name))
+                        parameters.append(trim(p.local_proto))
             else:
-                parameters.append("const %s& %s" % (params.cpp_native_type_opt, params.local_name))
+                if CheckLegacyArray(params):
+                    parameters.append("const string& %s" % p.local_name)
+                else:
+                    parameters.append(trim(params.local_proto))
 
         elif params_type == "json":
             if params.properties and params.do_create:
@@ -230,48 +249,148 @@ def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
     emit.Line("{")
     emit.Indent()
 
+    needs_legacy_array_as_string = False
+
     # Convert the parameters to JSON types
     if params_type != "object" or legacy:
 
         if not params.is_void:
             emit.Line("%s %s;" % (params.cpp_type, names.params))
 
-            if params.properties and params.do_create:
-                for p in params.properties:
-                    if p.optional and (params_type == "native") and not p.default_value:
+            def EmitParam(p, parent=None, override=None):
+                nonlocal needs_legacy_array_as_string
+                prefix = (parent + ".") if parent else ""
+                cpp_name = override if override else (prefix + p.cpp_name)
+                local_name = p.local_name
+
+                if params_type == "native":
+                    if p.optional:
                         emit.Line("if (%s.IsSet() == true) {" % (p.local_name))
                         emit.Indent()
+                        local_name += ".Value()"
 
-                    if isinstance(p, JsonArray) and (params_type == "native"):
+                    if isinstance(p, JsonArray):
                         if "@container" in p.schema:
-                            emit.Line("for (auto const& _item__ : %s) { %s.%s.Add() = _item__; }" % (p.local_name, names.params, p.cpp_name))
+                            emit.Line("for (auto const& _item__ : %s) { %s%s.Add() = _item__; }" % (p.local_name, prefix, local_name))
                         elif "@arraysize" in p.schema:
-                            emit.Line("for (uint16_t _i__ = 0; _i__ < %s; _i__++) { %s.%s.Add() = %s[_i__]; }" % (p.schema["@arraysize"], names.params, p.cpp_name, p.local_name))
+                            emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+                            emit.Line("for (uint16_t _i__ = 0; _i__ < %s; _i__++) { %s.Add() = %s[_i__]; }" % (p.schema["@arraysize"], cpp_name, local_name))
+                        else:
+                            length_param = None
+                            length_value = p.schema.get("@length")
+
+                            for pp in params.properties:
+                                if pp.name == length_value:
+                                    length_param = pp
+                                    break
+
+                            if not length_param:
+                                raise RPCEmitterError("@length parameter not found: %s" % length_value)
+                            else:
+                                if length_param.optional:
+                                    emit.Line("if (%s.IsSet() == true) {" % length_value)
+                                    emit.Indent()
+                                    length_value += ".Value()"
+
+                            if legacy_array:
+                                emit.Line("%s = %s;" % (cpp_name, local_name))
+                            else:
+                                needs_legacy_array_as_string = True
+                                emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+                                emit.Line("for (uint16_t _i__ = 0; _i__ < %s; _i__++) { %s.Add() = %s[_i__]; }" % (length_value, cpp_name, local_name))
+
+                            if length_param.optional:
+                                emit.Unindent()
+                                emit.Line("}")
+
+                    elif isinstance(p, JsonString):
+                        encode = p.schema.get("encode")
+                        assert not encode or encode in ["base64", "hex", "mac"]
+
+                        if "@container" in p.schema:
+                            encoded_name = "_%sEncoded__" % (p.local_name)
+                            emit.Line("string %s;" % encoded_name)
+                            if encode == "base64":
+                                emit.Line("Core::ToString(%s, true, %s);" % (local_name,  encoded_name))
+                            elif encode == "hex":
+                                emit.Line("Core::ToHexString(%s, %s);" % (local_name, encoded_name))
+                            elif encode == "mac":
+                                emit.Line("Core::ToHexString(%s, %s, TCHAR(':'));" % (local_name,  encoded_name))
+
+                            emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
+
+                        elif "@arraysize" in p.schema:
+                            encoded_name = "_%sEncoded__" % (p.local_name)
+                            emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+                            emit.Line("string %s;" % encoded_name)
+                            if encode == "base64":
+                                emit.Line("Core::ToString(%s, %s, true, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
+                            elif encode == "hex":
+                                emit.Line("Core::ToHexString(%s, %s, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
+                            elif encode == "mac":
+                                emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, p.schema["@arraysize"], encoded_name))
+
+                            emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
+
+                        elif encode:
+                            length_param = None
+                            length_value = p.schema.get("@length")
+
+                            for pp in params.properties:
+                                if pp.name == length_value:
+                                    length_param = pp
+                                    break
+
+                            if not length_param:
+                                raise RPCEmitterError("@length parameter not found: %s" % length_value)
+                            else:
+                                if length_param.optional:
+                                    emit.Line("if (%s.IsSet() == true) {" % length_value)
+                                    emit.Indent()
+                                    length_value += ".Value()"
+
+                            if legacy_array:
+                                emit.Line("%s = %s;" % (cpp_name, local_name))
+                            else:
+                                needs_legacy_array_as_string = True
+                                encoded_name = "_%sEncoded__" % (p.local_name)
+                                emit.Line("string %s;" % encoded_name)
+                                emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+
+                                if encode == "base64":
+                                    emit.Line("Core::ToString(%s, %s, true, %s);" % (local_name, length_value, encoded_name))
+                                elif encode == "hex":
+                                    emit.Line("Core::ToHexString(%s, %s, %s);" % (local_name, length_value, encoded_name))
+                                elif encode == "mac":
+                                    emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, length_value, encoded_name))
+
+                                emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
+
+                            if length_param.optional:
+                                emit.Unindent()
+                                emit.Line("}")
+
+                        else:
+                            emit.Line("%s = %s;" % (cpp_name, local_name))
+
+                        if p.schema.get("opaque"):
+                            emit.Line("%s.SetQuoted(false);" % (cpp_name))
+
                     else:
-                        emit.Line("%s.%s = %s;" % (names.params, p.cpp_name, p.local_name))
+                        emit.Line("%s = %s;" % (cpp_name, local_name))
 
-                    if p.schema.get("opaque"):
-                        emit.Line("%s.%s.SetQuoted(false);" % (names.params, p.cpp_name))
-
-                    if p.optional and (params_type == "native") and not p.default_value:
+                    if p.optional:
                         emit.Unindent()
                         emit.Line("}")
-            else:
-                if params.optional and (params_type == "native") and not params.default_value:
-                    emit.Line("if (%s.IsSet() == true) {" % (params.local_name))
-                    emit.Indent()
 
-                if isinstance(params, JsonArray) and (params_type == "native"):
-                    emit.Line("for (auto const& _item__ : %s) { %s.Add() = _item__; }" % (p.local_name, names.params))
                 else:
-                    emit.Line("%s = %s;" % (names.params, params.local_name))
+                    emit.Line("%s = %s;" % (cpp_name, local_name))
 
-                if params.schema.get("opaque"):
-                    emit.Line("%s.SetQuoted(false);" % names.params)
-
-                if params.optional and (params_type == "native") and not params.default_value:
-                    emit.Unindent()
-                    emit.Line("}")
+            if params.properties and params.do_create:
+                for p in params.properties:
+                    EmitParam(p, names.params)
+            else:
+                EmitParam(params, override=names.params)
 
             emit.Line()
 
@@ -320,6 +439,47 @@ def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
             emit.Line("if (_instanceId != 0) {")
             emit.Indent()
 
+        def Emit(parameters):
+            # Use stock send-if function
+            lambda_captures= []
+
+            if event.sendif_type:
+                lambda_captures.append(names.id)
+
+            if event.is_status_listener and has_client:
+                lambda_captures.append(names.client)
+
+            emit.Line('%sNotify(%s, [%s](const string& %s) -> bool {' % (prefix, ", ".join(parameters), ", ".join(lambda_captures), names.designator))
+            emit.Indent()
+
+            cond = []
+
+            if event.sendif_type:
+                emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
+
+            if event.is_status_listener and has_client:
+                if event.sendif_type:
+                    emit.Line("const size_t _dot = %s.find('.');" % (names.designator))
+                    emit.Line("const string %s = %s.substr(0, _dot);" % (names.designator_id, names.designator))
+                    check = ("%s.substr(_dot + 1)" % (names.designator))
+                    cond.append("((%s.empty() == false) || (%s == %s))" % (names.client, names.client, check))
+                else:
+                    cond.append("(%s == %s)" % (names.client, names.designator))
+
+            elif event.sendif_type:
+                emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.designator_id, names.designator, names.designator))
+
+            if event.sendif_type:
+                restrictions = Restrictions(json=False)
+                converted, _ = FromString(emit, event.sendif_type, restrictions, True)
+                cond.append("(%s == %s) && (%s == %s)" % ("_errorCode__", CoreError("none"), names.id, converted))
+
+            assert cond
+            emit.Line("return (%s);" % " && ".join(cond))
+
+            emit.Unindent()
+            emit.Line("});")
+
 
         # Handle index and/or statuslistener extra parameters
         if event.sendif_type or (event.is_status_listener and has_client):
@@ -332,47 +492,6 @@ def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
                     emit.Line("if (%s == nullptr) {" % names.sendif)
 
                 emit.Indent()
-
-            def Emit(parameters):
-                # Use stock send-if function
-                lambda_captures= []
-
-                if event.sendif_type:
-                    lambda_captures.append(names.id)
-
-                if event.is_status_listener and has_client:
-                    lambda_captures.append(names.client)
-
-                emit.Line('%sNotify(%s, [%s](const string& %s) -> bool {' % (prefix, ", ".join(parameters), ", ".join(lambda_captures), names.designator))
-                emit.Indent()
-
-                cond = []
-
-                if event.sendif_type:
-                    emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
-
-                if event.is_status_listener and has_client:
-                    if event.sendif_type:
-                        emit.Line("const size_t _dot = %s.find('.');" % (names.designator))
-                        emit.Line("const string %s = %s.substr(0, _dot);" % (names.designator_id, names.designator))
-                        check = ("%s.substr(_dot + 1)" % (names.designator))
-                        cond.append("((%s.empty() == false) || (%s == %s))" % (names.client, names.client, check))
-                    else:
-                        cond.append("(%s == %s)" % (names.client, names.designator))
-
-                elif event.sendif_type:
-                    emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.designator_id, names.designator, names.designator))
-
-                if event.sendif_type:
-                    restrictions = Restrictions(json=False)
-                    converted, _ = FromString(emit, event.sendif_type, restrictions, True)
-                    cond.append("(%s == %s) && (%s == %s)" % ("_errorCode__", CoreError("none"), names.id, converted))
-
-                assert cond
-                emit.Line("return (%s);" % " && ".join(cond))
-
-                emit.Unindent()
-                emit.Line("});")
 
             if (event.is_status_listener and has_client) or event.sendif_type:
                 Emit(parameters)
@@ -416,6 +535,14 @@ def EmitEvent(emit, root, event, params_type, has_client, legacy = False):
     emit.Unindent()
     emit.Line("}")
     emit.Line()
+
+    if needs_legacy_array_as_string and not legacy_array and params_type == "native":
+        emit.Line("// legacy array as string version")
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, legacy_array=True)
+
+    if event.is_status_listener and not has_client:
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, legacy_array=legacy_array)
+
 
 def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, prototypes = []):
     is_json_source = source_file.endswith(".json")
@@ -646,8 +773,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         initializer = []
         sorted_vars = _BuildVars(method.params if (method.params and not method.params.is_void) else None, None)
 
-        for vname, [vtype, _, _] in sorted_vars:
-            initializer.append(trim(vtype.cpp_native_type_proto.replace('@', vname)))
+        for vname, [p, _, _] in sorted_vars:
+            initializer.append(trim(p.local_proto))
 
         emit.Line("void %s(%s) override" % (method.original_name, ", ".join(initializer)))
         emit.Line("{")
@@ -709,24 +836,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line()
 
         for event in events:
-            EmitEvent(emit, root, event, "object", False)
+            EmitEvent(emit, ns, root, event, "object")
 
             if not event.params.is_void:
                 if isinstance(event.params, JsonObject):
-                    EmitEvent(emit, root, event, "json", False)
+                    EmitEvent(emit, ns, root, event, "json")
 
                 if not isinstance(event.params, JsonArray):
-                    EmitEvent(emit, root, event, "native", False)
-
-            if event.is_status_listener:
-                EmitEvent(emit, root, event, "object", True)
-
-                if not event.params.is_void:
-                    if isinstance(event.params, JsonObject):
-                        EmitEvent(emit, root, event, "json", True)
-
-                    if not isinstance(event.params, JsonArray):
-                        EmitEvent(emit, root, event, "native", True)
+                    EmitEvent(emit, ns, root, event, "native")
 
 
         emit.Unindent()
@@ -786,7 +903,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("%s.UnregisterEventStatusListener(%s);" % (names.module, Tstring(event.json_name).replace("#ID","")))
 
     def _EmitIndexing(index, index_name):
-        restrictions = Restrictions(json=False)
+        restrictions = Restrictions(json=False, adjust=False)
         return FromString(emit, index, restrictions, True)
 
     def _BuildVars(params, response):
@@ -848,33 +965,37 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 length_value = param.schema.get("@length")
                 maxlength_value = param.schema.get("@maxlength")
                 array_size_value = param.schema.get("@arraysize")
+                container = param.schema.get("@container")
 
-                if maxlength_value:
-                    if maxlength_value[0].isalpha():
-                        for name, [var, _, var_meta] in sorted_vars:
-                            if name == maxlength_value:
-                                var_meta.flags.is_buffer_length = True
-                                param_meta.flags.maxlength = [var, var_meta]
-                                break
+                if container:
+                    param_meta.flags.container = container
+                else:
+                    if maxlength_value:
+                        if maxlength_value[0].isalpha():
+                            for name, [var, _, var_meta] in sorted_vars:
+                                if name == maxlength_value:
+                                    var_meta.flags.is_buffer_length = True
+                                    param_meta.flags.maxlength = [var, var_meta]
+                                    break
 
-                        if not param_meta.flags.maxlength:
-                            raise RPCEmitterError("@maxlength parameter not found: %s" % maxlength_value)
+                            if not param_meta.flags.maxlength:
+                                raise RPCEmitterError("@maxlength parameter not found: %s" % maxlength_value)
 
-                if length_value:
-                    if length_value[0].isalpha():
-                        for name, [var, _, var_meta] in sorted_vars:
-                            if name == length_value:
-                                var_meta.flags.is_buffer_length = True
-                                param_meta.flags.length = [var, var_meta]
-                                break
+                    if length_value:
+                        if length_value[0].isalpha():
+                            for name, [var, _, var_meta] in sorted_vars:
+                                if name == length_value:
+                                    var_meta.flags.is_buffer_length = True
+                                    param_meta.flags.length = [var, var_meta]
+                                    break
 
-                        if not param_meta.flags.length:
-                            raise RPCEmitterError("@length parameter not found: %s" % length_value)
-                    else:
-                        param_meta.flags.size = length_value
+                            if not param_meta.flags.length:
+                                raise RPCEmitterError("@length parameter not found: %s" % length_value)
+                        else:
+                            param_meta.flags.size = length_value
 
-                elif array_size_value:
-                    param_meta.flags.size = array_size_value
+                    elif array_size_value:
+                        param_meta.flags.size = array_size_value
 
         return sorted_vars
 
@@ -928,19 +1049,23 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 async_event = method.callback.notification.json_name
                 async_param = param.temp_name
                 initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
-                emit.Line("%s%s %s%s;" % (cv_qualifier, param.cpp_native_type, asyncid_param, initializer))
+                emit.Line("%s%s %s%s;" % (cv_qualifier, "string", asyncid_param, initializer))
                 emit.Line("%s* %s = Core::ServiceType<%s>::Create<%s>(%s, %s);" % (param.original_type, param.temp_name, _GenerateImplName(param.original_type), param.original_type, names.module, asyncid_param))
                 emit.Line("const uint32_t _subscribe_result__ = %s.Subscribe(%s.ChannelId(), %s, %s, true /* one-off */);" % (names.module,  names.context, Tstring(async_event), asyncid_param))
                 emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
                 call_conditions.extend("_subscribe_result__ == Core::ERROR_NONE")
 
             # Encoded JSON strings to C-style buffer
-            elif isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size) and param_meta.flags.encode:
+            elif isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size or param_meta.flags.container) and param_meta.flags.encode:
+                container = param_meta.flags.container
                 length_param = param_meta.flags.length
                 maxlength_param = param_meta.flags.maxlength
                 have_real_maxlength = maxlength_param and (not length_param or( maxlength_param[0].json_name != length_param[0].json_name))
+                size_var = None
+                dest_var = param.temp_name
 
-                assert not param.optional
+                if not container:
+                    assert not param.optional
 
                 if length_param:
                     size = length_param[0].temp_name
@@ -964,9 +1089,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     if length_param[0].optional:
                         size += ".Value()"
-                else:
+
+                elif not container:
                     size = param_meta.flags.size
                     emit.Line("%s %s[%s]{};" % (param.original_type, param.temp_name, size))
+                else:
+                    dest_var = param.TempName("vector") if param.optional else param.temp_name
+                    emit.Line("%s %s{};" % (param.cpp_native_type, dest_var))
+                    size = (str(param.schema.get("range")[1]) + " + 1") if "range" in param.schema else "-1"
 
                 if length_param:
                     conditions = Restrictions(reverse=True)
@@ -1004,11 +1134,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.ExitBlock(conditions)
 
                 if is_readable:
+
                     conditions = Restrictions(reverse=True)
                     if length_param:
                         conditions.extend("%s != nullptr" % param.temp_name)
 
-                    emit.EnterBlock(conditions, scoped=True)
+                        emit.EnterBlock(conditions, scoped=True)
 
                     if param_meta.flags.encode in ["base64", "mac", "hex"]:
                         if param_meta.flags.size:
@@ -1018,15 +1149,21 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             size_var = size
 
                         if param_meta.flags.encode == "base64":
-                            emit.Line("Core::FromString(%s.Value(), %s, %s);" % (cpp_name, param.temp_name, size_var))
+                            emit.Line("Core::FromString(%s.Value(), %s, %s);" % (cpp_name, dest_var, size_var))
                         elif param_meta.flags.encode == "hex":
-                            emit.Line("Core::FromHexString(%s.Value(), %s, %s);" % (cpp_name, param.temp_name, size_var))
+                            emit.Line("Core::FromHexString(%s.Value(), %s, %s);" % (cpp_name, dest_var, size_var))
                         elif param_meta.flags.encode == "mac":
-                            emit.Line("Core::FromHexString(%s.Value(), %s, %s, TCHAR(':'));" % (cpp_name, param.temp_name, size_var))
+                            emit.Line("Core::FromHexString(%s.Value(), %s, %s, TCHAR(':'));" % (cpp_name, dest_var, size_var))
+
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
 
-                    emit.ExitBlock(conditions, scoped=True)
+                    if container and param.optional:
+                        emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
+                        emit.Line("%s = std::move(%s);" % (param.temp_name, dest_var))
+
+                    if length_param:
+                        emit.ExitBlock(conditions, scoped=True)
 
             elif isinstance(param, JsonArray):
                 # Array to iterator
@@ -1154,30 +1291,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("while ((_it.Next() == true) && (_i < %s)) { %s[_i++] = _it.Current(); }" % (size, param.items.temp_name))
                         emit.ExitBlock(conditions, scoped=True)
 
-                elif param.schema.get("@container"):
-
-                    emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
-
-                    if is_readable:
-                        initializer=""
-                        iterator_name = param.items.TempName("iterator")
-                        vector_name = param.temp_name
-
-                        if param.optional:
-                            fixed_name = param.TempName("fixed")
-                            emit.Line("%s %s{};" % (param.cpp_native_type, fixed_name))
-                            emit.Line("if (%s.IsSet() == true) {" % (parent + param.cpp_name))
-                            vector_name = fixed_name
-                            emit.Indent()
-
-                        emit.Line("auto %s = %s.Elements();" % (iterator_name, cpp_name))
-                        emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (iterator_name, vector_name, iterator_name))
-
-                        if param.optional:
-                            emit.Line("%s = std::move(%s);" % (param.temp_name, fixed_name))
-                            emit.Unindent()
-                            emit.Line("}")
-
                 elif is_json_source:
                     response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
                     initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
@@ -1188,6 +1301,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type, param.temp_name, initializer))
                 else:
                     raise RPCEmitterError("arrays must be iterators: %s" % param.json_name)
+
 
             # All Other
             else:
@@ -1374,23 +1488,21 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.ExitBlock(conditions, scoped=True)
 
                 elif isinstance(param, JsonString) and param_meta.flags.encode and "@container" in param.schema:
-                    conditions = Restrictions(reverse=True)
-                    emit.EnterBlock(conditions, scoped=True)
-
+                    source_var = param.temp_name
+                    if param.optional:
+                        source_var += ".Value()"
                     if param_meta.flags.encode in ["base64", "mac", "hex"]:
                         encoded_name = param.TempName("encoded_")
                         emit.Line("string %s;" % (encoded_name))
                         if param_meta.flags.encode == "base64":
-                            emit.Line("Core::ToString(%s, %s.size(), true, %s);" % (param.temp_name, param.temp_name, encoded_name))
+                            emit.Line("Core::ToString(%s, true, %s);" % (source_var, encoded_name))
                         elif param_meta.flags.encode == "hex":
-                            emit.Line("Core::ToHexString(%s, %s.size(), %s);" % (param.temp_name, param.temp_name, encoded_name))
+                            emit.Line("Core::ToHexString(%s, %s);" % (source_var, encoded_name))
                         elif param_meta.flags.encode == "mac":
-                            emit.Line("Core::ToHexString(%s, %s.size(), %s, TCHAR(':'));" % (param.temp_name, size, encoded_name))
+                            emit.Line("Core::ToHexString(%s, %s, TCHAR(':'));" % (source_var, encoded_name))
                         emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
-
-                    emit.ExitBlock(conditions, scoped=True)
 
                 elif isinstance(param, JsonArray):
                     if param.iterator:
@@ -1807,9 +1919,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.If(restrictions)
 
             if is_read_write:
-                property_conditions.extend("%s.IsSet() == true" % params.local_name)
+                property_conditions.extend("%s.IsSet() == false" % params.local_name)
                 emit.If(property_conditions)
-                emit.Line("// property get")
 
             if not is_write_only:
                 assert normalized_response
@@ -1819,17 +1930,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 maybe_index = index_name if has_index else None
 
-                _Invoke(m, conditional_invoke,  _BuildVars(None, normalized_response), None, normalized_response, params_parent, response_parent,
+                _Invoke(m, conditional_invoke, _BuildVars(None, normalized_response), None, normalized_response, params_parent, response_parent,
                         const_cast=is_read_write, test_param=not is_read_write, index=maybe_index, context=has_context)
 
                 if indexes_are_different:
                     index_name = any_index.local_name
-
-                emit.Line("if (%s != %s) {" % (error_code.temp_name, CoreError("none")))
-                emit.Indent()
-                emit.Line("%s.Null(true);" % (response.local_name))
-                emit.Unindent()
-                emit.Line("}")
 
             if not is_read_only:
                 assert normalized_params
@@ -1844,6 +1949,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 _Invoke(m, conditional_invoke, _BuildVars(normalized_params, None), normalized_params, None, params_parent, response_parent,
                         param_const_cast=is_read_write, test_param=not is_read_write, index=maybe_index, context=has_context)
+
+                if is_read_write:
+                    emit.Line()
+                    emit.Line("%s.Null(true);" % response.local_name)
+
 
             emit.Endif(property_conditions)
             emit.Endif(restrictions)
