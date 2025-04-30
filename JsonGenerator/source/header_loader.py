@@ -325,6 +325,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 result = ConvertType(cppType.optional, meta=var.meta)
                 result[1]["@optionaltype"] = True
                 result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
+                result[1]["@proto"] = var.ProtoFmt()
                 ConvertDefault(var, result[0], result[1])
 
             # Pointers
@@ -336,6 +337,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     props["@originaltype"] = cppType.type
                     props["encode"] = encoding
+                    props["@proto"] = var.ProtoFmt()
 
                     if meta.output and meta.maxlength:
                         props["@maxlength"] = " ".join(meta.maxlength)
@@ -344,6 +346,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         props["@length"] = " ".join(meta.length)
                     elif var.array:
                         props["@arraysize"] = var.array
+                        props["range"] = [int(var.array), int(var.array)]
                     else:
                         assert False
 
@@ -354,6 +357,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     props = {}
                     props["items"] = ConvertParameter(var, no_array=True)
                     props["@length"] = " ".join(meta.length)
+                    props["@proto"] = var.ProtoFmt()
+
                     if meta.output and meta.maxlength:
                         props["@maxlength"] = " ".join(meta.maxlength)
 
@@ -975,15 +980,17 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             _index["name"] = _case_converter.transform(method.vars[0].name, _case_converter.PARAMS)
                             _index["@originalname"] = method.vars[0].name
 
-                            if "enum" in _index:
-                                _index["example"] = _index["enum"][0]
-
-                            if "example" not in obj["index"]:
+                            if "example" not in _index:
                                 # example not specified, let's invent something...
+
                                 if method.vars[0].meta.default:
                                     _index["example"] = method.vars[0].meta.default[0]
+                                elif "enum" in _index:
+                                    _index["example"] = _index["enum"][0]
                                 else:
                                     _index["example"] = ("0" if _index["type"] == "integer" else "xyz")
+
+                                _index["fake_example"] = True
 
                             if _index["type"] not in ["integer", "string", "boolean"]:
                                 raise CppParseError(method.vars[0], "index to a property must be integer, enum, boolean, string, encoded array of bytes or encoded std::vector of bytes")
@@ -998,6 +1005,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 obj["index"][1]["description"] = obj["index"][0]["description"]
                             elif "description" in obj["index"][1] and "description" not in obj["index"][0]:
                                 obj["index"][0]["description"] = obj["index"][1]["description"]
+
+                            if "fake_example" in obj["index"][0] and "fake_example" not in obj["index"][1]:
+                                obj["index"][0]["example"] = obj["index"][1]["example"]
+                                del obj["index"][0]["fake_example"]
+                            elif "fake_example" in obj["index"][1] and "fake_example" not in obj["index"][0]:
+                                obj["index"][1]["example"] = obj["index"][0]["example"]
+                                del obj["index"][1]["fake_example"]
 
                         if method.vars[1].meta.is_index:
                             raise CppParseError(method.vars[0], "index must be the first parameter to property method")
@@ -1157,7 +1171,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             del o["readonly"]
                         if "writeonly" in o and "writeonly" not in obj:
                             del o["writeonly"]
-
 
         for f in event_interfaces:
             rpc_format = _EvaluateRpcFormat(f.obj)

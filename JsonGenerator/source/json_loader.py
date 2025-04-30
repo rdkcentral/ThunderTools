@@ -276,13 +276,19 @@ class JsonType():
 
     @property
     def cpp_native_type_proto(self):
-        return self.schema.get("@proto") if self.schema.get("@proto") else ""
+        assert self.schema.get("@proto")
+        return self.schema.get("@proto")
 
     def cpp_native_type_opt_v(self, toggle=False):
         if self.optional and toggle:
             return ("Core::OptionalType<%s>" % self.cpp_native_type)
         else:
             return self.cpp_native_type
+
+    @property
+    def local_proto(self):
+        assert self.schema.get("@proto")
+        return self.cpp_native_type_proto.replace('@', self.local_name)
 
     @property
     def is_void(self):
@@ -388,7 +394,7 @@ class JsonString(JsonNative, JsonType):
 
     @property
     def cpp_native_type(self):
-        return "string"
+        return self.original_type if self.original_type else "string"
 
 
 class JsonInstanceId(JsonNative, JsonType):

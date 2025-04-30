@@ -180,16 +180,25 @@ def Create(log, schema, path, indent_size = 4):
                             val_text = "bytes" if d.get("encode") else "chars"
 
                             if d["range"][0]:
-                                row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
+                                if d["range"][0] == d["range"][1]:
+                                    row += italics("%s length must be equal to %s %s." % (str_text, d["range"][0], val_text))
+                                else:
+                                    row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
                             else:
                                 row += italics("%s length must be at most %s %s." % (str_text, d["range"][1], val_text))
                         elif d["type"] == "array":
                             if d["range"][0]:
-                                row += italics("Array length must be in range [%s..%s] elements." % (d["range"][0], d["range"][1]))
+                                if d["range"][0] == d["range"][1]:
+                                    row += italics("Array length must be equal to %s elements." % (d["range"][0]))
+                                else:
+                                    row += italics("Array length must be in range [%s..%s] elements." % (d["range"][0], d["range"][1]))
                             else:
                                 row += italics("Array length must be at most %s elements." % (d["range"][1]))
                         else:
-                            row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
+                            if d["range"][0] == d["range"][1]:
+                                row += italics("Value must be equal to %s." % (d["range"][0]))
+                            else:
+                                row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
                     if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
