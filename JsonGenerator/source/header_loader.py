@@ -440,6 +440,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 elif isinstance(cppType, CppParser.Time):
                     result = [ "string", { "time": "iso8601" } ]
 
+                # MACAddress
+                elif isinstance(cppType, CppParser.MacAddress):
+                    result = [ "string", { "@macaddress": True, "@construct_from_cstr": True, "range": [6,6] } ]
+
                 # Float
                 elif isinstance(cppType, CppParser.Float):
                     result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
@@ -500,7 +504,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         props["encode"] = encoding
                         props["@originaltype"] = cppType.type
-                        props["encode"] = encoding
                         result = ["string", props]
                     else:
                         result = ["array", props]

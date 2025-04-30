@@ -51,7 +51,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
 
     converted = param.TempName("conv_") if has_conversion else param.original_name
     converted_result = param.TempName("convResult_")
-    converted_enum= param.TempName("convEnum_")
+    converted_enum = param.TempName("convEnum_")
     array_size = param.schema.get("@arraysize")
     encode = param.schema.get("encode")
 
@@ -70,6 +70,10 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
                 emit.Line("%s %s{};" % (param.original_type, converted))
         elif isinstance(param, (JsonInteger, JsonBoolean)):
             emit.Line("%s %s{};" % (param.cpp_native_type, converted))
+        elif isinstance(param, JsonMacAddress):
+            emit.Line("%s %s{%s.c_str()};" % (param.cpp_native_type, converted, param.original_name))
+        else:
+            assert False, "unimplemented type for FromString"
 
     if not is_optional_type:
         EmitLocals()
@@ -129,6 +133,9 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
         emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (param.cpp_native_type, converted_enum, param.original_name))
         emit.Line("%s %s{%s.Value()};" % (param.cpp_native_type, converted, converted_enum))
         emit.Line("const bool %s = %s.IsSet();" % (converted_result, converted_enum))
+
+    elif isinstance(param, JsonMacAddress):
+        emit.Line("const bool %s = %s.IsValid();" % (converted_result, converted))
 
     if restrictions:
         if has_conversion:
@@ -1312,6 +1319,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     if is_readable and is_writeable:
                         emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
                 else:
+                    if param.schema.get("@construct_from_cstr"):
+                        cpp_name += ".Value().c_str()"
+
                     initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
 
                 if param.optional and is_readable and (param.default_value == None or not parent):
