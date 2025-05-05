@@ -107,13 +107,13 @@ def Create(log, schema, path, indent_size = 4):
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
                             break;
-                        enums.append(obj["enum"][i])
+                        enums.append(str(obj["enum"][i]))
                         if "default" in obj and e == obj["default"]:
                             default_enum = enums[-1]
 
                 elif "enum" in obj:
                     for e in obj["enum"]:
-                        enums.append(e)
+                        enums.append(str(e))
 
                     if enums:
                         default_enum = enums[0]
@@ -146,7 +146,6 @@ def Create(log, schema, path, indent_size = 4):
 
                     restricted = "range" in d
 
-                    # row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
                     row = ""
 
                     if deprecated:
@@ -267,18 +266,26 @@ def Create(log, schema, path, indent_size = 4):
             json_data = '"%s": ' % name if name else ''
 
             if obj_type == "string":
-                json_data += "{  }" if obj.get("opaque") else ('"%s"' % (default if default else "..."))
+                if default and default.count('"'):
+                    raise DocumentationError("'%s': unescaped quotes in example string" % name)
+
+                if obj.get("opaque"):
+                    json_data += default if default else "{ }"
+                else:
+                    json_data += '"%s"' % (default if default else "...")
+
             elif obj_type == "integer":
                 if default and not str(default).lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this integer type (see '%s')" % (name, default))
 
-                json_data += '%s' % (default if default else 0 if "@lookupid" not in obj else 1)
+                json_data += '%s' % (default if default else 0)
+
             elif obj_type == "number":
                 if default and not str(default).replace('.','').lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this numeric (floating-point) type (see '%s')" % (name, default))
 
                 if default and '.' not in str(default):
-                    default = default * 1.0
+                    default = int(default) * 1.0
 
                 json_data += '%s' % (default if default else 0.0)
             elif obj_type == "boolean":
@@ -288,7 +295,7 @@ def Create(log, schema, path, indent_size = 4):
             elif obj_type == "instanceid":
                 json_data += default if default else '"0x..."'
             elif obj_type == "array":
-                json_data += str(default if default else ('[ %s ]' % (ExampleObj("", obj["items"]))))
+                json_data += str(default) if default else ('[ %s ]' % (ExampleObj("", obj["items"])))
             elif obj_type == "object":
                 json_data += "{ %s }" % ", ".join(
                     list(map(lambda p: ExampleObj(p, obj["properties"][p]),
@@ -1108,7 +1115,7 @@ def Create(log, schema, path, indent_size = 4):
                             method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
 
                         if props and method not in skip_list and "#" not in method:
-                            to_skip = MethodDump(method, props, plugin_class, section_name, header, event, prop)
+                            to_skip = MethodDump(method, props, ("<callsign>" if document_type == "interface" else plugin_class), section_name, header, event, prop)
 
                             if to_skip:
                                 skip_list.append(to_skip)
