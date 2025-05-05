@@ -161,7 +161,7 @@ def Create(log, schema, path, indent_size = 4):
                         row = row[:-1]
 
                     if "default" in obj:
-                        if "enum" in obj and default_enum:
+                        if "enum" in obj and "ids" in obj and default_enum:
                             row += " (default: " + (italics("%s") % str(enums[obj["ids"].index(obj["default"])]) + ")")
                         else:
                             row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
