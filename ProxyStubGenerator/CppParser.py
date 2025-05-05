@@ -399,6 +399,8 @@ class Identifier():
                         par = par[:-1]
                     self.meta.retval[par] = string[i + 2]
                     skip = 2
+                elif token[1:] == "STATUSLISTENER":
+                    self.meta.decorators.append("statuslistener")
                 elif token[1:] == "DEPRECATED":
                     self.meta.is_deprecated = True
                 elif token[1:] == "OBSOLETE":
@@ -1651,6 +1653,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@json", False))
                 if _find("@event", token):
                     tagtokens.append("@EVENT")
+                if _find("@statuslistener", token):
+                    tagtokens.append("@STATUSLISTENER")
                 if _find("@prefix", token):
                     tagtokens.append(__ParseParameterValue(token, "@prefix", False))
                 if _find("@extended", token):
