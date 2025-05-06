@@ -697,6 +697,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                 if method.retval.meta.details:
                     obj["description"] = method.retval.meta.details.strip()
 
+                if method.retval.meta.pre:
+                    obj["preconditions"] = method.retval.meta.pre.strip()
+
+                if method.retval.meta.post:
+                    obj["postconditions"] = method.retval.meta.post.strip()
+
                 if method.retval.meta.retval:
                     errors = []
 
@@ -803,6 +809,12 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
 
                     if method.retval.meta.details:
                         obj["description"] = method.retval.meta.details.strip()
+
+                    if method.retval.meta.pre:
+                        obj["preconditions"] = method.retval.meta.pre.strip()
+
+                    if method.retval.meta.post:
+                        obj["postconditions"] = method.retval.meta.post.strip()
 
                     if params:
                         obj["params"] = params
