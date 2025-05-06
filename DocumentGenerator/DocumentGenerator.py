@@ -36,6 +36,9 @@ SHOW_WARNINGS = True
 DOC_ISSUES = False
 log = Log.Log(NAME, VERBOSE, SHOW_WARNINGS, DOC_ISSUES)
 
+SITE_NAME = "Documentation"
+SITE_URL = "https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/"
+
 DOCS_REPO_URL = "git@github.com:WebPlatformForEmbedded/ServicesInterfaceDocumentation.git"
 THUNDER_REPO_URL = "https://github.com/rdkcentral/Thunder"
 THUNDER_TOOLS_REPO_URL = "https://github.com/rdkcentral/ThunderTools"
@@ -43,7 +46,7 @@ THUNDER_INTERFACE_REPO_URL = "https://github.com/rdkcentral/ThunderInterfaces"
 THUNDER_PLUGINS_REPO_URL = "https://github.com/rdkcentral/ThunderNanoServices.git"
 RDK_PLUGINS_REPO_URL = "https://github.com/WebPlatformForEmbedded/ThunderNanoServicesRDK.git"
 
-VERSION_PATTERN = re.compile(r'^R\d+\.\d+(\.\d+)?$')
+VERSION_PATTERN = re.compile(r'^R\d+\.\d+(?:\.\d+)?$')
 
 
 class MkdocsYamlFileGenerator():
@@ -55,22 +58,22 @@ class MkdocsYamlFileGenerator():
         self._topic_dict = {}
         self._fd = None
 
-    def create_site_details(self, site_name, site_url):
-        assert self._fd != None
-        self._fd.write("site_name : " + site_name +"\n")
-        self._fd.write("site_url : " + site_url +"\n")
+    def create_site_details(self):
+        assert self._fd is not None
+        self._fd.write("site_name : " + self._site_name + "\n")
+        self._fd.write("site_url : " + self._site_url + "\n")
 
     def add_nav_tag(self):
-        assert self._fd != None
+        assert self._fd is not None
         self._fd.write("nav:\n    - 'Home': 'index.md'\n")
 
     def add_topic(self, topic_name):
-        assert self._fd != None
+        assert self._fd is not None
         self._fd.write("    - '" + topic_name + "':\n")
 
     def add_subtopic(self, sub_topic_name, markdown_filename):
-        assert self._fd != None
-        self._fd.write("        - '" + sub_topic_name + "' : '" + markdown_filename +"'\n")
+        assert self._fd is not None
+        self._fd.write("        - '" + sub_topic_name + "' : '" + markdown_filename + "'\n")
 
     def create_topics(self, topic_name):
         if topic_name not in self._topic_dict.keys():
@@ -78,12 +81,12 @@ class MkdocsYamlFileGenerator():
         self._current_topic = topic_name
 
     def create_subtopics(self, sub_topic_name, markdown_filename):
-        if self._topic_dict[self._current_topic] != None and isinstance(self._topic_dict[self._current_topic], list):
+        if self._topic_dict[self._current_topic] is not None and isinstance(self._topic_dict[self._current_topic], list):
             self._topic_dict[self._current_topic].append((sub_topic_name, markdown_filename))
 
     def create_file(self):
         self._fd = open(self._yamlfile_path, "w")
-        self.create_site_details(self._site_name, self._site_url)
+        self.create_site_details()
         self.add_theme_info()
         self.add_nav_tag()
         for topic in self._topic_dict:
@@ -95,19 +98,29 @@ class MkdocsYamlFileGenerator():
         log.Info("Created %s" % self._yamlfile_path)
 
     def add_theme_info(self):
-        assert self._fd != None
-        theme_info = '''theme:
+        assert self._fd is not None
+        theme_info = '''
+extra:
+    version:
+        provider: mike
+
+theme:
     name: material
     highlightjs: true
+    custom_dir: overrides
+
 markdown_extensions:
+    - attr_list
     - pymdownx.emoji:
         emoji_index: !!python/name:material.extensions.emoji.twemoji
         emoji_generator: !!python/name:material.extensions.emoji.to_svg'''
 
         self._fd.write(theme_info + "\n")
 
-class DocumentGenerator():
-    def __init__(self, thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path, thunder_tools_path, docs_path, local_tools = False):
+
+class DocumentGenerator:
+    def __init__(self, thunder_path, thunder_interface_path, thunder_plugins_path, rdk_plugins_path,
+                 thunder_tools_path, docs_path, local_tools=False):
         self._local_tools = local_tools
         self.thunder_path = thunder_path
         self.thunder_tools_path = thunder_tools_path
@@ -118,12 +131,14 @@ class DocumentGenerator():
         self.is_branch_name_valid()
         self.clean_all_repos_dir()
         self.clone_all_repos()
-        self._yaml_generator = MkdocsYamlFileGenerator(docs_path=self.docs_path, site_name=branch_name, site_url="")
+        self._yaml_generator = MkdocsYamlFileGenerator(docs_path=self.docs_path, site_name=SITE_NAME, site_url=SITE_URL)
         self.mkdocs_create_index_file()
 
-    def is_branch_name_valid(self):
+    @staticmethod
+    def is_branch_name_valid():
         if not VERSION_PATTERN.fullmatch(branch_name):
-            log.Error("Branch name must be RX.X or RX.X.X where X represents semantic versioning for major.minor or major.minor.patch)")
+            log.Error("Branch name must be whether RX.X or RX.X.X where X represents semantic versioning "
+                      "for major.minor or major.minor.patch)")
             sys.exit()
 
     def clean_all_repos_dir(self):
@@ -150,18 +165,16 @@ class DocumentGenerator():
         if not self._local_tools:
             self.thunder_tools_commit_id, self.thunder_tools_commit_date = self.clone_repo(THUNDER_TOOLS_REPO_URL, self.thunder_tools_path)
 
-    def clone_repo(self, repo_url, local_path):
+    @staticmethod
+    def clone_repo(repo_url, local_path):
         if repo_url == DOCS_REPO_URL:
             repo = Repo.clone_from(repo_url, local_path, branch="gh-pages")
-            versions = self.collect_existing_versions()
-            sorted_versions = sorted(versions, key=lambda x: list(map(int, x[1:].split('.'))), reverse=True)
-            self.create_root_index(sorted_versions, local_path)
+
         else:
             # Change . with _ as we use underscore for branch names
             _branch_name = branch_name
-            pattern = re.compile(r'^R\d+\.\d$')
-            if pattern.fullmatch(branch_name):
-                _branch_name = branch_name.replace('.', '_')
+            _branch_name = branch_name.replace('.', '_')
+
             repo = Repo.clone_from(repo_url, local_path, branch=_branch_name, depth=1)
 
         headcommit = repo.head.commit
@@ -170,96 +183,7 @@ class DocumentGenerator():
         log.Info("Repo {}".format(repo_url))
         log.Info("Repo head: {}".format(headcommit.hexsha))
         log.Info("Repo commit date: {}".format(headcommit_date))
-        return (headcommit_sha, headcommit_date)
-
-    def collect_existing_versions(self):
-        versions = [d for d in os.listdir(docs_path) if os.path.isdir(os.path.join(docs_path, d)) and VERSION_PATTERN.fullmatch(d)]
-        if branch_name in versions:
-            log.Info("{} has already documented! Do you want to override?".format(branch_name))
-            override = input("Type 'yes' or 'no': ").lower() == "yes"
-            if override:
-                shutil.rmtree(os.path.join(docs_path, branch_name))
-
-            else:
-                log.Info("Script terminated by user request!")
-                sys.exit()
-        else:
-            versions.append(branch_name)
-
-        return versions
-
-    def create_root_index(self, versions, path):
-
-        html_content = '''
-        <!DOCTYPE html>
-        <html lang="en">
-        <head>
-            <meta charset="UTF-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Documents</title>
-            <style>
-                body {
-                    background-color: #000000;
-                    margin: 0;
-                    padding: 0;
-                    display: flex;
-                    height: 100vh;
-                }
-
-                .container {
-                    text-align: left;
-                    margin-top: 10px;
-                }
-
-                select {
-                    padding: 5px;
-                    font-size: 16px;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                    margin-left: 10px;
-                    margin-bottom: 10px;
-                }
-
-                iframe {
-                    width: 100vw;
-                    height: 95vh;
-                    border: 1px solid #ccc;
-                }
-
-            </style>
-        </head>
-        <body>
-            <div class="container">
-                <select id="versionDropdown" onchange="updateFrame()">
-                    <option value="" selected disabled>Select Version</option>
-        '''
-
-        # Populate dropdown options
-        for version in versions:
-            html_content += f'            <option value={version}>{version}</option>\n'
-
-        html_content += '''
-                </select>
-
-                <iframe id="versionFrame" name="versionFrame" src="" frameborder="0"></iframe>
-
-                <script>
-                    document.getElementById("versionDropdown").selectedIndex = 1;
-                    function updateFrame() {
-                        var dropdown = document.getElementById("versionDropdown");
-                        var selectedValue = dropdown.options[dropdown.selectedIndex].value;
-                        var frame = document.getElementById("versionFrame");
-                        frame.src = selectedValue;
-                    }
-                window.onload = updateFrame;
-                </script>
-            </div>
-        </body>
-        </html>
-        '''
-
-        with open('{}/index.html'.format(path), 'w') as file:
-            file.write(html_content)
+        return headcommit_sha, headcommit_date
 
     def mkdocs_create_index_file(self):
         if not os.path.exists(os.path.join(self.docs_path, "docs")):
@@ -267,21 +191,28 @@ class DocumentGenerator():
 
         index_file = open(os.path.join(self.docs_path, "docs", "index.md"), "w")
 
-        index_file_thunder_contents =  "# Welcome to Documentation\nThese documentation are automatically created using mkdocs on " + time.strftime("%a, %d %b %Y %H:%M", time.gmtime()) + " GMT\n\
+        index_file_thunder_contents = (("# Welcome to Documentation\nThese documentation are automatically created "
+                                       "using mkdocs on ") + time.strftime("%a, %d %b %Y %H:%M", time.gmtime())
+                                       + " GMT\n\
 ## Thunder\nThis section contains the documentation created from Thunder\n\n\
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
-|[Thunder](" + THUNDER_REPO_URL + ')|' + self.thunder_commit_id + '|' + self.thunder_commit_date + " GMT|\n\n"
+|[Thunder](" + THUNDER_REPO_URL + ')|' + self.thunder_commit_id + '|' + self.thunder_commit_date + " GMT|\n\n")
 
-        index_file_interface_contents = "## Interfaces\nThis section contains the documentation created from interfaces\n\n\
+        index_file_interface_contents = (("## Interfaces\nThis section contains the documentation created from "
+                                         "interfaces\n\n\
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
-|[ThunderInterfaces](" + THUNDER_INTERFACE_REPO_URL + ')|' + self.thunder_interfaces_commit_id + '|' + self.thunder_interfaces_commit_date + " GMT|\n\n"
+|[ThunderInterfaces](") + THUNDER_INTERFACE_REPO_URL + ')|' + self.thunder_interfaces_commit_id + '|'
+                                         + self.thunder_interfaces_commit_date + " GMT|\n\n")
 
-        index_file_contents_plugins = '''## Plugins\nThis section contains the documentation created from plugins\n\n\
+        index_file_contents_plugins = ('''## Plugins\nThis section contains the documentation created from plugins\n\n\
 | Repo | Commit-Id | Commit-Date |\n\
 | :--- | :-------- | :---------- |\n\
-| [ThunderNanoServices]('''+THUNDER_PLUGINS_REPO_URL + ') | '  + self.thunder_plugins_commit_id + ' | ' + self.thunder_plugins_commit_date + " GMT |\n| [ThunderNanoServicesRDK]("+ RDK_PLUGINS_REPO_URL + ') | '  + self.rdk_plugins_commit_id + ' | ' + self.rdk_plugins_commit_date + " GMT |\n"
+| [ThunderNanoServices]('''+THUNDER_PLUGINS_REPO_URL + ') | ' + self.thunder_plugins_commit_id + ' | ' +
+                                       self.thunder_plugins_commit_date + " GMT |\n| [ThunderNanoServicesRDK](" +
+                                       RDK_PLUGINS_REPO_URL + ') | ' + self.rdk_plugins_commit_id + ' | ' +
+                                       self.rdk_plugins_commit_date + " GMT |\n")
         
         index_file.write(index_file_thunder_contents)
         index_file.write(index_file_interface_contents)
@@ -304,7 +235,8 @@ class DocumentGenerator():
                         title = lines[2][1:].strip()
                         self._yaml_generator.create_subtopics(title, os.path.join(base, f))
 
-    def to_markdown(self, md_path, include_dirs, cpp_interface_dir, json_interface_dir, paths, ns=None):
+    @staticmethod
+    def to_markdown(md_path, include_dirs, cpp_interface_dir, json_interface_dir, paths, ns=None):
         cmd = [os.path.join(".", "JsonGenerator.py"), "--docs", "--output", md_path]
 
         if json_interface_dir:
@@ -329,44 +261,53 @@ class DocumentGenerator():
     def complete_yaml_creation(self):
         self._yaml_generator.create_file()
 
+
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(
         description='Generate API and plugin documentation.',
         formatter_class=argparse.RawTextHelpFormatter)
 
     docs_repo_url = os.environ.get("DOCS_REPO_URL")
-    if docs_repo_url != None:
+    if docs_repo_url is not None:
         DOCS_REPO_URL = docs_repo_url
 
     argparser.add_argument("--deploy",
-                            dest="github_deploy",
-                            action="store_true",
-                            default=False,
-                            help="Deploy generated code in GitHub")
+                           dest="github_deploy",
+                           action="store_true",
+                           default=False,
+                           help="Deploy generated code in GitHub")
+
     argparser.add_argument("--clone_path",
-                            dest="clone_path",
-                            action="store",
-                            type=str,
-                            metavar="DIR",
-                            required=True,
-                            help="Local path for cloning necessary repositories")
+                           dest="clone_path",
+                           action="store",
+                           type=str,
+                           metavar="DIR",
+                           required=True,
+                           help="Local path for cloning necessary repositories")
+
     argparser.add_argument("--branch",
-                            dest="branch_name",
-                            action="store",
-                            default="master",
-                            required=True,
-                            help="Branch name for repositories")
+                           dest="branch_name",
+                           action="store",
+                           required=True,
+                           help="Branch name for repositories")
+
+    argparser.add_argument("--tag",
+                           dest="tag",
+                           action="store",
+                           help="Tag for documents. ie: latest, dev, stable")
+
     argparser.add_argument("--local-tools",
-                            dest="local_tools",
-                            action="store_true",
-                            default=False,
-                            help="Use local tools instead of fetching them from the branch")
+                           dest="local_tools",
+                           action="store_true",
+                           default=False,
+                           help="Use local tools instead of fetching them from the branch")
 
     args = argparser.parse_args(sys.argv[1:])
 
     clone_path = args.clone_path
     deploy_docs = args.github_deploy
     branch_name = args.branch_name
+    tag = args.tag
 
     thunder_interface_path = os.path.join(clone_path, "thunder_interfaces")
     thunder_plugins_path = os.path.join(clone_path, "thunder_nano_services")
@@ -418,19 +359,21 @@ if __name__ == "__main__":
 
     document_generator.complete_yaml_creation()
 
-    try:
-        os.chdir(docs_path)
-        ret_val = subprocess.run(["mkdocs", "build", "-d{}".format(branch_name)])
-        log.Info("mkdocs exit code: {} ".format( ret_val.returncode))
-    except subprocess.CalledProcessError as err:
-        log.Error("Error in creating docs: {}".format( str(err)))
-
     if deploy_docs:
-        # unless DOCS_REPO_URL is changed the documentation will be deployed in this location https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/
-        log.Info("Pushing changes to remote!")
-        repo = Repo(docs_path)
-        repo.git.add("index.html")
-        repo.git.add("{}".format(branch_name))
-        repo.index.commit("{} Documentation".format(branch_name))
-        repo.remote().push()
-        log.Info("Script Completed Successfully")
+
+        try:
+            # unless DOCS_REPO_URL is changed the documentation will be deployed in this location:
+            # https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/
+            commands = ["mike", "deploy", branch_name, "-p"]
+            if tag:
+                cmd = tag, "-u"
+                commands.extend(cmd)
+                
+            os.chdir(docs_path)
+            ret_val = subprocess.run(commands)
+            log.Info("mkdocs exit code: {} ".format(ret_val.returncode))
+
+        except subprocess.CalledProcessError as err:
+            log.Error("Error in creating docs: {}".format(str(err)))
+
+
