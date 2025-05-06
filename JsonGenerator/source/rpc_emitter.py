@@ -78,7 +78,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    default_conditions.extend("%s.empty() == false" % param.original_name)
+    default_conditions.extend("%s.empty() == true" % param.original_name)
 
     emit.If(default_conditions)
     if param.default_value:
@@ -96,35 +96,26 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
         EmitLocals()
 
     if isinstance(param, JsonString):
-        converted_length = "sizeof(%s)" % converted
-        if "@arraysize" in param.schema:
+
+        def Decode(length_type, length):
             if encode == "base64":
                 converted_length_param = param.TempName("convLength_")
-                emit.Line("uint16_t %s(%s);" % (converted_length_param, converted_length))
-                emit.Line("const uint16_t %s = Core::FromString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length_param))
-                converted_result = converted_length_param
+                emit.Line("%s %s(%s);" % (length_type, converted_length_param, length))
+                emit.Line("Core::FromString(%s, %s, %s);" % (param.original_name, converted, converted_length_param))
+                emit.Line("const bool %s = (%s != 0);" % (converted_result, converted_length_param))
             elif encode == "hex":
-                emit.Line("const uint16_t %s = Core::FromHexString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0));" % (converted_result, param.original_name, converted, length))
             elif encode == "mac":
-                emit.Line("const uint16_t %s = Core::FromHexString(%s, %s, %s, TCHAR(':'));" % (converted_result, param.original_name, converted, converted_length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.original_name, converted, length))
             else:
-                assert False, "bad encode for array"
+                assert False, "bad encode method"
+
+        if "@arraysize" in param.schema:
+            Decode("uint16_t", "sizeof(%s)" % converted)
 
         elif "@container" in param.schema:
-            converted_length = (str(param.schema.get("range")[1])) if "range" in param.schema else "-1"
+            Decode("uint32_t", (str(param.schema.get("range")[1])) if "range" in param.schema else "-1")
             needs_move = True
-
-            if encode == "base64":
-                converted_length_param  = param.TempName("convLength_")
-                emit.Line("uint32_t %s(%s);" % (converted_length_param, converted_length))
-                emit.Line("const uint32_t %s = Core::FromString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length_param))
-                converted_result = converted_length_param
-            elif encode == "hex":
-                emit.Line("const uint32_t %s = Core::FromHexString(%s, %s, %s);" % (converted_result, param.original_name, converted, converted_length))
-            elif encode == "mac":
-                emit.Line("const uint32_t %s = Core::FromHexString(%s, %s, %s, TCHAR(':'));" % (converted_result, param.original_name, converted, converted_length))
-            else:
-                assert False, "bad encode for std::vector"
 
     elif isinstance(param, (JsonInteger, JsonBoolean)):
         emit.Line("const bool %s = Core::FromString(%s, %s);" % (converted_result, param.original_name, converted))
@@ -139,10 +130,8 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
 
     if restrictions:
         if has_conversion:
-            if isinstance(param, JsonString):
-                restrictions.append(param, override=converted_result)
-            else:
-                restrictions.extend("%s == false" %  converted_result)
+            restrictions.extend("%s == false" % converted_result)
+            restrictions.append(param, override=converted)
 
         if emit_restrictions:
             if emit.If(restrictions):
@@ -185,7 +174,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     names['params'] = "_params"
     names['designator'] = "_designator"
     names['sendif'] = "_sendIfMethod"
-    names['designator_id'] = "designatorId"
+    names['designator_id'] = "_designatorId"
     names['storage'] = "_storage"
     names['storage_type'] = "LookupStorage"
     names['jsonrpc_type'] = "PluginHost::JSONRPC"
@@ -469,7 +458,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                     emit.Line("const size_t _dot = %s.find('.');" % (names.designator))
                     emit.Line("const string %s = %s.substr(0, _dot);" % (names.designator_id, names.designator))
                     check = ("%s.substr(_dot + 1)" % (names.designator))
-                    cond.append("((%s.empty() == false) || (%s == %s))" % (names.client, names.client, check))
+                    cond.append("((%s.empty() == true) || (%s == %s))" % (names.client, names.client, check))
                 else:
                     cond.append("(%s == %s)" % (names.client, names.designator))
 
@@ -477,7 +466,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.designator_id, names.designator, names.designator))
 
             if event.sendif_type:
-                restrictions = Restrictions(json=False)
+                restrictions = Restrictions(json=False, adjust=False)
                 converted, _ = FromString(emit, event.sendif_type, restrictions, True)
                 cond.append("(%s == %s) && (%s == %s)" % ("_errorCode__", CoreError("none"), names.id, converted))
 
@@ -493,12 +482,9 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
             if not legacy:
                 # If the event has an id specified (i.e. uses "send-if"), generate code for this too:
                 # only call if extracted  designator id matches the index.
-                if has_client:
-                    emit.Line("if (%s.empty() == false) {" % (names.client))
-                else:
+                if not has_client:
                     emit.Line("if (%s == nullptr) {" % names.sendif)
-
-                emit.Indent()
+                    emit.Indent()
 
             if (event.is_status_listener and has_client) or event.sendif_type:
                 Emit(parameters)
@@ -507,13 +493,12 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 Emit([Tstring(event.alternative)] + parameters[1:])
 
             if not legacy:
-                emit.Unindent()
-                emit.Line("}")
-
                 def Emit(parameters):
                     emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + [names.sendif])))
 
                 if not has_client:
+                    emit.Unindent()
+                    emit.Line("}")
                     emit.Line("else {")
 
                     # Use supplied custom send-if function

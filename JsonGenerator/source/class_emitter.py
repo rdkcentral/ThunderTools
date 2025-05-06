@@ -142,29 +142,31 @@ class Restrictions:
 
             if range:
                 if isinstance(relay, (JsonString, JsonMacAddress)):
-                    encode = relay.schema.get("encode")
-                    if isinstance(relay, JsonMacAddress):
-                        encode = "mac"
+                    if ("@arraysize" not in relay.schema and not isinstance(relay, JsonMacAddress)) or self.__json:
+                        if isinstance(relay, JsonMacAddress):
+                            encode = "mac"
+                        else:
+                            encode = relay.schema.get("encode")
 
-                    if self.__adjust and encode:
-                        adjusted = copy.copy(range)
+                        if self.__adjust and encode:
+                            adjusted = copy.copy(range)
 
-                        if encode == "mac":
-                            adjusted[0] = (range[0]*2 + range[0] - 1) if range[0] else 0
-                            adjusted[1] = (range[1]*2 + range[1] - 1) if range[1] else 0
-                        elif encode == "hex":
-                            adjusted[0] = range[0]*2
-                            adjusted[1] = range[1]*2
-                        elif encode == "base64":
-                            adjusted[0] = (math.ceil(range[0]/3))*4
-                            adjusted[1] = (math.ceil(range[1]/3))*4
-                    else:
-                        adjusted = range
+                            if encode == "mac":
+                                adjusted[0] = (range[0]*2 + range[0] - 1) if range[0] else 0
+                                adjusted[1] = (range[1]*2 + range[1] - 1) if range[1] else 0
+                            elif encode == "hex":
+                                adjusted[0] = range[0]*2
+                                adjusted[1] = range[1]*2
+                            elif encode == "base64":
+                                adjusted[0] = (math.ceil(range[0]/3))*4
+                                adjusted[1] = (math.ceil(range[1]/3))*4
+                        else:
+                            adjusted = range
 
-                    if adjusted[0] != 0:
-                        tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), (".size()" if self.__adjust else ""), self.__comp[0], adjusted[0]))
+                        if adjusted[0] != 0:
+                            tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), ".size()", self.__comp[0], adjusted[0]))
 
-                    tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), (".size()" if self.__adjust else ""), self.__comp[1], adjusted[1]))
+                        tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), ".size()", self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
                     if range[0]:

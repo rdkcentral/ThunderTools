@@ -98,6 +98,9 @@ class JsonType():
         if is_generated:
             name = name.replace("@_generated_", "")
 
+        if not is_generated:
+            is_generated = "@generated" in schema
+
         self.new_name = None
         self.is_renamed = False
         self.schema = schema
@@ -130,8 +133,8 @@ class JsonType():
         self.is_duplicate = False
 
         # Do some sanity check on the type name
-        if parent and not isinstance(parent, JsonArray):
-            if not is_generated and not self.original_name:
+        if parent and not isinstance(parent, JsonArray) and not is_generated:
+            if not self.original_name:
                 # Identifier from .json, still verify name casing
 
                 if not self.name.replace("_", "").isalnum():
@@ -140,7 +143,7 @@ class JsonType():
                 if self.name[0] == "_":
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
-            if self.original_name: # identifier comming from the C++ world
+            else: # identifier comming from the C++ world
                 if self.original_name[0] == "_":
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
 
@@ -944,7 +947,7 @@ class JsonCallback(JsonMethod):
     def __init__(self, name, parent, notification, schema, included=None):
         JsonMethod.__init__(self, name, parent, schema, included)
         self.notification = notification
-        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "designatorId"})
+        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "_designatorId", "@generated": True})
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
