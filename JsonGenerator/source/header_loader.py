@@ -785,7 +785,7 @@ def LoadInterfaceInternal(file, tree, ns, log, all = False, include_paths = []):
                             else:
                                 raise CppParseError(method.vars[0], "failed to determine type of notification id parameter")
 
-                    if method.retval.meta.is_listener:
+                    if "statuslistener" in method.retval.meta.decorators:
                         obj["statuslistener"] = True
 
                     params = BuildParameters(method.vars[varsidx:], rpc_format, False)

@@ -39,7 +39,7 @@ def Create(log, schema, path, indent_size = 4):
             return "*%s*" % string
 
         def link(string, caption=None):
-            return "[%s](#%s)" % (caption if caption else string.split(".", 1)[1].replace("_", " "), string)
+            return "[%s](#%s)" % (caption if caption else string.split(".", 1)[1].replace("_", " "), string.replace('.','_').replace("::", "__"))
 
         def weblink(string, link):
             return "[%s](%s)" % (string,link)
@@ -49,10 +49,10 @@ def Create(log, schema, path, indent_size = 4):
 
         def MdHeader(string, level=1, id="head", section=None):
             if level < 3:
-                emit.Line("<a name=\"%s\"></a>" % (id + "." + string.replace(" ", "_")))
+                emit.Line("<a id=\"%s\"></a>" % (id + "_" + string.replace(" ", "_").replace("::","__")))
 
             if id != "head":
-                string += " [<sup>%s</sup>](#head.%s)" % (id, section)
+                string += " [<sup>%s</sup>](#head_%s)" % (id, section)
 
             emit.Line("%s %s" % ("#" * level, "*%s*" % string if id != "head" else string))
             MdBr()
@@ -81,7 +81,7 @@ def Create(log, schema, path, indent_size = 4):
             MdRow([":--------"] * len(columns))
 
         def ParamTable(name, object):
-            MdTableHeader(["Name", "Type", "Description"])
+            MdTableHeader(["Name", "Type", "M/O", "Description"])
 
             def _TableObj(name, obj, parentName="", parent=None, prefix="", parentOptional=False):
                 # determine if the attribute is optional
@@ -89,6 +89,8 @@ def Create(log, schema, path, indent_size = 4):
                 deprecated = obj["deprecated"] if "deprecated" in obj else False
                 obsolete = obj["obsolete"] if "obsolete" in obj else False
                 restricted = obj.get("range")
+
+                name = name.replace(' ','-')
 
                 if parent and not optional:
                     if parent["type"] == "object":
@@ -98,16 +100,26 @@ def Create(log, schema, path, indent_size = 4):
 
                 # include information about enum values in description
                 enum = ""
+                default_enum = None
+                enums = []
                 if "enum" in obj and "ids" in obj:
-                    enums = []
-                    endmarker = obj.get("endmarker")
+                    endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
                             break;
-                        enums.append(obj["enum"][i])
+                        enums.append(str(obj["enum"][i]))
+                        if "default" in obj and e == obj["default"]:
+                            default_enum = enums[-1]
+
+                elif "enum" in obj:
+                    for e in obj["enum"]:
+                        enums.append(str(e))
 
                     if enums:
-                        enum = ' (must be one of the following: %s)' % (", ".join(enums))
+                        default_enum = enums[0]
+
+                if enums:
+                    enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
 
                 if parent and prefix and parent["type"] == "object":
                     prefix += "?." if optional else "."
@@ -134,7 +146,7 @@ def Create(log, schema, path, indent_size = 4):
 
                     restricted = "range" in d
 
-                    row = (("<sup>" + italics("(optional)") + "</sup>" + " ") if optional else "")
+                    row = ""
 
                     if deprecated:
                         row = "<sup>" + italics("(deprecated)") + "</sup> " + row
@@ -147,8 +159,11 @@ def Create(log, schema, path, indent_size = 4):
                     if row.endswith('.'):
                         row = row[:-1]
 
-                    if optional and "default" in obj:
-                        row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
+                    if "default" in obj:
+                        if "enum" in obj and "ids" in obj and default_enum:
+                            row += " (default: " + (italics("%s") % str(enums[obj["ids"].index(obj["default"])]) + ")")
+                        else:
+                            row += " (default: " + (italics("%s") % str(obj["default"]) + ")")
 
                     if obj["type"] == "number":
                         # correct number to integer
@@ -161,19 +176,27 @@ def Create(log, schema, path, indent_size = 4):
 
                         if d["type"] == "string" or is_buffer:
                             str_text = "Decoded data" if d.get("encode") else "String"
+                            val_text = "bytes" if d.get("encode") else "chars"
+
                             if d["range"][0]:
-                                row += italics("%s length must be in range [%s..%s] bytes." % (str_text, d["range"][0], d["range"][1]))
+                                if d["range"][0] == d["range"][1]:
+                                    row += italics("%s length must be equal to %s %s." % (str_text, d["range"][0], val_text))
+                                else:
+                                    row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
                             else:
-                                row += italics("%s length must be at most %s bytes." % (str_text, d["range"][1]))
+                                row += italics("%s length must be at most %s %s." % (str_text, d["range"][1], val_text))
                         else:
-                            row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
+                            if d["range"][0] == d["range"][1]:
+                                row += italics("Value must be equal to %s." % (d["range"][0]))
+                            else:
+                                row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
 
-                    if obj.get("extract"):
-                        if row:
-                            row += "<br>"
-                        row += italics("If only one element is present the array will be omitted.")
+                    if obj.get("@extract"):
+                        row += " " + italics("(if only one element is present then the array will be omitted)")
 
-                    MdRow([prefix, "opaque object" if obj.get("opaque") else "string (base64)" if obj.get("encode") else obj["type"], row])
+                    obj_type = "opaque object" if obj.get("opaque") else obj["type"]
+
+                    MdRow([prefix, obj_type, "optional" if optional else "mandatory", row])
 
                 if obj["type"] == "object":
                     if "required" not in obj and name and len(obj["properties"]) > 1:
@@ -181,18 +204,19 @@ def Create(log, schema, path, indent_size = 4):
 
                     for pname, props in obj["properties"].items():
                         _TableObj(pname, props, parentName + "/" + name, obj, prefix, False)
+
                 elif obj["type"] == "array":
-                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", optional)
+                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", False)
 
             _TableObj(name, object, "")
             MdBr()
 
         def ErrorTable(obj):
-            MdTableHeader(["Code", "Message", "Description"])
+            MdTableHeader(["Message", "Description"])
 
             for err in obj:
                 description = err["description"] if "description" in err else ""
-                MdRow([err["code"] if "code" in err else "", "```" + err["message"] + "```", description])
+                MdRow(["```" + err["message"] + "```", description])
 
             MdBr()
 
@@ -209,26 +233,34 @@ def Create(log, schema, path, indent_size = 4):
                 return "$deprecated"
 
             obj_type = obj["type"]
-            default = obj["example"] if "example" in obj else obj["default"] if "default" in obj else ""
+            default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
             if not default and "enum" in obj:
-                default = obj["enum"][0]
+                default = obj["enum"][1 if len(obj["enum"]) > 1 else 0]
 
             json_data = '"%s": ' % name if name else ''
 
             if obj_type == "string":
-                json_data += "{  }" if obj.get("opaque") else ('"%s"' % (default if default else "..."))
+                if default and default.count('"'):
+                    raise DocumentationError("'%s': unescaped quotes in example string" % name)
+
+                if obj.get("opaque"):
+                    json_data += default if default else "{ }"
+                else:
+                    json_data += '"%s"' % (default if default else "...")
+
             elif obj_type == "integer":
                 if default and not str(default).lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this integer type (see '%s')" % (name, default))
 
                 json_data += '%s' % (default if default else 0)
+
             elif obj_type == "number":
                 if default and not str(default).replace('.','').lstrip('-+').isnumeric():
                     raise DocumentationError("'%s': invalid example syntax for this numeric (floating-point) type (see '%s')" % (name, default))
 
                 if default and '.' not in str(default):
-                    default = default * 1.0
+                    default = int(default) * 1.0
 
                 json_data += '%s' % (default if default else 0.0)
             elif obj_type == "boolean":
@@ -238,18 +270,18 @@ def Create(log, schema, path, indent_size = 4):
             elif obj_type == "instanceid":
                 json_data += default if default else '"0x..."'
             elif obj_type == "array":
-                json_data += str(default if default else ('[ %s ]' % (ExampleObj("", obj["items"]))))
+                json_data += str(default) if default else ('[ %s ]' % (ExampleObj("", obj["items"])))
             elif obj_type == "object":
                 json_data += "{ %s }" % ", ".join(
                     list(map(lambda p: ExampleObj(p, obj["properties"][p]),
                              obj["properties"]))[0:obj["maxProperties"] if "maxProperties" in obj else None])
-                json_data = json_data.replace("$deprecated, ", "")
+                json_data = json_data.replace("$deprecated, ", "").replace(", $deprecated","")
 
             return json_data
 
         def MethodDump(method, props, classname, section, header, is_notification=False, is_property=False, include=None):
             method = (method.rsplit(".", 1)[1] if "." in method else method)
-            type = "property" if is_property else "event" if is_notification else "method"
+            type = "property" if is_property else "notification" if is_notification else "method"
 
             log.Info("Emitting documentation for %s '%s'..." % (type, method))
 
@@ -262,12 +294,12 @@ def Create(log, schema, path, indent_size = 4):
 
             if is_notification:
                 element = ["notification", "events"]
-                if is_alt:
+
+            if is_alt:
+                if config.LEGACY_ALT:
+                    alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
+                else:
                     alt_status = sen2 if props.get("altisobsolete") else sen1 if props.get("altisdeprecated") else ""
-            else:
-                if is_alt:
-                    if config.LEGACY_ALT:
-                        alt_status = sen2 if interface[element[1]][props["alt"]].get("obsolete") else sen1 if interface[element[1]][props["alt"]].get("deprecated") else ""
 
             orig_method = method
             method = props["alt"] if main_status and not alt_status and "alt" in props else method
@@ -297,6 +329,10 @@ def Create(log, schema, path, indent_size = 4):
                     writeonly = True
                     MdParagraph("> This property is **write-only**.")
 
+                if "index" in props:
+                    if not isinstance(props["index"], list):
+                        props["index"] = [props["index"], props["index"]]
+
             if alt_status == main_status:
                 if main_status:
                     MdParagraph("> %s" % (main_status % element[0]))
@@ -316,14 +352,76 @@ def Create(log, schema, path, indent_size = 4):
                 MdParagraph(props["description"])
 
             if "statuslistener" in props:
-                MdParagraph("> If applicable, this notification may be sent out during registration, reflecting the current status.")
+                MdParagraph("> This notification may also be triggered by client registration.")
 
             if "events" in props:
                 events = [props["events"]] if isinstance(props["events"], str) else props["events"]
                 MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), events))))
 
+            if is_notification:
+                _registrant = "register"
+                _registrant2 = "register"
+                notification_event = method
+                notification_generic_method = "<client-id>." + method
+                notification_example_method = "myid." + method
+
+                if "id" in props:
+                    notification_generic_method = "<%s>.%s" % (props["id"]["name"].lower(), notification_generic_method)
+                    notification_example_method = (props["id"]["example"] if "example" in props["id"] else "?") + "." + notification_example_method
+
+                generic_method = "%s.1.%s" % (classname, _registrant)
+                call_method ="%s.1.%s" % (classname, _registrant2)
+            else:
+                _example_callee = method
+                _callee = method
+
+                generic_method = "%s.1.%s" % (classname, _callee)
+                call_method = "%s.1.%s" % (classname, _example_callee)
+
+                if is_property and "index" in props:
+                    call_method += ("@" + str(props["index"][0]["example"]) if "example" in props["index"][0] else "?")
+                    generic_method += "@<index>"
+
             if is_property:
+                if "index" in props:
+                    if "name" not in props["index"][0] or "example" not in props["index"][0]:
+                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
+
+                    if "type" not in props["index"][0]:
+                        props["index"][0]["type"] = "string"
+                    if props["index"][1] and ("type" not in props["index"][1]):
+                        props["index"][1]["type"] = "string"
+
+                    extra_paragraph = "> The *%s* parameter shall be passed as the index to the property, i.e. ``%s@<%s>``." % (
+                        props["index"][0]["name"].lower(), method, props["index"][0]["name"].lower().replace(' ', '-'))
+
+                    if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
+                        extra_paragraph += " The index is optional."
+                    elif props["index"][0] and props["index"][0].get("optional"):
+                        extra_paragraph += " The index is optional for the get request."
+                    elif props["index"][1] and props["index"][1].get("optional"):
+                        extra_paragraph += " The index is optional for the set request."
+
+                    if not extra_paragraph.endswith('.'):
+                        extra_paragraph += '.'
+
+                    MdParagraph(extra_paragraph)
+
+                    if props["index"][0] and props["index"][1] and props["index"][0] != props["index"][1]:
+                        MdHeader("Index (Get)", 3)
+                        ParamTable(props["index"][0]["name"].lower(), props["index"][0])
+                        MdHeader("Index (Set)", 3)
+                        ParamTable(props["index"][1]["name"].lower(), props["index"][1])
+                    elif props["index"][0]:
+                        MdHeader("Index", 3)
+                        ParamTable(props["index"][0]["name"].lower(), props["index"][0])
+                    elif props["index"][1]:
+                        MdHeader("Index", 3)
+                        ParamTable(props["index"][1]["name"].lower(), props["index"][1])
+
+
                 MdHeader("Value", 3)
+
                 if "params" in props:
                     if not "description" in props["params"]:
                         if "summary" in props:
@@ -331,27 +429,27 @@ def Create(log, schema, path, indent_size = 4):
 
                     ParamTable("(property)", props["params"])
 
-                if "result" in props:
+                elif "result" in props:
                     if not "description" in props["result"]:
                         if "params" in props and "description" in props["params"]:
                             props["result"]["description"] = props["params"]["description"]
                         elif "summary" in props:
                             props["result"]["description"] = props["summary"]
 
-                if "index" in props:
-                    if "name" not in props["index"] or "example" not in props["index"]:
-                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
-
-                    extra_paragraph = "> The *%s* argument shall be passed as the index to the property, e.g. ``%s.1.%s@%s``.%s" % (
-                        props["index"]["name"].lower(), classname, method, props["index"]["example"],
-                        (" " + props["index"]["description"]) if "description" in props["index"] else "")
-
-                    if not extra_paragraph.endswith('.'):
-                        extra_paragraph += '.'
-
-                    MdParagraph(extra_paragraph)
+                    ParamTable("(property)", props["result"])
             else:
-                MdHeader("Parameters", 3)
+                if is_notification:
+                    if "id" in props:
+                        MdHeader("Parameters", 3)
+
+                        if "name" not in props["id"] or "example" not in props["id"]:
+                            raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
+
+                        MdParagraph("> The *%s* parameter shall be passed within the *id* parameter to the ``register`` call, i.e. ``<%s>.<client-id>``." % (props["id"]["name"], props["id"]["name"].lower()))
+
+                    MdHeader("Notification Parameters", 3)
+                else:
+                    MdHeader("Parameters", 3)
 
                 if "params" in props:
                     ParamTable("params", props["params"])
@@ -361,15 +459,7 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         MdParagraph("This method takes no parameters.")
 
-                if is_notification:
-                    if "id" in props:
-                        if "name" not in props["id"] or "example" not in props["id"]:
-                            raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
-
-                        MdParagraph("> The *%s* argument shall be passed within the designator, e.g. *%s.client.events.1*." %
-                                    (props["id"]["name"], props["id"]["example"]))
-
-            if "result" in props:
+            if "result" in props and not is_property:
                 MdHeader("Result", 3)
                 ParamTable("result", props["result"])
 
@@ -379,25 +469,32 @@ def Create(log, schema, path, indent_size = 4):
 
             MdHeader("Example", 3)
 
-            if is_notification:
-                method = "client.events.1." + method
-            elif is_property:
-                method = "%s.1.%s%s" % (classname, method, ("@" + str(props["index"]["example"])) if "index" in props and "example" in props["index"] else "")
-            else:
-                method = "%s.1.%s" % (classname, method)
-
-            if "id" in props and "example" in props["id"]:
-                method = props["id"]["example"] + "." + method
-
             jsonError = "Failed to generate JSON example for %s" % method
             jsonResponse = jsonError
             jsonRequest = jsonError
+
+            if is_notification:
+                MdHeader("Registration", 4)
+
+                client = "myid"
+
+                if "id" in props and "example" in props["id"]:
+                    client = props["id"]["example"] + "." + client
+
+                text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s", "params": {"event": "%s", "id": "%s" } }' % (call_method, notification_event, client)
+                try:
+                    jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
+                except:
+                    jsonRequest = jsonError
+                    log.Error(jsonError)
+
+                MdCode(jsonRequest, "json")
 
             if is_property:
                 if not writeonly:
                     MdHeader("Get Request", 4)
 
-                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % method
+                    text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s" }' % call_method
 
                     try:
                         jsonRequest = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
@@ -414,21 +511,22 @@ def Create(log, schema, path, indent_size = 4):
                     try:
                         jsonResponse = json.dumps(json.loads(text, object_pairs_hook=OrderedDict), indent=2)
                     except:
-                        jsonResponse = jsonError 
+                        jsonResponse = jsonError
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")
 
             if not readonly:
-                if not is_notification:
-                    if is_property:
-                        MdHeader("Set Request", 4)
-                    else:
-                        MdHeader("Request", 4)
+                if is_property:
+                    MdHeader("Set Request", 4)
+                elif is_notification:
+                    MdHeader("Notification", 4)
+                else:
+                    MdHeader("Request", 4)
 
                 try:
                     jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
-                                                        ('"id": 42, ' if not is_notification else "", method,
+                                                        ('"id": 42, ' if not is_notification else "", call_method if not is_notification else notification_example_method,
                                                         (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
                                                         object_pairs_hook=OrderedDict), indent=2)
                 except:
@@ -437,11 +535,18 @@ def Create(log, schema, path, indent_size = 4):
 
                 MdCode(jsonRequest, "json")
 
+                if is_notification:
+                    MdParagraph("> The *client ID* parameter is passed within the notification designator, i.e. ``%s``." % notification_generic_method)
+
+                    if "id" in props:
+                        MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``." % (props["id"]["name"], notification_generic_method))
+
                 if not is_notification and not is_property:
                     if "result" not in props:
                         props["result"] = { "type": "null" }
 
                     MdHeader("Response", 4)
+
                     try:
                         jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("result", props["result"], True),
                                                     object_pairs_hook=OrderedDict), indent=2)
@@ -459,6 +564,7 @@ def Create(log, schema, path, indent_size = 4):
                     except:
                         jsonResponse = jsonError
                         log.Error(jsonError)
+                        raise
 
                     MdCode(jsonResponse, "json")
 
@@ -739,6 +845,10 @@ def Create(log, schema, path, indent_size = 4):
                 MdParagraph(("The plugin is designed to be loaded and executed within the Thunder framework. "
                             "For more information about the framework refer to [[Thunder](#ref.Thunder)]."))
 
+        if document_type == "interface":
+            if info.get("@legacylowercase"):
+                MdParagraph("> This interface uses legacy ```lowercase``` naming convention. With the next major release the naming convention will change to ```camelCase```.")
+
         if document_type == "plugin":
             MdHeader("Configuration")
             commonConfig = OrderedDict()
@@ -817,7 +927,10 @@ def Create(log, schema, path, indent_size = 4):
 
                             if not head:
                                 MdParagraph("%s interface %s:" % (((ns + " ") if ns else "") + interface["info"]["class"], section))
-                                MdTableHeader([header.capitalize(), "Description"])
+                                if prop:
+                                    MdTableHeader([header.capitalize(), "R/W", "Description"])
+                                else:
+                                    MdTableHeader([header.capitalize(), "Description"])
                                 head = True
 
                             access = ""
@@ -826,17 +939,16 @@ def Create(log, schema, path, indent_size = 4):
                                 access = "read-only"
                             elif "writeonly" in contents and contents["writeonly"] == True:
                                 access = "write-only"
-
-                            if access:
-                                access = " (%s)" % access
+                            else:
+                                access = "read/write"
 
                             tags = ""
 
                             if "obsolete" in contents and contents["obsolete"]:
-                                tags += " <sup>obsolete</sup> "
+                                tags += " <sup>obsolete</sup>"
 
-                            if "deprecated" in contents and contents["deprecated"]:
-                                tags += " <sup>deprecated</sup> "
+                            elif "deprecated" in contents and contents["deprecated"]:
+                                tags += " <sup>deprecated</sup>"
 
                             descr = ""
 
@@ -852,35 +964,39 @@ def Create(log, schema, path, indent_size = 4):
                                 descr = descr.split(".", 1)[0] if "." in descr else descr
 
                             ln = header + "." + (method.rsplit(".", 1)[1] if "." in method else method)
-                            line = link(ln) + tags
+                            line = link(ln)
 
                             if "alt" in contents and contents["alt"]:
                                 alt_tags = ""
 
                                 if config.LEGACY_ALT:
-                                    if not event:
-                                        if interface[section][contents["alt"]].get("obsolete"):
-                                            alt_tags += " <sup>obsolete</sup> "
-
-                                        if interface[section][contents["alt"]].get("deprecated"):
-                                            alt_tags += " <sup>deprecated</sup> "
-                                    else:
-                                        if contents.get("altisobsolete"):
-                                            alt_tags += " <sup>obsolete</sup> "
-                                        if contents.get("altisdeprecated"):
-                                            alt_tags += " <sup>deprecated</sup> "
+                                    if interface[section][contents["alt"]].get("obsolete"):
+                                        alt_tags += " <sup>obsolete</sup>"
+                                    elif interface[section][contents["alt"]].get("deprecated"):
+                                        alt_tags += " <sup>deprecated</sup>"
+                                else:
+                                    if contents.get("altisobsolete"):
+                                        alt_tags += " <sup>obsolete</sup>"
+                                    elif contents.get("altisdeprecated"):
+                                        alt_tags += " <sup>deprecated</sup>"
 
                                 if not alt_tags and tags:
-                                    line = link(header + "." + contents["alt"]) + alt_tags
-                                    line += " / " + link(header + "." + contents["alt"], method.rsplit(".", 1)[1] if "." in method else method) + tags
+                                    line = link(header + "." + contents["alt"])
+                                    line += " / " + link(header + "." + contents["alt"], method.rsplit(".", 1)[1] if "." in method else method)
+                                elif alt_tags and alt_tags == tags:
+                                    line += " / " + link(ln, contents["alt"]) + tags
                                 else:
-                                    line += " / " + link(ln, contents["alt"]) + alt_tags
+                                    line += " / " + link(ln, contents["alt"])
 
                                 skip_list.append(contents["alt"])
+                            else:
+                                line += tags
 
-                            line += access
+                            if prop:
+                                MdRow([line, access, descr])
+                            else:
+                                MdRow([line, descr])
 
-                            MdRow([line, descr])
                             emitted = True
 
                         skip_list.append(method)
@@ -910,7 +1026,7 @@ def Create(log, schema, path, indent_size = 4):
                 if section in interface:
                     for method, props in interface[section].items():
                         if props and method not in skip_list:
-                            to_skip = MethodDump(method, props, plugin_class, section_name, header, event, prop)
+                            to_skip = MethodDump(method, props, ("<callsign>" if document_type == "interface" else plugin_class), section_name, header, event, prop)
 
                             if to_skip:
                                 skip_list.append(to_skip)
@@ -926,7 +1042,7 @@ def Create(log, schema, path, indent_size = 4):
         if event_count:
             SectionDump("Notifications",
                         "events",
-                        "event",
+                        "notification",
                         ("Notifications are autonomous events triggered by the internals of the implementation "
                          "and broadcasted via JSON-RPC to all registered observers. "
                          "Refer to [[Thunder](#ref.Thunder)] for information on how to register for a notification."),
