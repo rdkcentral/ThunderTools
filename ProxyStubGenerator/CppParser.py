@@ -85,6 +85,8 @@ class Metadata:
         self.sourcelocation = ""
         self.brief = ""
         self.details = ""
+        self.pre = ""
+        self.post = ""
         self.input = False
         self.output = False
         self.is_property = False
@@ -386,6 +388,14 @@ class Identifier():
                     skip = 1
                 elif token[1:] == "DETAILS":
                     self.meta.details = string[i + 1]
+                    skip = 1
+                elif token[1:] == "PRE":
+                    self.meta.pre = string[i + 1]
+                    print(self.meta.pre)
+                    skip = 1
+                elif token[1:] == "POST":
+                    self.meta.post = string[i + 1]
+                    print(self.meta.post)
                     skip = 1
                 elif token[1:] == "PARAM":
                     par = string[i + 1]
@@ -1741,6 +1751,8 @@ def __Tokenize(contents,log = None):
 
                 FindDoxyString("@brief", False, token, tagtokens)
                 FindDoxyString("@details", False, token, tagtokens)
+                FindDoxyString("@pre", False, token, tagtokens)
+                FindDoxyString("@post", False, token, tagtokens)
                 FindDoxyString("@param", True, token, tagtokens)
                 FindDoxyString("@retval", True, token, tagtokens)
 

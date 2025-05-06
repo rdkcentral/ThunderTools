@@ -321,6 +321,11 @@ def Create(log, schema, path, indent_size = 4):
 
                 MdParagraph(text)
 
+            if "preconditions" in props:
+                MdParagraph("Preconditions: %s" % props["preconditions"])
+            if "postconditions" in props:
+                MdParagraph("Postconditions: %s" % props["postconditions"])
+
             if is_property:
                 if "readonly" in props and props["readonly"]:
                     MdParagraph("> This property is **read-only**.")
