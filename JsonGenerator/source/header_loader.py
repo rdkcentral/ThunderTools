@@ -1202,7 +1202,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
-                                obj["id"]["@originalname"] = "designatorId"
+                                obj["id"]["@originalname"] = "_designatorId"
+                                obj["id"]["@generated"] = True
 
                                 if "example" not in obj["id"]:
                                     obj["id"]["example"] = "0" if obj["id"]["type"] == "integer" else "abc"
