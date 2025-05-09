@@ -1352,7 +1352,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if lookup:
                 impl = ("_%s%s" % (lookup["prefix"], impl)).lower()
                 interface = trim(lookup["name"])
-                emit.Line("%s%s* const %s = %s->%s.Lookup(%s, %s);" % ("const " if const_cast else "", interface, impl, names.storage, lookup["prefix"], names.context, names.instance_id))
+                emit.Line("%s%s* const %s = %s->%s.Lookup(%s, ::atol(%s.c_str()));" % ("const " if const_cast else "", interface, impl, names.storage, lookup["prefix"], names.context, names.instance_id))
                 call_conditions.extend("%s != nullptr" % impl)
 
             implementation_object = "(static_cast<const %s*>(%s))" % (interface, impl) if const_cast and not lookup else impl
@@ -1839,7 +1839,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 function_params.append("const %s&" % names.context_type)
 
             if needs_id:
-                function_params.append("const %s" % lookup["type"])
+                function_params.append("Core::JSONRPC::instance_id_follows_t")
+                function_params.append("const string&")
 
             if needs_index:
                 function_params.append("const string&")
@@ -1861,7 +1862,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             lambda_params.append("const %s& %s" % (names.context_type, names.context))
 
         if needs_id:
-            lambda_params.append("const %s %s" % (lookup["type"], names.instance_id))
+            lambda_params.append("Core::JSONRPC::instance_id_follows_t")
+            lambda_params.append("const string& %s" % (names.instance_id))
 
         if needs_index:
             lambda_params.append("const string& %s" % (index_name))
