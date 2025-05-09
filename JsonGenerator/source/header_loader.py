@@ -867,24 +867,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         faces = []
         faces.append((prefix, face.obj.methods))
 
-        """
-        for method in face.obj.methods:
-            if method.retval.meta.lookup:
-                var_type = ResolveTypedef(method.retval.type, method)
-
-                _prefix = ((method.retval.meta.lookup if (method.retval.meta.lookup and method.retval.meta.lookup != "*") else var_type.Type().name[1:].lower()) + "::")
-
-                if isinstance(var_type.Type(), CppParser.Class):
-                    faces.append(([StripFrameworkNamespace(var_type.type.full_name), method.name, method.vars[0].name], _prefix, var_type.Type().methods))
-
-                    if "@lookups" not in schema:
-                        schema["@lookups"] = []
-
-                    schema["@lookups"].append(faces[-1][0][0])
-                else:
-                    raise CppParseError(method, "lookup method for an unknown class")
-        """
-
         for prefix, _methods in faces:
           for method in _methods:
 
