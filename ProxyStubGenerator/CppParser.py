@@ -970,7 +970,9 @@ class Type:
         if self.IsPointer() and ref & Ref.POINTER:
             ref |= Ref.POINTER_TO_POINTER
         if isinstance(self.type, Typedef):
-            type = self.type.Resolve(self.ref | ref).Resolve()
+            type = self.type.Resolve(self.ref | ref)
+            if isinstance(type, Type):
+                type = type.Resolve()
         else:
             type = copy.deepcopy(self)
             type.ref |= ref
