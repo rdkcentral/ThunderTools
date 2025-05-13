@@ -328,9 +328,9 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                             emit.Unindent()
                             emit.Line("}")
                         elif prop.schema.get("@container"):
-                            emit.Line("for (auto const& _element : %s.%s%s) { %s.Add() = _element; }" % (other, (_prop_name), ".Value()" if prop.optional else "", prop.cpp_name))
+                            emit.Line("for (auto const& _element : %s.%s%s) { %s.Add() = _element; }" % (other, _prop_name, ".Value()" if prop.optional else "", prop.cpp_name))
                     else:
-                        emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name + (prop.convert_rhs if (type == "conv") else "")))
+                        emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name  + (((".Value()" if prop.optional else "") + prop.convert_rhs) if (type == "conv") else "")))
 
                     if (prop.optional and not prop.default_value) or _optional_or_opaque:
                         emit.Unindent()
@@ -414,15 +414,28 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         def _EmitConversionOperator(json_obj):
             emit.Line("operator %s() const" % (json_obj.cpp_native_type))
             emit.Line("{")
-            emit.Indent();
-            emit.Line("%s _value{};" % (json_obj.cpp_native_type))
+            emit.Indent()
+
+            temporary = "_value"
+            emit.Line("%s %s{};" % (json_obj.cpp_native_type, temporary))
 
             for prop in json_obj.properties:
+                actual_name = "%s.%s" % (temporary, prop.actual_name)
+                cpp_name = prop.cpp_name
+
                 if (prop.optional and not prop.default_value):
-                    emit.Line("if (%s.IsSet() == true) {" % (prop.cpp_name))
+                    emit.Line("if (%s.IsSet() == true) {" % cpp_name)
                     emit.Indent()
 
-                conv = (prop.convert if prop.convert else "%s = %s")
+                conv = "%s = %s"
+
+                if prop.convert:
+                    if prop.optional:
+                        cpp_name =  prop.TempName("Conv")
+                        emit.Line("%s %s{};" % (prop.cpp_native_type, cpp_name))
+                        emit.Line((prop.convert + ";") % (cpp_name, prop.cpp_name + ".Value()"))
+                    else:
+                        conv = prop.convert
 
                 if isinstance(prop, JsonArray) and (prop.schema.get("@arraysize") or (prop.schema.get("@container"))):
                     emit.Line("{")
@@ -430,20 +443,20 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
                     if prop.schema.get("@arraysize"):
                         emit.Line("uint16_t _i = 0;")
-                        emit.Line("auto _it = %s.Elements();" % prop.cpp_name)
+                        emit.Line("auto _it = %s.Elements();" % cpp_name)
                         emit.Line("while ((_it.Next() == true) && (_i < %s)) {" % prop.schema.get("@arraysize"))
                         emit.Indent()
-                        emit.Line("%s[_i++] = _it.Current();" % ("_value." + prop.actual_name))
+                        emit.Line("%s[_i++] = _it.Current();" % actual_name)
                         emit.Unindent()
                         emit.Line("}")
                     elif prop.schema.get("@container"):
-                        emit.Line("auto _it = %s.Elements();" % prop.cpp_name)
-                        emit.Line("while (_it.Next() == true) { %s%s.push_back(_it.Current()); }" % ("_value." + prop.actual_name, ".Value()" if prop.optional else ""))
+                        emit.Line("auto _it = %s.Elements();" % cpp_name)
+                        emit.Line("while (_it.Next() == true) { %s%s.push_back(_it.Current()); }" % (actual_name, ".Value()" if prop.optional else ""))
 
                     emit.Unindent()
                     emit.Line("}")
                 else:
-                    emit.Line((conv + ";") % ( ("_value." + prop.actual_name), prop.cpp_name))
+                    emit.Line((conv + ";") % (actual_name, cpp_name))
 
                 if (prop.optional and not prop.default_value):
                     emit.Unindent()

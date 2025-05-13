@@ -1313,10 +1313,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
                     emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
                     emit.Indent()
+
                     if param.convert and is_readable:
-                        emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
+                        temp =  param.TempName("Conv")
+                        emit.Line("%s %s{};" % (param.cpp_native_type, temp))
+                        emit.Line((param.convert + ";") % (temp, cpp_name + ".Value()"))
+                        emit.Line("%s = %s;" % (param.temp_name, temp))
                     else:
                         emit.Line("%s = %s;" % (param.temp_name, cpp_name))
+
                     emit.Unindent()
 
                     if param.default_value:
