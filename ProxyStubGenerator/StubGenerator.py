@@ -2608,6 +2608,7 @@ if __name__ == "__main__":
         print("   @optional              - indicates that a parameter, struct member or property index is optional (deprecated, use Core::OptionalType instead)")
         print("   @default {value}       - set a default value for an optional parameter")
         print("   @encode {method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
+        print("   @encode {lookup}       - encodes interface instances to json using lookup methods (lookup, autolookup) ")
         print("   @prefix {name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
         print("   @text {name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, struct members, property or notification")
         print("   @alt {name}            - provides an alternative name a JSON-RPC method or property can by called by")

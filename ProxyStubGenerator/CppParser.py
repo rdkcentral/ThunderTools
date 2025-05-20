@@ -92,7 +92,6 @@ class Metadata:
         self.length = None
         self.maxlength = None
         self.interface = None
-        self.lookup = None
         self.default = None
         self.alt = None
         self.text = None
@@ -425,13 +424,6 @@ class Identifier():
                     self.meta.is_property = True
                 elif tag == "ASYNC":
                     self.meta.decorators.append("async")
-                elif tag == "LOOKUP":
-                    self.meta.lookup = string[i + 1]
-                    if self.meta.lookup:
-                        self.meta.lookup = self.meta.lookup[0]
-                    else:
-                        self.meta.lookup = "*"
-                    skip = 1
                 elif tag == "BRIEF":
                     self.meta.brief = string[i + 1]
                     skip = 1
@@ -1065,6 +1057,7 @@ class Class(Identifier, Block):
         self.omit_mode = False
         self.stub = False
         self.is_json = False
+        self.is_custom_lookup = False
         self.json_version = ""
         self.json_prefix = ""
         self.is_event = False
@@ -1520,6 +1513,7 @@ class TemplateClass(Class):
         instance.ancestors = self.ancestors
         instance.specifiers = self.specifiers
         instance.is_json = self.is_json
+        instance.is_custom_lookup = self.is_custom_lookup
         instance.json_version = self.json_version
         instance.json_prefix = self.json_prefix
         instance.is_extended = self.is_extended
@@ -1775,8 +1769,6 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@PROPERTY")
                 if _find("@async", token):
                     tagtokens.append("@ASYNC")
-                if _find("@lookup", token):
-                    tagtokens.append(__ParseParameterValue(token, "@lookup", False))
                 if _find("@deprecated", token):
                     tagtokens.append("@DEPRECATED")
                 if _find("@obsolete", token):
@@ -1787,6 +1779,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@json", False))
                 if _find("@event", token):
                     tagtokens.append("@EVENT")
+                if _find("@encode:lookup", token):
+                    tagtokens.append("@ENCODE-LOOKUP")
                 if _find("@statuslistener", token):
                     tagtokens.append("@STATUSLISTENER")
                 if _find("@prefix", token):
@@ -1994,6 +1988,7 @@ def Parse(contents,log = None):
     omit_mode = False
     omit_next = False
     stub_next = False
+    object_next = False
     json_next = False
     json_version = ""
     prefix_next = False
@@ -2037,6 +2032,10 @@ def Parse(contents,log = None):
             tokens[i] = ";"
             tokens[i+1] = ";"
             i += 2
+        elif tokens[i] == "@ENCODE-LOOKUP":
+            object_next = True
+            tokens[i] = ';'
+            i += 1
         elif tokens[i] == "@PREFIX":
             prefix_next = True
             prefix_string = " ".join(tokens[i+1])
@@ -2087,6 +2086,7 @@ def Parse(contents,log = None):
             omit_next = False
             stub_next = False
             json_next = False
+            object_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -2130,7 +2130,7 @@ def Parse(contents,log = None):
         # Parse type alias...
         elif isinstance(current_block[-1], (Namespace, Class)) and tokens[i] == "typedef":
             if json_next or event_next or omit_next or stub_next or exclude_next:
-                raise ParserError("@json, @event and @stubgen tags are invalid here")
+                raise ParserError("@json, @event and @stubgen tags invalid here")
 
             j = i + 1
             while tokens[j] != ";":
@@ -2218,6 +2218,9 @@ def Parse(contents,log = None):
                 new_class.is_extended = extended_next
                 new_class.is_compliant = compliant_next
             if json_next:
+                if object_next:
+                    new_class.is_custom_lookup = True
+                    object_next = False
                 new_class.is_json = True
                 new_class.json_version = json_version
                 if event_next:
@@ -2250,6 +2253,7 @@ def Parse(contents,log = None):
                 text_next = None
 
             json_next = False
+            object_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -2348,6 +2352,7 @@ def Parse(contents,log = None):
                 raise ParserError("@event tag is invalid here")
 
             json_next = False
+            object_next = False
             text_next = None
 
             # concatenate tokens to handle operators and destructors

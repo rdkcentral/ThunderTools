@@ -294,6 +294,10 @@ class JsonType():
         return self.cpp_native_type_proto.replace('@', self.local_name)
 
     @property
+    def cpp_concrete_type(self):
+        return self.cpp_native_type
+
+    @property
     def is_void(self):
         return (self.cpp_type == "void")
 
@@ -397,8 +401,11 @@ class JsonString(JsonNative, JsonType):
 
     @property
     def cpp_native_type(self):
-        return self.original_type if self.original_type else "string"
+        return "string"
 
+    @property
+    def cpp_concrete_type(self):
+        return "string"
 
 class JsonInstanceId(JsonNative, JsonType):
     @property
