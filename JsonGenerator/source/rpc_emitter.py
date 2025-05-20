@@ -1936,7 +1936,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             template_params.append("std::function<uint32_t(%s)>" % (", ".join(function_params)))
 
-        emit.Line("%s.PluginHost::JSONRPC::Register<%s>(%s, " % (names.module, (", ".join(template_params)), Tstring(m.json_name)))
+        emit.Line("%s.PluginHost::JSONRPC::template Register<%s>(%s, " % (names.module, (", ".join(template_params)), Tstring(m.json_name)))
         emit.Indent()
 
         lambda_params = []
