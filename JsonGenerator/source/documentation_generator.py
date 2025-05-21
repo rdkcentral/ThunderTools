@@ -210,7 +210,7 @@ def Create(log, schema, path, indent_size = 4):
                     else:
                         obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
 
-                    if obj.get("@lookupid"):
+                    if obj.get("@lookup-id"):
                         if row == "...":
                             row = ""
                         elif row:
@@ -271,6 +271,8 @@ def Create(log, schema, path, indent_size = 4):
 
                 if obj.get("opaque"):
                     json_data += default if default else "{ }"
+                elif "@lookup-id" in obj:
+                    json_data += '"%s"' % (default if default else ("1" if obj["@lookup-type"] == "auto" else "id1"))
                 else:
                     json_data += '"%s"' % (default if default else "...")
 
@@ -390,14 +392,16 @@ def Create(log, schema, path, indent_size = 4):
                 events = [props["events"]] if isinstance(props["events"], str) else props["events"]
                 MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), events))))
 
+            idex = ("1" if props["@lookup"]["id"] == "@generate" else "id1") if "@lookup" in props else ""
+
             if is_notification:
                 if "@lookup" in props:
                     _obj_prefix = props["@lookup"]["prefix"].lower()
                     _registrant = "%s#<%s-id>::register" % (_obj_prefix, _obj_prefix)
-                    _registrant2 ="%s#1::register" % (_obj_prefix)
+                    _registrant2 ="%s#%s::register" % (_obj_prefix, idex)
                     notification_event = method[method.rfind(':') + 1:]
                     notification_generic_method = "<client-id>." + ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
-                    notification_example_method = "myid." + "#1::".join(method.rsplit("::", 1))
+                    notification_example_method = "myid." + ("#%s::" % idex).join(method.rsplit("::", 1))
                 else:
                     _registrant = "register"
                     _registrant2 = "register"
@@ -414,7 +418,7 @@ def Create(log, schema, path, indent_size = 4):
             else:
                 if "@lookup" in props:
                     _obj_prefix = props["@lookup"]["prefix"].lower()
-                    _example_callee = "#1::".join(method.rsplit("::", 1))
+                    _example_callee = ("#%s::" % idex).join(method.rsplit("::", 1))
                     _callee = ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
                     generic_lookup_method = _callee
                 else:
@@ -501,8 +505,8 @@ def Create(log, schema, path, indent_size = 4):
                     if "@async" in props:
                         MdParagraph("> This method is asynchronous.")
 
-                    if "result" in props and "@lookupid" in props["result"]:
-                        MdParagraph("> This method creates an instance of a *%s* object." % props["result"]["@lookupid"].lower())
+                    if "result" in props and "@lookup-id" in props["result"] and props["result"].get("@lookup-type") == "auto":
+                        MdParagraph("> This method creates an instance of a *%s* object." % props["result"]["@lookup-id"].lower())
 
                     MdHeader("Parameters", 3)
 
@@ -608,6 +612,9 @@ def Create(log, schema, path, indent_size = 4):
 
                     if "id" in props:
                         MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``." % (props["id"]["name"], notification_generic_method))
+
+                    if "@lookup" in props:
+                        MdParagraph("> The *%s instance id* parameter is passed within the notification designator, i.e. ``%s``." % (props["@lookup"]["prefix"].lower(), notification_generic_method))
 
                 if not is_notification and not is_property:
                     if "result" not in props:

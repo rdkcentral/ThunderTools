@@ -202,6 +202,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         if face.obj.is_json:
             schema["mode"] = "auto"
+
+            if face.obj.is_custom_lookup:
+                schema["custom_lookup"] = True
+
             rpc_format = _EvaluateRpcFormat(face.obj)
             assert not face.obj.is_event
         else:
@@ -556,9 +560,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         result = [ "@context", {} ]
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
+                    elif cppType.is_json and cppType.is_custom_lookup:
+                        objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "string", { "@lookup-id": objprefix, "@lookup-type": "custom" } ]
+                        if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
+                            passed_interfaces.append({ "name": cppType.full_name, "id": "@custom", "type": "string", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
                     elif cppType.is_json:
                         objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
-                        result =  [ "integer", { "size": 32, "signed": False, "@lookupid": objprefix } ]
+                        result =  [ "integer", { "size": 32, "signed": False, "@lookup-id": objprefix, "@lookup-type": "auto" } ]
                         if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
                             passed_interfaces.append({ "name": cppType.full_name, "id": "@generate", "type": "uint32_t", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
                     else:
