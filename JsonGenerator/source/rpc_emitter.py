@@ -946,7 +946,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line("// Unregister event status listeners...")
 
             for event in listener_events:
-                emit.Line("%s.JSONRPCSupportsEventStatus::UnregisterEventStatusListener(%s);" % (names.module, Tstring(event.json_name).replace("#ID","")))
+                emit.Line("%s.PluginHost::JSONRPCSupportsEventStatus::UnregisterEventStatusListener(%s);" % (names.module, Tstring(event.json_name).replace("#ID","")))
 
     def _EmitIndexing(index, index_name):
         restrictions = Restrictions(json=False, adjust=False)
