@@ -502,6 +502,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     props = { "items": ConvertParameter(cppType.element), "@container": "vector" }
 
+                    if meta.range:
+                        props["range"] = meta.range
+
                     if encoding:
                         if not isinstance(cppType.element.Type().type, CppParser.Integer) or cppType.element.Type().type.size != "char":
                             raise CppParseError(var, "invalid type for encoded std::vector")
@@ -726,9 +729,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             method_asynchronous = False
 
-            for var in vars:
+            for idx,var in enumerate(vars):
                 if isinstance(var.type, list):
-                    raise CppParseError(var, "unknown type ")
+                    raise CppParseError(var, "unknown type")
 
                 if var.meta.input or not var.meta.output:
                     if verify:
@@ -743,14 +746,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
 
-                    if var_name.startswith("__unnamed") and not test:
-                        raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*1)")
+                    if var_name.startswith("__anonymous_") and not test:
+                        raise CppParseError(var.parent, "unnamed parameter %s (input)" % (idx + 1))
 
                     converted = ConvertParameter(var, test)
 
                     if converted["type"] == "string" and "@async" in converted:
                         if method_asynchronous:
                             raise CppParseError(method, "multiple callbacks defined")
+
                         var_name = compute_name("Id", _case_converter.PARAMS)
                         method_asynchronous = True
 
@@ -766,7 +770,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         else:
                             raise CppParseError(var, "context parameter is only valid for methods")
                     else:
-                        if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
+                        if not is_property and not var.name.startswith("__anonymous_"):
                             converted["@originalname"] = var.name
 
                         converted["@position"] = vars.index(var)
@@ -819,14 +823,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             properties = OrderedDict()
             required = []
 
-            for var in vars:
+            for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
                     var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
 
-                    if var_name.startswith("__unnamed"):
-                        raise CppParseError(var, "unnamed parameter, can't deduce parameter name (*2)")
+                    if var_name.startswith("__anonymous_"):
+                        raise CppParseError(var, "unnamed parameter %s (result)" % (idx + 1))
 
                     properties[var_name] = ConvertParameter(var)
 
@@ -836,7 +840,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if var_type.IsConst():
                         raise CppParseError(var, "parameter marked with @out tag must not be const")
 
-                    if not is_property and not var.name.startswith("@_") and not var.name.startswith("__unnamed"):
+                    if not is_property and not var.name.startswith("__anonymous_"):
                         properties[var_name]["@originalname"] = var.name
 
                     properties[var_name]["@position"] = vars.index(var)

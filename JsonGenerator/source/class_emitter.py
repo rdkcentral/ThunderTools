@@ -169,16 +169,17 @@ class Restrictions:
                         tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), ".size()", self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
-                    if range[0]:
-                        tests.append("%s.Length() %s %s" % (name, self.__comp[0], range[0]))
+                    if "@container" in relay.schema:
+                        if range[0]:
+                            tests.append("%s.Length() %s %s" % (name, self.__comp[0], range[0]))
 
-                    tests.append("%s.Length() %s %s" % (name, self.__comp[1], range[1]))
+                        tests.append("%s.Length() %s %s" % (name, self.__comp[1], range[1]))
 
-                elif not isinstance(relay, JsonObject):
-                    if range[0] or relay.schema.get("signed"):
-                        tests.append("%s %s %s" % (name, self.__comp[0], range[0]))
+                    elif not isinstance(relay, JsonObject):
+                        if range[0] or relay.schema.get("signed"):
+                            tests.append("%s %s %s" % (name, self.__comp[0], range[0]))
 
-                    tests.append("%s %s %s" % (name, self.__comp[1], range[1]))
+                        tests.append("%s %s %s" % (name, self.__comp[1], range[1]))
 
             if tests:
                 if test_set and self.__json and json:

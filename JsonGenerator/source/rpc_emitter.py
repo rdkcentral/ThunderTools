@@ -1148,8 +1148,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     size = param_meta.flags.size
                     emit.Line("%s %s[%s]{};" % (param.original_type, param.temp_name, size))
                 else:
-                    dest_var = param.TempName("vector") if param.optional else param.temp_name
-                    emit.Line("%s %s{};" % (param.original_type, dest_var))
+                    dest_var = param.TempName("container") if param.optional and is_readable else param.temp_name
+                    if is_readable:
+                        emit.Line("%s %s{};" % (param.original_type, dest_var))
+                    else:
+                        emit.Line("%s %s{};" % (param.original_type_opt, dest_var))
                     size = (str(param.schema.get("range")[1]) + " + 1") if "range" in param.schema else "-1"
 
                 if length_param:
@@ -1344,6 +1347,22 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("auto _it = %s.Elements();" % (parent + param.cpp_name))
                         emit.Line("while ((_it.Next() == true) && (_i < %s)) { %s[_i++] = _it.Current(); }" % (size, param.items.temp_name))
                         emit.ExitBlock(conditions, scoped=True)
+
+                elif param_meta.flags.container:
+                    emit.Line("%s %s;" % (param.cpp_native_type_opt, param.temp_name))
+
+                    if is_readable:
+                        temp = param.TempName("It")
+                        vector = param.TempName("container") if param.optional else param.temp_name
+
+                        if param.optional:
+                            emit.Line("%s %s;" % (param.original_type, vector))
+
+                        emit.Line("auto %s = %s.Elements();" % (temp, parent + param.cpp_name))
+                        emit.Line("while ((%s.Next() == true) { %s.push_back(%s.Current()); }" % (temp, vector, temp))
+
+                        if param.optional:
+                            emit.Line("%s = std::move(%s);" % (param.temp_name, vector))
 
                 elif is_json_source:
                     response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
@@ -1555,8 +1574,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 elif isinstance(param, JsonString) and param_meta.flags.encode and "@container" in param.schema:
                     source_var = param.temp_name
+
                     if param.optional:
                         source_var += ".Value()"
+                        emit.Line("if (%s.IsSet() == true) {" % param.temp_name)
+                        emit.Indent()
+
                     if param_meta.flags.encode in ["base64", "mac", "hex"]:
                         encoded_name = param.TempName("encoded_")
                         emit.Line("string %s;" % (encoded_name))
@@ -1569,6 +1592,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
+
+                    if param.optional:
+                        emit.Unindent()
+                        emit.Line("}")
 
                 elif isinstance(param, JsonArray):
                     if param.iterator:
@@ -1610,43 +1637,20 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         else:
                             size = param_meta.flags.size
 
-                        if conditions.count():
-                            emit.Line("if (%s) {" % conditions.join())
-                            emit.Indent()
-
-                        emit.Line("%s.Clear();" % cpp_name)
+                        emit.EnterBlock(conditions)
                         emit.Line("for (uint16_t _i = 0; _i < %s; _i++) { %s.Add() = %s[_i]; }" % (size, cpp_name, rhs))
+                        emit.ExitBlock(conditions)
 
-                        if conditions.count():
-                            emit.Unindent()
-                            emit.Line("}")
-                            emit.Line("else {")
-                            emit.Indent()
-                            emit.Line("%s.Null(true);" % cpp_name)
-                            emit.Unindent()
-                            emit.Line("}")
-                            emit.Line()
 
                     elif param.schema.get("@container"):
                         conditions = Restrictions(reverse=True)
                         conditions.check_set(param)
+                        suffix = ".Value()" if param.optional else ""
 
-                        if conditions.count():
-                            emit.Line("if (%s) {" % conditions.join())
-                            emit.Indent()
+                        emit.EnterBlock(conditions)
+                        emit.Line("for (auto const& _elem__ : %s%s ) { %s.Add() = _elem__; }" % (param.temp_name, suffix, cpp_name))
+                        emit.ExitBlock(conditions)
 
-                        emit.Line("%s.Clear();" % cpp_name)
-                        emit.Line("for (auto const& _elem__ : %s%s ) { %s.Add() = _elem__; }" % (param.temp_name, ".Value()" if param.optional else "", cpp_name))
-
-                        if conditions.count():
-                            emit.Unindent()
-                            emit.Line("}")
-                            emit.Line("else {")
-                            emit.Indent()
-                            emit.Line("%s.Null(true);" % cpp_name)
-                            emit.Unindent()
-                            emit.Line("}")
-                            emit.Line()
                     else:
                         raise RPCEmitterError("unable to serialize a non-iterator array: %s" % param.json_name)
 
