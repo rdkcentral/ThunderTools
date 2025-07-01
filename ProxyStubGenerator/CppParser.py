@@ -1751,6 +1751,7 @@ def __Tokenize(contents,log = None):
                         tagtokens.append("@OMITSTART")
                     omit_depth += 1
                 if _find("@_omit_end", token):
+                    assert omit_depth > 0
                     omit_depth -= 1
                     if omit_depth == 0:
                         tagtokens.append("@OMITEND")
@@ -2585,62 +2586,75 @@ def Parse(contents,log = None):
 
 
 def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
-    contents = initial
+    contents = ""
     global current_file
-    try:
-        with open(source_file) as file:
-            file_content = file.read()
-            pos = 0
-            while True:
-                idx = file_content.find("@stubgen:include", pos)
-                if idx == -1:
-                    idx = file_content.find("@insert", pos)
-                if idx != -1:
-                    pos = idx + 1
-                    line = file_content[idx:].split("\n", 1)[0]
-                    match = re.search(r' \"(.+?)\"', line)
-                    if match:
-                        if match.group(1) != os.path.basename(os.path.realpath(source_file)):
-                            tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
-                            if os.path.isfile(tryPath):
-                                prev = current_file
-                                current_file = source_file
-                                contents += ReadFile(tryPath, includePaths, False, contents, True)
-                                current_file = prev
-                            else:
-                                raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
-                        else:
-                            raise LoaderError(source_file, "can't recursively include self")
-                    else:
-                        match = re.search(r' <(.+?)>', line)
+    abs_source_file = os.path.abspath(source_file)
+
+    if abs_source_file not in initial:
+        try:
+            with open(source_file) as file:
+                file_content = file.read()
+                pos = 0
+                while True:
+                    idx = file_content.find("@stubgen:include", pos)
+                    if idx == -1:
+                        idx = file_content.find("@insert", pos)
+
+                    if idx != -1:
+                        pos = idx + 1
+                        line = file_content[idx:].split("\n", 1)[0]
+                        match = re.search(r' \"(.+?)\"', line)
+
                         if match:
-                            found = False
-                            for ipath in includePaths:
-                                tryPath = os.path.join(ipath, match.group(1))
+                            if match.group(1) != os.path.basename(os.path.realpath(source_file)):
+                                tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
+
                                 if os.path.isfile(tryPath):
                                     prev = current_file
                                     current_file = source_file
-                                    contents += ReadFile(tryPath, includePaths, True, contents, True)
+                                    contents += ReadFile(tryPath, includePaths, False, contents, True)
                                     current_file = prev
-                                    found = True
-                            if not found:
-                                raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
+                                else:
+                                    raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
+                            else:
+                                raise LoaderError(source_file, "can't recursively include self")
                         else:
-                            raise LoaderError(source_file, "syntax error at '%s'" % source_file)
-                else:
-                    break
+                            match = re.search(r' <(.+?)>', line)
 
-            contents += "// @_file:%s\n" % source_file
-            if omit:
-                contents += "// @_omit_start\n"
-            contents += file_content
-            if omit:
-                contents += "// @_omit_end\n"
-            return contents
-    except FileNotFoundError:
-        if not quiet:
-            raise LoaderError(source_file, "failed to open file")
-        return ""
+                            if match:
+                                found = False
+                                for ipath in includePaths:
+                                    tryPath = os.path.join(ipath, match.group(1))
+
+                                    if os.path.isfile(tryPath):
+                                        prev = current_file
+                                        current_file = source_file
+                                        contents += ReadFile(tryPath, includePaths, True, contents, True)
+                                        current_file = prev
+                                        found = True
+                                if not found:
+                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
+                            else:
+                                raise LoaderError(source_file, "syntax error at '%s'" % source_file)
+                    else:
+                        break
+
+                contents += "// @_file:%s\n" % abs_source_file
+
+                if omit:
+                    contents += "// @_omit_start\n"
+                    contents += file_content
+                    contents += "// @_omit_end\n"
+                else:
+                    contents += file_content
+
+                return contents
+
+        except FileNotFoundError:
+            if not quiet:
+                raise LoaderError(source_file, "failed to open file")
+
+    return ""
 
 
 def Locate(block_name, tree=None):
