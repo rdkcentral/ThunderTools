@@ -88,9 +88,4 @@ namespace __FRAMEWORK_NAMESPACE__ {
     };
   }
 
-  namespace RPC {
-    class IStringIterator;
-    class IValueIterator;
-  }
-
 }
