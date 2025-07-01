@@ -19,8 +19,8 @@
 
 //
 // Forward declarations of types used by the interfaces.
-// Included by default by the stub generator.
-// (fundamental types, stdint and string types are built into the generator)
+// Included by default by the ProxyStubGenerator.
+// (Fundamental types, stdint and string types are built into the generator)
 //
 
 #pragma once
