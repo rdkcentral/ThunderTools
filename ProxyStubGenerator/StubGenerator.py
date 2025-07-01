@@ -1267,7 +1267,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             params = []
 
             if method.retval:
-                if isinstance(method.retval, list) or not method.retval.type.IsVoid():
+                if isinstance(method.retval, list) or isinstance(method.retval.type, list) or not method.retval.type.IsVoid():
                     retval = EmitRetVal(interface, method.retval, vars["result"])
 
             for index, var in enumerate(method.vars):
