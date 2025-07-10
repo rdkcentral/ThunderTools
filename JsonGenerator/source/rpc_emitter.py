@@ -305,11 +305,11 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
                             if not length_param:
                                 raise RPCEmitterError("@length parameter not found: %s" % length_value)
-                            else:
-                                if length_param.optional:
-                                    emit.Line("if (%s.IsSet() == true) {" % length_value)
-                                    emit.Indent()
-                                    length_value += ".Value()"
+
+                            if length_param.optional:
+                                emit.Line("if (%s.IsSet() == true) {" % length_value)
+                                emit.Indent()
+                                length_value += ".Value()"
 
                             if legacy_array:
                                 emit.Line("%s = %s;" % (cpp_name, local_name))
@@ -1480,6 +1480,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("}")
 
                 elif isinstance(param, JsonArray):
+                    if not param.optional:
+                        emit.Line("%s.Set(true);" % cpp_name)
+
                     if param.iterator:
                         conditions = Restrictions(reverse=True)
                         conditions.check_set(param)
@@ -1538,6 +1541,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 # All others...
                 else:
+                    if isinstance(param, JsonObject):
+                        if not param.optional:
+                            emit.Line("%s.Set(true);" % cpp_name)
+
                     if param_meta.flags.store_lookup:
                        emit.Line("%s = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Store<%s>(_real%s, %s);" % (param.temp_name, names.module, trim(param.original_type), param.temp_name, names.context))
                        emit.Line("_real%s->Release();" % param.temp_name)
