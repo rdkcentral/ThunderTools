@@ -329,8 +329,14 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                             emit.Unindent()
                             emit.Line("}")
                         elif prop.schema.get("@container"):
+                            if not optional_type and type == "conv":
+                                emit.Line("%s.Set(true);" % prop.cpp_name)
+
                             emit.Line("for (auto const& _element : %s.%s%s) { %s.Add() = _element; }" % (other, _prop_name, ".Value()" if prop.optional else "", prop.cpp_name))
                     else:
+                        if isinstance(prop, (JsonArray, JsonObject)) and not optional_type and type == "conv":
+                            emit.Line("%s.Set(true);" % prop.cpp_name)
+
                         emit.Line("%s = %s.%s;" % (prop.cpp_name, other, _prop_name  + (((".Value()" if prop.optional else "") + prop.convert_rhs) if (type == "conv") else "")))
 
                     if (prop.optional and not prop.default_value) or _optional_or_opaque:
