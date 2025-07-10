@@ -1541,19 +1541,23 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 # All others...
                 else:
+                    final_rhs = rhs + param.convert_rhs
+
                     if isinstance(param, JsonObject):
                         if not param.optional:
                             emit.Line("%s.Set(true);" % cpp_name)
 
                     if param_meta.flags.store_lookup:
-                       emit.Line("%s = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Store<%s>(_real%s, %s);" % (param.temp_name, names.module, trim(param.original_type), param.temp_name, names.context))
-                       emit.Line("_real%s->Release();" % param.temp_name)
+                        emit.Line("%s = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Store<%s>(_real%s, %s);" % (param.temp_name, names.module, trim(param.original_type), param.temp_name, names.context))
+                        emit.Line("_real%s->Release();" % param.temp_name)
+                        final_rhs = "std::move(%s)" % final_rhs
                     elif param_meta.flags.custom_store_lookup:
                         emit.Line("%s = %s.PluginHost::JSONRPCSupportsObjectLookup::template InstanceId<%s>(_real%s, %s);" % (param.temp_name, names.module, trim(param.original_type), param.temp_name, names.context))
                         emit.Line("_real%s->Release();" % param.temp_name)
+                        final_rhs = "std::move(%s)" % final_rhs
 
                     # assignment operator takes care of OptionalType
-                    emit.Line("%s = %s;" % (cpp_name, rhs + param.convert_rhs))
+                    emit.Line("%s = %s;" % (cpp_name, final_rhs))
 
                     if param.schema.get("opaque") and not repsonse_parent: # if comes from a struct it already has a SetQuoted
                         emit.Line("%s.SetQuoted(false);" % (cpp_name))
@@ -1714,7 +1718,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         if custom_lookup_interfaces:
             for i in custom_lookup_interfaces:
-                emit.Line("ASSERT(%s.template Exists<%s>());" % (names.module, trim(i["name"])))
+                emit.Line("ASSERT(%s.template Exists<%s>() == true);" % (names.module, trim(i["name"])))
             emit.Line()
 
         emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (names.module, Tstring(names.namespace)))
