@@ -1058,6 +1058,7 @@ class Class(Identifier, Block):
         self.stub = False
         self.is_json = False
         self.is_custom_lookup = False
+        self.is_auto_lookup = False
         self.json_version = ""
         self.json_prefix = ""
         self.is_event = False
@@ -1514,6 +1515,7 @@ class TemplateClass(Class):
         instance.specifiers = self.specifiers
         instance.is_json = self.is_json
         instance.is_custom_lookup = self.is_custom_lookup
+        instance.is_auto_lookup = self.is_auto_lookup
         instance.json_version = self.json_version
         instance.json_prefix = self.json_prefix
         instance.is_extended = self.is_extended
@@ -1782,6 +1784,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@EVENT")
                 if _find("@encode:lookup", token):
                     tagtokens.append("@ENCODE-LOOKUP")
+                if _find("@encode:autolookup", token):
+                    tagtokens.append("@ENCODE-AUTOLOOKUP")
                 if _find("@statuslistener", token):
                     tagtokens.append("@STATUSLISTENER")
                 if _find("@prefix", token):
@@ -1990,6 +1994,7 @@ def Parse(contents,log = None):
     omit_next = False
     stub_next = False
     object_next = False
+    autoobject_next = False
     json_next = False
     json_version = ""
     prefix_next = False
@@ -2035,6 +2040,10 @@ def Parse(contents,log = None):
             i += 2
         elif tokens[i] == "@ENCODE-LOOKUP":
             object_next = True
+            tokens[i] = ';'
+            i += 1
+        elif tokens[i] == "@ENCODE-AUTOLOOKUP":
+            autoobject_next = True
             tokens[i] = ';'
             i += 1
         elif tokens[i] == "@PREFIX":
@@ -2088,6 +2097,7 @@ def Parse(contents,log = None):
             stub_next = False
             json_next = False
             object_next = False
+            autoobject_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -2222,6 +2232,9 @@ def Parse(contents,log = None):
                 if object_next:
                     new_class.is_custom_lookup = True
                     object_next = False
+                if autoobject_next:
+                    new_class.is_auto_lookup = True
+                    autoobject_next = False
                 new_class.is_json = True
                 new_class.json_version = json_version
                 if event_next:
@@ -2255,6 +2268,7 @@ def Parse(contents,log = None):
 
             json_next = False
             object_next = False
+            autoobject_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -2354,6 +2368,7 @@ def Parse(contents,log = None):
 
             json_next = False
             object_next = False
+            autoobject_next = False
             text_next = None
 
             # concatenate tokens to handle operators and destructors

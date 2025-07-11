@@ -203,8 +203,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         if face.obj.is_json:
             schema["mode"] = "auto"
 
+            if face.obj.is_custom_lookup and face.obj.is_auto_lookup:
+                raise CppParseError(face.obj, "interface cannot be auto lookup and custom lookup at the same time")
+
             if face.obj.is_custom_lookup:
                 schema["custom_lookup"] = True
+                log.Info("Interface %s is custom lookup" % face.obj.full_name)
+            elif face.obj.is_custom_lookup:
+                schema["auto_lookup"] = True
+                log.Info("Interface %s is auto lookup" % face.obj.full_name)
 
             rpc_format = _EvaluateRpcFormat(face.obj)
             assert not face.obj.is_event
@@ -568,7 +575,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         result =  [ "string", { "@lookup-id": objprefix, "@lookup-type": "custom" } ]
                         if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
                             passed_interfaces.append({ "name": cppType.full_name, "id": "@custom", "type": "string", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
-                    elif cppType.is_json:
+                    elif cppType.is_json and cppType.is_auto_lookup:
                         objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
                         result =  [ "integer", { "size": 32, "signed": False, "@lookup-id": objprefix, "@lookup-type": "auto" } ]
                         if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
@@ -576,32 +583,31 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     else:
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
-                        else:
-                            if "async" in method.retval.meta.decorators:
-                                async_method = dict()
-                                for im in cppType.methods:
-                                    if im.IsVirtual() and not im.IsDestructor():
-                                        if not async_method:
-                                            async_method["name"] = prefix + compute_name(method.retval, _case_converter.EVENTS, method)
-                                            async_method["@originalname"] = im.name
-                                            async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
-                                            async_method["params"] = BuildParameters(None, im.vars, rpc_format)
+                        elif "async" in method.retval.meta.decorators:
+                            async_method = dict()
+                            for im in cppType.methods:
+                                if im.IsVirtual() and not im.IsDestructor():
+                                    if not async_method:
+                                        async_method["name"] = prefix + compute_name(method.retval, _case_converter.EVENTS, method)
+                                        async_method["@originalname"] = im.name
+                                        async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
+                                        async_method["params"] = BuildParameters(None, im.vars, rpc_format)
 
-                                            if BuildResult(im.vars)["type"] != "null":
-                                                raise CppParseError(im, "async callback method must not return anything")
+                                        if BuildResult(im.vars)["type"] != "null":
+                                            raise CppParseError(im, "async callback method must not return anything")
 
-                                            if not isinstance(im.retval.Type().type, CppParser.Void):
-                                                raise CppParseError(im, "async callback method must have void return value")
-                                        else:
-                                            log.WarnLine(var, "'%s': callback interface has mulitple methods; the first one ('%s') will be used for JSON-RPC notification" % (cppType.name, async_method["@originalname"]))
-                                            break
+                                        if not isinstance(im.retval.Type().type, CppParser.Void):
+                                            raise CppParseError(im, "async callback method must have void return value")
+                                    else:
+                                        log.WarnLine(var, "'%s': callback interface has mulitple methods; the first one ('%s') will be used for JSON-RPC notification" % (cppType.name, async_method["@originalname"]))
+                                        break
 
-                                if async_method:
-                                    result = [ "string", { "@async": async_method } ]
-                                else:
-                                    raise CppParseError(var, "callback interface has no methods defined")
+                            if async_method:
+                                result = [ "string", { "@async": async_method } ]
                             else:
-                                raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-@json interface is not possible)" % cppType.type)
+                                raise CppParseError(var, "callback interface has no methods defined")
+                        else:
+                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-lookup interface is not possible)" % cppType.type)
 
                 # All other types are not supported
                 else:
