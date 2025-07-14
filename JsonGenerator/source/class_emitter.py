@@ -203,7 +203,7 @@ def ProcessEnums(log, action=None):
     count = 0
 
     for obj in trackers.enum_tracker.objects:
-        if not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
+        if not obj.omit and not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
             obj.schema["@register"] = False
             count += 1
             if action:

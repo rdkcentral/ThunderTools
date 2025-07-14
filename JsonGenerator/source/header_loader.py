@@ -171,7 +171,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
 
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if ((i.obj.is_json) or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
@@ -260,6 +260,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         info["interface"] = StripInterfaceNamespace("::" + "::".join(scoped_face))
         info["sourcefile"] = os.path.basename(file)
+
+        if face.obj.omit_mode:
+             schema["@omit"] = True
 
         if face.obj.sourcelocation:
             info["sourcelocation"] = face.obj.sourcelocation
@@ -498,6 +501,19 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         result = ["array", { "items": props } ]
                     else:
                         result = ["string", props]
+
+                    p = cppType.parent
+                    while p:
+                        if isinstance(p, CppParser.Class):
+                            if p.is_json:
+                                while p:
+                                    if p.omit_mode:
+                                        log.Info("Enum will be omitted due to json-import", cppType)
+                                        props["omit"] = True
+                                        break
+                                    p = p.parent
+                                break
+                        p = p.parent
 
                     if meta.range and not quiet:
                         log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)

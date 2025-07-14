@@ -50,7 +50,7 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
         if "interface" in schema:
             schema = schema["interface"]
 
-        if "info" in schema:
+        if "info" in schema and not schema.get("@omit"):
             if "class" in schema["info"]:
                 pluginClass = schema["info"]["class"]
             else:
