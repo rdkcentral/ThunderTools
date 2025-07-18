@@ -162,11 +162,152 @@ class CppParseError(RuntimeError):
         else:
             super(CppParseError, self).__init__(msg)
 
+def StripFrameworkNamespace(identifier):
+    return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
+
+def compute_name(log, case_converter, obj, arg, relay=None):
+    if isinstance(obj, str):
+        return case_converter.transform(obj, arg)
+    else:
+        if not relay:
+            relay = obj
+
+        _orig_name = ("value" if ((arg == case_converter.PROPERTY_PARAMS) and not case_converter.is_keep) else relay.name)
+
+        _name = case_converter.transform(_orig_name, arg)
+
+        if obj.meta.text == _name:
+            log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
+
+        return (obj.meta.text if obj.meta.text else _name)
+
+def BuildEnum(log, _case_converter, cppType, meta, var=None, extra_decorators=[], quiet=False):
+    props = { "enum": [compute_name(log, _case_converter, e, _case_converter.ENUMS) for e in cppType.items] }
+
+    if cppType.scoped:
+        props["scoped"] = True
+
+    props["ids"] = [e.name for e in cppType.items]
+
+    if not cppType.items:
+        raise CppParseError(var, "%s: no enumerators in enum" % cppType.name)
+
+    if not cppType.items[0].auto_value:
+        try:
+            props["values"] = [int(e.value) for e in cppType.items]
+        except:
+            log.InfoLine(var, "'%s': unparsable enum values" % var.name)
+
+    for e in cppType.items:
+        if "endmarker" in e.meta.decorators:
+            props["@endmarker"] = e.name
+            break
+
+    if var:
+        if isinstance(var.type.Type(), CppParser.Typedef):
+            type = var.type.Type().type.type
+            if not isinstance(type.parent, CppParser.Class) or type.parent.is_json:
+                props["@register"] = False
+    else:
+        props["@originaltype"] = StripFrameworkNamespace(cppType.full_name)
+
+    if "bitmask" in meta.decorators or "bitmask" in extra_decorators:
+        if var:
+            props["type"] = "string"
+            props["@bitmask"] = True
+            props["@originaltype"] = StripFrameworkNamespace(cppType.full_name)
+            result = ["array", { "items": props } ]
+        else:
+            raise CppParseError(var, "%s: @bitmask is not valid in non-json enum conversions" % cppType.name)
+    else:
+        result = ["string", props]
+
+    p = cppType.parent
+    while p:
+        if isinstance(p, CppParser.Class):
+            if p.is_json:
+                while p:
+                    if p.omit_mode:
+                        log.Info("Enum will be omitted due to json-import", cppType)
+                        props["omit"] = True
+                        break
+                    p = p.parent
+                break
+
+        p = p.parent
+
+    if meta.range and not quiet:
+        log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
+
+    return result
+
+def LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
+    def FindEnums(tree, namespace):
+        enums = []
+
+        def __Traverse(tree, interface_namespace, enums):
+
+            def Find(tree):
+                for e in tree:
+                    if (e.full_name.startswith(interface_namespace + "::")):
+                        if "encode:text" in e.meta.decorators:
+                            enums.append(e)
+
+            if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
+
+                for c in tree.classes:
+                    if not c.omit:
+                        Find(c.enums)
+
+                    __Traverse(c, interface_namespace, enums)
+
+            if isinstance(tree, CppParser.Namespace):
+                Find(tree.enums)
+
+                for n in tree.namespaces:
+                    __Traverse(n, namespace, enums)
+
+        __Traverse(tree, namespace, enums)
+
+        return enums
+
+    enums = FindEnums(tree, ns)
+
+    if enums:
+        schema = OrderedDict()
+        schema["$schema"] = "interface.json.schema"
+        schema["jsonrpc"] = "2.0"
+        schema["@generated"] = True
+        schema["@fullname"] = ns + "::__single_enumerations"
+        schema["namespace"] = ns
+        schema["@interfaceonly"] = True
+        schema["@enumsonly"] = True
+        schema["info"] = OrderedDict()
+        schema["info"]["version"] = [1, 0, 0]
+        schema["info"]["sourcefile"] = os.path.basename(file)
+        schema["info"]["class"] = os.path.basename(file).split('.')[0]
+        schema["info"]["title"] = os.path.basename(file) + " enum conversions"
+        schema["methods"] = OrderedDict()
+        params = OrderedDict()
+
+        for enum in enums:
+            props = BuildEnum(log, CaseConverter(enum.meta.text), enum, enum.meta)
+            params[enum.name] = props[1]
+            params[enum.name]["type"] = props[0]
+            params[enum.name]["description"] = "Enum " + enum.name
+
+        method = OrderedDict()
+        method["params"] = {"description": "Dummy object", "type": "object", "properties": params}
+        method["omit"] = True
+        method["summary"] = "Dummy method"
+        schema["methods"]["dummy"] = method
+
+        return [schema], []
+    else:
+        return [], []
+
 
 def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
-
-    def StripFrameworkNamespace(identifier):
-        return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
@@ -226,23 +367,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             raise CppParseError(face.obj, "unknown interface-level @text parameter:%s" % face.obj.meta.text)
         else:
             log.Info("Case convention is %s" % _case_converter.convention.value)
-
-        def compute_name(obj, arg, relay=None):
-            if isinstance(obj, str):
-                return _case_converter.transform(obj, arg)
-            else:
-                if not relay:
-                    relay = obj
-
-                _orig_name = ("value" if ((arg == _case_converter.PROPERTY_PARAMS) and not _case_converter.is_keep) else relay.name)
-
-                _name = _case_converter.transform(_orig_name, arg)
-
-                if obj.meta.text == _name:
-                    log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
-
-                return (obj.meta.text if obj.meta.text else _name)
-
 
         schema["@interfaceonly"] = True
         schema["configuration"] = { "nodefault" : True }
@@ -468,55 +592,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 # Enums
                 elif isinstance(cppType, CppParser.Enum):
-                    props = { "enum": [compute_name(e, _case_converter.ENUMS) for e in cppType.items] }
-
-                    if var_type.Type().scoped:
-                        props["scoped"] = True
-
-                    props["ids"] = [e.name for e in cppType.items]
-
-                    if not cppType.items:
-                        raise CppParseError(var, "%s: no enumerators in enum" % cppType.name)
-
-                    if not cppType.items[0].auto_value:
-                        try:
-                            props["values"] = [int(e.value) for e in cppType.items]
-                        except:
-                            log.InfoLine(var, "'%s': unparsable enum values" % var.name)
-
-                    for e in cppType.items:
-                        if "endmarker" in e.meta.decorators:
-                            props["@endmarker"] = e.name
-                            break
-
-                    if isinstance(var.type.Type(), CppParser.Typedef):
-                        type = var.type.Type().type.type
-                        if not isinstance(type.parent, CppParser.Class) or type.parent.is_json:
-                            props["@register"] = False
-
-                    if "bitmask" in meta.decorators or "bitmask" in var.type.Type().meta.decorators:
-                        props["type"] = "string"
-                        props["@bitmask"] = True
-                        props["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
-                        result = ["array", { "items": props } ]
-                    else:
-                        result = ["string", props]
-
-                    p = cppType.parent
-                    while p:
-                        if isinstance(p, CppParser.Class):
-                            if p.is_json:
-                                while p:
-                                    if p.omit_mode:
-                                        log.Info("Enum will be omitted due to json-import", cppType)
-                                        props["omit"] = True
-                                        break
-                                    p = p.parent
-                                break
-                        p = p.parent
-
-                    if meta.range and not quiet:
-                        log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
+                    result = BuildEnum(log, _case_converter, cppType, meta, var, var.type.Type().meta.decorators, quiet)
 
                 # std::vector
                 elif isinstance(cppType, CppParser.DynamicArray):
@@ -548,7 +624,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         required = []
 
                         for p in kind.vars:
-                            name = compute_name(p, _case_converter.MEMBERS)
+                            name = compute_name(log, _case_converter, p, _case_converter.MEMBERS)
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
@@ -604,7 +680,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             for im in cppType.methods:
                                 if im.IsVirtual() and not im.IsDestructor():
                                     if not async_method:
-                                        async_method["name"] = prefix + compute_name(method.retval, _case_converter.EVENTS, method)
+                                        async_method["name"] = prefix + compute_name(log, _case_converter, method.retval, _case_converter.EVENTS, method)
                                         async_method["@originalname"] = im.name
                                         async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
                                         async_method["params"] = BuildParameters(None, im.vars, rpc_format)
@@ -766,7 +842,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             elif not var.meta.output:
                                 log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                    var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
+                    var_name = compute_name(log, _case_converter, var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
 
                     if var_name.startswith("__anonymous_") and not test:
                         raise CppParseError(var.parent, "unnamed parameter %s (input)" % (idx + 1))
@@ -777,7 +853,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if method_asynchronous:
                             raise CppParseError(method, "multiple callbacks defined")
 
-                        var_name = compute_name("Id", _case_converter.PARAMS)
+                        var_name = compute_name(log, _case_converter, "Id", _case_converter.PARAMS)
                         method_asynchronous = True
 
                     if var_name in list(properties.keys()):
@@ -849,7 +925,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
+                    var_name = compute_name(log, _case_converter, var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
 
                     if var_name.startswith("__anonymous_"):
                         raise CppParseError(var, "unnamed parameter %s (result)" % (idx + 1))
@@ -930,7 +1006,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
-            method_name = compute_name(method.retval, _case_converter.METHODS, relay=method)
+            method_name = compute_name(log, _case_converter, method.retval, _case_converter.METHODS, relay=method)
 
             if method.retval.meta.alt == method_name:
                 log.WarnLine(method, "'%s': alternative name is same as default ('%s')" % (method.name, method.retval.meta.alt))
@@ -1261,7 +1337,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if params:
                         obj["params"] = params
 
-                    method_name = compute_name(method.retval, _case_converter.EVENTS, relay=method)
+                    method_name = compute_name(log, _case_converter, method.retval, _case_converter.EVENTS, relay=method)
 
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
@@ -1371,6 +1447,17 @@ def LoadInterface(file, log, all = False, include_paths = []):
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths)
+
+            for s in their_schemas:
+                f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))
+
+                if not f:
+                    schemas.append(s)
+
+            includes.extend(their_includes)
+
+        for ns in config.INTERFACE_NAMESPACES:
+            their_schemas, their_includes = LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all, include_paths)
 
             for s in their_schemas:
                 f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))
