@@ -9,13 +9,11 @@ _service = service;
 _service->AddRef();
 {{REGISTER_NOTIFICATION}}
 
-// Example
-_impl{{COMRPC[1:]}} = service->Root<Exchange::{{COMRPC}}>(_connectionId, timeout, _T("{{PLUGIN_NAME}}Implementation"));
+_impl{{COMRPC[1:]}} = service->Root<Exchange::{{FIRST_COMRPC_INTERFACE}}>(_connectionId, timeout, _T("{{PLUGIN_NAME}}Implementation"));
 if (_impl{{COMRPC[1:]}} == nullptr) {
-~INDENT_INCREASE~
-    message = _T("Couldn't create instance of impl{{COMRPC[1:]}}");
+    message = _T("Couldn't create instance of _impl{{COMRPC[1:]}}");
+} else {
     {{NESTED_QUERY}}
-~INDENT_DECREASE~
 }
 
 return (message);

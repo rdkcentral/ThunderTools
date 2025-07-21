@@ -1,5 +1,4 @@
 "info": {
-  ~INDENT_INCREASE~  
   "title": "{{PLUGIN_NAME}} Plugin",
   "callsign": "{{PLUGIN_NAME}}",
   "locator": "libThunder{{PLUGIN_NAME}}.so",
@@ -8,5 +7,4 @@
   ""
   ],
   "version": "1.0"
-  ~INDENT_DECREASE~
   }

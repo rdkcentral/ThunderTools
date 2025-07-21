@@ -3,4 +3,9 @@
 
 # Except for the current existing ones
 !*/templates
-!*/tests
+!*/core
+!*/data
+!*/generators
+!*/menu
+!*/utils
+!*/parser
