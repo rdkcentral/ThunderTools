@@ -2,7 +2,8 @@
 */*
 
 # Except for the current existing ones
-!*/templates
+!*templates
+!*templates/**
 !*core
 !*core/**
 !*/data

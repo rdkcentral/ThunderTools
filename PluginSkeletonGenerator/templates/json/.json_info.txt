@@ -1,0 +1,10 @@
+"info": {
+  "title": "{{PLUGIN_NAME}} Plugin",
+  "callsign": "{{PLUGIN_NAME}}",
+  "locator": "libThunder{{PLUGIN_NAME}}.so",
+  "status": "development",
+  "description": [
+  ""
+  ],
+  "version": "1.0"
+  }
