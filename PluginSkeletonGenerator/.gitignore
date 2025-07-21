@@ -4,8 +4,14 @@
 # Except for the current existing ones
 !*/templates
 !*/core
+!*/core/**
 !*/data
+!*/data/**
 !*/generators
+!*/generators/**
 !*/menu
+!*/menu/**
 !*/utils
+!*/utils/**
 !*/parser
+!*/parser/**
