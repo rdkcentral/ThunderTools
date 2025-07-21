@@ -1,9 +1,0 @@
-Exchange::IConfiguration* config{{FIRST_COMRPC_INTERFACE}}= _impl{FIRST_COMRPC_INTERFACE}->QueryInterface<Exchange::IConfiguration>();
-ASSERT (config{{FIRST_COMRPC_INTERFACE}}!= nullptr);
-
-if (config{{FIRST_COMRPC_INTERFACE}} != nullptr) {
-    if (config{{FIRST_COMRPC_INTERFACE}}>Configure(service) != Core::ERROR_NONE) {
-        message = _T("{{PLUGIN_NAME}} could not be configured.");
-    }
-config{{FIRST_COMRPC_INTERFACE}}->Release();
-}

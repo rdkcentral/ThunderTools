@@ -1,6 +1,0 @@
-string message;
-
-ASSERT(service != nullptr);
-{{CONFIGURE_IP}}
-{{REGISTER_IP}}
-return (message);

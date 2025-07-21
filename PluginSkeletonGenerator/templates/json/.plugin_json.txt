@@ -1,6 +1,0 @@
-{
-  "$schema": "plugin.schema.json",
-  {{JSON_INFO}},
-  {{JSON_CONFIGURATION}}
-  {{JSON_INTERFACE}}
-}
