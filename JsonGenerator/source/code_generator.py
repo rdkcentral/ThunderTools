@@ -31,7 +31,7 @@ def CreateApiHeader(log, source_name, path, headers):
 
     header_file = os.path.join(path, "json_" + source_name + ".h")
     with Emitter(header_file, config.INDENT_SIZE) as emitter:
-        emitter.Line("// %s JSON-RPC API" % os.path.basename(source_name))
+        emitter.Line("// %s API" % os.path.basename(source_name))
         emitter.Line("// Generated automatically. DO NOT EDIT.")
         emitter.Line()
         emitter.Line("#pragma once")
@@ -122,7 +122,7 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
                         pass
 
             # Also emit version if source was json meta file in manual mode
-            if (rpcObj.schema.get("mode") != "auto") and not config.NO_VERSIONING:
+            if rpcObj.schema.get("mode") != "auto" and not rpcObj.schema.get("@enumsonly") and not config.NO_VERSIONING:
                 output_filename = os.path.join(directory, "J" + filename + ".h")
 
                 if not config.FORCE and (os.path.exists(output_filename) and (os.path.getmtime(source_file) < os.path.getmtime(output_filename))):

@@ -228,7 +228,7 @@ def EmitEnumRegs(log, root, emit, header_file, if_file):
         emit.Line("ENUM_CONVERSION_END(%s)" % name)
 
     emit.Line()
-    emit.Line("// Enumeration code for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
+    emit.Line("// Enumeration code for %s." % root.info["title"].replace("Plugin", "").strip())
     emit.Line("// Generated automatically from '%s'." % os.path.basename(if_file))
     emit.Line()
 
@@ -236,14 +236,17 @@ def EmitEnumRegs(log, root, emit, header_file, if_file):
     emit.Line("#include <core/Enumerate.h>")
     emit.Line()
 
-    emit.Line("#include \"definitions.h\"")
+    if not root.schema.get("@enumsonly"):
 
-    if not config.NO_INCLUDES:
-        if if_file.endswith(".h"):
-            emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, if_file))
+        emit.Line("#include \"definitions.h\"")
 
-    emit.Line("#include \"%s_%s.h\"" % (config.DATA_NAMESPACE, header_file))
-    emit.Line()
+        if not config.NO_INCLUDES:
+            if if_file.endswith(".h"):
+                emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, if_file))
+
+        emit.Line("#include \"%s_%s.h\"" % (config.DATA_NAMESPACE, header_file))
+        emit.Line()
+
     emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
 
     count = ProcessEnums(log, _EmitEnumRegistration)
@@ -647,22 +650,26 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line()
 
     emit.Line()
-    emit.Line("// C++ classes for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
+    emit.Line("// C++ types for %s." % root.info["title"].replace("Plugin", "").strip())
     emit.Line("// Generated automatically from '%s'. DO NOT EDIT." % os.path.basename(if_file))
     emit.Line()
-    emit.Line("// Note: This code is inherently not thread safe. If required, proper synchronisation must be added.")
-    emit.Line()
+
+    if not root.schema.get("@enumsonly"):
+        emit.Line("// Note: This code is inherently not thread safe. If required, proper synchronisation must be added.")
+        emit.Line()
 
     emit.Line("#pragma once")
     emit.Line()
-    emit.Line("#include <core/JSON.h>")
 
-    if not config.NO_INCLUDES:
-        if if_file.endswith(".h"):
-            emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, if_file))
+    if not root.schema.get("@enumsonly"):
+        emit.Line("#include <core/JSON.h>")
 
-        for ai in additional_includes:
-            emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, os.path.basename(ai)))
+        if not config.NO_INCLUDES:
+            if if_file.endswith(".h"):
+                emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, if_file))
+
+            for ai in additional_includes:
+                emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, os.path.basename(ai)))
 
     if count:
         emit.Line("#include <core/Enumerate.h>")
@@ -670,65 +677,68 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emit.Line()
     emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
     emit.Line()
-    emit.Line("namespace %s {" % config.DATA_NAMESPACE)
-    emit.Indent()
-    emit.Line()
-    _EmitNoPushWarnings()
 
-    if "info" in root.schema and "namespace" in root.schema["info"]:
-        emit.Line("namespace %s {" % root.schema["info"]["namespace"])
+    if not root.schema.get("@enumsonly"):
+        emit.Line("namespace %s {" % config.DATA_NAMESPACE)
+        emit.Indent()
+        emit.Line()
+        _EmitNoPushWarnings()
+
+        if "info" in root.schema and "namespace" in root.schema["info"]:
+            emit.Line("namespace %s {" % root.schema["info"]["namespace"])
+            emit.Indent()
+            emit.Line()
+
+        emit.Line("namespace %s {" % root.json_name)
         emit.Indent()
         emit.Line()
 
-    emit.Line("namespace %s {" % root.json_name)
-    emit.Indent()
-    emit.Line()
+        if emitCommon and trackers.enum_tracker.CommonObjects():
+            log.Info("Emitting common enums...")
+            emittedPrologue = False
+            for obj in trackers.enum_tracker.CommonObjects():
+                if obj.do_create and not obj.is_duplicate and not obj.included_from:
+                    if not emittedPrologue:
+                        emit.Line("// Common enums")
+                        emit.Line("//")
+                        emit.Line()
+                        emittedPrologue = True
+                    _EmitEnum(obj)
 
-    if emitCommon and trackers.enum_tracker.CommonObjects():
-        log.Info("Emitting common enums...")
-        emittedPrologue = False
-        for obj in trackers.enum_tracker.CommonObjects():
-            if obj.do_create and not obj.is_duplicate and not obj.included_from:
-                if not emittedPrologue:
-                    emit.Line("// Common enums")
-                    emit.Line("//")
-                    emit.Line()
-                    emittedPrologue = True
-                _EmitEnum(obj)
+        if emitCommon and trackers.object_tracker.CommonObjects():
+            log.Info("Emitting common classes...")
+            emittedPrologue = False
+            for obj in trackers.object_tracker.CommonObjects():
+                if not obj.included_from:
+                    if not emittedPrologue:
+                        emit.Line("// Common classes")
+                        emit.Line("//")
+                        emit.Line()
+                        emittedPrologue = True
+                    _EmitClass(obj, True)
 
-    if emitCommon and trackers.object_tracker.CommonObjects():
-        log.Info("Emitting common classes...")
-        emittedPrologue = False
-        for obj in trackers.object_tracker.CommonObjects():
-            if not obj.included_from:
-                if not emittedPrologue:
-                    emit.Line("// Common classes")
-                    emit.Line("//")
-                    emit.Line()
-                    emittedPrologue = True
-                _EmitClass(obj, True)
+        if root.objects:
+            log.Info("Emitting params/result classes...")
+            emit.Line("// Method params/result classes")
+            emit.Line("//")
+            emit.Line()
+            _EmitClass(root)
 
-    if root.objects:
-        log.Info("Emitting params/result classes...")
-        emit.Line("// Method params/result classes")
-        emit.Line("//")
-        emit.Line()
-        _EmitClass(root)
-
-    emit.Unindent()
-    emit.Line("} // namespace %s" % root.json_name)
-    emit.Line()
-
-    if "info" in root.schema and "namespace" in root.schema["info"]:
         emit.Unindent()
-        emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
+        emit.Line("} // namespace %s" % root.json_name)
         emit.Line()
 
-    _EmitNoPushWarnings(False)
+        if "info" in root.schema and "namespace" in root.schema["info"]:
+            emit.Unindent()
+            emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
+            emit.Line()
 
-    emit.Unindent()
-    emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
-    emit.Line()
+        _EmitNoPushWarnings(False)
+
+        emit.Unindent()
+        emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
+        emit.Line()
+
     emittedPrologue = False
 
     for obj in trackers.enum_tracker.objects:
