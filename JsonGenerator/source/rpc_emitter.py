@@ -183,8 +183,8 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     # Build parameter list for the prototype
     parameters = [ ]
 
-    auto_lookup = event.schema["@lookup"] if "@lookup" in event.schema and event.schema["@lookup"]["id"] == "@generate" else None
-    custom_lookup = event.schema["@lookup"] if "@lookup" in event.schema and event.schema["@lookup"]["id"] == "@custom" else None
+    auto_lookup = event.schema["@lookup"] if "@lookup" in event.schema and event.schema["@lookup"]["id"] == "generate" else None
+    custom_lookup = event.schema["@lookup"] if "@lookup" in event.schema and event.schema["@lookup"]["id"] == "custom" else None
     lookup = auto_lookup if auto_lookup else custom_lookup
 
     has_custom_lookup_params = False
@@ -192,17 +192,17 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
         if params_type == "native":
             if params.properties and params.do_create:
                 for p in params.properties:
-                    if p.schema.get("@lookup-type") == "custom":
+                    if p.schema.get("@lookup") == "custom":
                         has_custom_lookup_params = True
                         break
             else:
-                if params.schema.get("@lookup-type") == "custom":
+                if params.schema.get("@lookup") == "custom":
                     has_custom_lookup_params = True
 
     names['jsonrpc_type'] = "MODULE" if not legacy else "PluginHost::JSONRPC"
 
     if lookup:
-        parameters.append("const %s* const %s" % (trim(lookup["name"]), "_obj"))
+        parameters.append("const %s* const %s" % (trim(lookup["fullname"]), "_obj"))
 
     if event.sendif_type:
         parameters.append("const %s& %s" % (event.sendif_type.cpp_native_type_opt, names.id))
@@ -216,7 +216,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
             if params.properties and params.do_create:
                 for p in params.properties:
-                    if p.schema.get("@lookup-type") == "custom":
+                    if p.schema.get("@lookup") == "custom":
                         has_custom_lookup_params = True
 
                     if CheckLegacyArray(p):
@@ -224,7 +224,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                     else:
                         parameters.append(trim(p.local_proto))
             else:
-                if params.schema.get("@lookup-type") == "custom":
+                if params.schema.get("@lookup") == "custom":
                     has_custom_lookup_params = True
 
                 if CheckLegacyArray(params):
@@ -389,11 +389,10 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                                 emit.Unindent()
                                 emit.Line("}")
 
-                        elif p.schema.get("@lookup-id"):
-                            if p.schema.get("@lookup-type") == "custom":
-                                emit.Line("%s = %s.PluginHost::JSONRPCSupportsObjectLookup::template InstanceId<%s>(%s);" % (cpp_name, names.module, trim(p.original_type), p.local_name))
-                            else:
-                                raise RPCEmitterError("Interface parameter not supported in automatic lookup event: see '%s'" % p.local_proto)
+                        elif p.schema.get("@lookup"):
+                            emit.Line("%s = %s.PluginHost::JSONRPCSupportsObjectLookup::template InstanceId<%s>(%s);" % (cpp_name, names.module, trim(p.original_type), p.local_name))
+                        elif p.schema.get("@bypointer"):
+                            assert False, "can't this pass pointer: '%s'" % p.local_proto
                         else:
                             emit.Line("%s = %s;" % (cpp_name, local_name))
 
@@ -457,7 +456,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
         if lookup:
             emit.Line("ASSERT(_obj != nullptr);")
             emit.Line()
-            emit.Line("const string _instanceId = %s.PluginHost::JSONRPCSupportsObjectLookup::template InstanceId<%s>(_obj);" % (names.module, trim(lookup["name"])))
+            emit.Line("const string _instanceId = %s.PluginHost::JSONRPCSupportsObjectLookup::template InstanceId<%s>(_obj);" % (names.module, trim(lookup["fullname"])))
             emit.Line("if (_instanceId.empty() == false) {")
             emit.Indent()
 
@@ -810,7 +809,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     lookup = event.schema.get("@lookup")
                     emit.Line("[&%s,%s%s](const uint32_t channelId, const string& instanceId, const string& client, const %s::Status status) {" % (names.module, "&" if legacy else "", names.handler, "PluginHost::JSONRPCSupportsEventStatus"))
                     emit.Indent()
-                    emit.Line("%s* object = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(instanceId, Core::JSONRPC::Context(channelId));" % (trim(lookup["name"]), names.module, trim(lookup["name"])))
+                    emit.Line("%s* object = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(instanceId, Core::JSONRPC::Context(channelId));" % (trim(lookup["fullname"]), names.module, trim(lookup["fullname"])))
                     emit.Line("if (object != nullptr) {")
                     emit.Indent()
                     emit.Line("%s%sOn%sEventRegistration(object, client, status);" % (names.handler, '.' if legacy else '->', event.cpp_name))
@@ -876,8 +875,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             param_meta.flags = DottedDict()
             param_meta.flags.parent = param
             param_meta.flags.prefix = ""
-            lookup_type = param.schema.get("@lookup-type")
-            lookup_id = param.schema.get("@lookup-id")
+            lookup_type = param.schema.get("@lookup")
 
             if "encode" in param.schema:
                 param_meta.flags.encode = param.schema["encode"]
@@ -887,15 +885,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             elif lookup_type == "auto":
                 if param_type == "w":
-                    param_meta.flags.store_lookup = lookup_id
+                    param_meta.flags.store_lookup = True
                 elif param_type == "r":
-                    param_meta.flags.dispose_lookup = lookup_id
+                    param_meta.flags.dispose_lookup = True
 
             elif lookup_type == "custom":
                 if param_type == "w":
-                    param_meta.flags.custom_store_lookup = lookup_id
+                    param_meta.flags.custom_store_lookup = True
                 elif param_type == "r":
-                    param_meta.flags.custom_dispose_lookup = lookup_id
+                    param_meta.flags.custom_dispose_lookup = True
 
             elif param.schema.get("@bypointer"):
                 param_meta.flags.prefix = "&"
@@ -1322,8 +1320,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             interface = names.interface
 
             if lookup:
-                impl = ("_%s%s" % (lookup["prefix"], impl)).lower()
-                interface = trim(lookup["name"])
+                impl = ("_%s%s" % (lookup["object"], impl)).lower()
+                interface = trim(lookup["fullname"])
                 emit.Line("%s%s* const %s = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(%s, %s);" % ("const " if const_cast else "", interface, impl, names.module, interface, names.instance_id, names.context))
                 call_conditions.extend("%s != nullptr" % impl)
 
@@ -1590,8 +1588,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     async_events = []
     async_methods = []
     listener_events = [x for x in events if x.is_status_listener]
-    auto_lookup_events = [x for x in events if "@lookup" in x.schema and x.schema["@lookup"].get("id") == "@generate"]
-    custom_lookup_events = [x for x in events if "@lookup" in x.schema and x.schema["@lookup"].get("id") == "@custom"]
+    auto_lookup_events = [x for x in events if "@lookup" in x.schema and x.schema["@lookup"].get("id") == "generate"]
+    custom_lookup_events = [x for x in events if "@lookup" in x.schema and x.schema["@lookup"].get("id") == "custom"]
     alt_events = [x for x in events if x.alternative]
     lookup_methods = [x for x in methods_and_properties if x.schema.get("@lookup)")]
 
@@ -1612,8 +1610,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     impl_required = methods_and_properties or listener_events
     module_required = (impl_required or (alt_events and not config.LEGACY_ALT))
-    custom_lookup_interfaces = list(filter(lambda x: x.get("id") == "@custom", root.schema.get("@interfaces"))) if "@interfaces" in root.schema else []
-    auto_lookup_interfaces = list(filter(lambda x: x.get("id") == "@generate", root.schema.get("@interfaces"))) if "@interfaces" in root.schema else []
+    custom_lookup_interfaces = list(filter(lambda x: x.get("id") == "custom", root.schema.get("@interfaces"))) if "@interfaces" in root.schema else []
+    auto_lookup_interfaces = list(filter(lambda x: x.get("id") == "generate", root.schema.get("@interfaces"))) if "@interfaces" in root.schema else []
 
     processed_vars = []
 
@@ -1718,7 +1716,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         if custom_lookup_interfaces:
             for i in custom_lookup_interfaces:
-                emit.Line("ASSERT(%s.template Exists<%s>() == true);" % (names.module, trim(i["name"])))
+                emit.Line("ASSERT(%s.template Exists<%s>() == true);" % (names.module, trim(i["fullname"])))
             emit.Line()
 
         emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (names.module, Tstring(names.namespace)))
@@ -1727,7 +1725,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
             emit.Line("// Install lookup handlers")
             for i in auto_lookup_interfaces:
-                emit.Line("%s.PluginHost::JSONRPCSupportsAutoObjectLookup::template InstallHandler<%s>();" % (names.module, trim(i.get("name"))))
+                emit.Line("%s.PluginHost::JSONRPCSupportsAutoObjectLookup::template InstallHandler<%s>();" % (names.module, trim(i["fullname"])))
 
         if auto_lookup_events:
             emit.Line()
@@ -1748,7 +1746,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     lookup = ev.schema["@lookup"]
                     emit.Line("%sif (prefix == _T(\"%s\")) {" % ("else " if i != 0 else "", lookup["fullprefix"]))
                     emit.Indent()
-                    emit.Line("result = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Check<%s>(instanceId, channelId);" % (names.module, trim(lookup["name"])))
+                    emit.Line("result = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Check<%s>(instanceId, channelId);" % (names.module, trim(lookup["fullname"])))
                     emit.Unindent()
                     emit.Line("}")
                     done.append(lookup["fullprefix"])
@@ -1785,8 +1783,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         index_name = any_index.local_name if any_index else None
 
         has_context = not is_property and m.context
-        auto_lookup = m.schema.get("@lookup") if "@lookup" in m.schema and m.schema["@lookup"].get("id") == "@generate" else None
-        custom_lookup = m.schema.get("@lookup") if "@lookup" in m.schema and m.schema["@lookup"].get("id") == "@custom" else None
+        auto_lookup = m.schema.get("@lookup") if "@lookup" in m.schema and m.schema["@lookup"].get("id") == "generate" else None
+        custom_lookup = m.schema.get("@lookup") if "@lookup" in m.schema and m.schema["@lookup"].get("id") == "custom" else None
         lookup = auto_lookup if auto_lookup else custom_lookup
 
         needs_module = has_async_params or has_auto_lookup_params or has_custom_lookup_params or custom_lookup or auto_lookup

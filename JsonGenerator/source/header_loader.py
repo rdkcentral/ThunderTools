@@ -33,12 +33,13 @@ import ProxyStubGenerator.Interface as CppInterface
 
 
 class CaseConverter:
-    METHODS = 0
-    EVENTS = 1
-    PARAMS = 2
-    MEMBERS = 3
-    ENUMS = 4
-    PROPERTY_PARAMS = 5
+    OBJECTS = 0
+    METHODS = 1
+    EVENTS = 2
+    PARAMS = 3
+    MEMBERS = 4
+    ENUMS = 5
+    _MAX = 6
 
     class Format(Enum):
         LOWER = "lower"             # lowercase
@@ -87,10 +88,10 @@ class CaseConverter:
         self._convention = None # error situation
 
         self._map = {
-            # [ methods, events, parameters, struct members, enums ]
-            config.CaseConvention.STANDARD: [self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.UPPERSNAKE],
-            config.CaseConvention.LEGACY: [self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.PASCAL],
-            config.CaseConvention.KEEP: [self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP],
+            # [ objects, methods, events, parameters, struct members, enums ]
+            config.CaseConvention.STANDARD: [self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.UPPERSNAKE],
+            config.CaseConvention.LEGACY: [self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.PASCAL],
+            config.CaseConvention.KEEP: [self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP],
         }
 
         self._map[config.CaseConvention.CUSTOM] = self._map[config.DEFAULT_CASE_CONVENTION]
@@ -105,9 +106,11 @@ class CaseConverter:
                     self._convention = config.CaseConvention.KEEP
                 elif convention.startswith("custom="):
                     _custom = convention[7:].split(',')
-                    if len(_custom) == 5:
+                    if len(_custom) == self._MAX:
                         self._convention = config.CaseConvention.CUSTOM
                         try:
+                            if _custom[self.OBJECTS]:
+                                self._map[config.CaseConvention.CUSTOM][self.OBJECTS] = self.Format[_custom[self.OBJECTS].upper()]
                             if _custom[self.METHODS]:
                                 self._map[config.CaseConvention.CUSTOM][self.METHODS] = self.Format[_custom[self.METHODS].upper()]
                             if _custom[self.EVENTS]:
@@ -121,7 +124,9 @@ class CaseConverter:
                         except KeyError as e:
                             raise CppParseError(None, "invalid @text:custom case parameter: %s (expect one of: upper, lower, uppersnake, lowersnake, pascal, camel, keep) " % e)
                     else:
-                        raise CppParseError(None, "expected 5 case parameters for @text:custom (methods,events,params,members,enums)")
+                        raise CppParseError(None, "expected %s case parameters for @text:custom (objects,methods,events,params,members,enums)" % self._MAX)
+                else:
+                    raise CppParseError(None, "unknown case convention '%s' (expected one of: standard, legacy, keep, custom)" % convention)
             else:
                 self._convention = convention
         else:
@@ -144,9 +149,6 @@ class CaseConverter:
         return self.Format.transform(input, self.__format(attr))
 
     def __format(self, attr):
-        if attr == self.PROPERTY_PARAMS:
-            attr = self.PARAMS
-
         assert self.convention
         return self._map[self.convention][attr]
 
@@ -165,21 +167,23 @@ class CppParseError(RuntimeError):
 def StripFrameworkNamespace(identifier):
     return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
-def compute_name(log, case_converter, obj, arg, relay=None):
-    if isinstance(obj, str):
-        return case_converter.transform(obj, arg)
+def compute_name(log, converter, object, argument_type, relay=None, is_property=False):
+    if isinstance(object, str):
+        return converter.transform(object, argument_type)
     else:
-        if not relay:
-            relay = obj
+        obj = relay if relay else object
 
-        _orig_name = ("value" if ((arg == case_converter.PROPERTY_PARAMS) and not case_converter.is_keep) else relay.name)
+        # Keep convention has a side effect of keeping the original parameter name of property
+        # instead of having it always as "value".
+        original = ("value" if (is_property and not converter.is_keep) else obj.name)
+        name = converter.transform(original, argument_type)
+        overriden = object.meta.text
+        transformed = overriden if overriden else name
 
-        _name = case_converter.transform(_orig_name, arg)
+        if overriden == name:
+            log.WarnLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
 
-        if obj.meta.text == _name:
-            log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
-
-        return (obj.meta.text if obj.meta.text else _name)
+        return transformed
 
 def BuildEnum(log, _case_converter, cppType, meta, var=None, extra_decorators=[], quiet=False):
     props = { "enum": [compute_name(log, _case_converter, e, _case_converter.ENUMS) for e in cppType.items] }
@@ -330,6 +334,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         log.Info("Parsing interface %s in file %s" % (face.obj.full_name, file))
 
+        if face.obj.json_prefix:
+            log.Info("Additional method prefix: %s" % face.obj.json_prefix)
+
         schema = OrderedDict()
         methods = OrderedDict()
         properties = OrderedDict()
@@ -349,10 +356,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             if face.obj.is_custom_lookup:
                 schema["custom_lookup"] = True
-                log.Info("Interface %s is custom lookup" % face.obj.full_name)
+                log.Info("Interface is intended for custom lookup")
             elif face.obj.is_custom_lookup:
                 schema["auto_lookup"] = True
-                log.Info("Interface %s is auto lookup" % face.obj.full_name)
+                log.Info("Interface is intended for auto lookup")
 
             rpc_format = _EvaluateRpcFormat(face.obj)
             assert not face.obj.is_event
@@ -367,6 +374,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             raise CppParseError(face.obj, "unknown interface-level @text parameter:%s" % face.obj.meta.text)
         else:
             log.Info("Case convention is %s" % _case_converter.convention.value)
+
 
         schema["@interfaceonly"] = True
         schema["configuration"] = { "nodefault" : True }
@@ -663,15 +671,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif cppType.is_json and cppType.is_custom_lookup:
-                        objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
-                        result =  [ "string", { "@lookup-id": objprefix, "@lookup-type": "custom" } ]
-                        if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
-                            passed_interfaces.append({ "name": cppType.full_name, "id": "@custom", "type": "string", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
+                        obj_prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "string", { "@lookup": "custom" } ]
+                        if not [x for x in passed_interfaces if x["fullname"] == cppType.full_name]:
+                            passed_interfaces.append({ "fullname": cppType.full_name, "id": "custom", "type": "string", "object": obj_prefix, "prefix": compute_prefix(log, _case_converter, None, obj_prefix), "fullprefix": compute_prefix(log, _case_converter, cppType, obj_prefix)})
                     elif cppType.is_json and cppType.is_auto_lookup:
-                        objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
-                        result =  [ "integer", { "size": 32, "signed": False, "@lookup-id": objprefix, "@lookup-type": "auto" } ]
-                        if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
-                            passed_interfaces.append({ "name": cppType.full_name, "id": "@generate", "type": "uint32_t", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
+                        obj_prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "integer", { "size": 32, "signed": False, "@lookup": "auto" } ]
+                        if not [x for x in passed_interfaces if x["fullname"] == cppType.full_name]:
+                            passed_interfaces.append({ "fullname": cppType.full_name, "id": "generate", "type": "uint32_t", "object": obj_prefix, "prefix": compute_prefix(log, _case_converter, None, obj_prefix), "fullprefix": compute_prefix(log, _case_converter, cppType, obj_prefix)})
                     else:
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
@@ -680,7 +688,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             for im in cppType.methods:
                                 if im.IsVirtual() and not im.IsDestructor():
                                     if not async_method:
-                                        async_method["name"] = prefix + compute_name(log, _case_converter, method.retval, _case_converter.EVENTS, method)
+                                        async_method["name"] = prefix + compute_name(log, _case_converter, method.retval, _case_converter.EVENTS, relay=method)
                                         async_method["@originalname"] = im.name
                                         async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
                                         async_method["params"] = BuildParameters(None, im.vars, rpc_format)
@@ -842,7 +850,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             elif not var.meta.output:
                                 log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                    var_name = compute_name(log, _case_converter, var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
+                    var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_") and not test:
                         raise CppParseError(var.parent, "unnamed parameter %s (input)" % (idx + 1))
@@ -925,7 +933,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    var_name = compute_name(log, _case_converter, var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
+                    var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_"):
                         raise CppParseError(var, "unnamed parameter %s (result)" % (idx + 1))
@@ -968,15 +976,23 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 void["description"] = "Always null"
                 return void
 
-        if face.obj.json_prefix:
-            prefix = (face.obj.json_prefix + ("::" if not face.obj.json_prefix.endswith("_") else ""))
-        elif config.AUTO_PREFIX and (face.obj.parent.full_name != ns):
-            prefix = (face.obj.parent.name.lower() + "_")
-        else:
+        def compute_prefix(log, converter, obj, suffix=None):
             prefix = ""
 
+            if obj:
+                if obj.json_prefix:
+                    prefix += obj.json_prefix + ("::" if not obj.json_prefix.endswith("_") else "")
+                elif config.AUTO_PREFIX and (obj.parent.full_name != ns):
+                    prefix += obj.parent.name.lower() + "_"
+
+            if suffix:
+                prefix += compute_name(log, converter, suffix, converter.OBJECTS)
+
+            return prefix
+
+
         faces = []
-        faces.append((prefix, face.obj.methods))
+        faces.append((compute_prefix(log, _case_converter, face.obj), face.obj.methods))
 
         for prefix, _methods in faces:
           for method in _methods:
@@ -1121,6 +1137,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if method.vars[value].type.IsConst():
                             raise CppParseError(method.vars[value], "property getter method must not use const parameter")
                         else:
+                            # These are predefined by JSON-RPC standerd, so do not follow case convention rules
                             if rpc_format == config.RpcFormat.COLLAPSED:
                                 result_name = "params"
                             else:
@@ -1388,15 +1405,16 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     schemas.append(schema)
                     scanned.append(face.obj.full_name)
 
+        # prepare a declaration of all passed objects
         for s in schemas:
             for face in (s["@interfaces"] if "@interfaces" in s else []):
                 for ss in schemas:
-                    if ss["@fullname"] == face["name"]:
+                    if ss["@fullname"] == face["fullname"]:
                         if "methods" in ss:
                             methods = ss["methods"]
                             for k,_ in methods.items():
                                 split_k = k.split("::")
-                                split_k.insert(-1, face["prefix"].lower())
+                                split_k.insert(-1, face["prefix"])
                                 new_k = "::".join(split_k)
                                 if "methods" not in s:
                                     s["methods"] = {}
@@ -1409,7 +1427,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             properties = ss["properties"]
                             for k,_ in properties.items():
                                 split_k = k.split("::")
-                                split_k.insert(-1, face["prefix"].lower())
+                                split_k.insert(-1, face["prefix"])
                                 new_k = "::".join(split_k)
                                 if "properties" not in s:
                                     s["properties"] = {}
@@ -1422,7 +1440,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             events = ss["events"]
                             for k,_ in events.items():
                                 split_k = k.split("::")
-                                split_k.insert(-1, face["prefix"].lower() + "#ID")
+                                split_k.insert(-1, face["prefix"] + "#ID")
                                 new_k = "::".join(split_k)
                                 if "events" not in s:
                                     s["events"] = {}
