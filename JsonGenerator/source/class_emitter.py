@@ -29,8 +29,8 @@ def IsObjectRestricted(argument):
     return False
 
 def IsObjectOptionalOrOpaque(argument):
-        _by_required = ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"])
-        return (argument.schema.get("opaque") or argument.schema.get("optional") or _by_required) and not argument.optional
+    _by_required = ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"])
+    return (argument.schema.get("opaque") or argument.schema.get("optional") or _by_required) and not argument.optional
 
 def IsObjectOptional(argument):
     if argument.optional or IsObjectOptionalOrOpaque(argument):
@@ -92,8 +92,7 @@ class Restrictions:
             self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == true" % name)
         elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s == nullptr" % name)
-        else:
-            assert False, "invalid type"
+
 
     def check_not_null(self, argument, pos=None):
         name = argument.original_name if self.__original_name else argument.temp_name
@@ -105,8 +104,6 @@ class Restrictions:
             self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == false" % name)
         elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s != nullptr" % name)
-        else:
-            assert False, "invalid type"
 
     def append(self, argument, relay=None, override=None, test_set=None, json=True):
         if test_set == None:

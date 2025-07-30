@@ -157,7 +157,7 @@ class CppParseError(RuntimeError):
     def __init__(self, obj, msg):
         if obj:
             try:
-                msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.Proto())
+                msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.TypeStrong())
                 super(CppParseError, self).__init__(msg)
             except:
                 super(CppParseError, self).__init__("unknown parsing failure: %s(%i): %s" % (obj.parser_file, obj.parser_line, msg))
@@ -331,6 +331,26 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     rpc_format = config.RpcFormat.COMPLIANT
 
             return rpc_format
+
+        def handle_optional(var, var_type, properties, test=False):
+            if "optional" not in var.meta.decorators:
+                if "@optionaltype" not in properties:
+                    return False
+            else:
+                if "@optionaltype" not in properties:
+                    if not test:
+                        log.Info(var, "@optional tag is deprecated, use Core::OptionalType<> instead")
+
+                    is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
+
+                    if not isinstance(var_type.type, (CppParser.String, CppParser.Integer, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
+                        raise CppParseError(var, "@optional is not supported for this type")
+
+                properties["optional"] = True
+                ConvertDefault(var, properties["type"], properties)
+
+                return True
+
 
         log.Info("Parsing interface %s in file %s" % (face.obj.full_name, file))
 
@@ -624,7 +644,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 # POD objects
                 elif isinstance(cppType, CppParser.Class):
-                    def GenerateObject(ctype, was_typdef):
+                    def GenerateObject(ctype, from_typedef):
                         properties = dict()
 
                         kind = ctype.Merge()
@@ -632,37 +652,31 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         required = []
 
                         for p in kind.vars:
-                            name = compute_name(log, _case_converter, p, _case_converter.MEMBERS)
+                            p_name = compute_name(log, _case_converter, p, _case_converter.MEMBERS)
+                            p_type = ResolveTypedef(p.type)
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
                             if isinstance(p.type, str):
                                 raise CppParseError(p, "%s: undefined type" % p.type)
-                            elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class) and not p.array:
-                                _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
-                                properties[name] = props
-                                properties[name]["type"] = "object"
-                                properties[name]["@originaltype"] = StripFrameworkNamespace(p.type.Type().full_name)
+                            elif isinstance(p_type.Type(), CppParser.Class) and not p.array:
+                                _, props = GenerateObject(p_type.Type(), isinstance(p.type.Type(), CppParser.Typedef))
+                                properties[p_name] = props
+                                properties[p_name]["type"] = "object"
+                                properties[p_name]["@originaltype"] = StripFrameworkNamespace(p.type.Type().full_name)
 
                                 if p.meta.brief:
-                                    properties[name]["description"] = p.meta.brief
+                                    properties[p_name]["description"] = p.meta.brief
                             else:
-                                properties[name] = ConvertParameter(p)
+                                properties[p_name] = ConvertParameter(p)
 
-                            properties[name]["@originalname"] = p.name
+                            properties[p_name]["@originalname"] = p.name
 
-                            if was_typdef:
-                                properties[name]["@register"] = False
+                            if from_typedef:
+                                properties[p_name]["@register"] = False
 
-                            if "optional" not in p.meta.decorators:
-                                if "@optionaltype" not in properties[name]:
-                                    required.append(name)
-                            else:
-                                properties[name]["optional"] = True
-                                ConvertDefault(p, properties[name]["type"], properties[name])
-
-                                if not quiet:
-                                    log.Info(p, "'%s': @optional tag is deprecated, use Core::OptionalType instead" % p.name)
+                            if not handle_optional(p, p_type, properties[p_name], required):
+                                required.append(p_name)
 
                         return "object", { "properties": properties, "required": required }
 
@@ -881,15 +895,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         converted["@position"] = vars.index(var)
 
-                        if "optional" not in var.meta.decorators:
-                            if "@optionaltype" not in converted:
-                                required.append(var_name)
-                        else:
-                            converted["optional"] = True
-                            ConvertDefault(var, converted["type"], converted)
-
-                            if not test:
-                                log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
+                        if not handle_optional(var, ResolveTypedef(var.type), converted, test):
+                            required.append(var_name)
 
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in converted and not "time" in converted:
@@ -951,15 +958,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     properties[var_name]["@position"] = vars.index(var)
 
-                    if "optional" not in var.meta.decorators:
-                        if "@optionaltype" not in properties[var_name]:
-                            required.append(var_name)
-                    else:
-                        properties[var_name]["optional"] = True
-                        ConvertDefault(var, properties[var_name]["type"], properties[var_name])
-
-                        if not test:
-                            log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
+                    if not handle_optional(var, var_type, properties[var_name], test):
+                        required.append(var_name)
 
             params["properties"] = properties
 

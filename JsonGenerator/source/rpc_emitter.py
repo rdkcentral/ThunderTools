@@ -1275,7 +1275,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
 
-                if param.optional and is_readable and (param.default_value == None or not parent):
+                if param.optional and is_readable and ((param.default_value == None) or not parent):
                     emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
                     emit.Line("if (%s.IsSet() == true) {" % (cpp_name))
                     emit.Indent()
@@ -1478,7 +1478,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("}")
 
                 elif isinstance(param, JsonArray):
-                    if not param.optional:
+                    if not IsObjectOptional(param):
                         emit.Line("%s.Set(true);" % cpp_name)
 
                     if param.iterator:
@@ -1542,7 +1542,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     final_rhs = rhs + param.convert_rhs
 
                     if isinstance(param, JsonObject):
-                        if not param.optional:
+                        if not IsObjectOptional(param):
                             emit.Line("%s.Set(true);" % cpp_name)
 
                     if param_meta.flags.store_lookup:
@@ -1554,11 +1554,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("_real%s->Release();" % param.temp_name)
                         final_rhs = "std::move(%s)" % final_rhs
 
+                    legacy_optional_conditions = Restrictions(json=False)
+                    legacy_optional_conditions.check_not_null(param)
+
+                    emit.EnterBlock(legacy_optional_conditions)
+
                     # assignment operator takes care of OptionalType
                     emit.Line("%s = %s;" % (cpp_name, final_rhs))
 
                     if param.schema.get("opaque") and not repsonse_parent: # if comes from a struct it already has a SetQuoted
                         emit.Line("%s.SetQuoted(false);" % (cpp_name))
+
+                    emit.ExitBlock(legacy_optional_conditions)
 
             emit.Unindent()
             emit.Line("}")
