@@ -343,8 +343,16 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
-                    if not isinstance(var_type.type, (CppParser.String, CppParser.Integer, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
-                        raise CppParseError(var, "@optional is not supported for this type")
+                    if not var.meta.output:
+                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
+                            if not var.meta.default:
+                                log.Warn(var, "default value is assumed to be 0 (use @default)")
+                        elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
+                            raise CppParseError(var, "@optional is not supported for this type")
+                    else:
+                        if not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
+                            raise CppParseError(var, "@optional is not supported for this type on output")
+
 
                 properties["optional"] = True
                 ConvertDefault(var, properties["type"], properties)
@@ -826,7 +834,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     elif type == "boolean":
                         converted["@default"] = ("true" if var.meta.default[0] == "true" else "false")
                         converted["default"] = (var.meta.default[0] == "true")
-                    if type == "string" and "enum" in converted:
+                    elif type == "string" and "enum" in converted:
                         if var.meta.default[0] not in converted.get("ids"):
                             raise CppParseError(var, "default value for enumerator type is not an enum value")
                         converted["@default"] = converted["@originaltype"] + "::" + str(var.meta.default[0])
