@@ -661,7 +661,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         for m in listener_events:
             if m in lookup_events:
-                emit.Line("virtual void On%sEventRegistration(%s* object, const string& client, const PluginHost::JSONRPCSupportsEventStatus::Status status) = 0;" % (m.cpp_name, trim(m.schema["@lookup"]["name"])))
+                emit.Line("virtual void On%sEventRegistration(%s* object, const string& client, const PluginHost::JSONRPCSupportsEventStatus::Status status) = 0;" % (m.cpp_name, trim(m.schema["@lookup"]["fullname"])))
             else:
                 emit.Line("virtual void On%sEventRegistration(const string& client, const PluginHost::JSONRPCSupportsEventStatus::Status status) = 0;" % (m.cpp_name))
 
