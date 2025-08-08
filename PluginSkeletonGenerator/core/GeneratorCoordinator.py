@@ -25,7 +25,7 @@ class GeneratorCoordinator:
             controls=controls,
         )
 
-    def generate_all(self):
+    def generateAll(self):
         gen = PluginRepositoryGenerator(self.m_blueprint)
 
         tasks: List[GenerationTask] = [

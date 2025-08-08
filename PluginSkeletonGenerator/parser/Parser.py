@@ -25,10 +25,10 @@ class ClassData:
         self.m_methods = []
         self.m_children = {}
 
-    def add_method(self, method):
+    def addMethod(self, method):
         self.m_methods.append(method)
 
-    def add_child(self, child):
+    def addChild(self, child):
         self.m_children[child.m_name] = child
 
 
@@ -74,45 +74,45 @@ class InterfaceTree:
         self.m_scope_stack = []
         self.m_tags = []
 
-    def push_namespace(self, namespace):
+    def pushNamespace(self, namespace):
         self.m_namespace_stack.append(namespace)
         self.m_scope_stack.append(ScopeType.NAMESPACE)
 
-    def pop_namespace(self):
+    def popNamespace(self):
         if self.m_namespace_stack:
             self.m_namespace_stack.pop()
 
-    def combine_namespace(self):
+    def combineNameSpace(self):
         return "::".join(self.m_namespace_stack)
 
-    def add_class(self, interface_name):
-        full_class_name = f"{self.combine_namespace()}::{interface_name}" if self.m_namespace_stack else interface_name
-        new_class = ClassData(interface_name, self.combine_namespace())
+    def addClass(self, interface_name):
+        full_class_name = f"{self.combineNameSpace()}::{interface_name}" if self.m_namespace_stack else interface_name
+        new_class = ClassData(interface_name, self.combineNameSpace())
         new_class.m_tags.extend(self.m_tags)
         self.m_tags.clear()
 
         if self.m_class_stack:
-            self.m_class_stack[-1].add_child(new_class)
+            self.m_class_stack[-1].addChild(new_class)
         else:
             self.m_root_classes[full_class_name] = new_class
 
         self.m_class_stack.append(new_class)
         self.m_scope_stack.append(ScopeType.CLASS)
 
-    def add_method(self, method):
+    def addMethod(self, method):
         if not self.m_class_stack:
             return
 
-        return_type, method_name, params = Parser.extract_method_data(method)
+        return_type, method_name, params = Parser.extractMethodData(method)
         if method_name:
             method = MethodData(method_name, return_type, params)
-            self.m_class_stack[-1].add_method(method)
+            self.m_class_stack[-1].addMethod(method)
 
-    def close_class_scope(self):
+    def closeClassStack(self):
         if self.m_class_stack:
             self.m_class_stack.pop()
 
-    def parsed_classes(self) -> Dict[str, ClassData]:
+    def parsedClasses(self) -> Dict[str, ClassData]:
         return self.m_root_classes
 
 
@@ -122,46 +122,46 @@ class Parser:
         self.m_interface_tree = InterfaceTree()
         self.m_pending_class = False
 
-    def parse_file(self) -> Dict[str, ClassData]:
+    def parseFile(self) -> Dict[str, ClassData]:
         with open(self.m_path, 'r', encoding='utf-8') as f:
             for line in f:
                 line = line.strip()
-                self.process_tag(line)
-                self.process_namespace(line)
-                self.process_class(line)
-                self.process_method(line)
-                self.process_scope(line)
-        return self.m_interface_tree.parsed_classes()
+                self.processTag(line)
+                self.processNamespace(line)
+                self.processClass(line)
+                self.processMethod(line)
+                self.processScope(line)
+        return self.m_interface_tree.parsedClasses()
 
-    def process_tag(self, line):
+    def processTag(self, line):
         tags = re.findall(r'@(\w+)', line)
         for tag in tags:
             if tag in {'json', 'event'}:
                 self.m_interface_tree.m_tags.append(tag)
 
-    def process_namespace(self, line):
+    def processNamespace(self, line):
         match = re.match(r'namespace\s+(\w+)', line)
         if match:
             namespace = match.group(1)
-            self.m_interface_tree.push_namespace(namespace)
+            self.m_interface_tree.pushNamespace(namespace)
 
-    def process_class(self, line):
+    def processClass(self, line):
         match = re.match(r'struct\s+EXTERNAL\s+(\w+)\s*:\s*virtual\s+public\s+Core::IUnknown', line)
         if match:
             interface = match.group(1)
             self.m_pending_class = interface
 
-    def process_method(self, line):
+    def processMethod(self, line):
         if "virtual" in line and ";" in line:
-            self.m_interface_tree.add_method(line)
+            self.m_interface_tree.addMethod(line)
 
-    def process_scope(self, line):
+    def processScope(self, line):
         open_scope = line.count('{')
         close_scope = line.count('}')
 
         for _ in range(open_scope):
             if self.m_pending_class:
-                self.m_interface_tree.add_class(self.m_pending_class)
+                self.m_interface_tree.addClass(self.m_pending_class)
                 self.m_pending_class = None
             else:
                 self.m_interface_tree.m_scope_stack.append(ScopeType.OTHER)
@@ -171,12 +171,12 @@ class Parser:
                 continue
             closing_scope = self.m_interface_tree.m_scope_stack.pop()
             if closing_scope == ScopeType.CLASS:
-                self.m_interface_tree.close_class_scope()
+                self.m_interface_tree.closeClassStack()
             elif closing_scope == ScopeType.NAMESPACE:
-                self.m_interface_tree.pop_namespace()
+                self.m_interface_tree.popNamespace()
 
     @staticmethod
-    def extract_method_data(method):
+    def extractMethodData(method):
         match = re.search(r'virtual\s+(?P<return>[\w:<>&*\s]+?)\s+(?P<name>\w+)\s*\((?P<params>[^)]*)\)\s*.*;', method)
         if match:
             return_type = match.group("return").strip()
@@ -188,7 +188,7 @@ class Parser:
 
 class Printer:
     @staticmethod
-    def print_tree(class_data: ClassData, indent_level=0):
+    def printTree(class_data: ClassData, indent_level=0):
         indent = "  " * indent_level
         namespace = f"{class_data.m_namespace}::" if class_data.m_namespace else ""
         print(f"{indent}Interface: {namespace}{class_data.m_name}")
@@ -200,4 +200,4 @@ class Printer:
             print(f"{indent}  Method: {method.m_return_type} {method.m_name}({method.m_params})")
 
         for child in class_data.m_children.values():
-            Printer.print_tree(child, indent_level + 1)
+            Printer.printTree(child, indent_level + 1)

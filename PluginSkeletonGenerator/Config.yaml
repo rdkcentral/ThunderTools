@@ -23,7 +23,7 @@ PluginConfig: true
 Paths:
   - example.h
 
-# NOTE: Provide any subsystems used (as a list)
+# NOTE: Provide any Thunder subsystems used (as a list)
 # EXAMPLE: 
 # Preconditions:
 #  - PLATFORM

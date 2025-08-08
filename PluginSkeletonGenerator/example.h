@@ -147,5 +147,6 @@ namespace Exchange {
         // @param isScanning: Scanning is in progress or not
         virtual uint32_t Status(string& connectedSsid /* @out */, bool& isScanning /* @out */) const = 0;
     };
+
 }
 }

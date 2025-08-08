@@ -7,10 +7,10 @@ class MultiParser:
         self.m_parsed_data: Dict[str, Tuple[ClassData, str]] = {}
         self.m_header_lookup: Dict[str, str] = {}
 
-    def parse_all(self) -> Dict[str, Tuple[ClassData, str]]:
+    def parseAll(self) -> Dict[str, Tuple[ClassData, str]]:
         for path in self.m_paths:
             parser = Parser(path)
-            parsed: Dict[str, ClassData] = parser.parse_file()
+            parsed: Dict[str, ClassData] = parser.parseFile()
             for name, cls_data in parsed.items():
                 self.m_parsed_data[name] = (cls_data, path)
                 self.m_header_lookup[name] = path

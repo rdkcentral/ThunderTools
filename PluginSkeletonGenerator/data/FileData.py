@@ -29,6 +29,19 @@ class FileData(ABC):
         self.m_terminations = blueprint._TERMINATIONS
         self.m_controls = blueprint._CONTROLS
 
+    def _extractStrippedNamespace(self, full_name: str) -> str:
+        parts = full_name.split("::")
+        if parts[0] == "Thunder":
+            return "::".join(parts[1:-1])
+        return "::".join(parts[:-1])  # for interfaces that might not have Thunder::, I don't know if they exist
+    
+    def resolveFullName(self, short_name: str):
+        # Basically a look up, needed for getting full name for namespaces...
+        for full_name in self.m_parsed:
+            if full_name.endswith(f"::{short_name}"):
+                return full_name
+        return None
+
     def dynamic_keys(self) -> Dict[str, str]:
         return {
             "{{PLUGIN_NAME}}": self.m_plugin_name,
@@ -129,7 +142,6 @@ class HeaderData(FileData):
 
         return generateSimpleText(result, remove_empty=True, sep="\n")
 
-
     def _generateHeaderDefinitions(self):
         return '#include <definitions/definitions.h>' if self.m_jsonrpc else ''
 
@@ -158,7 +170,6 @@ class HeaderData(FileData):
             return generateSimpleText(result, remove_empty=False)
         return ''
 
-
     def _generateHeaderTimeout(self) -> str:
         if self.m_out_of_process:
             return generateSimpleText([
@@ -169,7 +180,16 @@ class HeaderData(FileData):
     def _generateHeaderInterfaceAggregate(self) -> str:
         if not self.m_out_of_process:
             return ""
-        return generateSimpleText([f"INTERFACE_AGGREGATE(Exchange::{iface}, _impl{convertToBaseName(iface)})" for iface in self.m_comrpc_interfaces])
+
+        lines = []
+        for iface in self.m_comrpc_interfaces:
+            full_name = self.resolveFullName(iface)
+            if full_name:
+                namespace = self._extractStrippedNamespace(full_name)
+                full_iface = f"{namespace}::{iface}" if namespace else iface
+                lines.append(f"INTERFACE_AGGREGATE({full_iface}, _impl{convertToBaseName(iface)})")
+
+        return generateSimpleText(lines)
 
     def _generateHeaderJSONRPCEvent(self):
         if not self.m_out_of_process:
@@ -191,29 +211,44 @@ class HeaderData(FileData):
             if self.m_out_of_process:
                 lines.append("PluginHost::IShell* _service;")
                 lines.append("uint32_t _connectionId;")
-                for comrpc in self.m_comrpc_interfaces:
-                    lines.append(f"Exchange::{comrpc}* _impl{convertToBaseName(comrpc)};")
+
+                for iface in self.m_comrpc_interfaces:
+                    full_name = self.resolveFullName(iface)
+                    namespace = self._extractStrippedNamespace(full_name)
+                    lines.append(f"{namespace}::{iface}* _impl{convertToBaseName(iface)};")
+
                 lines.append("Core::SinkType<Notification> _notification;")
+
             if self.m_notification_interfaces and not self.m_out_of_process:
                 lines.append("mutable Core::CriticalSection _adminLock;")
                 for iface in self.m_notification_interfaces:
                     lines.append(f"{convertToBaseName(iface)}NotificationContainer _{convertToBaseName(iface).lower()}Notification;")
+
         else:
             if self.m_notification_interfaces:
                 lines.append("mutable Core::CriticalSection _adminLock;")
                 for iface in self.m_notification_interfaces:
                     lines.append(f"{convertToBaseName(iface)}NotificationContainer _{convertToBaseName(iface).lower()}Notification;")
+
         return generateSimpleText(lines)
 
-    def _generateHeaderInterfaceEntry(self):
+
+    def _generateHeaderInterfaceEntry(self) -> str:
         entries = []
+
         if self.m_type == self.HeaderType.HEADER:
             entries.append("INTERFACE_ENTRY(PluginHost::IPlugin)")
             if self.m_jsonrpc:
                 entries.append("INTERFACE_ENTRY(PluginHost::IDispatcher)")
-        if (self.m_type == self.HeaderType.HEADER_IMPLEMENTATION or (not self.m_out_of_process and self.m_type == self.HeaderType.HEADER)):
-            entries.extend(f"INTERFACE_ENTRY(Exchange::{c})" for c in self.m_comrpc_interfaces)
+
+        if self.m_type == self.HeaderType.HEADER_IMPLEMENTATION or (not self.m_out_of_process and self.m_type == self.HeaderType.HEADER):
+            for iface in self.m_comrpc_interfaces:
+                full_name = self.resolveFullName(iface)
+                namespace = self._extractStrippedNamespace(full_name)
+                entries.append(f"INTERFACE_ENTRY({namespace}::{iface})")
+
         return generateSimpleText(entries)
+
 
     def _generateHeaderConfigClass(self):
         if not self.m_plugin_config:
@@ -258,35 +293,46 @@ class HeaderData(FileData):
 
         return generateSimpleText(includes)
 
-
-    def _generateHeaderInheritedClasses(self):
-
+    def _generateHeaderInheritedClasses(self) -> str:
         if self.m_type == self.HeaderType.HEADER_IMPLEMENTATION:
-            parts = [f"public Exchange::{iface}" for iface in self.m_comrpc_interfaces]
-        else: # HeaderType == HEADER
+            parts = []
+            for iface in self.m_comrpc_interfaces:
+                full_name = self.resolveFullName(iface)
+                namespace = self._extractStrippedNamespace(full_name)
+                parts.append(f"public {namespace}::{iface}")
+        else:
             parts = ["public PluginHost::IPlugin"]
             if self.m_jsonrpc:
                 parts.append("public PluginHost::JSONRPC")
             if not self.m_out_of_process:
-                parts.extend(f"public Exchange::{iface}"for iface in self.m_comrpc_interfaces)
+                for iface in self.m_comrpc_interfaces:
+                    full_name = self.resolveFullName(iface)
+                    namespace = self._extractStrippedNamespace(full_name)
+                    parts.append(f"public {namespace}::{iface}")
         return ": " + generateSimpleText(parts, sep=", ", remove_empty=True)
-    
-    def _generateHeaderConstructor(self):
 
+    
+    def _generateHeaderConstructor(self) -> str:
         members = []
+
         if self.m_type == self.HeaderType.HEADER_IMPLEMENTATION:
-            members.append(f"Exchange::{self.m_comrpc_interfaces[0]}()")
-            members.extend(f"Exchange::{iface}()" for iface in self.m_comrpc_interfaces[1:])
+            for i, iface in enumerate(self.m_comrpc_interfaces):
+                full_name = self.resolveFullName(iface)
+                namespace = self._extractStrippedNamespace(full_name)
+                members.append(f"{namespace}::{iface}()")
             if self.m_notification_interfaces:
                 members.append("_adminLock()")
                 members.extend(f"_{convertToBaseName(iface).lower()}Notification()" for iface in self.m_notification_interfaces)
-        else: # HeaderType == HEADER
+
+        else:  # HEADER
             members.append("PluginHost::IPlugin()")
             if self.m_jsonrpc:
                 members.append("PluginHost::JSONRPC()")
-            if not self.m_out_of_process:
-                members.append(f"Exchange::{self.m_comrpc_interfaces[0]}()")
-                members.extend(f"Exchange::{iface}()" for iface in self.m_comrpc_interfaces[1:])
+            if not self.m_out_of_process and self.m_comrpc_interfaces:
+                for i, iface in enumerate(self.m_comrpc_interfaces):
+                    full_name = self.resolveFullName(iface)
+                    namespace = self._extractStrippedNamespace(full_name)
+                    members.append(f"{namespace}::{iface}()")
             if self.m_out_of_process:
                 members.extend(["_service(nullptr)", "_connectionId(0)"])
                 members.extend(f"_impl{convertToBaseName(iface)}(nullptr)" for iface in self.m_comrpc_interfaces)
@@ -297,33 +343,103 @@ class HeaderData(FileData):
 
         return ": " + generateSimpleText(members, sep="\n, ")
 
+
     def _generateHeaderInheritedMethod(self) -> str:
         is_header = self.m_type == self.HeaderType.HEADER
         is_impl = self.m_type == self.HeaderType.HEADER_IMPLEMENTATION
+
         if (not self.m_out_of_process and not is_header) or (self.m_out_of_process and not is_impl):
             return ""
 
         lines = []
+
         for full_name, (cls_data, _) in self.m_parsed.items():
-            iface = full_name.split("::")[-1]
-            lines.append(f"// {iface} methods")
-            if is_header:
-                lines.extend(f"{m.m_return_type} {m.m_name}({m.m_params}) override;" for m in cls_data.m_methods)
-            else:
-                for m in cls_data.m_methods:
-                    lines.append(generateSimpleText([
+            short_name = full_name.split("::")[-1]
+            namespace = self._extractStrippedNamespace(full_name)
+            lines.append(f"// {short_name} methods")
+
+            for m in cls_data.m_methods:
+                if is_header:
+                    lines.append(f"{m.m_return_type} {m.m_name}({m.m_params}) override;")
+                else:
+                    if short_name in self.m_notification_interfaces and m.m_name in ("Register", "Unregister"):
+                        if m.m_name == "Register":
+                            lines.append(generateSimpleText([
+                                f"{m.m_return_type} {self.m_plugin_name}::Register({namespace}::{short_name}::INotification* notification) {{",
+                                self.notification_registers(short_name),
+                                "return Core::ERROR_NONE;",
+                                "}"
+                            ]))
+                        else:
+                            lines.append(generateSimpleText([
+                                f"{m.m_return_type} {self.m_plugin_name}::Unregister(const {namespace}::{short_name}::INotification* notification) {{",
+                                self.notification_unregisters(short_name),
+                                "return Core::ERROR_NONE;",
+                                "}"
+                            ]))
+                    else:
+                        lines.append(generateSimpleText([
                             f"{m.m_return_type} {self.m_plugin_name}::{m.m_name}({m.m_params}) {{",
                             "    return Core::ERROR_NONE;",
-                            "}"]))
+                            "}"
+                        ]))
+
         return generateSimpleText(lines, sep="\n\n")
+
+    
+    def notification_registers(self, interface):
+        text = []
+        text.append('\nASSERT(notification != nullptr);\n')
+        text.append('\n_adminLock.Lock();')
+        text.append(f'''\nauto item = std::find(_{interface[1:].lower()}Notification.begin(), _{interface[1:].lower()}Notification.end(), notification);
+                ASSERT(item == _{interface[1:].lower()}Notification.end());
+
+                if (item == _{interface[1:].lower()}Notification.end()) {{
+                notification->AddRef();
+                _{interface[1:].lower()}Notification.push_back(notification);
+                }}
+
+                _adminLock.Unlock(); ''')
+        text.append('\n')
+        return ''.join(text)
+    
+    def notification_unregisters(self,interface):
+        text = []
+        text.append(f'''\n
+                ASSERT(notification != nullptr);
+
+                _adminLock.Lock();
+                auto item = std::find(_{interface[1:].lower()}Notification.begin(), _{interface[1:].lower()}Notification.end(), notification);
+                ASSERT(item != _{interface[1:].lower()}Notification.end());
+
+                if (item != _{interface[1:].lower()}Notification.end()) {{
+                _{interface[1:].lower()}Notification.erase(item);
+                notification->Release();
+                }}
+                _adminLock.Unlock();
+                ''')
+        return ''.join(text)
 
     def _generateHeaderUsingContainer(self) -> str:
         cond = (
             (self.m_out_of_process and self.m_type == self.HeaderType.HEADER_IMPLEMENTATION)
-            or (not self.m_out_of_process and self.m_type == self.HeaderType.HEADER))
+            or (not self.m_out_of_process and self.m_type == self.HeaderType.HEADER)
+        )
         if not cond or not self.m_notification_interfaces:
             return ""
-        return generateSimpleText([f"using {convertToBaseName(iface)}NotificationContainer = std::vector<Exchange::{convertToBaseName(iface)}::INotification*>;" for iface in self.m_notification_interfaces])
+
+        lines = []
+        for full_name in self.m_parsed:
+            short_name = full_name.split("::")[-1]
+            if short_name in self.m_notification_interfaces:
+                namespace = self._extractStrippedNamespace(full_name)
+                container_typedef = (
+                    f"using {convertToBaseName(short_name)}NotificationContainer = "
+                    f"std::vector<{namespace}::{convertToBaseName(short_name)}::INotification*>;"
+                )
+                lines.append(container_typedef)
+
+        return generateSimpleText(lines)
 
 class SourceData(FileData):
     def static_keys(self) -> Dict[str, str]:
@@ -438,10 +554,18 @@ class SourceData(FileData):
             return ""
         return "VARIABLE_IS_NOT_USED "
 
-
     def _generateFirstCOMRPCInterface(self):
-        return self.m_comrpc_interfaces[0] if self.m_comrpc_interfaces else "IPlugin"
+        if not self.m_comrpc_interfaces:
+            return "Exchange::IPlugin"
 
+        short_name = self.m_comrpc_interfaces[0]
+        full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
+
+        if full_name:
+            namespace = self._extractStrippedNamespace(full_name)
+            return f"{namespace}::{short_name}" if namespace else short_name
+        else:
+            return short_name
 
     def _generateFirstCOMRPCNoPrefix(self):
         name = self._generateFirstCOMRPCInterface()
@@ -451,14 +575,23 @@ class SourceData(FileData):
     def _generateInitialAssert(self):
         return f"ASSERT(_impl{self._generateFirstCOMRPCNoPrefix()} == nullptr);"
 
-    def _generateJSONRegisterIP(self):
-        lines = [f"Exchange::{iface}::Register(*this, this);" for iface in self.m_jsonrpc_interfaces]
+    def _generateJSONRegisterIP(self) -> str:
+        lines = []
+        for full_name in self.m_parsed:
+            short_name = full_name.split("::")[-1]
+            if short_name in self.m_jsonrpc_interfaces:
+                namespace = self._extractStrippedNamespace(full_name)
+                lines.append(f"{namespace}::{short_name}::Register(*this, this);")
         return generateSimpleText(lines)
 
-    def _generateJSONUnregisterIP(self):
-        lines = [f"Exchange::{iface}::Unregister(*this);" for iface in self.m_jsonrpc_interfaces]
+    def _generateJSONUnregisterIP(self) -> str:
+        lines = []
+        for full_name in self.m_parsed:
+            short_name = full_name.split("::")[-1]
+            if short_name in self.m_jsonrpc_interfaces:
+                namespace = self._extractStrippedNamespace(full_name)
+                lines.append(f"{namespace}::{short_name}::Unregister(*this);")
         return generateSimpleText(lines)
-
 
     def _generateConfigurationIP(self):
         if not self.m_plugin_config:
@@ -482,31 +615,33 @@ class SourceData(FileData):
         if not self.m_comrpc_interfaces:
             return ""
 
+        lines = []
         interfaces = self.m_comrpc_interfaces
 
-        lines = []
-
         if len(interfaces) > 1:
-            for idx, comrpc in enumerate(interfaces[1:], start=1):
+            for idx, short_name in enumerate(interfaces[1:], start=1):
                 prev = interfaces[idx - 1]
-                name = convertToBaseName(comrpc)
                 prevName = convertToBaseName(prev)
+                name = convertToBaseName(short_name)
+
+                # Determine full name from parsed to resolve correct namespace
+                full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
+                namespace = self._extractStrippedNamespace(full_name)
+                qualified = f"{namespace}::{short_name}"
 
                 lines.extend([
-                    f"_impl{name} = _impl{prevName}->QueryInterface<Exchange::{comrpc}>();",
+                    f"_impl{name} = _impl{prevName}->QueryInterface<{qualified}>();",
                     f"if (_impl{name} == nullptr) {{",
-                    f'    message = _T("Couldn\'t create instance of _impl{comrpc}");',
+                    f'    message = _T("Couldn\'t create instance of _impl{short_name}");',
                     "} else {"
                 ])
 
-        lines.append(self._generate_nested_initialize())
+        lines.append(self._generateNestedInitialize())
         lines.extend("}" for _ in range(len(interfaces) - 1))
 
         return generateSimpleText(lines)
 
-
-
-    def _generate_nested_initialize(self) -> str:
+    def _generateNestedInitialize(self) -> str:
         if not self.m_comrpc_interfaces:
             return ""
 
@@ -514,13 +649,18 @@ class SourceData(FileData):
         rootName = convertToBaseName(interfaces[0])
         lines = []
 
-        for iface in interfaces:
-            name = convertToBaseName(iface)
-            json_iface = convertToJSONRPC(iface)
+        for short_name in interfaces:
+            name = convertToBaseName(short_name)
+            json_iface = convertToJSONRPC(short_name)
+
+            full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
+            namespace = self._extractStrippedNamespace(full_name)
+            qualified = f"{namespace}::{json_iface}"
+
             if json_iface in self.m_jsonrpc_interfaces:
                 lines.extend([
                     f"_impl{name}->Register(&_notification);",
-                    f"Exchange::{json_iface}::Register(*this, _impl{name});"
+                    f"{qualified}::Register(*this, _impl{name});"
                 ])
 
         if self.m_plugin_config:
@@ -538,7 +678,6 @@ class SourceData(FileData):
 
         return generateSimpleText(lines)
 
-
     def _generateDeinitializeOOP(self):
         if not self.m_comrpc_interfaces:
             return ""
@@ -548,34 +687,40 @@ class SourceData(FileData):
         firstBase = convertToBaseName(first)
         firstJson = convertToJSONRPC(first)
 
+        full_name_first = next((k for k in self.m_parsed if k.endswith(f"::{first}")), None)
+        namespace_first = self._extractStrippedNamespace(full_name_first)
+
         lines.append(f"if (_impl{firstBase} != nullptr) {{")
 
         if firstJson in self.m_jsonrpc_interfaces:
-            lines.append(f"    _impl{firstBase}->Unregister(&_notification);")
-            lines.append(f"    Exchange::{firstJson}::Unregister(*this);")
+            lines.append(f"_impl{firstBase}->Unregister(&_notification);")
+            lines.append(f"{namespace_first}::{firstJson}::Unregister(*this);")
 
         for comrpc in self.m_comrpc_interfaces[1:]:
-
             baseName = convertToBaseName(comrpc)
             jsonName = convertToJSONRPC(comrpc)
 
+            full_name = next((k for k in self.m_parsed if k.endswith(f"::{comrpc}")), None)
+            namespace = self._extractStrippedNamespace(full_name)
+
             lines.append("")
-            lines.append(f"    if (_impl{baseName} != nullptr) {{")
+            lines.append(f"if (_impl{baseName} != nullptr) {{")
 
             if jsonName in self.m_jsonrpc_interfaces:
-                lines.append(f"        Exchange::{jsonName}::Unregister(*this);")
-                lines.append(f"        _impl{baseName}->Unregister(&_notification);")
+                lines.append(f"{namespace}::{jsonName}::Unregister(*this);")
+                lines.append(f"_impl{baseName}->Unregister(&_notification);")
 
-            lines.append(f"        _impl{baseName}->Release();")
-            lines.append(f"        _impl{baseName} = nullptr;")
-            lines.append("    }")
+            lines.append(f"_impl{baseName}->Release();")
+            lines.append(f"_impl{baseName} = nullptr;")
+            lines.append("}")
 
         lines.extend([
             "",
-            f"    RPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));",
-            f"    VARIABLE_IS_NOT_USED uint32_t result = _impl{firstBase}->Release();",
-            f"    _impl{firstBase} = nullptr;",
+            f"RPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));",
+            f"VARIABLE_IS_NOT_USED uint32_t result = _impl{firstBase}->Release();",
+            f"_impl{firstBase} = nullptr;",
             "}"])
+
         return generateSimpleText(lines)
 
 class CMakeData(FileData):
