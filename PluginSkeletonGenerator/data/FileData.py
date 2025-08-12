@@ -135,7 +135,7 @@ class HeaderData(FileData):
 
                 result.extend([
                     f"void {m.m_name}({m.m_params}) override {{",
-                    f"{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''});",
+                    f"{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''});" if self.m_jsonrpc else '',
                     "}"
                 ])
                 result.append("")  # for spacing between functions

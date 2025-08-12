@@ -34,7 +34,8 @@ You'll be asked to provide the following:
 2. If the plugin needs to be able to run OOP
 3. Paths to your interface (an example is: /home/Thunder/ThunderInterfaces/interfaces/ITest.h)
 4. Whether your plugin requires any Thunder subsystems (Preconditions, Terminations, Controls)
-5. Which subfolder of the include path the interfaces your plugin will implement are located (default is interfaces)
+5. If your header file contains more than one root level interface, you are able to choose which intefaces to use.
+6. Which subfolder of the include path the interfaces your plugin will implement are located (default is interfaces)
 
 ### Config File
 

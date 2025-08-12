@@ -36,6 +36,12 @@ Terminations:
 Controls:
   - TESTING
 
+# OPTIONAL: Allows the ability to choose which interface to use in a header, if there is more than one root level
+# interface
+# EXAMPLE:
+# SelectInterfaces: {"example.h": ["IWifiControl", "IWifiControlTwo"]}
+SelectInterfaces: {"example.h": ["IWifiControl", "IWifiControlTwo"]}
+
 # NOTE: If your interface is in ThunderInterfaces, by default it will appear like this:
 # #include <interfaces/...>
 # #include <interfaces/json/...>
