@@ -110,6 +110,7 @@ class JsonType():
         self.description = schema.get("description")
         self.grand_parent = None
         self.optional = schema.get("@optionaltype")
+        self.omit = schema.get("omit")
 
         if not isinstance(self, JsonRpcSchema):
             self.grand_parent = self

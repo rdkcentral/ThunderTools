@@ -33,12 +33,13 @@ import ProxyStubGenerator.Interface as CppInterface
 
 
 class CaseConverter:
-    METHODS = 0
-    EVENTS = 1
-    PARAMS = 2
-    MEMBERS = 3
-    ENUMS = 4
-    PROPERTY_PARAMS = 5
+    OBJECTS = 0
+    METHODS = 1
+    EVENTS = 2
+    PARAMS = 3
+    MEMBERS = 4
+    ENUMS = 5
+    _MAX = 6
 
     class Format(Enum):
         LOWER = "lower"             # lowercase
@@ -87,10 +88,10 @@ class CaseConverter:
         self._convention = None # error situation
 
         self._map = {
-            # [ methods, events, parameters, struct members, enums ]
-            config.CaseConvention.STANDARD: [self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.UPPERSNAKE],
-            config.CaseConvention.LEGACY: [self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.PASCAL],
-            config.CaseConvention.KEEP: [self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP],
+            # [ objects, methods, events, parameters, struct members, enums ]
+            config.CaseConvention.STANDARD: [self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.CAMEL, self.Format.UPPERSNAKE],
+            config.CaseConvention.LEGACY: [self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.LOWER, self.Format.PASCAL],
+            config.CaseConvention.KEEP: [self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP, self.Format.KEEP],
         }
 
         self._map[config.CaseConvention.CUSTOM] = self._map[config.DEFAULT_CASE_CONVENTION]
@@ -105,9 +106,11 @@ class CaseConverter:
                     self._convention = config.CaseConvention.KEEP
                 elif convention.startswith("custom="):
                     _custom = convention[7:].split(',')
-                    if len(_custom) == 5:
+                    if len(_custom) == self._MAX:
                         self._convention = config.CaseConvention.CUSTOM
                         try:
+                            if _custom[self.OBJECTS]:
+                                self._map[config.CaseConvention.CUSTOM][self.OBJECTS] = self.Format[_custom[self.OBJECTS].upper()]
                             if _custom[self.METHODS]:
                                 self._map[config.CaseConvention.CUSTOM][self.METHODS] = self.Format[_custom[self.METHODS].upper()]
                             if _custom[self.EVENTS]:
@@ -121,7 +124,9 @@ class CaseConverter:
                         except KeyError as e:
                             raise CppParseError(None, "invalid @text:custom case parameter: %s (expect one of: upper, lower, uppersnake, lowersnake, pascal, camel, keep) " % e)
                     else:
-                        raise CppParseError(None, "expected 5 case parameters for @text:custom (methods,events,params,members,enums)")
+                        raise CppParseError(None, "expected %s case parameters for @text:custom (objects,methods,events,params,members,enums)" % self._MAX)
+                else:
+                    raise CppParseError(None, "unknown case convention '%s' (expected one of: standard, legacy, keep, custom)" % convention)
             else:
                 self._convention = convention
         else:
@@ -144,9 +149,6 @@ class CaseConverter:
         return self.Format.transform(input, self.__format(attr))
 
     def __format(self, attr):
-        if attr == self.PROPERTY_PARAMS:
-            attr = self.PARAMS
-
         assert self.convention
         return self._map[self.convention][attr]
 
@@ -155,23 +157,166 @@ class CppParseError(RuntimeError):
     def __init__(self, obj, msg):
         if obj:
             try:
-                msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.Proto())
+                msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.TypeStrong())
                 super(CppParseError, self).__init__(msg)
             except:
                 super(CppParseError, self).__init__("unknown parsing failure: %s(%i): %s" % (obj.parser_file, obj.parser_line, msg))
         else:
             super(CppParseError, self).__init__(msg)
 
+def StripFrameworkNamespace(identifier):
+    return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
+
+def compute_name(log, converter, object, argument_type, relay=None, is_property=False):
+    if isinstance(object, str):
+        return converter.transform(object, argument_type)
+    else:
+        obj = relay if relay else object
+
+        # Keep convention has a side effect of keeping the original parameter name of property
+        # instead of having it always as "value".
+        original = ("value" if (is_property and not converter.is_keep) else obj.name)
+        name = converter.transform(original, argument_type)
+        overriden = object.meta.text
+        transformed = overriden if overriden else name
+
+        if overriden == name:
+            log.WarnLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
+
+        return transformed
+
+def BuildEnum(log, _case_converter, cppType, meta, var=None, extra_decorators=[], quiet=False):
+    props = { "enum": [compute_name(log, _case_converter, e, _case_converter.ENUMS) for e in cppType.items] }
+
+    if cppType.scoped:
+        props["scoped"] = True
+
+    props["ids"] = [e.name for e in cppType.items]
+
+    if not cppType.items:
+        raise CppParseError(var, "%s: no enumerators in enum" % cppType.name)
+
+    if not cppType.items[0].auto_value:
+        try:
+            props["values"] = [int(e.value) for e in cppType.items]
+        except:
+            log.InfoLine(var, "'%s': unparsable enum values" % var.name)
+
+    for e in cppType.items:
+        if "endmarker" in e.meta.decorators:
+            props["@endmarker"] = e.name
+            break
+
+    if var:
+        if isinstance(var.type.Type(), CppParser.Typedef):
+            type = var.type.Type().type.type
+            if not isinstance(type.parent, CppParser.Class) or type.parent.is_json:
+                props["@register"] = False
+    else:
+        props["@originaltype"] = StripFrameworkNamespace(cppType.full_name)
+
+    if "bitmask" in meta.decorators or "bitmask" in extra_decorators:
+        if var:
+            props["type"] = "string"
+            props["@bitmask"] = True
+            props["@originaltype"] = StripFrameworkNamespace(cppType.full_name)
+            result = ["array", { "items": props } ]
+        else:
+            raise CppParseError(var, "%s: @bitmask is not valid in non-json enum conversions" % cppType.name)
+    else:
+        result = ["string", props]
+
+    p = cppType.parent
+    while p:
+        if isinstance(p, CppParser.Class):
+            if p.is_json:
+                while p:
+                    if p.omit_mode:
+                        log.Info("Enum will be omitted due to json-import", cppType)
+                        props["omit"] = True
+                        break
+                    p = p.parent
+                break
+
+        p = p.parent
+
+    if meta.range and not quiet:
+        log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
+
+    return result
+
+def LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
+    def FindEnums(tree, namespace):
+        enums = []
+
+        def __Traverse(tree, interface_namespace, enums):
+
+            def Find(tree):
+                for e in tree:
+                    if (e.full_name.startswith(interface_namespace + "::")):
+                        if "encode:text" in e.meta.decorators:
+                            enums.append(e)
+
+            if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
+
+                for c in tree.classes:
+                    if not c.omit:
+                        Find(c.enums)
+
+                    __Traverse(c, interface_namespace, enums)
+
+            if isinstance(tree, CppParser.Namespace):
+                Find(tree.enums)
+
+                for n in tree.namespaces:
+                    __Traverse(n, namespace, enums)
+
+        __Traverse(tree, namespace, enums)
+
+        return enums
+
+    enums = FindEnums(tree, ns)
+
+    if enums:
+        schema = OrderedDict()
+        schema["$schema"] = "interface.json.schema"
+        schema["jsonrpc"] = "2.0"
+        schema["@generated"] = True
+        schema["@fullname"] = ns + "::__single_enumerations"
+        schema["namespace"] = ns
+        schema["@interfaceonly"] = True
+        schema["@enumsonly"] = True
+        schema["info"] = OrderedDict()
+        schema["info"]["version"] = [1, 0, 0]
+        schema["info"]["sourcefile"] = os.path.basename(file)
+        schema["info"]["class"] = os.path.basename(file).split('.')[0]
+        schema["info"]["title"] = os.path.basename(file) + " enum conversions"
+        schema["methods"] = OrderedDict()
+        params = OrderedDict()
+
+        for enum in enums:
+            props = BuildEnum(log, CaseConverter(enum.meta.text), enum, enum.meta)
+            params[enum.name] = props[1]
+            params[enum.name]["type"] = props[0]
+            params[enum.name]["description"] = "Enum " + enum.name
+
+        method = OrderedDict()
+        method["params"] = {"description": "Dummy object", "type": "object", "properties": params}
+        method["omit"] = True
+        method["summary"] = "Dummy method"
+        schema["methods"]["dummy"] = method
+
+        return [schema], []
+    else:
+        return [], []
+
 
 def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
-
-    def StripFrameworkNamespace(identifier):
-        return str(identifier).replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
 
-    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if (i.obj.is_json or (all and not i.obj.is_event))]
+    interfaces = [i for i in CppInterface.FindInterfaceClasses(tree, ns, file, []) if ((i.obj.is_json) or (all and not i.obj.is_event))]
 
     def Build(face):
         def _EvaluateRpcFormat(obj):
@@ -187,7 +332,38 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             return rpc_format
 
+        def handle_optional(var, var_type, properties, test=False):
+            if "optional" not in var.meta.decorators:
+                if "@optionaltype" not in properties:
+                    return False
+            else:
+                if "@optionaltype" not in properties:
+                    if not test:
+                        log.Info(var, "@optional tag is deprecated, use Core::OptionalType<> instead")
+
+                    is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
+
+                    if not var.meta.output:
+                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
+                            if not var.meta.default:
+                                log.Warn(var, "default value is assumed to be 0 (use @default)")
+                        elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
+                            raise CppParseError(var, "@optional is not supported for this type")
+                    else:
+                        if not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
+                            raise CppParseError(var, "@optional is not supported for this type on output")
+
+
+                properties["optional"] = True
+                ConvertDefault(var, properties["type"], properties)
+
+                return True
+
+
         log.Info("Parsing interface %s in file %s" % (face.obj.full_name, file))
+
+        if face.obj.json_prefix:
+            log.Info("Additional method prefix: %s" % face.obj.json_prefix)
 
         schema = OrderedDict()
         methods = OrderedDict()
@@ -203,8 +379,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         if face.obj.is_json:
             schema["mode"] = "auto"
 
+            if face.obj.is_custom_lookup and face.obj.is_auto_lookup:
+                raise CppParseError(face.obj, "interface cannot be auto lookup and custom lookup at the same time")
+
             if face.obj.is_custom_lookup:
                 schema["custom_lookup"] = True
+                log.Info("Interface is intended for custom lookup")
+            elif face.obj.is_custom_lookup:
+                schema["auto_lookup"] = True
+                log.Info("Interface is intended for auto lookup")
 
             rpc_format = _EvaluateRpcFormat(face.obj)
             assert not face.obj.is_event
@@ -219,22 +402,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             raise CppParseError(face.obj, "unknown interface-level @text parameter:%s" % face.obj.meta.text)
         else:
             log.Info("Case convention is %s" % _case_converter.convention.value)
-
-        def compute_name(obj, arg, relay=None):
-            if isinstance(obj, str):
-                return _case_converter.transform(obj, arg)
-            else:
-                if not relay:
-                    relay = obj
-
-                _orig_name = ("value" if ((arg == _case_converter.PROPERTY_PARAMS) and not _case_converter.is_keep) else relay.name)
-
-                _name = _case_converter.transform(_orig_name, arg)
-
-                if obj.meta.text == _name:
-                    log.WarnLine(obj, "'%s': overriden name is same as default ('%s')" % (obj.meta.text, _name))
-
-                return (obj.meta.text if obj.meta.text else _name)
 
 
         schema["@interfaceonly"] = True
@@ -253,6 +420,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         info["interface"] = StripInterfaceNamespace("::" + "::".join(scoped_face))
         info["sourcefile"] = os.path.basename(file)
+
+        if face.obj.omit_mode:
+             schema["@omit"] = True
 
         if face.obj.sourcelocation:
             info["sourcelocation"] = face.obj.sourcelocation
@@ -458,42 +628,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 # Enums
                 elif isinstance(cppType, CppParser.Enum):
-                    props = { "enum": [compute_name(e, _case_converter.ENUMS) for e in cppType.items] }
-
-                    if var_type.Type().scoped:
-                        props["scoped"] = True
-
-                    props["ids"] = [e.name for e in cppType.items]
-
-                    if not cppType.items:
-                        raise CppParseError(var, "%s: no enumerators in enum" % cppType.name)
-
-                    if not cppType.items[0].auto_value:
-                        try:
-                            props["values"] = [int(e.value) for e in cppType.items]
-                        except:
-                            log.InfoLine(var, "'%s': unparsable enum values" % var.name)
-
-                    for e in cppType.items:
-                        if "endmarker" in e.meta.decorators:
-                            props["@endmarker"] = e.name
-                            break
-
-                    if isinstance(var.type.Type(), CppParser.Typedef):
-                        type = var.type.Type().type.type
-                        if not isinstance(type.parent, CppParser.Class) or type.parent.is_json:
-                            props["@register"] = False
-
-                    if "bitmask" in meta.decorators or "bitmask" in var.type.Type().meta.decorators:
-                        props["type"] = "string"
-                        props["@bitmask"] = True
-                        props["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
-                        result = ["array", { "items": props } ]
-                    else:
-                        result = ["string", props]
-
-                    if meta.range and not quiet:
-                        log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
+                    result = BuildEnum(log, _case_converter, cppType, meta, var, var.type.Type().meta.decorators, quiet)
 
                 # std::vector
                 elif isinstance(cppType, CppParser.DynamicArray):
@@ -517,7 +652,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 # POD objects
                 elif isinstance(cppType, CppParser.Class):
-                    def GenerateObject(ctype, was_typdef):
+                    def GenerateObject(ctype, from_typedef):
                         properties = dict()
 
                         kind = ctype.Merge()
@@ -525,37 +660,31 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         required = []
 
                         for p in kind.vars:
-                            name = compute_name(p, _case_converter.MEMBERS)
+                            p_name = compute_name(log, _case_converter, p, _case_converter.MEMBERS)
+                            p_type = ResolveTypedef(p.type)
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
                             if isinstance(p.type, str):
                                 raise CppParseError(p, "%s: undefined type" % p.type)
-                            elif isinstance(ResolveTypedef(p.type).Type(), CppParser.Class) and not p.array:
-                                _, props = GenerateObject(ResolveTypedef(p.type).Type(), isinstance(p.type.Type(), CppParser.Typedef))
-                                properties[name] = props
-                                properties[name]["type"] = "object"
-                                properties[name]["@originaltype"] = StripFrameworkNamespace(p.type.Type().full_name)
+                            elif isinstance(p_type.Type(), CppParser.Class) and not p.array:
+                                _, props = GenerateObject(p_type.Type(), isinstance(p.type.Type(), CppParser.Typedef))
+                                properties[p_name] = props
+                                properties[p_name]["type"] = "object"
+                                properties[p_name]["@originaltype"] = StripFrameworkNamespace(p.type.Type().full_name)
 
                                 if p.meta.brief:
-                                    properties[name]["description"] = p.meta.brief
+                                    properties[p_name]["description"] = p.meta.brief
                             else:
-                                properties[name] = ConvertParameter(p)
+                                properties[p_name] = ConvertParameter(p)
 
-                            properties[name]["@originalname"] = p.name
+                            properties[p_name]["@originalname"] = p.name
 
-                            if was_typdef:
-                                properties[name]["@register"] = False
+                            if from_typedef:
+                                properties[p_name]["@register"] = False
 
-                            if "optional" not in p.meta.decorators:
-                                if "@optionaltype" not in properties[name]:
-                                    required.append(name)
-                            else:
-                                properties[name]["optional"] = True
-                                ConvertDefault(p, properties[name]["type"], properties[name])
-
-                                if not quiet:
-                                    log.Info(p, "'%s': @optional tag is deprecated, use Core::OptionalType instead" % p.name)
+                            if not handle_optional(p, p_type, properties[p_name], required):
+                                required.append(p_name)
 
                         return "object", { "properties": properties, "required": required }
 
@@ -564,44 +693,43 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif cppType.is_json and cppType.is_custom_lookup:
-                        objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
-                        result =  [ "string", { "@lookup-id": objprefix, "@lookup-type": "custom" } ]
-                        if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
-                            passed_interfaces.append({ "name": cppType.full_name, "id": "@custom", "type": "string", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
-                    elif cppType.is_json:
-                        objprefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
-                        result =  [ "integer", { "size": 32, "signed": False, "@lookup-id": objprefix, "@lookup-type": "auto" } ]
-                        if not [x for x in passed_interfaces if x["name"] == cppType.full_name]:
-                            passed_interfaces.append({ "name": cppType.full_name, "id": "@generate", "type": "uint32_t", "prefix": objprefix, "fullprefix": (prefix + objprefix.lower())})
+                        obj_prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "string", { "@lookup": "custom" } ]
+                        if not [x for x in passed_interfaces if x["fullname"] == cppType.full_name]:
+                            passed_interfaces.append({ "fullname": cppType.full_name, "id": "custom", "type": "string", "object": obj_prefix, "prefix": compute_prefix(log, _case_converter, None, obj_prefix), "fullprefix": compute_prefix(log, _case_converter, cppType, obj_prefix)})
+                    elif cppType.is_json and cppType.is_auto_lookup:
+                        obj_prefix = (cppType.name[1:] if cppType.name[0] == 'I' else cppType.name)
+                        result =  [ "integer", { "size": 32, "signed": False, "@lookup": "auto" } ]
+                        if not [x for x in passed_interfaces if x["fullname"] == cppType.full_name]:
+                            passed_interfaces.append({ "fullname": cppType.full_name, "id": "generate", "type": "uint32_t", "object": obj_prefix, "prefix": compute_prefix(log, _case_converter, None, obj_prefix), "fullprefix": compute_prefix(log, _case_converter, cppType, obj_prefix)})
                     else:
                         if cppType.is_iterator:
                             raise CppParseError(var, "iterators must be passed by pointer: %s" % cppType.type)
-                        else:
-                            if "async" in method.retval.meta.decorators:
-                                async_method = dict()
-                                for im in cppType.methods:
-                                    if im.IsVirtual() and not im.IsDestructor():
-                                        if not async_method:
-                                            async_method["name"] = prefix + compute_name(method.retval, _case_converter.EVENTS, method)
-                                            async_method["@originalname"] = im.name
-                                            async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
-                                            async_method["params"] = BuildParameters(None, im.vars, rpc_format)
+                        elif "async" in method.retval.meta.decorators:
+                            async_method = dict()
+                            for im in cppType.methods:
+                                if im.IsVirtual() and not im.IsDestructor():
+                                    if not async_method:
+                                        async_method["name"] = prefix + compute_name(log, _case_converter, method.retval, _case_converter.EVENTS, relay=method)
+                                        async_method["@originalname"] = im.name
+                                        async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
+                                        async_method["params"] = BuildParameters(None, im.vars, rpc_format)
 
-                                            if BuildResult(im.vars)["type"] != "null":
-                                                raise CppParseError(im, "async callback method must not return anything")
+                                        if BuildResult(im.vars)["type"] != "null":
+                                            raise CppParseError(im, "async callback method must not return anything")
 
-                                            if not isinstance(im.retval.Type().type, CppParser.Void):
-                                                raise CppParseError(im, "async callback method must have void return value")
-                                        else:
-                                            log.WarnLine(var, "'%s': callback interface has mulitple methods; the first one ('%s') will be used for JSON-RPC notification" % (cppType.name, async_method["@originalname"]))
-                                            break
+                                        if not isinstance(im.retval.Type().type, CppParser.Void):
+                                            raise CppParseError(im, "async callback method must have void return value")
+                                    else:
+                                        log.WarnLine(var, "'%s': callback interface has mulitple methods; the first one ('%s') will be used for JSON-RPC notification" % (cppType.name, async_method["@originalname"]))
+                                        break
 
-                                if async_method:
-                                    result = [ "string", { "@async": async_method } ]
-                                else:
-                                    raise CppParseError(var, "callback interface has no methods defined")
+                            if async_method:
+                                result = [ "string", { "@async": async_method } ]
                             else:
-                                raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-@json interface is not possible)" % cppType.type)
+                                raise CppParseError(var, "callback interface has no methods defined")
+                        else:
+                            raise CppParseError(var, "unable to convert this C++ class to JSON type: %s (passing a non-lookup interface is not possible)" % cppType.type)
 
                 # All other types are not supported
                 else:
@@ -706,7 +834,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     elif type == "boolean":
                         converted["@default"] = ("true" if var.meta.default[0] == "true" else "false")
                         converted["default"] = (var.meta.default[0] == "true")
-                    if type == "string" and "enum" in converted:
+                    elif type == "string" and "enum" in converted:
                         if var.meta.default[0] not in converted.get("ids"):
                             raise CppParseError(var, "default value for enumerator type is not an enum value")
                         converted["@default"] = converted["@originaltype"] + "::" + str(var.meta.default[0])
@@ -744,7 +872,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             elif not var.meta.output:
                                 log.WarnLine(var, "'%s': non-const parameter marked with @in tag (forgot 'const'?)" % var.name)
 
-                    var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
+                    var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_") and not test:
                         raise CppParseError(var.parent, "unnamed parameter %s (input)" % (idx + 1))
@@ -755,7 +883,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if method_asynchronous:
                             raise CppParseError(method, "multiple callbacks defined")
 
-                        var_name = compute_name("Id", _case_converter.PARAMS)
+                        var_name = compute_name(log, _case_converter, "Id", _case_converter.PARAMS)
                         method_asynchronous = True
 
                     if var_name in list(properties.keys()):
@@ -775,15 +903,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         converted["@position"] = vars.index(var)
 
-                        if "optional" not in var.meta.decorators:
-                            if "@optionaltype" not in converted:
-                                required.append(var_name)
-                        else:
-                            converted["optional"] = True
-                            ConvertDefault(var, converted["type"], converted)
-
-                            if not test:
-                                log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
+                        if not handle_optional(var, ResolveTypedef(var.type), converted, test):
+                            required.append(var_name)
 
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in converted and not "time" in converted:
@@ -827,7 +948,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 var_type = ResolveTypedef(var.type)
 
                 if var.meta.output:
-                    var_name = compute_name(var, (_case_converter.PROPERTY_PARAMS if is_property else _case_converter.PARAMS))
+                    var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_"):
                         raise CppParseError(var, "unnamed parameter %s (result)" % (idx + 1))
@@ -845,15 +966,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     properties[var_name]["@position"] = vars.index(var)
 
-                    if "optional" not in var.meta.decorators:
-                        if "@optionaltype" not in properties[var_name]:
-                            required.append(var_name)
-                    else:
-                        properties[var_name]["optional"] = True
-                        ConvertDefault(var, properties[var_name]["type"], properties[var_name])
-
-                        if not test:
-                            log.Info(var, "@optional tag is deprecated, use Core::OptionalType instead")
+                    if not handle_optional(var, var_type, properties[var_name], test):
+                        required.append(var_name)
 
             params["properties"] = properties
 
@@ -870,15 +984,23 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 void["description"] = "Always null"
                 return void
 
-        if face.obj.json_prefix:
-            prefix = (face.obj.json_prefix + ("::" if not face.obj.json_prefix.endswith("_") else ""))
-        elif config.AUTO_PREFIX and (face.obj.parent.full_name != ns):
-            prefix = (face.obj.parent.name.lower() + "_")
-        else:
+        def compute_prefix(log, converter, obj, suffix=None):
             prefix = ""
 
+            if obj:
+                if obj.json_prefix:
+                    prefix += obj.json_prefix + ("::" if not obj.json_prefix.endswith("_") else "")
+                elif config.AUTO_PREFIX and (obj.parent.full_name != ns):
+                    prefix += obj.parent.name.lower() + "_"
+
+            if suffix:
+                prefix += compute_name(log, converter, suffix, converter.OBJECTS)
+
+            return prefix
+
+
         faces = []
-        faces.append((prefix, face.obj.methods))
+        faces.append((compute_prefix(log, _case_converter, face.obj), face.obj.methods))
 
         for prefix, _methods in faces:
           for method in _methods:
@@ -908,7 +1030,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
-            method_name = compute_name(method.retval, _case_converter.METHODS, relay=method)
+            method_name = compute_name(log, _case_converter, method.retval, _case_converter.METHODS, relay=method)
 
             if method.retval.meta.alt == method_name:
                 log.WarnLine(method, "'%s': alternative name is same as default ('%s')" % (method.name, method.retval.meta.alt))
@@ -1023,6 +1145,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if method.vars[value].type.IsConst():
                             raise CppParseError(method.vars[value], "property getter method must not use const parameter")
                         else:
+                            # These are predefined by JSON-RPC standerd, so do not follow case convention rules
                             if rpc_format == config.RpcFormat.COLLAPSED:
                                 result_name = "params"
                             else:
@@ -1239,7 +1362,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if params:
                         obj["params"] = params
 
-                    method_name = compute_name(method.retval, _case_converter.EVENTS, relay=method)
+                    method_name = compute_name(log, _case_converter, method.retval, _case_converter.EVENTS, relay=method)
 
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
@@ -1290,15 +1413,16 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     schemas.append(schema)
                     scanned.append(face.obj.full_name)
 
+        # prepare a declaration of all passed objects
         for s in schemas:
             for face in (s["@interfaces"] if "@interfaces" in s else []):
                 for ss in schemas:
-                    if ss["@fullname"] == face["name"]:
+                    if ss["@fullname"] == face["fullname"]:
                         if "methods" in ss:
                             methods = ss["methods"]
                             for k,_ in methods.items():
                                 split_k = k.split("::")
-                                split_k.insert(-1, face["prefix"].lower())
+                                split_k.insert(-1, face["prefix"])
                                 new_k = "::".join(split_k)
                                 if "methods" not in s:
                                     s["methods"] = {}
@@ -1311,7 +1435,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             properties = ss["properties"]
                             for k,_ in properties.items():
                                 split_k = k.split("::")
-                                split_k.insert(-1, face["prefix"].lower())
+                                split_k.insert(-1, face["prefix"])
                                 new_k = "::".join(split_k)
                                 if "properties" not in s:
                                     s["properties"] = {}
@@ -1324,7 +1448,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             events = ss["events"]
                             for k,_ in events.items():
                                 split_k = k.split("::")
-                                split_k.insert(-1, face["prefix"].lower() + "#ID")
+                                split_k.insert(-1, face["prefix"] + "#ID")
                                 new_k = "::".join(split_k)
                                 if "events" not in s:
                                     s["events"] = {}
@@ -1349,6 +1473,17 @@ def LoadInterface(file, log, all = False, include_paths = []):
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths)
+
+            for s in their_schemas:
+                f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))
+
+                if not f:
+                    schemas.append(s)
+
+            includes.extend(their_includes)
+
+        for ns in config.INTERFACE_NAMESPACES:
+            their_schemas, their_includes = LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all, include_paths)
 
             for s in their_schemas:
                 f = list(filter(lambda x: x["@fullname"] == s["@fullname"], schemas))

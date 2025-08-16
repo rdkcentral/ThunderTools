@@ -29,8 +29,8 @@ def IsObjectRestricted(argument):
     return False
 
 def IsObjectOptionalOrOpaque(argument):
-        _by_required = ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"])
-        return (argument.schema.get("opaque") or argument.schema.get("optional") or _by_required) and not argument.optional
+    _by_required = ("required" in argument.parent.schema and argument.json_name not in argument.parent.schema["required"])
+    return (argument.schema.get("opaque") or argument.schema.get("optional") or _by_required) and not argument.optional
 
 def IsObjectOptional(argument):
     if argument.optional or IsObjectOptionalOrOpaque(argument):
@@ -92,8 +92,7 @@ class Restrictions:
             self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == true" % name)
         elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s == nullptr" % name)
-        else:
-            assert False, "invalid type"
+
 
     def check_not_null(self, argument, pos=None):
         name = argument.original_name if self.__original_name else argument.temp_name
@@ -105,8 +104,6 @@ class Restrictions:
             self.__cond.insert(pos if pos else len(self.__cond), "%s.empty() == false" % name)
         elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s != nullptr" % name)
-        else:
-            assert False, "invalid type"
 
     def append(self, argument, relay=None, override=None, test_set=None, json=True):
         if test_set == None:
@@ -203,7 +200,7 @@ def ProcessEnums(log, action=None):
     count = 0
 
     for obj in trackers.enum_tracker.objects:
-        if not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
+        if not obj.omit and not obj.is_duplicate and not obj.included_from and ("@register" not in obj.schema or obj.schema["@register"]):
             obj.schema["@register"] = False
             count += 1
             if action:
@@ -228,7 +225,7 @@ def EmitEnumRegs(log, root, emit, header_file, if_file):
         emit.Line("ENUM_CONVERSION_END(%s)" % name)
 
     emit.Line()
-    emit.Line("// Enumeration code for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
+    emit.Line("// Enumeration code for %s." % root.info["title"].replace("Plugin", "").strip())
     emit.Line("// Generated automatically from '%s'." % os.path.basename(if_file))
     emit.Line()
 
@@ -244,6 +241,7 @@ def EmitEnumRegs(log, root, emit, header_file, if_file):
 
     emit.Line("#include \"%s_%s.h\"" % (config.DATA_NAMESPACE, header_file))
     emit.Line()
+
     emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
 
     count = ProcessEnums(log, _EmitEnumRegistration)
@@ -647,14 +645,17 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line()
 
     emit.Line()
-    emit.Line("// C++ classes for %s JSON-RPC API." % root.info["title"].replace("Plugin", "").strip())
+    emit.Line("// C++ types for %s." % root.info["title"].replace("Plugin", "").strip())
     emit.Line("// Generated automatically from '%s'. DO NOT EDIT." % os.path.basename(if_file))
     emit.Line()
-    emit.Line("// Note: This code is inherently not thread safe. If required, proper synchronisation must be added.")
-    emit.Line()
+
+    if not root.schema.get("@enumsonly"):
+        emit.Line("// Note: This code is inherently not thread safe. If required, proper synchronisation must be added.")
+        emit.Line()
 
     emit.Line("#pragma once")
     emit.Line()
+
     emit.Line("#include <core/JSON.h>")
 
     if not config.NO_INCLUDES:
@@ -670,65 +671,68 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emit.Line()
     emit.Line("namespace %s {" % config.FRAMEWORK_NAMESPACE)
     emit.Line()
-    emit.Line("namespace %s {" % config.DATA_NAMESPACE)
-    emit.Indent()
-    emit.Line()
-    _EmitNoPushWarnings()
 
-    if "info" in root.schema and "namespace" in root.schema["info"]:
-        emit.Line("namespace %s {" % root.schema["info"]["namespace"])
+    if not root.schema.get("@enumsonly"):
+        emit.Line("namespace %s {" % config.DATA_NAMESPACE)
+        emit.Indent()
+        emit.Line()
+        _EmitNoPushWarnings()
+
+        if "info" in root.schema and "namespace" in root.schema["info"]:
+            emit.Line("namespace %s {" % root.schema["info"]["namespace"])
+            emit.Indent()
+            emit.Line()
+
+        emit.Line("namespace %s {" % root.json_name)
         emit.Indent()
         emit.Line()
 
-    emit.Line("namespace %s {" % root.json_name)
-    emit.Indent()
-    emit.Line()
+        if emitCommon and trackers.enum_tracker.CommonObjects():
+            log.Info("Emitting common enums...")
+            emittedPrologue = False
+            for obj in trackers.enum_tracker.CommonObjects():
+                if obj.do_create and not obj.is_duplicate and not obj.included_from:
+                    if not emittedPrologue:
+                        emit.Line("// Common enums")
+                        emit.Line("//")
+                        emit.Line()
+                        emittedPrologue = True
+                    _EmitEnum(obj)
 
-    if emitCommon and trackers.enum_tracker.CommonObjects():
-        log.Info("Emitting common enums...")
-        emittedPrologue = False
-        for obj in trackers.enum_tracker.CommonObjects():
-            if obj.do_create and not obj.is_duplicate and not obj.included_from:
-                if not emittedPrologue:
-                    emit.Line("// Common enums")
-                    emit.Line("//")
-                    emit.Line()
-                    emittedPrologue = True
-                _EmitEnum(obj)
+        if emitCommon and trackers.object_tracker.CommonObjects():
+            log.Info("Emitting common classes...")
+            emittedPrologue = False
+            for obj in trackers.object_tracker.CommonObjects():
+                if not obj.included_from:
+                    if not emittedPrologue:
+                        emit.Line("// Common classes")
+                        emit.Line("//")
+                        emit.Line()
+                        emittedPrologue = True
+                    _EmitClass(obj, True)
 
-    if emitCommon and trackers.object_tracker.CommonObjects():
-        log.Info("Emitting common classes...")
-        emittedPrologue = False
-        for obj in trackers.object_tracker.CommonObjects():
-            if not obj.included_from:
-                if not emittedPrologue:
-                    emit.Line("// Common classes")
-                    emit.Line("//")
-                    emit.Line()
-                    emittedPrologue = True
-                _EmitClass(obj, True)
+        if root.objects:
+            log.Info("Emitting params/result classes...")
+            emit.Line("// Method params/result classes")
+            emit.Line("//")
+            emit.Line()
+            _EmitClass(root)
 
-    if root.objects:
-        log.Info("Emitting params/result classes...")
-        emit.Line("// Method params/result classes")
-        emit.Line("//")
-        emit.Line()
-        _EmitClass(root)
-
-    emit.Unindent()
-    emit.Line("} // namespace %s" % root.json_name)
-    emit.Line()
-
-    if "info" in root.schema and "namespace" in root.schema["info"]:
         emit.Unindent()
-        emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
+        emit.Line("} // namespace %s" % root.json_name)
         emit.Line()
 
-    _EmitNoPushWarnings(False)
+        if "info" in root.schema and "namespace" in root.schema["info"]:
+            emit.Unindent()
+            emit.Line("} // namespace %s" % root.schema["info"]["namespace"])
+            emit.Line()
 
-    emit.Unindent()
-    emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
-    emit.Line()
+        _EmitNoPushWarnings(False)
+
+        emit.Unindent()
+        emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
+        emit.Line()
+
     emittedPrologue = False
 
     for obj in trackers.enum_tracker.objects:
