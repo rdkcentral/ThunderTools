@@ -491,7 +491,10 @@ class Identifier():
             elif token == "]":
                 array = False
                 type.append("*")
-                self.array = array_size
+                array_size_value = Evaluate([array_size])
+                if not isinstance(array_size_value, int):
+                    raise ParserError("unable to determine size of array: %s" % array_size)
+                self.array = array_size_value
                 array_size = None
 
             elif token in ["*", "&"]:
@@ -738,7 +741,7 @@ class Identifier():
             return (self.Proto() + " " + (override if override != None else self.name))
 
 
-def Evaluate(identifiers_):
+def Evaluate(identifiers_, as_identifier=False):
     # Ensure scoped identifiers are kpt together
     identifiers = ["?"]
     for i, id in enumerate(identifiers_):
@@ -783,6 +786,7 @@ def Evaluate(identifiers_):
 
                 found = []
                 __Search(global_namespace, found, "::" + identifier)
+
                 if found:
                     val.append(found[-1])
                 else:
@@ -793,18 +797,22 @@ def Evaluate(identifiers_):
 
     value = None
 
-    # attempt to parse the arithmetics...
-    try:
-        x = [str(v.value) if (isinstance(v, (Variable, Enumerator)) and v.value != None) else str(v) for v in val]
-        value = eval("".join(x))
-    except:
+    if len(val) == 1 and as_identifier:
+        value = val[0].full_name
+    else:
+
+        # attempt to parse the arithmetics...
         try:
-            value = eval("".join(val))
+            x = [str(v.value) if (isinstance(v, (Variable, Enumerator)) and v.value != None) else str(v) for v in val]
+            value = eval("".join(x))
         except:
             try:
-                value = " ".join(val)
+                value = eval("".join(val))
             except:
-                value = val
+                try:
+                    value = " ".join(val)
+                except:
+                    value = val
 
     return value
 
