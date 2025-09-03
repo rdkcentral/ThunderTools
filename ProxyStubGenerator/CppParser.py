@@ -491,7 +491,13 @@ class Identifier():
             elif token == "]":
                 array = False
                 type.append("*")
-                self.array = array_size
+
+                if array_size:
+                    try:
+                        self.array = int(array_size)
+                    except:
+                        self.array = array_size
+
                 array_size = None
 
             elif token in ["*", "&"]:
