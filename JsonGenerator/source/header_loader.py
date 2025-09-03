@@ -334,8 +334,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         def handle_optional(var, var_type, properties, quiet=False):
             if "optional" not in var.meta.decorators:
-                if "@optionaltype" not in properties:
-                    return False
+                return "@optionaltype" in properties
             else:
                 if "@optionaltype" not in properties:
                     if not quiet:
@@ -352,7 +351,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     else:
                         if not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
                             raise CppParseError(var, "@optional is not supported for this type on output")
-
+                else:
+                    log.Warn(var, "@optional is redundant for OptionalType")
 
                 properties["optional"] = True
                 ConvertDefault(var, properties["type"], properties)
@@ -557,6 +557,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     result = ["array", props]
 
+                # C-style buffers converted to JSON array (not char type or fixed array)
+                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.Optional)) and meta.length:
+                    raise CppParseError(var, "'%s': variable length buffer of non-char elements is not supported" % var.name)
+
                 # Iterators that will be converted to JSON arrays
                 elif is_iterator and len(cppType.args) == 2:
                     # Take element type from return value of the Current() method
@@ -575,8 +579,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         raise CppParseError(var, "iterators must be passed as const pointers (not pointers to const)")
 
                     if not quiet:
-                        if meta.range:
-                            log.WarnLine(var, "'%s': @restrict has no effect on iterators" % var.name)
                         if meta.length:
                             log.WarnLine(var, "'%s': @length has no effect on iterators" % var.name)
                         if meta.default:

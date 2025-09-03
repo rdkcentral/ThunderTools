@@ -283,7 +283,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 local_name = p.local_name
 
                 if params_type == "native":
-                    optional_conditions = Restrictions(json=False)
+                    optional_conditions = Restrictions(json=False, original_name=True)
                     if IsObjectOptional(p):
                         optional_conditions.check_set(p)
                         local_name += ".Value()"

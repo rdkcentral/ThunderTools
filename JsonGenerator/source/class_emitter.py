@@ -132,10 +132,10 @@ class Restrictions:
                 else:
                     self.__cond.append("%s.IsDataValid() == false" % name)
 
-        elif IsObjectRestricted(argument):
+        elif IsObjectRestricted(relay):
             tests = []
 
-            range = argument.schema.get("range")
+            range = relay.schema.get("range")
 
             if range:
                 if isinstance(relay, (JsonString, JsonMacAddress)):
@@ -160,23 +160,31 @@ class Restrictions:
                         else:
                             adjusted = range
 
-                        if adjusted[0] != 0:
-                            tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), ".size()", self.__comp[0], adjusted[0]))
+                        size_method = "size"
 
-                        tests.append("%s%s%s %s %s" % (name, (".Value()" if self.__json and json else ""), ".size()", self.__comp[1], adjusted[1]))
+                        if adjusted[0] != 0:
+                            tests.append("%s%s.%s() %s %s" % (name, (".Value()" if self.__json and json else ""), size_method, self.__comp[0], adjusted[0]))
+
+                        tests.append("%s%s.%s() %s %s" % (name, (".Value()" if self.__json and json else ""), size_method, self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
-                    if "@container" in relay.schema:
+                    if self.__json:
                         if range[0]:
                             tests.append("%s.Length() %s %s" % (name, self.__comp[0], range[0]))
 
                         tests.append("%s.Length() %s %s" % (name, self.__comp[1], range[1]))
+                    else:
+                        if "@container" in relay.schema:
+                            if range[0]:
+                                tests.append("%s.size() %s %s" % (name, self.__comp[0], range[0]))
 
-                    elif not isinstance(relay, JsonObject):
-                        if range[0] or relay.schema.get("signed"):
-                            tests.append("%s %s %s" % (name, self.__comp[0], range[0]))
+                            tests.append("%s.size() %s %s" % (name, self.__comp[1], range[1]))
 
-                        tests.append("%s %s %s" % (name, self.__comp[1], range[1]))
+                        elif "@iterator" in relay.schema:
+                            if range[0]:
+                                tests.append("%s.Count() %s %s" % (name, self.__comp[0], range[0]))
+
+                            tests.append("%s.Count() %s %s" % (name, self.__comp[1], range[1]))
 
             if tests:
                 if test_set and self.__json and json:
