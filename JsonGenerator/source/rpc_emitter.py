@@ -283,17 +283,23 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 local_name = p.local_name
 
                 if params_type == "native":
-                    if p.optional:
-                        emit.Line("if (%s.IsSet() == true) {" % (p.local_name))
-                        emit.Indent()
+                    optional_conditions = Restrictions(json=False, original_name=True)
+                    if IsObjectOptional(p):
+                        optional_conditions.check_set(p)
                         local_name += ".Value()"
+                    elif IsObjectOptionalOrOpaque(p):
+                        optional_conditions.check_not_null(p)
+
+                    emit.EnterBlock(optional_conditions)
 
                     if isinstance(p, JsonArray):
                         if "@container" in p.schema:
-                            emit.Line("for (auto const& _item__ : %s) { %s%s.Add() = _item__; }" % (p.local_name, prefix, local_name))
+                            emit.Line("for (auto const& _item__ : %s) { %s.Add() = _item__; }" % (local_name, cpp_name))
                         elif "@arraysize" in p.schema:
-                            emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+                            emit.Line("ASSERT(%s != nullptr);" % local_name)
                             emit.Line("for (uint16_t _i__ = 0; _i__ < %s; _i__++) { %s.Add() = %s[_i__]; }" % (p.schema["@arraysize"], cpp_name, local_name))
+                        elif "@iterator" in p.schema:
+                            raise RPCEmitterError("event parameters must not be iterators: %s" % p.local_proto)
                         else:
                             length_param = None
                             length_value = p.schema.get("@length")
@@ -340,7 +346,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
                         elif "@arraysize" in p.schema:
                             encoded_name = "_%sEncoded__" % (p.local_name)
-                            emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+                            emit.Line("ASSERT(%s != nullptr);" % local_name)
                             emit.Line("string %s;" % encoded_name)
                             if encode == "base64":
                                 emit.Line("Core::ToString(%s, %s, true, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
@@ -374,7 +380,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                                 needs_legacy_array_as_string = True
                                 encoded_name = "_%sEncoded__" % (p.local_name)
                                 emit.Line("string %s;" % encoded_name)
-                                emit.Line("ASSERT(%s != nullptr);" % p.local_name)
+                                emit.Line("ASSERT(%s != nullptr);" % local_name)
 
                                 if encode == "base64":
                                     emit.Line("Core::ToString(%s, %s, true, %s);" % (local_name, length_value, encoded_name))
@@ -402,9 +408,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                     else:
                         emit.Line("%s = %s;" % (cpp_name, local_name))
 
-                    if p.optional:
-                        emit.Unindent()
-                        emit.Line("}")
+                    emit.ExitBlock(optional_conditions)
 
                 else:
                     emit.Line("%s = %s;" % (cpp_name, local_name))
@@ -945,6 +949,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         restrictions = Restrictions(test_set=False)
         invoke_restrictions = Restrictions(json=False)
         call_conditions = Restrictions(test_set=False)
+        cleanup = []
         async_event = None
 
         if conditional_invoke:
@@ -968,6 +973,22 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         # Emit temporary variables and deserializing of JSON data
 
         async_param = None
+
+        lookup_conditions = Restrictions(json=False)
+
+        if not is_json_source:
+            implementation = names.impl
+            interface = names.interface
+
+            if lookup:
+                impl = ("_%s%s" % (lookup["object"], implementation)).lower()
+                interface = trim(lookup["fullname"])
+                emit.Line("%s%s* const %s = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(%s, %s);" % ("const " if const_cast else "", interface, implementation, names.module, interface, names.instance_id, names.context))
+                lookup_conditions.extend("%s != nullptr" % implementation)
+
+            implementation_object = "(static_cast<const %s*>(%s))" % (interface, implementation) if const_cast and not auto_lookup else implementation
+
+        emit.If(lookup_conditions)
 
         for _, [param, param_type, param_meta] in sorted_vars:
             if param_meta.flags.is_buffer_length:
@@ -1141,6 +1162,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if param.optional:
                             emit.Unindent()
                             emit.Line("}")
+
+                        cleanup.append(iterator)
 
                         emit.Line()
 
@@ -1316,16 +1339,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         # Emit call to the implementation
         if not is_json_source: # Full automatic mode
 
-            impl = names.impl
-            interface = names.interface
-
-            if lookup:
-                impl = ("_%s%s" % (lookup["object"], impl)).lower()
-                interface = trim(lookup["fullname"])
-                emit.Line("%s%s* const %s = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(%s, %s);" % ("const " if const_cast else "", interface, impl, names.module, interface, names.instance_id, names.context))
-                call_conditions.extend("%s != nullptr" % impl)
-
-            implementation_object = "(static_cast<const %s*>(%s))" % (interface, impl) if const_cast and not auto_lookup else impl
             function_params = []
 
             if context:
@@ -1348,7 +1361,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, method.function_name, ", ".join(function_params)))
 
             if auto_lookup or custom_lookup:
-                emit.Line("%s->Release();" % impl)
+                emit.Line("%s->Release();" % implementation)
 
             if method.callback:
                 emit.Line()
@@ -1364,6 +1377,12 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("else {")
                 emit.Indent()
                 emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+                for c in cleanup:
+                    emit.Line("if (%s != nullptr) {" % c)
+                    emit.Indent()
+                    emit.Line("%s->Release();" % c)
+                    emit.Unindent()
+                    emit.Line("}")
                 emit.Unindent()
                 emit.Line("}")
 
@@ -1569,6 +1588,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             emit.Unindent()
             emit.Line("}")
+
+        if emit.Else(lookup_conditions):
+            emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+
+        emit.Endif(lookup_conditions)
 
         if restrictions.present():
             emit.Unindent()

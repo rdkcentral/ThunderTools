@@ -332,27 +332,27 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             return rpc_format
 
-        def handle_optional(var, var_type, properties, test=False):
+        def handle_optional(var, var_type, properties, quiet=False):
             if "optional" not in var.meta.decorators:
-                if "@optionaltype" not in properties:
-                    return False
+                return "@optionaltype" in properties
             else:
                 if "@optionaltype" not in properties:
-                    if not test:
+                    if not quiet:
                         log.Info(var, "@optional tag is deprecated, use Core::OptionalType<> instead")
 
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
                     if not var.meta.output:
                         if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
-                            if not var.meta.default:
+                            if not var.meta.default and not quiet:
                                 log.Warn(var, "default value is assumed to be 0 (use @default)")
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
                             raise CppParseError(var, "@optional is not supported for this type")
                     else:
                         if not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
                             raise CppParseError(var, "@optional is not supported for this type on output")
-
+                else:
+                    log.Warn(var, "@optional is redundant for OptionalType")
 
                 properties["optional"] = True
                 ConvertDefault(var, properties["type"], properties)
@@ -496,7 +496,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     break
 
             if isinstance(cppType, CppParser.Optional) and (not var.array or no_array):
-                result = ConvertType(cppType.optional, meta=var.meta)
+                result = ConvertType(cppType.optional, quiet=quiet, meta=var.meta)
                 result[1]["@optionaltype"] = True
                 result[1]["@originaltype"] = StripFrameworkNamespace(cppType.optional)
                 result[1]["@proto"] = var.ProtoFmt()
@@ -529,7 +529,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 # C-style buffers converted to JSON arrays (no encode tag)
                 elif isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and not var.array:
                     props = {}
-                    props["items"] = ConvertParameter(var, no_array=True)
+                    props["items"] = ConvertParameter(var, quiet=quiet, no_array=True)
                     props["@length"] = " ".join(meta.length)
                     props["@proto"] = var.ProtoFmt()
 
@@ -555,8 +555,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     props = {}
 
-                    props["items"] = ConvertParameter(currentMethod.retval)
+                    props["items"] = ConvertParameter(currentMethod.retval, quiet=quiet)
                     props["@iterator"] = StripInterfaceNamespace(cppType.type)
+                    props["@proto"]= var.ProtoFmt()
 
                     if var_type.IsPointerToConst():
                         raise CppParseError(var, "iterators must be passed as const pointers (not pointers to const)")
@@ -635,7 +636,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if isinstance(cppType.element.Type().type, (CppParser.Optional, CppParser.DynamicArray)):
                         raise CppParseError(var, "usupported type for std::vector element")
 
-                    props = { "items": ConvertParameter(cppType.element), "@container": "vector" }
+                    props = { "items": ConvertParameter(cppType.element, quiet=quiet), "@container": "vector" }
 
                     if meta.range:
                         props["range"] = meta.range
@@ -676,14 +677,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 if p.meta.brief:
                                     properties[p_name]["description"] = p.meta.brief
                             else:
-                                properties[p_name] = ConvertParameter(p)
+                                properties[p_name] = ConvertParameter(p, quiet=quiet)
 
                             properties[p_name]["@originalname"] = p.name
 
                             if from_typedef:
                                 properties[p_name]["@register"] = False
 
-                            if not handle_optional(p, p_type, properties[p_name], required):
+                            if not handle_optional(p, p_type, properties[p_name], quiet):
                                 required.append(p_name)
 
                         return "object", { "properties": properties, "required": required }
@@ -774,7 +775,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 return None
 
         def ConvertParameter(var, quiet=False, no_array=False):
-            jsonType, args = ConvertType(var, quiet, no_array=no_array)
+            jsonType, args = ConvertType(var, quiet=quiet, no_array=no_array)
             properties = {"type": jsonType}
 
             if args != None:
@@ -877,7 +878,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if var_name.startswith("__anonymous_") and not test:
                         raise CppParseError(var.parent, "unnamed parameter %s (input)" % (idx + 1))
 
-                    converted = ConvertParameter(var, test)
+                    converted = ConvertParameter(var, quiet=test)
 
                     if converted["type"] == "string" and "@async" in converted:
                         if method_asynchronous:
@@ -953,7 +954,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if var_name.startswith("__anonymous_"):
                         raise CppParseError(var, "unnamed parameter %s (result)" % (idx + 1))
 
-                    properties[var_name] = ConvertParameter(var)
+                    properties[var_name] = ConvertParameter(var, quiet=test)
 
                     if var_type.IsValue():
                         raise CppParseError(var, "parameter marked with @out tag must be either a reference or a pointer")
