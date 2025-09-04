@@ -112,18 +112,18 @@ class Emitter():
         self.Line("}")
 
     def If(self, conditions):
-        if conditions:
+        if conditions and conditions.present():
             self.EnterBlock(conditions)
             return conditions.present()
         return False
 
     def Endif(self, conditions):
-        if conditions:
+        if conditions and conditions.present():
             self.ExitBlock(conditions)
 
     def Else(self, conditions):
-        self.Endif(conditions)
-        if conditions:
+        if conditions and conditions.present():
+            self.ExitBlock(conditions)
             self.Line("else {")
             self.Indent()
             return conditions.present()
