@@ -12,8 +12,19 @@ def loadYAML(file_path: str) -> Dict:
     if not os.path.isfile(file_path):
         print(f"[ERROR]: Config file '{file_path}' does not exist")
         sys.exit(1)
-    with open(file_path, "r") as f:
-        return yaml.safe_load(f)
+    try:
+        with open(file_path, "r") as f:
+            return yaml.safe_load(f)
+    except yaml.YAMLError as e:
+        print(f"[ERROR]: Failed to parse: {e}")
+
+def validatePaths(paths: List[str]) -> None:
+    files = [p for p in paths if not os.path.isfile(p)]
+    if files:
+        print(f"[ERROR]: Following header paths do not exist: ")
+        for missing in files:
+            print(f"-{missing}")
+        sys.exit(1)
 
 def collectList(label: str) -> List[str]:
         print(f"\nEnter {label} (press Enter on empty line to finish):")
@@ -44,6 +55,8 @@ def prompts() -> Tuple[str, bool, bool, List[str], Dict[str, str], List[str], Li
     if not header_files:
         print("Error: At least one header path must be provided")
         sys.exit(1)
+
+    validatePaths(header_files)
  
     subsystems_enabled = input("\nDoes your plugin rely on Thunder subsystems [Preconditions, Terminations, Controls]? (Y/N): ").strip().lower() == "y"
  

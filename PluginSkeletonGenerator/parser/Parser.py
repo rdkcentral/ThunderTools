@@ -10,12 +10,12 @@ class ScopeType(Enum):
     OTHER = 3
 
 class MethodData:
-    def __init__(self, name, return_type, params):
+    def __init__(self, name, return_type, params, is_const=False):
         self.m_name = name
         self.m_return_type = return_type
         self.m_params = params
         self.m_tags = []
-
+        self.m_is_const = is_const
 
 class ClassData:
     def __init__(self, name, namespace=""):
@@ -103,9 +103,9 @@ class InterfaceTree:
         if not self.m_class_stack:
             return
 
-        return_type, method_name, params = Parser.extractMethodData(method)
+        return_type, method_name, params, is_const = Parser.extractMethodData(method)
         if method_name:
-            method = MethodData(method_name, return_type, params)
+            method = MethodData(method_name, return_type, params, is_const)
             self.m_class_stack[-1].addMethod(method)
 
     def closeClassStack(self):
@@ -177,12 +177,13 @@ class Parser:
 
     @staticmethod
     def extractMethodData(method):
-        match = re.search(r'virtual\s+(?P<return>[\w:<>&*\s]+?)\s+(?P<name>\w+)\s*\((?P<params>[^)]*)\)\s*.*;', method)
+        match = re.search(r'virtual\s+(?P<return>[\w:<>&*\s]+?)\s+(?P<name>\w+)\s*\((?P<params>[^)]*)\)\s*(?P<const>\bconst\b)?\s*.*;', method)
         if match:
             return_type = match.group("return").strip()
             method_name = match.group("name")
             params = match.group("params").strip()
-            return return_type, method_name, params
+            is_const = bool(match.group("const"))
+            return return_type, method_name, params, is_const
         return None, None, None
     
 

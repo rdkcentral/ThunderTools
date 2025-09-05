@@ -132,10 +132,10 @@ class HeaderData(FileData):
                     for p in m.m_params.split(","):
                         param_names.append(p.strip().split()[-1])
                 param_str = ", ".join(param_names)
-
+                add_const = " const" if getattr(m, "m_is_const", False) else ""
                 result.extend([
                     f"void {m.m_name}({m.m_params}) override {{",
-                    f"{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''});" if self.m_jsonrpc else '',
+                    f"{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};" if self.m_jsonrpc else '',
                     "}"
                 ])
                 result.append("")  # for spacing between functions
@@ -359,27 +359,29 @@ class HeaderData(FileData):
             lines.append(f"// {short_name} methods")
 
             for m in cls_data.m_methods:
+
+                add_const = " const" if getattr(m, "m_is_const", False) else ""
                 if is_header:
-                    lines.append(f"{m.m_return_type} {m.m_name}({m.m_params}) override;")
+                    lines.append(f"{m.m_return_type} {m.m_name}({m.m_params}){add_const} override;")
                 else:
                     if short_name in self.m_notification_interfaces and m.m_name in ("Register", "Unregister"):
                         if m.m_name == "Register":
                             lines.append(generateSimpleText([
-                                f"{m.m_return_type} {self.m_plugin_name}::Register({namespace}::{short_name}::INotification* notification) {{",
+                                f"{m.m_return_type} Register({namespace}::{short_name}::INotification* notification) override {{",
                                 self.notification_registers(short_name),
                                 "return Core::ERROR_NONE;",
                                 "}"
                             ]))
                         else:
                             lines.append(generateSimpleText([
-                                f"{m.m_return_type} {self.m_plugin_name}::Unregister(const {namespace}::{short_name}::INotification* notification) {{",
+                                f"{m.m_return_type} Unregister(const {namespace}::{short_name}::INotification* notification) override {{",
                                 self.notification_unregisters(short_name),
                                 "return Core::ERROR_NONE;",
                                 "}"
                             ]))
                     else:
                         lines.append(generateSimpleText([
-                            f"{m.m_return_type} {self.m_plugin_name}::{m.m_name}({m.m_params}) {{",
+                            f"{m.m_return_type} {m.m_name}({m.m_params}){add_const} override {{",
                             "    return Core::ERROR_NONE;",
                             "}"
                         ]))
@@ -560,7 +562,6 @@ class SourceData(FileData):
 
         short_name = self.m_comrpc_interfaces[0]
         full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
-
         if full_name:
             namespace = self._extractStrippedNamespace(full_name)
             return f"{namespace}::{short_name}" if namespace else short_name
@@ -568,9 +569,8 @@ class SourceData(FileData):
             return short_name
 
     def _generateFirstCOMRPCNoPrefix(self):
-        name = self._generateFirstCOMRPCInterface()
+        name = self.m_comrpc_interfaces[0]
         return convertToBaseName(name)
-
 
     def _generateInitialAssert(self):
         return f"ASSERT(_impl{self._generateFirstCOMRPCNoPrefix()} == nullptr);"
@@ -612,60 +612,34 @@ class SourceData(FileData):
         return (FileUtils.replaceKeywords(template, self.m_keywords)if template else '')
 
     def _generateNestedQuery(self) -> str:
+
         if not self.m_comrpc_interfaces:
             return ""
-
-        lines = []
+ 
         interfaces = self.m_comrpc_interfaces
-
-        if len(interfaces) > 1:
-            for idx, short_name in enumerate(interfaces[1:], start=1):
-                prev = interfaces[idx - 1]
-                prevName = convertToBaseName(prev)
-                name = convertToBaseName(short_name)
-
-                # Determine full name from parsed to resolve correct namespace
-                full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
-                namespace = self._extractStrippedNamespace(full_name)
-                qualified = f"{namespace}::{short_name}"
-
-                lines.extend([
-                    f"_impl{name} = _impl{prevName}->QueryInterface<{qualified}>();",
-                    f"if (_impl{name} == nullptr) {{",
-                    f'    message = _T("Couldn\'t create instance of _impl{short_name}");',
-                    "} else {"
-                ])
-
-        lines.append(self._generateNestedInitialize())
-        lines.extend("}" for _ in range(len(interfaces) - 1))
-
-        return generateSimpleText(lines)
-
-    def _generateNestedInitialize(self) -> str:
-        if not self.m_comrpc_interfaces:
-            return ""
-
-        interfaces = self.m_comrpc_interfaces
-        rootName = convertToBaseName(interfaces[0])
-        lines = []
+        N = len(interfaces)
+    
+        # qi = queryinterface
+        has_qi = N >= 2
+        init_lines = []
 
         for short_name in interfaces:
-            name = convertToBaseName(short_name)
             json_iface = convertToJSONRPC(short_name)
-
-            full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
-            namespace = self._extractStrippedNamespace(full_name)
-            qualified = f"{namespace}::{json_iface}"
-
             if json_iface in self.m_jsonrpc_interfaces:
-                lines.extend([
+                name = convertToBaseName(short_name)
+                full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
+                namespace = self._extractStrippedNamespace(full_name)
+                qualified_json = f"{namespace}::{json_iface}"
+                init_lines.extend([
                     f"_impl{name}->Register(&_notification);",
-                    f"{qualified}::Register(*this, _impl{name});"
+                    f"{qualified_json}::Register(*this, _impl{name});"
                 ])
-
+    
         if self.m_plugin_config:
-            lines.extend([
-                "\n",
+            rootName = convertToBaseName(interfaces[0])
+            if init_lines and init_lines[-1] != "":
+                init_lines.append("")
+            init_lines.extend([
                 f"Exchange::IConfiguration* configuration = _impl{rootName}->QueryInterface<Exchange::IConfiguration>();",
                 "ASSERT(configuration != nullptr);",
                 "if (configuration != nullptr) {",
@@ -675,7 +649,38 @@ class SourceData(FileData):
                 "    configuration->Release();",
                 "}"
             ])
+    
+        has_init = bool(init_lines)
+        has_work = has_qi or has_init
+    
+        # for the if statment: close or "else"
+        if not has_work:
+            return generateSimpleText(["}"])
+        lines = ["} else {"]
+    
+        if has_qi:
+            for idx, short_name in enumerate(interfaces[1:], start=1):
+                prev = interfaces[idx - 1]
+                prevName = convertToBaseName(prev)
+                name = convertToBaseName(short_name)
+    
+                full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
+                namespace = self._extractStrippedNamespace(full_name)
+                qualified = f"{namespace}::{short_name}"
+    
+                lines.extend([
+                    f"_impl{name} = _impl{prevName}->QueryInterface<{qualified}>();",
+                    f"if (_impl{name} == nullptr) {{",
+                    f'    message = _T("Couldn\'t create instance of _impl{short_name}");',
+                    "} else {"
+                ])
+    
+        if has_init:
+            lines.extend(init_lines)
 
+        close_count = 1 + (N - 1 if has_qi else 0)
+        lines.extend("}" for _ in range(close_count))
+    
         return generateSimpleText(lines)
 
     def _generateDeinitializeOOP(self):
@@ -703,7 +708,7 @@ class SourceData(FileData):
             full_name = next((k for k in self.m_parsed if k.endswith(f"::{comrpc}")), None)
             namespace = self._extractStrippedNamespace(full_name)
 
-            lines.append("")
+            lines.append("\n")
             lines.append(f"if (_impl{baseName} != nullptr) {{")
 
             if jsonName in self.m_jsonrpc_interfaces:
@@ -715,13 +720,26 @@ class SourceData(FileData):
             lines.append("}")
 
         lines.extend([
-            "",
+            "\n",
+            f"\n",
             f"RPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));",
             f"VARIABLE_IS_NOT_USED uint32_t result = _impl{firstBase}->Release();",
             f"_impl{firstBase} = nullptr;",
-            "}"])
+            ])
+        lines.append("\n")
+        lines.append(f"ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);")
+        lines.append("\n")
+        lines.extend([
+            f"// The process can disappear in the meantime...",
+            f"if (connection != nullptr) {{",
+            f"// But if it did not disappear in the meantime, forcefully terminate it. Shoot to kill",
+            f"connection->Terminate();",
+            f"connection->Release();",
+            f"}}",
+            f"}}"
+        ])
 
-        return generateSimpleText(lines)
+        return generateSimpleText(lines, remove_empty=False)
 
 class CMakeData(FileData):
     def static_keys(self) -> dict:
