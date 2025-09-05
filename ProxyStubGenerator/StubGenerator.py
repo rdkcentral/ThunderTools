@@ -733,6 +733,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 is_struct = is_class and self.kind.vars
                 is_interface = is_class and (self.kind.Inherits(CLASS_IUNKNOWN) or not is_struct)
 
+                self.is_iterator = is_class and self.kind.is_iterator
+
                 # Length variables are actually not put on wire
                 self.length_of = None
                 self.max_length_of = None
@@ -793,7 +795,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers" % self.trace_proto)
 
                 if self.is_array and not self.length:
-                    self.length = _FindLength([self.identifier.array], (name[1:] + "FixedLen"))
+                    self.length = _FindLength([str(self.identifier.array)], (name[1:] + "FixedLen"))
 
                     if is_buffer:
                         # array of bytes, let's make it a buffer then
@@ -1503,6 +1505,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             CheckSize(p)
                             emit.Line(param_)
 
+                        elif p.is_iterator:
+                            CheckFrame(p)
+                            emit.Line(param_)
                         else:
                             CheckFrame(p)
                             emit.Line(param_)

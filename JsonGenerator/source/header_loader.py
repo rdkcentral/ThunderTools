@@ -520,7 +520,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         props["@length"] = " ".join(meta.length)
                     elif var.array:
                         props["@arraysize"] = var.array
-                        props["range"] = [int(var.array), int(var.array)]
+                        props["range"] = [var.array, var.array]
+
+                        if var.array > 0xFFFF:
+                            log.WarnLine(var, "%s: large array size (%s elements)" % (var.name, var.array))
                     else:
                         assert False
 
@@ -541,9 +544,18 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 # C-style buffers converted to JSON array (not char type or fixed array)
                 elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
                     if encoding:
-                        log.WarnLine(var, "'%s': @encode only possible on char buffers" % var.name)
+                        raise CppParseError(var, "'%s': @encode only available for char buffers" % var.name)
 
-                    result = ["array", { "items": ConvertParameter(var, no_array=True), "@arraysize": var.array, "@proto" : var.ProtoFmt() }]
+                    if var.array > 0xFFFF:
+                        log.WarnLine(var, "%s: large array size (%s elements)" % (var.name, var.array))
+
+                    props = {}
+                    props["items"] = ConvertParameter(var, quiet=quiet, no_array=True)
+                    props["@arraysize"] = var.array
+                    props["@proto"] = var.ProtoFmt()
+                    props["range"] = [var.array, var.array]
+
+                    result = ["array", props]
 
                 # Iterators that will be converted to JSON arrays
                 elif is_iterator and len(cppType.args) == 2:
