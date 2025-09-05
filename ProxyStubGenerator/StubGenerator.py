@@ -1226,6 +1226,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "6" # always six bytes
                 elif isinstance(self.kind, CppParser.DynamicArray):
                     return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                elif isinstance(self.kind, CppParser.Time):
+                    return "sizeof(%s)" % self.target_type_name
                 else:
                     Unreachable()
 
