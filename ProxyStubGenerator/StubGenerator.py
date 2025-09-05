@@ -698,7 +698,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     type_ = copy.deepcopy(identifier.type)
 
                 no_length_warnings = isinstance(self, EmitLength)
-                is_return_value = isinstance(self, EmitRetVal)
+                is_return_value = isinstance(self, EmitRetVal) or (parent and parent.is_return_value)
                 in_pod = '.' in override_name if override_name else False
 
                 self.is_on_wire = True
@@ -868,7 +868,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.suppress_type = suppress_type
 
                 # Now do some more sanity checking on what we've got!...
-                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference()):
+                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference() and not parent):
                     raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
 
                 #if self.is_compound and self.type.IsPointer()
@@ -1054,6 +1054,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         self.return_proxy = self.optional.return_proxy
                         self.proto_weak = self.optional.proto_weak
                         self.proto_weak_no_cv = self.optional.proto_weak_no_cv
+
                 else:
                     self.optional = None
 
@@ -1303,6 +1304,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             ch.append("opt")
                         if p.proxy:
                             ch.append("proxy")
+                        elif p.return_proxy:
+                            ch.append("retproxy")
                         elif p.is_compound:
                             ch.append("pod")
 
