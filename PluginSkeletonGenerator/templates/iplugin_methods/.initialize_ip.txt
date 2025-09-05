@@ -2,5 +2,5 @@ string message;
 
 ASSERT(service != nullptr);
 {{CONFIGURE_IP}}
-{{REGISTER}}
+{{REGISTER_IP}}
 return (message);
