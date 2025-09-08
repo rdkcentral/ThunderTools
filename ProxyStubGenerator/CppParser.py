@@ -95,7 +95,7 @@ class Metadata:
         self.default = None
         self.alt = None
         self.text = None
-        self.range = []
+        self.range = Range(None, None)
         self.decorators = []
         self.param = OrderedDict()
         self.retval = OrderedDict()
@@ -279,6 +279,36 @@ class Float(Fundamental):
     def __init__(self, string):
         Fundamental.__init__(self, string)
 
+class Range():
+    def __init__(self, lowest, highest):
+        self.min = lowest
+        self.max = highest
+
+        if self.min and self.max and self.min > self.max:
+            raise ParserError("'%s': min > max in restrict range" % (self))
+
+    @property
+    def is_set(self):
+        return self.min != None or self.max != None
+
+    @property
+    def has_min(self):
+        return self.min != None
+
+    @property
+    def has_max(self):
+        return self.max != None
+
+    @property
+    def as_list(self):
+        return [self.min, self.max]
+
+    def __str__(self):
+        return "%s..%s" % ((self.min if self.min else "min"), (self.max if self.max else "max"))
+
+    def __repr__(self):
+        return "range(%s)" % str(self)
+
 
 # Holds identifier type
 class Identifier():
@@ -379,24 +409,29 @@ class Identifier():
                         raise ParserError("@maxlength tag not allowed here")
                     skip = 1
                 elif tag == "RESTRICT":
-                    self.meta.range = []
+                    range = []
+
                     for s in "".join(string[i + 1]).split(".."):
-                        try:
-                            if '.' not in s:
-                                v = int(eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024")))
-                            else:
-                                v = eval(s)
-                            self.meta.range.append(v)
-                        except:
-                            raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
-                    if len(self.meta.range) == 2:
-                        if self.meta.range[0] > self.meta.range[1]:
-                            raise ParserError("invalid range in @restrict: %s > %s" % (self.meta.range[0], self.meta.range[1]))
-                    elif len(self.meta.range) == 1:
-                        self.meta.range.append(self.meta.range[0])
-                        self.meta.range[0] = 0
-                    else:
+                        if s:
+                            try:
+                                if '.' not in s:
+                                    v = int(eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024")))
+                                else:
+                                    v = eval(s)
+                                range.append(v)
+                            except:
+                                raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
+                        else:
+                            range.append(None)
+
+                    if len(range) == 1:
+                        range.append(range[0])
+                        range[0] = None
+                    elif len(range) != 2:
                         raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
+
+                    self.meta.range = Range(range[0], range[1])
+
                     skip = 1
                 elif tag == "INTERFACE":
                     self.meta.interface = string[i + 1]
@@ -491,13 +526,11 @@ class Identifier():
             elif token == "]":
                 array = False
                 type.append("*")
-
                 if array_size:
                     try:
                         self.array = int(array_size)
                     except:
                         self.array = array_size
-
                 array_size = None
 
             elif token in ["*", "&"]:
@@ -1139,6 +1172,70 @@ class Class(Identifier, Block):
         return "class %s%s" % (self.full_name, astr)
 
 
+def CheckRange(self):
+
+    def Find(this):
+        # Find the concrete type
+        while True:
+            if isinstance(this, Optional):
+                this = this.optional.type.type
+            elif isinstance(this, Typedef):
+                this = this.Resolve().type
+            else:
+                break
+
+        return this
+
+    try:
+        this = Find(self.type.type)
+    except:
+        return
+
+    if isinstance(this, Vector) and not self.meta.range.max:
+        raise ParserError("'%s': std::vector requires @restrict range with max set" % self)
+
+    # Sanity checks for restrict range
+    if self.meta.range.is_set:
+
+        def Test(this):
+            # Integers must have ranges within their respective limits
+            if isinstance(this, Float):
+                if self.meta.range.has_max and not self.meta.range.has_min:
+                    raise ParserError("'%s': @restrict range for floating point must have the min limit set" % self)
+
+                self.meta.range.min *= 1.0
+                self.meta.range.max *= 1.0
+
+            elif isinstance(this, Integer):
+                if self.meta.range.has_max and not self.meta.range.has_min:
+                    if this.signed:
+                        raise ParserError("'%s': @restrict range for signed integers must have the min limit set" % self)
+
+
+                if self.meta.range.has_min:
+                    if self.meta.range.min < this.min or self.meta.range.min > this.max:
+                        raise ParserError("'%s': invalid min limit in @restrict range (%s)" % (self, self.meta.range.min))
+
+                if self.meta.range.has_max:
+                    if self.meta.range.max < this.min or self.meta.range.max > this.max:
+                        raise ParserError("'%s': invalid max limit in @restrict range (%s)" % (self, self.meta.range.max))
+
+            # Strings, arrays, vectors and iterators must not have negative limits
+            elif (isinstance(this, (Class, TemplateClass, InstantiatedTemplateClass)) and this.is_iterator) or isinstance(this, (DynamicArray, String, CCString)) or self.array:
+                if self.meta.range.has_min:
+                    if self.meta.range.min < 0:
+                        raise ParserError("'%s': invalid min limit in @restrict range (%s)" % (self, self.meta.range.min))
+
+                if self.meta.range.has_max:
+                    if self.meta.range.max <= 0:
+                        raise ParserError("'%s': invalid max limit in @restrict range (%s)" % (self, self.meta.range.max))
+
+            else:
+                raise ParserError("'%s': @restrict is invalid for this type" % self)
+
+        Test(this)
+
+
 # Holds unions
 class Union(Identifier, Block):
     def __init__(self, parent_block, name):
@@ -1255,7 +1352,7 @@ class Vector(DynamicArray):
 class VectorElement(Temporary):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[], meta=None):
         Temporary.__init__(self, parent_block, string, value, valid_specifiers, meta)
-
+        CheckRange(self)
 
 class OptionalElement(Temporary):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[], meta=None):
@@ -1266,9 +1363,12 @@ class Variable(Identifier, Name):
     def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
+
         self.value = Evaluate(value) if value else None
         if self.parent:
             self.parent.vars.append(self)
+
+        CheckRange(self)
 
     def __str__(self):
         return self.Proto()
