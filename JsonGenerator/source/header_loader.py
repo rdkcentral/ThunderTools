@@ -240,9 +240,6 @@ def BuildEnum(log, _case_converter, cppType, meta, var=None, extra_decorators=[]
 
         p = p.parent
 
-    if meta.range and not quiet:
-        log.WarnLine(var, "'%s': @restrict has no effect on enums" % var.name)
-
     return result
 
 def LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
@@ -345,14 +342,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if not var.meta.output:
                         if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
                             if not var.meta.default and not quiet:
-                                log.Warn(var, "default value is assumed to be 0 (use @default)")
+                                log.WarnLine(var, "default value is assumed to be 0 (use @default)")
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
                             raise CppParseError(var, "@optional is not supported for this type")
                     else:
                         if not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
                             raise CppParseError(var, "@optional is not supported for this type on output")
                 else:
-                    log.Warn(var, "@optional is redundant for OptionalType")
+                    log.WarnLine(var, "@optional is redundant for OptionalType")
 
                 properties["optional"] = True
                 ConvertDefault(var, properties["type"], properties)
@@ -522,8 +519,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         props["@arraysize"] = var.array
                         props["range"] = [var.array, var.array]
 
-                        if var.array > 0xFFFF:
-                            log.WarnLine(var, "%s: large array size (%s elements)" % (var.name, var.array))
+                        #if var.array > 0xFFFF:
+                        #    log.WarnLine(var, "%s: large array size (%s elements)" % (var.name, var.array))
                     else:
                         assert False
 
@@ -575,8 +572,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         raise CppParseError(var, "iterators must be passed as const pointers (not pointers to const)")
 
                     if not quiet:
-                        if meta.range:
-                            log.WarnLine(var, "'%s': @restrict has no effect on iterators" % var.name)
                         if meta.length:
                             log.WarnLine(var, "'%s': @length has no effect on iterators" % var.name)
                         if meta.default:
@@ -608,9 +603,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 # Boolean
                 elif isinstance(cppType, CppParser.Bool):
                     result = ["boolean", {} ]
-
-                    if meta.range and not quiet:
-                        log.WarnLine(var, "'%s': @restrict has no effect on bools" % var.name)
 
                 # Integer
                 elif isinstance(cppType, CppParser.Integer):
@@ -651,7 +643,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     props = { "items": ConvertParameter(cppType.element, quiet=quiet), "@container": "vector" }
 
                     if meta.range:
-                        props["range"] = meta.range
+                        props["range"] = meta.range.as_list
 
                     if encoding:
                         if not isinstance(cppType.element.Type().type, CppParser.Integer) or cppType.element.Type().type.size != "char":
@@ -761,15 +753,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     result[1]["@proto"] = var.ProtoFmt()
 
             if result:
-                if meta.range:
-                    result[1]["range"] = meta.range
+                if meta.range.is_set:
+                    result[1]["range"] = meta.range.as_list
 
                     if meta.default:
                         if result[0] == "integer" or result[0] == "number":
-                            if float(meta.default[0]) < meta.range[0] or (float(meta.default[0]) > meta.range[1]):
+                            if (meta.range.has_min and float(meta.default[0]) < meta.range.min) or (meta.range.has_max and (float(meta.default[0]) > meta.range.max)):
                                 raise CppParseError(var, "default value is outside of restrict range")
                         elif result[0] == "string" and not result[1].get("enum"):
-                            if len(meta.default[0]) - 2 < meta.range[0] or (len(meta.default[0]) -2  > meta.range[1]):
+                            if (meta.range.has_min and (len(meta.default[0]) - 2 < meta.range.min)) or (meta.range.has_max and (len(meta.default[0]) - 2  > meta.range.max)):
                                 raise CppParseError(var, "default value string length is outside of restrict range")
             else:
                 assert False
