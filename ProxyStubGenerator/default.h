@@ -43,7 +43,7 @@ namespace std {
   typedef __stubgen_undetermined_integer clock_t;
 
   template<typename T>
-  struct vector;
+  class vector;
 }
 
 namespace __FRAMEWORK_NAMESPACE__ {
@@ -74,23 +74,10 @@ namespace __FRAMEWORK_NAMESPACE__ {
   }
 
   namespace PluginHost {
-    class IShell {
-      enum state : uint8_t;
-      enum reason : uint8_t;
-    };
-
-    class ISubSystem {
-      enum subsystem : uint32_t;
-    };
-
+    class IShell;
+    class ISubSystem;
     class IPlugin {
       class INotification;
     };
   }
-
-  namespace RPC {
-    class IStringIterator;
-    class IValueIterator;
-  }
-
 }

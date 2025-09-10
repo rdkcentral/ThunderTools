@@ -48,6 +48,12 @@ def is_valid(token):
         validChars = re.match(r'^[a-zA-Z0-9_~]+$', token)
         return token and validChars and not token[0].isdigit()
 
+def is_valid_scoped(token):
+    if "operator" in token:
+        return re.match(r'^[-\+~<>=!%&^*/\|\[\]]+$', token[8:])
+    else:
+        validChars = re.match(r'^[a-zA-Z0-9_~]+$', token.replace("::",""))
+        return token and validChars and not token[0].isdigit()
 
 def ASSERT_ISVALID(token):
     if not is_valid(token):
@@ -310,6 +316,90 @@ class Range():
         return "range(%s)" % str(self)
 
 
+def LookupIdentifier(identifier, scope=None):
+    def __Search(tree, found, T):
+        var_match = [v for v in tree.vars if v.full_name.endswith(T)]
+        enum_match = [e for e in tree.enums if e.full_name.endswith(T)]
+
+        enumerator_match = []
+        for e in tree.enums:
+            enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
+
+            # non-scoped enums can also be called with scope
+            if not e.scoped:
+                enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
+
+        template_arg_match = []
+        template_param_match = []
+
+        if (isinstance(tree, TemplateClass)):
+            template_arg_match += [t for t in tree.arguments if t.full_name.endswith(T)]
+            template_param_match += [t for t in tree.parameters if t.full_name.endswith(T)]
+
+        typedef_match = [td for td in tree.typedefs if td.full_name.endswith(T)]
+        class_match = [cl for cl in tree.classes if cl.full_name.endswith(T)]
+
+        for m in var_match:
+            if m not in found:
+                found.append(m)
+
+        for m in enum_match:
+            if m not in found:
+                found.append(m)
+
+        for m in enumerator_match:
+            if m not in found:
+                found.append(m)
+
+        for m in template_arg_match:
+            if m not in found:
+                found.append(m)
+
+        for m in template_param_match:
+            if m not in found:
+                found.append(m)
+
+        for m in class_match:
+            if m not in found:
+                found.append(m)
+
+        for m in typedef_match:
+            if m not in found:
+                found.append(m)
+
+        if isinstance(tree, (Namespace, Class)):
+            for c in tree.classes:
+                __Search(c, found, T)
+
+        if isinstance(tree, Namespace):
+            for n in tree.namespaces:
+                __Search(n, found, T)
+
+    selected = None
+
+    found = []
+    __Search(global_namespace, found, "::" + identifier)
+
+    if scope:
+        current = scope.full_name
+        while not selected:
+            for f in found:
+                if f.full_name.endswith(current + "::" +identifier):
+                    selected = f
+                    break
+                elif isinstance(f, Enumerator) and not f.parent.scoped and f.full_name_scoped.endswith(current+ "::" +identifier):
+                    selected = f
+                    break
+            if not current:
+                break
+            current = "::".join(current.split('::')[0:-1])
+    elif found:
+        assert len(found) == 1, "Too many references found, need scope for %s" % identifier
+        selected = found[-1]
+
+    return selected
+
+
 # Holds identifier type
 class Identifier():
     def __init__(self, parent_block, parent, string, valid_specifiers, tags_allowed=True):
@@ -318,15 +408,16 @@ class Identifier():
         if parent:
             parent.specifiers = []
         self.name = ""
+        self.array = None
+        self.value = []
+
         type = ["?"] # indexing safety
         type_found = False
         nest1 = 0
         nest2 = 0
         array = False
         array_size = None
-        self.array = None
         skip = 0
-        self.value = []
 
         if string.count("*") > 2:
             raise ParserError("multi-dimensional pointers to pointers are not supported: '%s'" % (" ".join(["".join(x) for x in string])))
@@ -514,7 +605,7 @@ class Identifier():
             elif token in ["export"]: # skip
                 continue
             # keep identifers with scope operator together
-            elif token == "::":
+            elif token == "::" and not array:
                 if len(type) > 1:
                     type[-1] += "::"
                 type_found = False
@@ -526,12 +617,15 @@ class Identifier():
             elif token == "]":
                 array = False
                 type.append("*")
+
                 if array_size:
-                    try:
-                        self.array = int(array_size)
-                    except:
-                        self.array = array_size
-                array_size = None
+                    array_size_value = Evaluate([array_size], scope=parent_block)
+
+                    if not isinstance(array_size_value, int):
+                        raise ParserError("unable to determine size of array: %s" % array_size)
+
+                    self.array = array_size_value
+                    array_size = None
 
             elif token in ["*", "&"]:
                 type.append(token)
@@ -580,7 +674,10 @@ class Identifier():
                 if not array:
                     self.name = token
                 else:
-                    array_size = token
+                    if array_size:
+                        array_size += token
+                    else:
+                        array_size = token
 
         if array:
             raise ParserError("unmatched bracket '['")
@@ -608,45 +705,15 @@ class Identifier():
                 elif "int" in t or "signed" in t or "unsigned" in t:
                     type[-1] = "unsigned int" if "unsigned" in t else "signed int"
 
-        # Try to match the type to an already defined class...
-        self.ResolveIdentifiers(parent_block)
+        if type:
+            # Try to match the type to an already defined class...
+            self.ResolveIdentifiers(parent_block)
 
     def ResolveIdentifiers(self, parent):
         if isinstance(parent, Method):
             parent = parent.parent
 
         if self.type:
-
-            def __Search(tree, found, T):
-                qualifiedT = "::" + T
-
-                # need full qualification if the class is a subclass
-                if parent and tree.full_name.startswith(parent.full_name + "::"):
-                    if T.count("::") != tree.full_name.replace(parent.full_name, "").count("::"):
-                        return
-
-                enum_match = [e for e in tree.enums if e.full_name.endswith(qualifiedT)]
-                typedef_match = [td for td in tree.typedefs if td.full_name.endswith(qualifiedT)]
-                class_match = [cl for cl in tree.classes if cl.full_name.endswith(qualifiedT)]
-
-                enumval_match = []
-                for en in tree.enums:
-                    enumval_match += ([e for e in en.items if e.full_name.endswith(qualifiedT)])
-
-                template_match = []
-                if isinstance(tree, TemplateClass):
-                    template_match = [t for t in tree.parameters if t.full_name.endswith(qualifiedT)]
-
-                found += enum_match + typedef_match + class_match + template_match + enumval_match
-
-                if isinstance(tree, (Namespace, Class)):
-                    for c in tree.classes:
-                        __Search(c, found, T)
-
-                if isinstance(tree, Namespace):
-                    for n in tree.namespaces:
-                        __Search(n, found, T)
-
             # find the type to scan for...
             typeIdx = len(self.type) - 1
             cnt = 0
@@ -715,12 +782,10 @@ class Identifier():
                     self.type[i] = Type(Time())
                 elif type == "__stubgen_macaddress":
                     self.type[i] = Type(MacAddress())
-                else:
-                    found = []
-                    __Search(global_namespace, found, self.type[i])
+                elif is_valid_scoped(type):
+                    found = LookupIdentifier(type, scope=parent)
                     if found:
                         # take closest match
-                        found = found[-1]
                         if isinstance(found, TemplateClass):
                             # if we're pointing to a class template, then let's instantiate it!
                             self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
@@ -777,9 +842,10 @@ class Identifier():
             return (self.Proto() + " " + (override if override != None else self.name))
 
 
-def Evaluate(identifiers_):
-    # Ensure scoped identifiers are kpt together
+def Evaluate(identifiers_, as_identifier=False, scope=None):
+    # Ensure scoped identifiers are kept together
     identifiers = ["?"]
+
     for i, id in enumerate(identifiers_):
         if id == "::" or identifiers[-1].endswith("::"):
             identifiers[-1] += id
@@ -788,62 +854,39 @@ def Evaluate(identifiers_):
     del identifiers[0]
 
     val = []
-    if identifiers:
-        for identifier in identifiers:
-            try:
-                val.append(str(int(identifier, 16 if identifier[:2] == "0x" else 10)))
-            except:
 
-                def __Search(tree, found, T):
-                    var_match = [v for v in tree.vars if v.full_name.endswith(T)]
+    for identifier in identifiers:
+        try:
+            val.append(str(int(identifier, 16 if identifier[:2] == "0x" else 10)))
+        except:
+            selected = LookupIdentifier(identifier, scope) if is_valid_scoped(identifier) else None
 
-                    enumerator_match = []
-                    for e in tree.enums:
-                        enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
-
-                        # non-scoped enums can also be called with scope
-                        if not e.scoped:
-                            enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
-
-
-                    template_match = []
-                    if (isinstance(tree, TemplateClass)):
-                        template_match = [t for t in tree.arguments if t.full_name.endswith(T)]
-
-                    found += var_match + enumerator_match + template_match
-
-                    if isinstance(tree, (Namespace, Class)):
-                        for c in tree.classes:
-                            __Search(c, found, T)
-
-                    if isinstance(tree, Namespace):
-                        for n in tree.namespaces:
-                            __Search(n, found, T)
-
-                found = []
-                __Search(global_namespace, found, "::" + identifier)
-                if found:
-                    val.append(found[-1])
-                else:
-                    val.append(str(identifier))
+            if selected:
+                val.append(selected)
+            else:
+                val.append(str(identifier))
 
     if not val:
         val = identifiers
 
     value = None
 
-    # attempt to parse the arithmetics...
-    try:
-        x = [str(v.value) if (isinstance(v, (Variable, Enumerator)) and v.value != None) else str(v) for v in val]
-        value = eval("".join(x))
-    except:
+    if len(val) == 1 and as_identifier:
+        value = val[0].full_name
+    else:
+
+        # attempt to parse the arithmetics...
         try:
-            value = eval("".join(val))
+            x = [str(v.value) if (isinstance(v, (Variable, Enumerator)) and v.value != None) else str(v) for v in val]
+            value = eval("".join(x))
         except:
             try:
-                value = " ".join(val)
+                value = eval("".join(val))
             except:
-                value = val
+                try:
+                    value = " ".join(val)
+                except:
+                    value = val
 
     return value
 
@@ -1084,7 +1127,7 @@ class Typedef(Identifier, Name):
 # Holds structs and classes
 class Class(Identifier, Block):
     def __init__(self, parent_block, name):
-        Identifier.__init__(self, parent_block, self, [name], [])
+        Identifier.__init__(self, parent_block, self, [], [])
         Block.__init__(self, parent_block, name)
         self.type = self.full_name
         self.specifiers = []
@@ -1221,7 +1264,7 @@ def CheckRange(self):
                         raise ParserError("'%s': invalid max limit in @restrict range (%s)" % (self, self.meta.range.max))
 
             # Strings, arrays, vectors and iterators must not have negative limits
-            elif (isinstance(this, (Class, TemplateClass, InstantiatedTemplateClass)) and this.is_iterator) or isinstance(this, (DynamicArray, String, CCString)) or self.array:
+            elif (isinstance(this, (Class, TemplateClass, InstantiatedTemplateClass)) and this.is_iterator) or (isinstance(this, (DynamicArray, String, CCString)) and not self.array):
                 if self.meta.range.has_min:
                     if self.meta.range.min < 0:
                         raise ParserError("'%s': invalid min limit in @restrict range (%s)" % (self, self.meta.range.min))
@@ -1229,6 +1272,12 @@ def CheckRange(self):
                 if self.meta.range.has_max:
                     if self.meta.range.max <= 0:
                         raise ParserError("'%s': invalid max limit in @restrict range (%s)" % (self, self.meta.range.max))
+
+            elif self.array:
+                if self.meta.range.is_set:
+                    raise ParserError("'%s': automatic @restrict is applied for C-style arrays" % self)
+
+                self.meta.range.max = int(self.array)
 
             else:
                 raise ParserError("'%s': @restrict is invalid for this type" % self)
@@ -1239,7 +1288,7 @@ def CheckRange(self):
 # Holds unions
 class Union(Identifier, Block):
     def __init__(self, parent_block, name):
-        Identifier.__init__(self, parent_block, self, [name], [])
+        Identifier.__init__(self, parent_block, self, [], [])
         Block.__init__(self, parent_block, name)
         self.methods = []
         self.classes = []
@@ -1363,8 +1412,7 @@ class Variable(Identifier, Name):
     def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
-
-        self.value = Evaluate(value) if value else None
+        self.value = Evaluate(value, scope=parent_block) if value else None
         if self.parent:
             self.parent.vars.append(self)
 
@@ -1382,12 +1430,12 @@ class Variable(Identifier, Name):
 class Parameter(Variable):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[]):
         Variable.__init__(self, parent_block, string, None, valid_specifiers)
-        self.def_value = Evaluate(value) if value else None
+        self.def_value = Evaluate(value, scope=parent_block.parent) if value else None
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
 
     def __str__(self):
-        return "%s %s" % (self.Proto(), self.name)
+        return self.ProtoFmt().replace('@', self.name)
 
     def __repr__(self):
         value = ValueStr(self.def_value) if self.def_value else None
@@ -1428,7 +1476,7 @@ class Method(Function):
         _str += "static " if self.IsStatic() else ""
         _str += TypeStr(self.retval.type) if self.retval.type else ""
         _str += (" " if str(self.retval) else "") + self.name
-        _str += "(%s)" % (", ".join([v.Proto() for v in self.vars]))
+        _str += "(%s)" % (", ".join([v.TypeStrong() for v in self.vars]))
         _str += " " + self.CVString() if self.CVString() else ""
         _str += " = 0" if self.IsPureVirtual() else ""
         return _str
@@ -1498,7 +1546,7 @@ class Enumerator(Identifier, Name):
         Identifier.__init__(self, parent_enum, self, [type] + name, [])
         Name.__init__(self, parent_enum, self.name)
         self.parent = parent_block
-        self.value = parent_block.GetValue() if value == None else Evaluate(value)
+        self.value = parent_block.GetValue() if value == None else Evaluate(value, scope=parent_block)
         self.auto_value = (value == None)
         if isinstance(self.value, (int)):
             self.parent.SetValue(self.value)
@@ -1518,9 +1566,12 @@ class Enumerator(Identifier, Name):
 class TemplateNonTypeParameter(Variable):
     def __init__(self, parent_block, string, index, value=[]):
         Variable.__init__(self, parent_block, string, [])
-        self.value = Evaluate(value) if value else None
+        self.value = Evaluate(value, scope=parent_block) if value else None
         self.parent.arguments.append(self)
         self.index = index
+
+    def __str__(self):
+        return self.Signature()
 
     def __repr__(self):
         return "non-type parameter %s '%s' [= %s]" % (TypeStr(self.type), self.name, str(self.value))
@@ -1553,7 +1604,7 @@ class InstantiatedTemplateClass(Class):
         self.type = self.TypeName()
 
     def TypeName(self):
-        return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join(p.type) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
+        return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join([str(x) for x in p.type]) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
 
     def Proto(self):
         return self.TypeName()
@@ -1610,7 +1661,7 @@ class TemplateClass(Class):
                 for i, v in enumerate(identifier.value):
                     if isinstance(v, TemplateNonTypeParameter):
                         identifier.value[i] = strArgs[argDict[v.name].index]
-                        identifier.value = Evaluate(identifier.value)
+                        identifier.value = Evaluate(identifier.value, scope=parent)
                         break
 
         strArgs = self.ParseArguments(arguments)
@@ -2663,13 +2714,17 @@ def Parse(contents,log = None):
 
             j = i - 1
             k = i + 1
+
             while tokens[j] not in ['{', '}', ';', ":"]:
                 j -= 1
+
             while tokens[k] != ';':
                 k += 1
+
             identifier = tokens[j + 1:i]
             value = tokens[i + 1:k]
-            if len(identifier) != 0 and not current_block[-1].omit:
+
+            if len(identifier) != 0:
                 if isinstance(current_block[-1], Class):
                     Attribute(current_block[-1], identifier, value)
                 else:

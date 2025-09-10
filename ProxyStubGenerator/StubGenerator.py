@@ -877,9 +877,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference() and not parent):
                     raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
 
-                #if self.is_compound and self.type.IsPointer()
-                #    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
-
                 if self.length_of and not no_length_warnings:
                     if not isinstance(self.kind, CppParser.Integer) or (self.is_buffer or self.is_array):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer length carrying parameter" % self.trace_proto)
@@ -964,7 +961,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         if self.restrict_range.max < 256:
                             aux_size = "uint8_t"
                         elif self.restrict_range.max > 65535:
-                            raise TypenameError(identifier, "invalid restrict range for std::vector")
+                            aux_size = "uint32_t"
 
                     self.length = CppParser.Temporary(self.kind.element.parent, [aux_size])
                     self.length.type_name = aux_size
@@ -1299,12 +1296,17 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         ch = []
                         if p.optional:
                             ch.append("opt")
+                        if p.is_iterator:
+                            ch.append("iter")
                         if p.proxy:
                             ch.append("proxy")
                         elif p.return_proxy:
                             ch.append("retproxy")
                         elif p.is_compound:
                             ch.append("pod")
+
+                        if p.restrict_range.is_set:
+                            ch.append("(%s)" % str(p.restrict_range))
 
                         chs = " [" + ", ".join(ch) + "]" if ch else ""
 
