@@ -2588,7 +2588,7 @@ if __name__ == "__main__":
         print("   @out                   - indicates an output parameter")
         print("   @inout                 - indicates an input/output parameter (equivalent of @in @out)")
         print("   @restrict              - specifies valid range for a parameter (for buffers and strings: valid size)")
-        print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1, @restrict:1..")
+        print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1, @restrict:nonempty")
         print("   @interface:{expr}      - specifies a parameter or value indicating interface ID value for void* interface passing")
         print("   @length:{expr}         - specifies a buffer length value (a constant, a parameter name or a math expression)")
         print("   @maxlength:{expr}      - specifies a maximum buffer length value (a constant, a parameter name or a math expression),")

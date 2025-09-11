@@ -313,7 +313,7 @@ class Range():
         return "%s..%s" % ((self.min if self.min else "min"), (self.max if self.max else "max"))
 
     def __repr__(self):
-        return "range(%s)" % str(self)
+        return "range[%s]" % str(self)
 
 
 def LookupIdentifier(identifier, scope=None):
@@ -499,11 +499,16 @@ class Identifier():
                     else:
                         raise ParserError("@maxlength tag not allowed here")
                     skip = 1
+                elif tag == "NONEMPTY":
+                    if not self.meta.range.is_set:
+                        self.meta.range = Range(1,None)
+                    else:
+                        raise ParserError("@restrict and @restrict:nonempty must not be used together")
                 elif tag == "RESTRICT":
-                    range = []
+                    if not self.meta.range.is_set:
+                        range = []
 
-                    for s in "".join(string[i + 1]).split(".."):
-                        if s:
+                        for s in "".join(string[i + 1]).split(".."):
                             try:
                                 if '.' not in s:
                                     v = int(eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024")))
@@ -511,17 +516,17 @@ class Identifier():
                                     v = eval(s)
                                 range.append(v)
                             except:
-                                raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
-                        else:
-                            range.append(None)
+                                raise ParserError("failed to evaluate value in @restrict: '%s'" % s)
 
-                    if len(range) == 1:
-                        range.append(range[0])
-                        range[0] = None
-                    elif len(range) != 2:
-                        raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
+                        if len(range) == 1:
+                            range.append(range[0])
+                            range[0] = 0
+                        elif len(range) != 2:
+                            raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
 
-                    self.meta.range = Range(range[0], range[1])
+                        self.meta.range = Range(range[0], range[1])
+                    else:
+                        raise ParserError("@restrict and @restrict:nonempty must not be used together")
 
                     skip = 1
                 elif tag == "INTERFACE":
@@ -1241,37 +1246,43 @@ def CheckRange(self):
     if self.meta.range.is_set:
 
         def Test(this):
+
+            if not self.meta.range.has_max and not isinstance(this, (String, CCString)):
+                raise ParserError("'%s': @restrict:nonempty not allowed for this type (use @restrict range instead)" % (self))
+
             # Integers must have ranges within their respective limits
             if isinstance(this, Float):
                 if self.meta.range.has_max and not self.meta.range.has_min:
                     raise ParserError("'%s': @restrict range for floating point must have the min limit set" % self)
 
-                self.meta.range.min *= 1.0
-                self.meta.range.max *= 1.0
+                if self.meta.range.has_min:
+                    self.meta.range.min *= 1.0
+
+                if self.meta.range.has_max:
+                    self.meta.range.max *= 1.0
 
             elif isinstance(this, Integer):
                 if self.meta.range.has_max and not self.meta.range.has_min:
                     if this.signed:
                         raise ParserError("'%s': @restrict range for signed integers must have the min limit set" % self)
 
-
                 if self.meta.range.has_min:
                     if self.meta.range.min < this.min or self.meta.range.min > this.max:
-                        raise ParserError("'%s': invalid min limit in @restrict range (%s)" % (self, self.meta.range.min))
+                        raise ParserError("'%s': invalid min limit in @restrict range [%s]" % (self, self.meta.range.min))
 
                 if self.meta.range.has_max:
                     if self.meta.range.max < this.min or self.meta.range.max > this.max:
-                        raise ParserError("'%s': invalid max limit in @restrict range (%s)" % (self, self.meta.range.max))
+                        raise ParserError("'%s': invalid max limit in @restrict range [%s]" % (self, self.meta.range.max))
 
             # Strings, arrays, vectors and iterators must not have negative limits
             elif (isinstance(this, (Class, TemplateClass, InstantiatedTemplateClass)) and this.is_iterator) or (isinstance(this, (DynamicArray, String, CCString)) and not self.array):
                 if self.meta.range.has_min:
                     if self.meta.range.min < 0:
-                        raise ParserError("'%s': invalid min limit in @restrict range (%s)" % (self, self.meta.range.min))
+                        raise ParserError("'%s': invalid min limit in @restrict range [%s]" % (self, self.meta.range.min))
 
                 if self.meta.range.has_max:
                     if self.meta.range.max <= 0:
-                        raise ParserError("'%s': invalid max limit in @restrict range (%s)" % (self, self.meta.range.max))
+                        raise ParserError("'%s': invalid max limit in @restrict range [%s]" % (self, self.meta.range.max))
 
             elif self.array:
                 if self.meta.range.is_set:
@@ -2008,7 +2019,9 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
                 if _find("@maxlength", token):
                     tagtokens.append(__ParseParameterValue(token, "@maxlength"))
-                if _find("@restrict", token):
+                if _find("@restrict:nonempty", token):
+                    tagtokens.append("@NONEMPTY")
+                elif _find("@restrict", token):
                     tagtokens.append(__ParseParameterValue(token, "@restrict"))
                 if _find("@interface", token):
                     tagtokens.append(__ParseParameterValue(token, "@interface"))

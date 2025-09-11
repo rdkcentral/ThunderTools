@@ -179,7 +179,12 @@ def Create(log, schema, path, indent_size = 4):
                             val_text = "bytes" if d.get("encode") else "chars"
 
                             if d["range"][0]:
-                                if d["range"][0] == d["range"][1]:
+                                if not d["range"][1]:
+                                    if d["range"][0] == 1:
+                                        row += italics("%s must not be empty." % str_text)
+                                    else:
+                                        row += italics("%s length must be at least %s %s." % (str_text, d["range"][0], val_text))
+                                elif d["range"][0] == d["range"][1]:
                                     row += italics("%s length must be equal to %s %s." % (str_text, d["range"][0], val_text))
                                 else:
                                     row += italics("%s length must be in range [%s..%s] %s." % (str_text, d["range"][0], d["range"][1], val_text))
@@ -187,14 +192,23 @@ def Create(log, schema, path, indent_size = 4):
                                 row += italics("%s length must be at most %s %s." % (str_text, d["range"][1], val_text))
                         elif d["type"] == "array":
                             if d["range"][0]:
-                                if d["range"][0] == d["range"][1]:
+                                if not d["range"][1]:
+                                    if d["range"][0] == 1:
+                                        row += italics("Array must not be empty.")
+                                    else:
+                                        row += italics("Array length must be at least %s elements." % (d["range"][0]))
+                                elif d["range"][0] == d["range"][1]:
                                     row += italics("Array length must be equal to %s elements." % (d["range"][0]))
                                 else:
                                     row += italics("Array length must be in range [%s..%s] elements." % (d["range"][0], d["range"][1]))
                             else:
                                 row += italics("Array length must be at most %s elements." % (d["range"][1]))
                         else:
-                            if d["range"][0] == d["range"][1]:
+                            if d["range"][0] and not d["range"][1]:
+                                row += italics("Value must be >= %s" % (d["range"][0]))
+                            elif not d["range"][0] and d["range"][1]:
+                                row += italics("Value must be <= %s" % (d["range"][1]))
+                            elif d["range"][0] == d["range"][1]:
                                 row += italics("Value must be equal to %s." % (d["range"][0]))
                             else:
                                 row += italics("Value must be in range [%s..%s]." % (d["range"][0], d["range"][1]))
