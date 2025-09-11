@@ -1,9 +1,7 @@
 uint32_t Configure(PluginHost::IShell* service) override {
-    ~INDENT_INCREASE~
     ASSERT(service != nullptr);
     Config config;
     config.FromString(service->ConfigLine());
     TRACE(Trace::Information, (_T("This is just an example: [%s]"), config.Example.Value.c_str()));
     return Core::ERROR_NONE;
-    ~INDENT_DECREASE~
 }
