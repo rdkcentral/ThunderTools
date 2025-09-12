@@ -284,7 +284,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
                 if params_type == "native":
                     optional_conditions = Restrictions(json=False, original_name=True)
-                    if IsObjectOptional(p):
+                    if IsObjectOptional(p) and not IsObjectOptionalOrOpaque(p):
                         optional_conditions.check_set(p)
                         local_name += ".Value()"
                     elif IsObjectOptionalOrOpaque(p):
@@ -1574,7 +1574,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         final_rhs = "std::move(%s)" % final_rhs
 
                     legacy_optional_conditions = Restrictions(json=False)
-                    legacy_optional_conditions.check_not_null(param)
+
+                    if IsObjectOptionalOrOpaque(param):
+                        legacy_optional_conditions.check_not_null(param)
 
                     emit.EnterBlock(legacy_optional_conditions)
 
