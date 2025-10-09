@@ -110,6 +110,7 @@ class JsonType():
         self.description = schema.get("description")
         self.grand_parent = None
         self.optional = schema.get("@optionaltype")
+        self.omit = schema.get("omit")
 
         if not isinstance(self, JsonRpcSchema):
             self.grand_parent = self
@@ -144,7 +145,7 @@ class JsonType():
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
             else: # identifier comming from the C++ world
-                if self.original_name[0] == "_":
+                if self.original_name[0] == "_" and not self.original_name.startswith("__anonymous_"):
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
 
         # Do some sanity check on the description text
@@ -265,7 +266,7 @@ class JsonType():
         if self.optional:
             return ("Core::OptionalType<%s>" % self.original_type)
         else:
-            return self.cpp_original_type
+            return self.original_type
 
     @property
     def cpp_native_type_opt_cv(self):

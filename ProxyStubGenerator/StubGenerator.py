@@ -541,6 +541,10 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
         emit.Line("}")
         emit.Line()
 
+def RangeStr(range):
+    assert len(range) == 2
+    return "%s..%s" % (range[0] if range[0] else "min", range[1] if range[1] else "max")
+
 def Parse(source_file, framework_namespace, includePaths = [], defaults = "", extra_includes = []):
 
     log.Info("Parsing %s..." % source_file)
@@ -698,7 +702,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     type_ = copy.deepcopy(identifier.type)
 
                 no_length_warnings = isinstance(self, EmitLength)
-                is_return_value = isinstance(self, EmitRetVal)
+                is_return_value = isinstance(self, EmitRetVal) or (parent and parent.is_return_value)
                 in_pod = '.' in override_name if override_name else False
 
                 self.is_on_wire = True
@@ -732,6 +736,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 is_class = isinstance(self.kind, CppParser.Class)
                 is_struct = is_class and self.kind.vars
                 is_interface = is_class and (self.kind.Inherits(CLASS_IUNKNOWN) or not is_struct)
+
+                self.is_iterator = is_class and self.kind.is_iterator
 
                 # Length variables are actually not put on wire
                 self.length_of = None
@@ -793,7 +799,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers" % self.trace_proto)
 
                 if self.is_array and not self.length:
-                    self.length = _FindLength([self.identifier.array], (name[1:] + "FixedLen"))
+                    self.length = _FindLength([str(self.identifier.array)], (name[1:] + "FixedLen"))
 
                     if is_buffer:
                         # array of bytes, let's make it a buffer then
@@ -868,18 +874,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.suppress_type = suppress_type
 
                 # Now do some more sanity checking on what we've got!...
-                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference()):
+                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference() and not parent):
                     raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
-
-                #if self.is_compound and self.type.IsPointer()
-                #    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
 
                 if self.length_of and not no_length_warnings:
                     if not isinstance(self.kind, CppParser.Integer) or (self.is_buffer or self.is_array):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer length carrying parameter" % self.trace_proto)
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer length carrying parameter is not supported" % self.trace_proto)
-                    elif self.kind.size == "long" and not self.identifier.meta.range:
+                    elif self.kind.size == "long" and not self.identifier.meta.range.is_set:
                         log.WarnLine(self.identifier, "'%s': long int buffer length is supported, but buffers up to %s bytes are recommended" \
                                         % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                     if not self.kind.fixed:
@@ -894,7 +897,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer max-length carrying parameter" % self.trace_proto)
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer max-length carrying parameter is not supported" % self.trace_proto)
-                    elif self.kind.size == "long" and not self.identifier.meta.range:
+                    elif self.kind.size == "long" and not self.identifier.meta.range.is_set:
                         log.WarnLine(self.identifier, "'%s': long int buffer max-length is supported, but buffers up to %s bytes are recommended" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                     if not self.kind.fixed:
@@ -929,7 +932,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Lastly handle restrict
                 self.restrict_range = identifier.meta.range
 
-                if not self.restrict_range:
+                if not self.restrict_range.is_set:
                     if self.length and self.length.identifier.meta.range:
                         self.restrict_range = self.length.identifier.meta.range
                     elif self.max_length and self.max_length.identifier.meta.range:
@@ -939,56 +942,46 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif self.max_length_of and self.max_length_of.meta.range:
                         self.restrict_range = self.max_length_of.meta.range
 
-                if self.restrict_range:
+                if self.restrict_range.is_set:
                     if self.is_integer and not self.is_buffer:
-                        if (self.restrict_range[1] > self.kind.max) or (self.restrict_range[0] < self.kind.min):
-                            raise TypenameError(self.identifier, "'%s': restrict range (%s..%s) is invalid for this length integer limits (%s..%s)" % \
-                                                    (self.trace_proto, self.restrict_range[0], self.restrict_range[1], self.kind.min, self.kind.max))
-
-                        if not no_length_warnings and (((self.restrict_range[1] < 256) and (self.kind.max > 256)) \
-                                or ((self.restrict_range[1] < (64*1024)) and (self.kind.max > (64*1024))) \
-                                or ((self.restrict_range[1] < (4*1024*1024*1024)) and (self.kind.max > (4*1024*1024*1024)))):
-                            log.WarnLine(identifier, "'%s': inefficient use of type (%s), value restricted to range (%s..%s)" % \
-                                            (self.trace_proto, self.proto_no_cv, self.restrict_range[0], self.restrict_range[1]))
+                        if not no_length_warnings and self.restrict_range.has_max:
+                            if (((self.restrict_range.max < 256) and (self.kind.max > 256)) \
+                                    or ((self.restrict_range.max < (64*1024)) and (self.kind.max > (64*1024))) \
+                                    or ((self.restrict_range.max < (4*1024*1024*1024)) and (self.kind.max > (4*1024*1024*1024)))):
+                                log.WarnLine(identifier, "'%s': inefficient use of type (%s) as value restricted to range (%s)" % (self.trace_proto, self.proto_no_cv, self.restrict_range))
 
                     elif (self.is_buffer or self.is_string or (self.is_integer and self.kind.min == 0)):
-                        if self.restrict_range[0] < 0:
-                            raise TypenameError(self.identifier, "'%s': negative restrict range (%s..%s) is invalid for this type" % \
-                                                    (self.trace_proto, self.restrict_range[0], self.restrict_range[1]))
-
-                        elif self.restrict_range[1] > (PARAMETER_SIZE_WARNING_THRESHOLD):
-                            log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s..%s)" \
-                                            % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range[0], self.restrict_range[1]))
+                        if self.restrict_range.has_max and self.restrict_range.max > (PARAMETER_SIZE_WARNING_THRESHOLD):
+                            log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s)" \
+                                            % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range))
 
                 if isinstance(self.kind, CppParser.DynamicArray):
                     aux_size = "uint16_t"
-                    if self.restrict_range:
-                        if self.restrict_range[1] < 256:
+                    if self.restrict_range.has_max:
+                        if self.restrict_range.max < 256:
                             aux_size = "uint8_t"
-                        elif self.restrict_range[1] > 65535:
-                            raise TypenameError(identifier, "invalid restrict range for std::vector")
+                        elif self.restrict_range.max > 65535:
+                            aux_size = "uint32_t"
 
                     self.length = CppParser.Temporary(self.kind.element.parent, [aux_size])
                     self.length.type_name = aux_size
                     self.element = self.kind.element
                     self.is_dynamic_array = True
-                    if not self.restrict_range:
-                        raise TypenameError(identifier, "'%s': @restrict is required for std::vector" % self.trace_proto)
 
                 if self.is_string or self.is_buffer or self.is_array or self.is_dynamic_array:
                     aux_name = Normalize(self.name + "PeekedLen__")
                     aux_size = "uint16_t"
 
-                    if self.restrict_range:
-                        if self.restrict_range[1] >= (16*1024*1024):
+                    if self.restrict_range.has_max:
+                        if self.restrict_range.max >= (16*1024*1024):
                             aux_size = "uint32_t"
-                        elif self.restrict_range[1] >= (64*1024):
+                        elif self.restrict_range.max >= (64*1024):
                             aux_size = "Core::Frame::UInt24"
-                        elif self.restrict_range[1] < 256:
+                        elif self.restrict_range.max < 256:
                             aux_size = "uint8_t"
 
                     if self.is_string:
-                        if self.is_ccstring and not self.restrict_range:
+                        if self.is_ccstring and not self.restrict_range.is_set:
                             log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                             aux_size = "uint32_t"
@@ -996,19 +989,21 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
 
                     elif self.is_buffer or self.is_array or self.is_dynamic_array:
-                        if not self.restrict_range:
+                        if not self.restrict_range.is_set:
                             aux_size = (self.length.type_name if self.length else self.max_length.type_name)
 
                         self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
 
                 elif self.is_integer:
-                    if self.restrict_range and self.kind.size == "long":
+                    # Opportunity to shrink DWORD to 24-bit if restrict range fits
+                    if self.kind.size == "long":
                         if self.kind.signed:
-                            if (((self.restrict_range[0] < (-32*1024)) and (self.restrict_range[0] >= (-8*1024*1024))) or \
-                                  ((self.restrict_range[1] >= (32*1024)) and (self.restrict_range[1] < (8*1024*1024)))):
-                                self.type_name = "Core::Frame::SInt24"
+                            if self.restrict_range.has_min and self.restrict_range.has_max:
+                                if ((self.restrict_range.min < (-32*1024)) and (self.restrict_range.min >= (-8*1024*1024))) or \
+                                    ((self.restrict_range.max >= (32*1024)) and (self.restrict_range.max < (8*1024*1024))):
+                                    self.type_name = "Core::Frame::SInt24"
                         else:
-                            if ((self.restrict_range[1] >= (64*1024)) and (self.restrict_range[1] < (16*1024*1024))):
+                            if (self.restrict_range.has_max and ((self.restrict_range.max >= (64*1024)) and (self.restrict_range.max < (16*1024*1024)))):
                                 self.type_name = "Core::Frame::UInt24"
 
                 if isinstance(self.kind, CppParser.Optional):
@@ -1037,9 +1032,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if not self.element:
                         self.element = self.optional.element
 
-                    #if not self.is_array:
-                    #    self.suffix = ".Value()"
-
                     if self.is_compound:
                         if isinstance(self.optional.kind, CppParser.Optional):
                              raise TypenameError(identifier, "'%s': OptionalType of OptionalType is not supported" % self.trace_proto)
@@ -1054,6 +1046,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         self.return_proxy = self.optional.return_proxy
                         self.proto_weak = self.optional.proto_weak
                         self.proto_weak_no_cv = self.optional.proto_weak_no_cv
+
                 else:
                     self.optional = None
 
@@ -1223,6 +1216,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "6" # always six bytes
                 elif isinstance(self.kind, CppParser.DynamicArray):
                     return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                elif isinstance(self.kind, CppParser.Time):
+                    return "sizeof(%s)" % self.target_type_name
                 else:
                     Unreachable()
 
@@ -1267,7 +1262,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             params = []
 
             if method.retval:
-                if isinstance(method.retval, list) or not method.retval.type.IsVoid():
+                if isinstance(method.retval, list) or isinstance(method.retval.type, list) or not method.retval.type.IsVoid():
                     retval = EmitRetVal(interface, method.retval, vars["result"])
 
             for index, var in enumerate(method.vars):
@@ -1301,10 +1296,17 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         ch = []
                         if p.optional:
                             ch.append("opt")
+                        if p.is_iterator:
+                            ch.append("iter")
                         if p.proxy:
                             ch.append("proxy")
+                        elif p.return_proxy:
+                            ch.append("retproxy")
                         elif p.is_compound:
                             ch.append("pod")
+
+                        if p.restrict_range.is_set:
+                            ch.append("(%s)" % str(p.restrict_range))
 
                         chs = " [" + ", ".join(ch) + "]" if ch else ""
 
@@ -1328,14 +1330,20 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             (vars["reader"], (p.as_rvalue if by_parameter else p.storage_size)))
 
         def CheckRange(p, val):
-            if p.restrict_range:
+            if p.restrict_range.is_set:
                 cmp = val if isinstance(val, str) else val.as_pure_rvalue
 
-                emit.Line("ASSERT((%s >= %s) && (%s <= %s));"% (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
+                restrictions = []
+
+                if p.restrict_range.has_min:
+                    restrictions.append("(%s >= %s)" % (cmp, p.restrict_range.min))
+                if p.restrict_range.has_max:
+                    restrictions.append("(%s <= %s)" % (cmp, p.restrict_range.max))
+
+                emit.Line("ASSERT(%s);" % " && ".join(restrictions))
 
                 if ENABLE_RANGE_VERIFICATION:
-                    emit.Line("if (!((%s >= %s) && (%s <= %s))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }" % \
-                                (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
+                    emit.Line("if (!(%s)) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }" % " && ".join(restrictions))
 
         def CheckSize(p):
             if ENABLE_INTEGRITY_VERIFICATION:
@@ -1383,7 +1391,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             hresult = AuxIdentifier(CppParser.Integer(HRESULT), CppParser.Ref.VALUE, vars["hresult"])
 
-            has_restricted_parameters = any([v.restrict_range for v in input_params])
+            has_restricted_parameters = any([v.restrict_range.is_set for v in input_params])
 
             output_buffers = []
             custom_buffers = []
@@ -1498,6 +1506,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             CheckSize(p)
                             emit.Line(param_)
 
+                        elif p.is_iterator:
+                            CheckFrame(p)
+                            emit.Line(param_)
                         else:
                             CheckFrame(p)
                             emit.Line(param_)
@@ -2577,7 +2588,7 @@ if __name__ == "__main__":
         print("   @out                   - indicates an output parameter")
         print("   @inout                 - indicates an input/output parameter (equivalent of @in @out)")
         print("   @restrict              - specifies valid range for a parameter (for buffers and strings: valid size)")
-        print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1")
+        print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1, @restrict:nonempty")
         print("   @interface:{expr}      - specifies a parameter or value indicating interface ID value for void* interface passing")
         print("   @length:{expr}         - specifies a buffer length value (a constant, a parameter name or a math expression)")
         print("   @maxlength:{expr}      - specifies a maximum buffer length value (a constant, a parameter name or a math expression),")
@@ -2606,15 +2617,17 @@ if __name__ == "__main__":
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
         print("   @extract               - indicates that that if only one element is present in the array it shall be taken out of it")
         print("   @optional              - indicates that a parameter, struct member or property index is optional (deprecated, use Core::OptionalType instead)")
-        print("   @default {value}       - set a default value for an optional parameter")
-        print("   @encode {method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
-        print("   @encode {lookup}       - encodes interface instances to json using lookup methods (lookup, autolookup) ")
-        print("   @prefix {name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
-        print("   @text {name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, struct members, property or notification")
-        print("   @alt {name}            - provides an alternative name a JSON-RPC method or property can by called by")
+        print("   @default:{value}       - set a default value for an optional parameter")
+        print("   @encode:{method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
+        print("   @encode:{lookup}       - encodes interface instances to JSON using lookup methods (lookup, autolookup) ")
+        print("   @encode:bitmask        - encodes a bitmask enum to a JSON array")
+        print("   @encode:text           - enocdes enum to text (generate enum conversion tables), implicit for enums inside @json-tagged classes")
+        print("   @prefix:{name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
+        print("   @text:{name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, struct members, property or notification")
+        print("   @alt:{name}            - provides an alternative name a JSON-RPC method or property can by called by")
         print("                            (for a notification it provides an additional name to send out)")
-        print("   @alt-deprecated {name} - provides an alternative deprecated name a JSON-RPC method can by called by")
-        print("   @alt-obsolete {name}   - provides an alternative obsolete name a JSON-RPC method can by called by")
+        print("   @alt-deprecated:{name} - provides an alternative deprecated name a JSON-RPC method can by called by")
+        print("   @alt-obsolete:{name}   - provides an alternative obsolete name a JSON-RPC method can by called by")
         print("")
         print("JSON-RPC documentation-related parameters:")
         print("   @sourcelocation {lnk}  - sets source location link to be used in the documentation")
