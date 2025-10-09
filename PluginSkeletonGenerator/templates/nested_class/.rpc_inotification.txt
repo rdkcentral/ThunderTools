@@ -23,9 +23,15 @@ public:
         _parent.Deactivated(connection);
     }
 
+    /*
+    void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {
+        _parent.Dangling(remote, interfaceId);
+    }
+    */
     {{NOTIFICATION_FUNCTION}}
     BEGIN_INTERFACE_MAP(Notification)
     INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
+    //INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)
     {{NOTIFICATION_ENTRY}}
     END_INTERFACE_MAP
 private:

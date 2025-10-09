@@ -178,7 +178,7 @@ def menu() -> None:
             locations[iface_name] = raw_locations[header_file]
  
     displayParsedData(parsed_data)
- 
+    header_lookup_test = []
     if not args.config:
         print("Specify custom include locations for each interface header (press Enter for default 'interfaces'):")
         asked_headers = set()
@@ -186,6 +186,7 @@ def menu() -> None:
             header_filename = os.path.basename(header_path)
             if header_filename in asked_headers:
                 continue
+            header_lookup_test.append(header_filename)
             asked_headers.add(header_filename)
             roots_in_header = [_root(fn) for fn in by_header.get(header_path, []) if fn in selected_full_names]
             roots_str = ", ".join(roots_in_header) if roots_in_header else "(none)"
@@ -199,7 +200,7 @@ def menu() -> None:
         out_of_process,
         plugin_config,
         parsed_data,
-        header_lookup,
+        header_lookup_test,
         locations,
         preconditions,
         terminations,

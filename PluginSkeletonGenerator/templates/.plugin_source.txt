@@ -48,7 +48,6 @@ string {{PLUGIN_NAME}}::Information() const {
     return (string());
 }
 
-
 {{SOURCE_METHOD_IMPL}}
 } // Plugin
 } // Thunder

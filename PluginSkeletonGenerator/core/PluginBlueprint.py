@@ -57,7 +57,7 @@ class PluginBlueprint:
                     stack.append((child, iface))
 
         def collectNotificationEntries(self) -> List[Tuple[str, object]]:
-            return sorted(self._notification_entries)
+            return (self._notification_entries)
 
         @property
         def comrpc_interfaces(self) -> List[str]:

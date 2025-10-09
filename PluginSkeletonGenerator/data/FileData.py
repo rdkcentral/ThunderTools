@@ -6,6 +6,7 @@ from utils.FileUtils import FileUtils
 import core.GlobalVariables as GlobalVariables
 from typing import Dict, List, Tuple
 from datetime import datetime
+import re
 
 from utils.CodeGenUtils import convertToBaseName, convertToCOMRPC, convertToJSONRPC
 
@@ -41,6 +42,30 @@ class FileData(ABC):
             if full_name.endswith(f"::{short_name}"):
                 return full_name
         return None
+
+    @staticmethod
+    def commentParamnames(params: str):
+        if not params.strip():
+            return "", []
+        parts = [s.strip() for s in params.split(",")]
+        out_parts, names = [], []
+
+        for chunk in parts:
+            # some params have tags like /* @out */...
+            no_comments = re.sub(r'/\*.*?\*/', '', chunk)
+            token = no_comments.strip().split()
+            if not token:
+                out_parts.append(chunk)
+                continue
+
+            name = token[-1]
+            names.append(name)
+            last = chunk.rfind(name)
+            if last != -1:
+                chunk = chunk[:last] + f"/* {name} */" + chunk[last+len(name):]
+
+            out_parts.append(chunk)
+        return ", ".join(out_parts), names
 
     def dynamic_keys(self) -> Dict[str, str]:
         return {
@@ -100,13 +125,20 @@ class HeaderData(FileData):
     
     def _generateHeaderDeactivateMethod(self):
         return f'void Deactivated(RPC::IRemoteConnection* connection);' if self.m_out_of_process else ''
+
+    def _generateHeaderDanglingMethod(self):
+        '''
+        "{{HEADER_DANGLING_METHOD}}": self._generateHeaderDanglingMethod()
+        '''
+        return f'void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);' if self.m_out_of_process else ''
     
     def _generateNotifClass(self):
         entries = self.m_blueprint.notification_entries
         if not entries:
+            # return ": public RPC::IRemoteConnection::INotification, PluginHost::IShell::ICOMLink::INotification"
             return ": public RPC::IRemoteConnection::INotification"
         derived = [f"public {fq_name}" for fq_name, _ in entries]
-        return generateSimpleText([": public RPC::IRemoteConnection::INotification "] + derived, sep=", ")
+        return generateSimpleText([": public RPC::IRemoteConnection::INotification"] + derived, sep=", ")
 
     def _generateNotifConstructor(self):
         entries = self.m_blueprint.notification_entries
@@ -121,9 +153,9 @@ class HeaderData(FileData):
     def _generateNotifFunction(self):
         entries = self.m_blueprint.notification_entries
         result = []
-
+        
         for fq_name, cls_data in entries:
-            namespace = fq_name.split("::")[2]
+            namespace = fq_name.split("::")[1]
             jprefix = f"J{namespace[1:]}" if namespace.startswith("I") else f"J{namespace}"
 
             for m in cls_data.m_methods:
@@ -135,7 +167,7 @@ class HeaderData(FileData):
                 add_const = " const" if getattr(m, "m_is_const", False) else ""
                 result.extend([
                     f"void {m.m_name}({m.m_params}) override {{",
-                    f"{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};" if self.m_jsonrpc else '',
+                    f"Exchange::{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};" if self.m_jsonrpc else '',
                     "}"
                 ])
                 result.append("")  # for spacing between functions
@@ -162,7 +194,7 @@ class HeaderData(FileData):
                     f"void Notify{iface}() const {{",
                     "_adminLock.Lock();",
                     f"for (auto* notification : _{no_i.lower()}Notification) {{",
-                    f"notification->{iface}Notification();",
+                    f"//notification->{iface}Notification();",
                     "}",
                     "_adminLock.Unlock();",
                     "}"
@@ -289,7 +321,7 @@ class HeaderData(FileData):
                     )
                     if filename:
                         location = self.m_locations.get(comrpc_iface, "interfaces")
-                        includes.append(f'#include <{location}/json/{filename}>')
+                        includes.append(f'#include <{location}/json/J{filename[1:]}>')
 
         return generateSimpleText(includes)
 
@@ -342,8 +374,7 @@ class HeaderData(FileData):
                 members.extend(f"_{convertToBaseName(iface).lower()}Notification()" for iface in self.m_notification_interfaces)
 
         return ": " + generateSimpleText(members, sep="\n, ")
-
-
+ 
     def _generateHeaderInheritedMethod(self) -> str:
         is_header = self.m_type == self.HeaderType.HEADER
         is_impl = self.m_type == self.HeaderType.HEADER_IMPLEMENTATION
@@ -362,26 +393,27 @@ class HeaderData(FileData):
 
                 add_const = " const" if getattr(m, "m_is_const", False) else ""
                 if is_header:
-                    lines.append(f"{m.m_return_type} {m.m_name}({m.m_params}){add_const} override;")
+                    paramsNoNames, names = self.commentParamnames(m.m_params)
+                    lines.append(f"{m.m_return_type} {m.m_name}({paramsNoNames}){add_const} override;")
                 else:
                     if short_name in self.m_notification_interfaces and m.m_name in ("Register", "Unregister"):
                         if m.m_name == "Register":
                             lines.append(generateSimpleText([
                                 f"{m.m_return_type} Register({namespace}::{short_name}::INotification* notification) override {{",
                                 self.notification_registers(short_name),
-                                "return Core::ERROR_NONE;",
                                 "}"
                             ]))
                         else:
                             lines.append(generateSimpleText([
                                 f"{m.m_return_type} Unregister(const {namespace}::{short_name}::INotification* notification) override {{",
                                 self.notification_unregisters(short_name),
-                                "return Core::ERROR_NONE;",
                                 "}"
                             ]))
                     else:
+                        paramsNoNames, names = self.commentParamnames(m.m_params)
+                        
                         lines.append(generateSimpleText([
-                            f"{m.m_return_type} {m.m_name}({m.m_params}){add_const} override {{",
+                            f"{m.m_return_type} {m.m_name}({paramsNoNames}){add_const} override {{",
                             "    return Core::ERROR_NONE;",
                             "}"
                         ]))
@@ -437,7 +469,7 @@ class HeaderData(FileData):
                 namespace = self._extractStrippedNamespace(full_name)
                 container_typedef = (
                     f"using {convertToBaseName(short_name)}NotificationContainer = "
-                    f"std::vector<{namespace}::{convertToBaseName(short_name)}::INotification*>;"
+                    f"std::vector<{namespace}::I{convertToBaseName(short_name)}::INotification*>;"
                 )
                 lines.append(container_typedef)
 
@@ -504,14 +536,45 @@ class SourceData(FileData):
                 None
             )
             if header_filename:
-                location = self.m_locations.get(base_name, "interfaces/json")
-                includes.append(f'#include <{location}/json/{header_filename}>')
+                location = self.m_locations.get(base_name, "interfaces")
+                includes.append(f'#include <{location}/json/J{header_filename[1:]}>')
 
         return generateSimpleText(includes)
 
 
     def _generateSourcePluginMethods(self) -> str:
         if self.m_out_of_process:
+            '''
+            method = []
+
+            dangling = []
+
+            dangling.append(f"void  {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{")
+            dangling.append("ASSERT(remote != nullptr);")
+            if self.m_notification_entries:
+                fq_name, _ in self.m_notification_entries:
+
+
+
+
+            impl_var = self.m_comrpc_interfaces[0]
+
+            
+            entries = self.m_blueprint.notification_entries
+            for fq_name, _ in entries
+                break
+            
+            
+            method.append(f"""void  {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{")
+                        ASSERT(remote != nullptr);
+                        if (interfaceId == {fq_name}::ID) {{
+                const auto revokedInterface = remote->QueryInterface<{fq_name}>();
+                if (revokedInterface) {{
+                    _impl{name}->Unregister(revokedInterface);
+                    revokedInterface->Release();
+                }}
+            }}""")
+            '''
             return f"""void {self.m_plugin_name}::Deactivated(RPC::IRemoteConnection* connection) {{
                 if (connection->Id() == _connectionId) {{
                     ASSERT(_service != nullptr);
@@ -528,8 +591,10 @@ class SourceData(FileData):
             notify_var = f"_{base_name.lower()}Notification"
 
             for method in cls_data.m_methods:
+                paramsNoNames, _ = self.commentParamnames(method.m_params)
+                add_const = " const" if getattr(method, "m_is_const", False) else ""
                 lines.extend([
-                    f"{method.m_return_type} {self.m_plugin_name}::{method.m_name}({method.m_params}) {{",
+                    f"{method.m_return_type} {self.m_plugin_name}::{method.m_name}({paramsNoNames}){add_const} {{",
                     f"    return Core::ERROR_NONE;",
                     "}"
                 ])
@@ -801,13 +866,14 @@ class JSONData(FileData):
         }
    
     def _generateCPPREF(self):
-        headers = {header for iface, header in self.m_blueprint.header_lookup.items()}
-        if not headers:
+           # header_lookup: { interface_name: header_path }
+        if not self.m_blueprint.header_lookup:
             return ""
-
-        lines = [
-            f'"$cppref": "{{cppinterfacedir}}/{name}"'
-            for name in sorted(headers)]
+    
+        lines = []
+        for header in self.m_blueprint.header_lookup:
+            lines.append(f'"$cppref": "{{cppinterfacedir}}/{header}"')
+ 
         return generateSimpleText(lines, sep=",\n")
 
 
