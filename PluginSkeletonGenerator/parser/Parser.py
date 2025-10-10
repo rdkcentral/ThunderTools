@@ -184,8 +184,7 @@ class Parser:
             params = match.group("params").strip()
             is_const = bool(match.group("const"))
             return return_type, method_name, params, is_const
-        return None, None, None
-    
+        return None, None, None, None
 
 class Printer:
     @staticmethod

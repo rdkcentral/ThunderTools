@@ -20,7 +20,7 @@ class Indenter:
         base = os.path.basename(path)
         self.m_indent_unit = self.m_indent_map.get(ext, '    ')
 
-        self.m_skip_indent = ext == base.endswith('.conf.in')
+        self.m_skip_indent = base.endswith('.conf.in')
         self.m_cpp_mode = ext in ('.h', '.cpp')
         self.m_manual_indent = base == 'CMakeLists.txt'
 
@@ -76,7 +76,7 @@ class Indenter:
                 indent += 1
                 continue
 
-            # Closing Brkacets
+            # Closing Brackets
             if re.match(r'^}\s*;?\s*$', line):
                 indent = max(0, indent - 1)
                 if class_stack:

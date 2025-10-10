@@ -114,7 +114,8 @@ class HeaderData(FileData):
             "{{HEADER_CONSTRUCTOR}}": self._generateHeaderConstructor(),
             "{{HEADER_MEMBERS}}": self._generateHeaderMembers(),
             "{{HEADER_NOTIFY}}": self._generateHeaderNotify(),
-            "{{HEADER_DEACTIVATE_METHOD}}": self._generateHeaderDeactivateMethod()
+            "{{HEADER_DEACTIVATE_METHOD}}": self._generateHeaderDeactivateMethod(),
+            "{{HEADER_DANGLING_METHOD}}": self._generateHeaderDanglingMethod()
         }
 
     def extra_keys(self):
@@ -127,18 +128,14 @@ class HeaderData(FileData):
         return f'void Deactivated(RPC::IRemoteConnection* connection);' if self.m_out_of_process else ''
 
     def _generateHeaderDanglingMethod(self):
-        '''
-        "{{HEADER_DANGLING_METHOD}}": self._generateHeaderDanglingMethod()
-        '''
         return f'void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);' if self.m_out_of_process else ''
     
     def _generateNotifClass(self):
         entries = self.m_blueprint.notification_entries
         if not entries:
-            # return ": public RPC::IRemoteConnection::INotification, PluginHost::IShell::ICOMLink::INotification"
-            return ": public RPC::IRemoteConnection::INotification"
+            return ": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"
         derived = [f"public {fq_name}" for fq_name, _ in entries]
-        return generateSimpleText([": public RPC::IRemoteConnection::INotification"] + derived, sep=", ")
+        return generateSimpleText([": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"] + derived, sep=", ")
 
     def _generateNotifConstructor(self):
         entries = self.m_blueprint.notification_entries
@@ -488,8 +485,8 @@ class SourceData(FileData):
             "{{NESTED_QUERY}}": self._generateNestedQuery(),
             "{{CONFIGURE_IP}}": self._generateConfigurationIP(),
             "{{ASSERT_IMPL}}": self._generateInitialAssert(),
-            "{{REGISTER_NOTIFICATION}}": "_service->Register(&_notification);",
-            "{{UNREGISTER_NOTIFICATION}}": "_service->Unregister(&_notification);",
+            "{{REGISTER_NOTIFICATION}}": "_service->Register(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));",
+            "{{UNREGISTER_NOTIFICATION}}": "_service->Unregister(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));",
             "{{DEINITIALIZE_OOP}}": self._generateDeinitializeOOP(),
             "{{INCLUDE_STATEMENTS}}": self._generateSourceIncludeStatements(),
             "{{SOURCE_METHOD_IMPL}}": self._generateSourcePluginMethods(),
@@ -544,44 +541,47 @@ class SourceData(FileData):
 
     def _generateSourcePluginMethods(self) -> str:
         if self.m_out_of_process:
-            '''
             method = []
 
+            method.append(
+                f"void {self.m_plugin_name}::Deactivated(RPC::IRemoteConnection* connection) {{\n"
+                "if (connection->Id() == _connectionId) {\n"
+                "ASSERT(_service != nullptr);\n"
+                "Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));\n"
+                "_service->Release();\n"
+                "_service = nullptr;\n"
+                "_connectionId = 0;\n"
+                "}\n"
+                "}\n"
+            )
+    
             dangling = []
-
-            dangling.append(f"void  {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{")
-            dangling.append("ASSERT(remote != nullptr);")
-            if self.m_notification_entries:
-                fq_name, _ in self.m_notification_entries:
-
-
-
-
-            impl_var = self.m_comrpc_interfaces[0]
-
-            
-            entries = self.m_blueprint.notification_entries
-            for fq_name, _ in entries
-                break
-            
-            
-            method.append(f"""void  {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{")
-                        ASSERT(remote != nullptr);
-                        if (interfaceId == {fq_name}::ID) {{
-                const auto revokedInterface = remote->QueryInterface<{fq_name}>();
-                if (revokedInterface) {{
-                    _impl{name}->Unregister(revokedInterface);
-                    revokedInterface->Release();
-                }}
-            }}""")
-            '''
-            return f"""void {self.m_plugin_name}::Deactivated(RPC::IRemoteConnection* connection) {{
-                if (connection->Id() == _connectionId) {{
-                    ASSERT(_service != nullptr);
-                    Core::IWorkerPool::Instance().Submit(PluginHost::IShell::Job::Create(_service, PluginHost::IShell::DEACTIVATED, PluginHost::IShell::FAILURE));
-                    }}
-                    }}
-                    """
+            dangling.append(
+                f"void {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{\n"
+                "ASSERT(remote != nullptr);\n"
+            )
+    
+            impl_var = self.m_comrpc_interfaces[0][1:]
+            impl_var_cpp = f"_impl{impl_var}" if impl_var else "_implementation"
+    
+            entries = list(getattr(self.m_blueprint, "notification_entries", []))
+            if entries:
+                for fq_name, _ in entries:
+                    dangling.append(
+                        f"    if (interfaceId == {fq_name}::ID) {{\n"
+                        f"        auto* revokedInterface = remote->QueryInterface<{fq_name}>();\n"
+                        f"        if (revokedInterface) {{\n"
+                        f"            {impl_var_cpp}->Unregister(revokedInterface);\n"
+                        f"            revokedInterface->Release();\n"
+                        f"        }}\n"
+                        f"    }}\n"
+                    )
+            else:
+                dangling.append("    // No notification interfaces to unregister.\n")
+    
+            dangling.append("}\n")
+ 
+            return "".join(method) + "".join(dangling)
         lines = []
 
         for full_name, (cls_data, _) in self.m_blueprint.parsed_data.items():

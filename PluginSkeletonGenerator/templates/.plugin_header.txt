@@ -46,6 +46,7 @@ namespace Plugin {
     void Deinitialize(PluginHost::IShell* service) override;
     string Information() const override;
     {{HEADER_DEACTIVATE_METHOD}}
+    {{HEADER_DANGLING_METHOD}}
 
     {{HEADER_INHERITED_METHOD}}
 
