@@ -72,6 +72,6 @@ mkdir -p "$TARGET_DIR"
     for i in $(seq 1 "$COUNT"); do
       printf 'add_subdirectory(%s)\n' "Plugin$i"
     done
-  } > CMakeList.txt
+  } > CMakeLists.txt
 )
 
