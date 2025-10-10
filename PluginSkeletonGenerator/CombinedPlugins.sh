@@ -67,7 +67,7 @@ mkdir -p "$TARGET_DIR"
     printf '%s\nN\nN\n%s\n\nN\n\n' "$plugin" "$IFACE_ABS" | python3 "$START_DIR/PluginSkeletonGenerator.py"
   done
 
-  # Create CombinedPlugins.cmake with one add_subdirectory line per plugin
+  # Create CMakeLists.txt with one add_subdirectory line per plugin
   {
     for i in $(seq 1 "$COUNT"); do
       printf 'add_subdirectory(%s)\n' "Plugin$i"
