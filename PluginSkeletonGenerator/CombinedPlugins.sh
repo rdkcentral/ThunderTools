@@ -52,11 +52,11 @@ mkdir -p "$TARGET_DIR"
 (
   cd "$TARGET_DIR"
 
-  # Loop Plugin1..PluginN and run the generator with the new answers
+  # Loop Plugin1..PluginN and run the generator with the predefined answers
   for i in $(seq 1 "$COUNT"); do
     plugin="Plugin$i"
 
-    # New answers per run:
+    # Answers:
     # 1) $plugin
     # 2) N
     # 3) N
@@ -67,7 +67,7 @@ mkdir -p "$TARGET_DIR"
     printf '%s\nN\nN\n%s\n\nN\n\n' "$plugin" "$IFACE_ABS" | python3 "$START_DIR/PluginSkeletonGenerator.py"
   done
 
-  # Create CMakeList.txt with one add_subdirectory line per plugin
+  # Create CMakeLists.txt with one add_subdirectory line per plugin
   {
     for i in $(seq 1 "$COUNT"); do
       printf 'add_subdirectory(%s)\n' "Plugin$i"
