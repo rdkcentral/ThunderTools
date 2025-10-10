@@ -30,7 +30,7 @@ function(ProxyStubGenerator)
         message(FATAL_ERROR "ProxyStubGenerator path ${PROXYSTUB_GENERATOR} invalid.")
     endif()
 
-    set(optionsArgs SECURE COHERENT TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE)
+    set(optionsArgs SECURE COHERENT TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE COLLATED_ITERATORS)
     set(oneValueArgs OUTDIR FRAMEWORK_NAMESPACE)
     set(multiValueArgs INPUT INCLUDE INCLUDE_PATH NAMESPACE)
 
@@ -70,6 +70,10 @@ function(ProxyStubGenerator)
 
     if(Argument_FORCE_GENERATE)
         list(APPEND _execute_command  "--force")
+    endif()
+
+    if(Argument_COLLATED_ITERATORS)
+        list(APPEND _execute_command  "--collated-iterators")
     endif()
 
     if(Argument_FRAMEWORK_NAMESPACE)
