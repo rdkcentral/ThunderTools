@@ -61,7 +61,7 @@ class CaseConverter:
                 if _split[0].isupper():
                     _pascal[0] = _pascal[0].upper()
             else:
-                _pascal[0] = _pascal[0][0].lower() + _pascal[0][1:]s
+                _pascal[0] = _pascal[0][0].lower() + _pascal[0][1:]
             _pascal = "".join(_pascal)
             return _pascal
 
