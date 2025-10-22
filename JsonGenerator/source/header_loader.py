@@ -55,9 +55,15 @@ class CaseConverter:
         @staticmethod
         def __to_pascal(string, uppercase=True):
             _pattern = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
-            _pascal = _pattern.sub('_', string.replace('__', '_').strip('_')).split('_')
-            _pascal = "".join([x.capitalize() for x in _pascal])
-            return (_pascal if uppercase else (_pascal[0].lower() + _pascal[1:]))
+            _split = _pattern.sub('_', string.replace('__', '_').strip('_')).split('_')
+            _pascal = [x.capitalize() for x in _split]
+            if uppercase:
+                if _split[0].isupper():
+                    _pascal[0] = _pascal[0].upper()
+            else:
+                _pascal[0] = _pascal[0][0].lower() + _pascal[0][1:]
+            _pascal = "".join(_pascal)
+            return _pascal
 
         @staticmethod
         def __to_snake(string, uppercase=True):
@@ -169,7 +175,7 @@ def StripFrameworkNamespace(identifier):
 
 def compute_name(log, converter, object, argument_type, relay=None, is_property=False):
     if isinstance(object, str):
-        return converter.transform(object, argument_type)
+        transformed = converter.transform(object, argument_type)
     else:
         obj = relay if relay else object
 
@@ -183,7 +189,7 @@ def compute_name(log, converter, object, argument_type, relay=None, is_property=
         if overriden == name:
             log.WarnLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
 
-        return transformed
+    return transformed
 
 def BuildEnum(log, _case_converter, cppType, meta, var=None, extra_decorators=[], quiet=False):
     props = { "enum": [compute_name(log, _case_converter, e, _case_converter.ENUMS) for e in cppType.items] }
