@@ -56,13 +56,20 @@ class CaseConverter:
         def __to_pascal(string, uppercase=True):
             _pattern = re.compile(r"(?<=[a-z])(?=[A-Z])|(?<=[A-Z])(?=[A-Z][a-z])")
             _split = _pattern.sub('_', string.replace('__', '_').strip('_')).split('_')
-            _pascal = [x.capitalize() for x in _split]
+
+            if not string.isupper() and '_' not in string:
+                _pascal = [x[0].upper() + x[1:] for x in _split]
+            else:
+                _pascal = [x.capitalize() for x in _split]
+
             if uppercase:
-                if _split[0].isupper():
+                if _split[0].isupper() and not string.isupper() and '_' not in string:
                     _pascal[0] = _pascal[0].upper()
             else:
-                _pascal[0] = _pascal[0][0].lower() + _pascal[0][1:]
+                _pascal[0] = _pascal[0].lower()
+
             _pascal = "".join(_pascal)
+
             return _pascal
 
         @staticmethod
