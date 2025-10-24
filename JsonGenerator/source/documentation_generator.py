@@ -21,17 +21,34 @@ from collections import OrderedDict
 
 import config
 import rpc_version
+import json_loader
 from emitter import Emitter
 
 
 class DocumentationError(RuntimeError):
     pass
 
-def Create(log, schema, path, indent_size = 4):
+def Create(log, args, schema, path, indent_size = 4):
     input_basename = os.path.basename(path)
     output_path = os.path.dirname(path) + os.sep + input_basename.replace(".json", "") + ".md"
 
+    schemas, _, _ = json_loader.Load(log, os.path.join(os.path.dirname(__file__), "..", "IBuiltIns.h"), args.if_dirs, args.cpp_if_dirs, args.include_paths)
+
+    interface_builtins = []
+    interface_with_events_builtins = []
+    plugin_builtins = []
+
+    if schemas:
+        interface_builtins = schemas[1]
+        interface_with_events_builtins = schemas[2]
+        plugin_builtins = schemas[0]
+    else:
+        log.Error("Failed to load built-ins definitions")
+
+    api = dict()
+
     with Emitter(output_path, config.INDENT_SIZE, 10000) as emit:
+
         def bold(string):
             return "**%s**" % string
 
@@ -117,7 +134,6 @@ def Create(log, schema, path, indent_size = 4):
 
                     if enums:
                         default_enum = enums[0]
-
                 if enums:
                     enum = ' (must be one of the following: *%s*)' % (", ".join(sorted(enums)))
 
@@ -128,6 +144,8 @@ def Create(log, schema, path, indent_size = 4):
                 description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else "*...*" if "@async" not in obj else ""
                 if description and description[0].islower():
                     description = description[0].upper() + description[1:]
+
+                description = ReplaceVars(description)
 
                 if name or prefix:
                     if "type" not in obj:
@@ -264,6 +282,33 @@ def Create(log, schema, path, indent_size = 4):
 
             MdBr()
 
+        def ReplaceVars(description):
+            _p = list(api["properties"].keys()) if "properties" in api else []
+            _m = list(api["methods"].keys()) if "methods" in api else []
+            _e = list(api["events"].keys()) if "events" in api else []
+            _mp = _p + _m
+
+            if "$METHODSANDPROPERTIES[0]" in description:
+                return description.replace("$METHODSANDPROPERTIES[0]", _mp[0] if _mp else "")
+            elif "$METHODSANDPROPERTIES" in description:
+                return description.replace("$METHODSANDPROPERTIES", ", ".join(_mp) if _mp else "")
+            elif "$METHODS[0]" in description:
+                return description.replace("$METHODS[0]", _m[0] if _m else "")
+            elif "$METHODS" in description:
+                return description.replace("$METHODS", ", ".join(_m) if _m else "")
+            elif "$PROPERTIES[0]" in description:
+                return description.replace("$PROPERTIES[0]", _p[0] if _p else "")
+            elif "$PROPERTIES" in description:
+                return description.replace("$PROPERTIES", ", ".join(_p) if _p else "")
+            elif "$EVENTS[0]" in description:
+                return description.replace("$EVENTS[0]", _e[0] if _e else "")
+            elif "$EVENTSWITHLINKS" in description:
+                return description.replace("$EVENTSWITHLINKS", ", ".join(["[%s](#notification_%s)" % (x, x) for x in _e]) if _e else "")
+            elif "$EVENTS" in description:
+                return description.replace("$EVENTS", ", ".join(_p) if _p else "")
+            else:
+                return description
+
         def ExampleObj(name, obj, root=False):
             if "deprecated" in obj and obj["deprecated"]:
                 return "$deprecated"
@@ -277,10 +322,16 @@ def Create(log, schema, path, indent_size = 4):
             if not default and "enum" in obj:
                 default = obj["enum"][1 if len(obj["enum"]) > 1 else 0]
 
+            if not default and (obj_type == "integer" or obj_type == "number") and "range" in obj and obj["range"][0]:
+                default = obj["range"][0]
+
+            if isinstance(default, str):
+                default = ReplaceVars(default)
+
             json_data = '"%s": ' % name if name else ''
 
             if obj_type == "string":
-                if default and default.count('"'):
+                if default and default.count('"') % 2 != 0:
                     raise DocumentationError("'%s': unescaped quotes in example string" % name)
 
                 if obj.get("opaque"):
@@ -320,7 +371,7 @@ def Create(log, schema, path, indent_size = 4):
 
             return json_data
 
-        def MethodDump(method, props, classname, section, header, is_notification=False, is_property=False, include=None):
+        def MethodDump(method, props, classname, interface, section, header, is_notification=False, is_property=False, include=None):
             method = (method.rsplit(".", 1)[1] if "." in method else method)
             type = "property" if is_property else "notification" if is_notification else "method"
             is_async = False
@@ -354,10 +405,11 @@ def Create(log, schema, path, indent_size = 4):
 
             if "summary" in props:
                 text = props["summary"]
+
+                text = ReplaceVars(text)
+
                 if is_property:
-                    text = "Provides access to the " + \
-                        (text[0].lower() if text[1].islower()
-                         else text[0]) + text[1:]
+                    text = "Provides access to the " + (text[0].lower() if text[1].islower() else text[0]) + text[1:]
 
                 if not text.endswith('.'):
                     text += '.'
@@ -397,14 +449,15 @@ def Create(log, schema, path, indent_size = 4):
 
             if "description" in props:
                 MdHeader("Description", 3)
-                MdParagraph(props["description"])
+                desc = ReplaceVars(props["description"])
+                MdParagraph(desc)
 
             if "statuslistener" in props:
                 MdParagraph("> This notification may also be triggered by client registration.")
 
             if "events" in props:
-                events = [props["events"]] if isinstance(props["events"], str) else props["events"]
-                MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), events))))
+                _events = [props["events"]] if isinstance(props["events"], str) else props["events"]
+                MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), _events))))
 
             idex = ("1" if props["@lookup"]["id"] == "@generate" else "id1") if "@lookup" in props else ""
 
@@ -610,10 +663,12 @@ def Create(log, schema, path, indent_size = 4):
                 else:
                     MdHeader("Request", 4)
 
+                example = (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""
+
                 try:
                     jsonRequest = json.dumps(json.loads('{ "jsonrpc": "2.0", %s"method": "%s"%s }' %
                                                         ('"id": 42, ' if not is_notification else "", call_method if not is_notification else notification_example_method,
-                                                        (", " + ExampleObj("params", props["params"], True)) if "params" in props else ""),
+                                                        example),
                                                         object_pairs_hook=OrderedDict), indent=2)
                 except:
                     jsonRequest = jsonError
@@ -690,27 +745,27 @@ def Create(log, schema, path, indent_size = 4):
             outer_interfaces = [outer_interfaces]
 
         interfaces = []
-        for interface in outer_interfaces:
+        for face in outer_interfaces:
             rpc_format = config.RPC_FORMAT
 
-            if (not config.RPC_FORMAT_FORCED) and ("info" in interface) and ("format" in interface["info"]):
-                rpc_format = config.RpcFormat(interface["info"]["format"])
+            if (not config.RPC_FORMAT_FORCED) and ("info" in face) and ("format" in face["info"]):
+                rpc_format = config.RpcFormat(face["info"]["format"])
 
-            if isinstance(interface, list):
-                interfaces.extend(interface)
-                for face in interface:
-                    if "include" in face:
+            if isinstance(face, list):
+                interfaces.extend(face)
+                for f in face:
+                    if "include" in f:
                         if isinstance(face["include"], list):
-                            interfaces.extend(face["include"])
+                            interfaces.extend(f["include"])
                         else:
-                            interfaces.append(face["include"])
+                            interfaces.append(f["include"])
                     interfaces[-1]["info"]["format"] = rpc_format.value
             else:
-                interfaces.append(interface)
+                interfaces.append(face)
 
-                if "include" in interface:
-                    for face in interface["include"]:
-                        interfaces.append(interface["include"][face])
+                if "include" in face:
+                    for f in face["include"]:
+                        interfaces.append(face["include"][f])
                         interfaces[-1]["info"]["format"] = rpc_format.value
 
         # Don't consider all interfaces for processing
@@ -728,15 +783,15 @@ def Create(log, schema, path, indent_size = 4):
         property_count = 0
         event_count = 0
 
-        for interface in interfaces:
-            if "methods" in interface:
-                method_count += len(interface["methods"])
+        for face in interfaces:
+            if "methods" in face:
+                method_count += len(face["methods"])
 
-            if "properties" in interface:
-                property_count += len(interface["properties"])
+            if "properties" in face:
+                property_count += len(face["properties"])
 
-            if "events" in interface:
-                event_count += len(interface["events"])
+            if "events" in face:
+                event_count += len(face["events"])
 
         status = info["status"] if "status" in info else "alpha"
 
@@ -801,6 +856,15 @@ def Create(log, schema, path, indent_size = 4):
         if ("@interfaceonly" in schema and schema["@interfaceonly"]) or ("$schema" in schema and schema["$schema"] == "interface.schema.json"):
             document_type = "interface"
             version = rpc_version.GetVersionString(info)
+
+        if method_count + property_count + event_count > 0:
+            method_count += len(interface_builtins)
+
+        if event_count > 0:
+            method_count += len(interface_with_events_builtins)
+
+        if method_count + property_count + event_count > 0 and document_type == "plugin":
+            method_count += len(plugin_builtins)
 
         MdBody("<!-- Generated automatically, DO NOT EDIT! -->")
 
@@ -998,26 +1062,28 @@ def Create(log, schema, path, indent_size = 4):
                 MdParagraph("This plugin implements the following interfaces:")
 
                 for face in interfaces:
-                    iface = (face["info"]["interface"] if "interface" in face["info"] else (face["info"]["class"] + ".json"))
-                    sourcelocation = SourceLocation(face)
+                    iface = (face["info"]["interface"] if "interface" in face["info"] else (face["info"]["class"]  + ".json") if "class" in face["info"] else None)
 
-                    if sourcelocation:
-                        if "sourcefile" in face["info"]:
-                            wl = iface + " (" + weblink(face["info"]["sourcefile"], sourcelocation) + ")"
+                    if iface:
+                        sourcelocation = SourceLocation(face)
+
+                        if sourcelocation:
+                            if "sourcefile" in face["info"]:
+                                wl = iface + " (" + weblink(face["info"]["sourcefile"], sourcelocation) + ")"
+                            else:
+                                wl = weblink(iface, sourcelocation)
                         else:
-                            wl = weblink(iface, sourcelocation)
-                    else:
-                        wl = iface
+                            wl = iface
 
-                    format = face["info"]["format"] if "format" in face["info"] else global_rpc_format.value
-                    MdBody("- %s (version %s) (%s format)" % (wl, rpc_version.GetVersionString(face["info"]), format))
+                        format = face["info"]["format"] if "format" in face["info"] else global_rpc_format.value
+                        MdBody("- %s (version %s) (%s format)" % (wl, rpc_version.GetVersionString(face["info"]), format))
 
-                    if face["info"].get("@legacylowercase"):
-                        MdParagraph("> This interface uses legacy ```lowercase``` naming convention. With the next major release the naming convention will change to ```camelCase```.")
+                        if face["info"].get("@legacylowercase"):
+                            MdParagraph("> This interface uses legacy ```lowercase``` naming convention. With the next major release the naming convention will change to ```camelCase```.")
 
                 MdBr()
 
-        def SectionDump(section_name, section, header, description=None, description2=None, event=False, prop=False):
+        def SectionDump(api, section_name, section, header, description=None, description2=None, event=False, prop=False):
             skip_list = []
 
             def InterfaceDump(interface, section, header):
@@ -1033,11 +1099,16 @@ def Create(log, schema, path, indent_size = 4):
                             ns = interface["info"]["namespace"] if "namespace" in interface["info"] else ""
 
                             if not head:
-                                MdParagraph("%s interface %s:" % (((ns + " ") if ns else "") + interface["info"]["class"], section))
+                                if "BuiltIns" in interface["info"]["class"]:
+                                    MdParagraph("Built-in %s:" % section)
+                                else:
+                                    MdParagraph("%s interface %s:" % (((ns + " ") if ns else "") + interface["info"]["class"], section))
+
                                 if prop:
                                     MdTableHeader([header.capitalize(), "R/W", "Description"])
                                 else:
                                     MdTableHeader([header.capitalize(), "Description"])
+
                                 head = True
 
                             access = ""
@@ -1118,8 +1189,23 @@ def Create(log, schema, path, indent_size = 4):
 
             MdParagraph("The following %s are provided by the %s %s:" % (section, plugin_class, document_type))
 
-            for interface in interfaces:
-                InterfaceDump(interface, section, header)
+            builtins = dict()
+
+            if document_type == "plugin":
+                builtins = plugin_builtins
+                if "methods" in interface_builtins:
+                    builtins["methods"] |= interface_builtins["methods"]
+            else:
+                builtins = interface_builtins
+
+            if event_count > 0:
+                if "methods" in interface_with_events_builtins:
+                    builtins["methods"] |= interface_with_events_builtins["methods"]
+
+            InterfaceDump(builtins, section, header)
+
+            for face in interfaces:
+                InterfaceDump(face, section, header)
 
             MdBr()
 
@@ -1129,28 +1215,72 @@ def Create(log, schema, path, indent_size = 4):
 
             skip_list = []
 
-            for interface in interfaces:
-                if section in interface:
-                    for method, props in interface[section].items():
-                        if "#" in method and (section == "events" and "@lookup" in props):
-                            method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
+            if section in api:
+                for method, props in api[section].items():
+                    if "#" in method and (section == "events" and "@lookup" in props):
+                        method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
 
-                        if props and method not in skip_list and "#" not in method:
-                            to_skip = MethodDump(method, props, ("<callsign>" if document_type == "interface" else plugin_class), section_name, header, event, prop)
+                    if props and method not in skip_list and "#" not in method:
+                        to_skip = MethodDump(method, props, ("<callsign>" if document_type == "interface" else plugin_class), api, section_name, header, event, prop)
 
-                            if to_skip:
-                                skip_list.append(to_skip)
+                        if to_skip:
+                            skip_list.append(to_skip)
 
-                        skip_list.append(method)
+                    skip_list.append(method)
 
-        if method_count:
-            SectionDump("Methods", "methods", "method")
+        methods = dict()
+        properties = dict()
+        events = dict()
 
-        if property_count:
-            SectionDump("Properties", "properties", "property", prop=True)
+        if document_type == "plugin" and method_count + property_count + event_count > 0:
+            if "methods" in plugin_builtins:
+                methods |= plugin_builtins["methods"]
+            if "properties" in plugin_builtins:
+                properties |= plugin_builtins["properties"]
+            if "events" in plugin_builtins:
+                events |= plugin_builtins["events"]
 
-        if event_count:
-            SectionDump("Notifications",
+        if method_count + property_count + event_count> 0:
+            if "methods" in interface_builtins:
+                methods |= interface_builtins["methods"]
+            if "properties" in interface_builtins:
+                properties |= interface_builtins["properties"]
+            if "events" in interface_builtins:
+                events |= interface_builtins["events"]
+
+        if event_count > 0:
+            if "methods" in interface_with_events_builtins:
+                methods |= interface_with_events_builtins["methods"]
+            if "properties" in interface_with_events_builtins:
+                properties |= interface_with_events_builtins["properties"]
+            if "events" in interface_with_events_builtins:
+                events |= interface_with_events_builtins["events"]
+
+        for face in interfaces:
+            if "methods" in face:
+                methods |= face["methods"]
+            if "properties" in face:
+                properties |= face["properties"]
+            if "events" in face:
+                events |= face["events"]
+
+        if methods:
+            api["methods"] = methods
+        if properties:
+            api["properties"] = properties
+        if events:
+            api["events"] = events
+
+        interface = None
+
+        if methods:
+            SectionDump(api, "Methods", "methods", "method")
+
+        if properties:
+            SectionDump(api, "Properties", "properties", "property", prop=True)
+
+        if events:
+            SectionDump(api, "Notifications",
                         "events",
                         "notification",
                         ("Notifications are autonomous events triggered by the internals of the implementation "

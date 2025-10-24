@@ -40,6 +40,6 @@ fi
 
 echo "Generating Plugin markdown documentation..."
 
-./JsonGenerator.py --docs -i ../../ThunderInterfaces/jsonrpc -i ../../ThunderInterfaces/qa_jsonrpc -j ../../ThunderInterfaces/interfaces -j ../../ThunderInterfaces/qa_interfaces -I ../../Thunder/Source -o doc --verbose $files
+./JsonGenerator.py --docs -i ../../ThunderInterfaces/jsonrpc -i ../../ThunderInterfaces/qa_jsonrpc -i ../../ThunderInterfaces/example_jsonrpc -j ../../ThunderInterfaces/interfaces -j ../../ThunderInterfaces/qa_interfaces -j ../../ThunderInterfaces/example_interfaces -I ../../Thunder/Source --namespace Thunder::Example --namespace Thunder::QualityAssurance --namespace Thunder::Exchange --namespace Thunder::Exchange::JSORPC -o doc --verbose $files
 
 echo "Complete."
