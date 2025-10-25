@@ -19,28 +19,20 @@
 
 #pragma once
 
-#include "Module.h"
-{{COMRPC_INTERFACE_INCLUDES}}
+{{HEADER_INCLUDES}}
 
 namespace Thunder {
 namespace Plugin {
-~INDENT_INCREASE~
 
-    class {{PLUGIN_NAME}} : public {{INHERITED_CLASS}} {
+    class {{PLUGIN_NAME}} {{HEADER_INHERITED_CLASS}} {
     public:
-~INDENT_INCREASE~
     {{PLUGIN_NAME}}(const {{PLUGIN_NAME}}&) = delete;
     {{PLUGIN_NAME}}& operator=(const {{PLUGIN_NAME}}&) = delete;
     {{PLUGIN_NAME}}({{PLUGIN_NAME}}&&) = delete;
     {{PLUGIN_NAME}}& operator=({{PLUGIN_NAME}}&&) = delete;
 
     {{PLUGIN_NAME}}()
-    ~INDENT_INCREASE~
-    :{{BASE_CONSTRUCTOR}} 
-    {{INTERFACE_CONSTRUCTOR}} 
-    , _example(0)
-    {{MEMBER_CONSTRUCTOR}}
-    ~INDENT_DECREASE~
+    {{HEADER_CONSTRUCTOR}}
     {   
     }
 
@@ -53,32 +45,23 @@ namespace Plugin {
     const string Initialize(PluginHost::IShell* service) override;
     void Deinitialize(PluginHost::IShell* service) override;
     string Information() const override;
-    {{INHERITED_METHOD}}
+    {{HEADER_DEACTIVATE_METHOD}}
+    {{HEADER_DANGLING_METHOD}}
 
-    // Plugin Methods
-    {{PLUGIN_METHOD}}
+    {{HEADER_INHERITED_METHOD}}
 
     BEGIN_INTERFACE_MAP({{PLUGIN_NAME}})
-    ~INDENT_INCREASE~
-    {{INTERFACE_ENTRY}}
-    {{INTERFACE_AGGREGATE}}
-    ~INDENT_DECREASE~
+    {{HEADER_INTERFACE_ENTRY}}
+    {{HEADER_INTERFACE_AGGREGATE}}
     END_INTERFACE_MAP
     
-~INDENT_DECREASE~
     private:
-~INDENT_INCREASE~
-    {{STATIC_TIMEOUT}}
-    {{USING_CONTAINER}}
+    {{HEADER_USING_CONTAINER}}
+    {{HEADER_STATIC_TIMEOUT}}
     
-    {{NOTIFY_METHOD_IP}}
-    // Include the correct member variables for your plugin:
-    // Note this is only an example, you are responsible for adding the correct members:
-    uint32_t _example;
+    {{HEADER_NOTIFY}}
 
-    {{MEMBER_IMPL}}
-~INDENT_DECREASE~
+    {{HEADER_MEMBERS}}
     };
-~INDENT_DECREASE~
 } // Plugin
 } // Thunder
