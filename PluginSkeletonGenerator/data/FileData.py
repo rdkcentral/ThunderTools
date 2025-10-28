@@ -175,29 +175,45 @@ class HeaderData(FileData):
         return '#include <definitions/definitions.h>' if self.m_jsonrpc else ''
 
     def _generateHeaderNotify(self) -> str:
-        if not self.m_notification_interfaces:
-            return ''
 
-        ''' ??
-        if self.m_type == self.HeaderType.HEADER:
-            lines = [f"void Notify{iface}() const;" for iface in self.m_notification_interfaces]
-            return generateSimpleText(lines)
-        '''
+        if not self.m_notification_interfaces:
+
+            return ''
+    
         if self.m_type == self.HeaderType.HEADER_IMPLEMENTATION:
+
             result = []
-            for iface in self.m_notification_interfaces:
-                no_i = iface[1:]
-                result.extend([
-                    f"void Notify{iface}() const {{",
-                    "_adminLock.Lock();",
-                    f"for (auto* notification : _{no_i.lower()}Notification) {{",
-                    f"//notification->{iface}Notification();",
-                    "}",
-                    "_adminLock.Unlock();",
-                    "}"
-                ])
+            for fq_name, cls_data in self.m_blueprint.notification_entries:
+                iface = fq_name.split("::")[-2]
+                no_i = iface[1:] if iface.startswith("I") else iface
+                container = f"_{no_i.lower()}Notification"
+    
+                for m in cls_data.m_methods:
+
+                    result.extend([
+
+                        f"void Notify{m.m_name}() const {{",
+
+                        "    _adminLock.Lock();",
+
+                        f"    for (auto* notification : {container}) {{",
+
+                        f"        notification->{m.m_name}();",
+
+                        "    }",
+
+                        "    _adminLock.Unlock();",
+
+                        "}",
+
+                        ""
+
+                    ])
+    
             return generateSimpleText(result, remove_empty=False)
+    
         return ''
+ 
 
     def _generateHeaderTimeout(self) -> str:
         if self.m_out_of_process:

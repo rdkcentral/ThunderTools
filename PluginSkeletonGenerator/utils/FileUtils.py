@@ -9,7 +9,7 @@ class FileUtils:
     @staticmethod
     def readFile(template_name):
         try:
-            with open(template_name, 'r') as f:
+            with open(template_name, 'r', encoding='utf-8') as f:
                 return f.read()
         except FileNotFoundError as e:
             raise RuntimeError(f'Could not load template: {template_name}') from e

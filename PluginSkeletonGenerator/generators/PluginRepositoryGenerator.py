@@ -18,15 +18,16 @@ class PluginRepositoryGenerator:
 
     def _writeFile(self, output_path: str, content: str) -> None:
         output_full = os.path.join(self.m_directory, output_path)
-        with open(output_full, "w") as f:
+        with open(output_full, "w", encoding="utf-8") as f:
             f.write(content)
 
     def _generateFile(self, template_path: str, output_filename: str, data: FileData) -> None:
-        template = self._loadTemplate(template_path)
-        if not template:
-            print(f"[WARNING] Template not found: {template_path}")
+        try:
+            template = self._loadTemplate(template_path)
+        except Exception as e:
+            print(f"[WARNING] Failed to load: {template_path}")
             return
-
+        
         print(f"Generating file: {output_filename}")
         code = FileUtils.replaceKeywords(template, data.m_keywords)
         self.m_indenter.indentType(output_filename)

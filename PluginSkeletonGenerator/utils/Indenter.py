@@ -126,7 +126,7 @@ class Indenter:
 
         return result
 
-    def _identJSON(self, lines: List[str]) -> List[str]:
+    def _indentJSON(self, lines: List[str]) -> List[str]:
         result = []
         indent = 0
         for line in lines:
@@ -169,7 +169,7 @@ class Indenter:
         elif self.m_cpp_mode:
             lines = self._indentCPP(lines)
         elif code.strip().startswith('{'):
-            lines = self._identJSON(lines)
+            lines = self._indentJSON(lines)
         else:
             lines = [line.strip() if line.strip() else '' for line in lines]
 
