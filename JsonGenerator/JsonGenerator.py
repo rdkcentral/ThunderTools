@@ -120,7 +120,7 @@ if __name__ == "__main__":
                                 else:
                                     title = os.path.basename(output_path)
 
-                                documentation_generator.Create(log, schema, os.path.join(output_path, title.replace(" ", "")))
+                                documentation_generator.Create(log, args, schema, os.path.join(output_path, title.replace(" ", "")))
                             else:
                                 log.Warn("Skiping file; not a JSON-RPC definition file")
 
