@@ -124,7 +124,7 @@ def menu() -> None:
  
     parsed_data, header_lookup = parserInterfaces(header_files)
  
-    # Grouping root level by headeer for root interface selection
+    # Grouping root level by header for root interface selection
     by_header: Dict[str, List[str]] = {}
     for full_name, (_, header_path) in parsed_data.items():
         by_header.setdefault(header_path, []).append(full_name)
