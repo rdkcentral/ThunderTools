@@ -1,18 +1,26 @@
 import os
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+def findRepoRoot(filename="PluginSkeletonGenerator.py"):
+    curr = os.path.abspath(__file__)
+    while True:
+        parent = os.path.dirname(curr)
+        if os.path.isfile(os.path.join(parent, filename)):
+            return parent
+        if parent == curr:
+            raise RuntimeError(f"Repository root (containing {filename}) not found")
+        curr = parent
 
-# Nested Directories:
-TEMPLATE_DIR = os.path.join(BASE_DIR, 'templates')
+REPO_ROOT = findRepoRoot()
 
+# === Template directories ===
+TEMPLATE_DIR = os.path.join(REPO_ROOT, 'templates')
 IPLUGIN_DIR = os.path.join(TEMPLATE_DIR, 'iplugin_methods')
 MODULE_DIR = os.path.join(TEMPLATE_DIR, 'module')
 NESTED_CLASS_DIR = os.path.join(TEMPLATE_DIR, 'nested_class')
 NESTED_METHOD_DIR = os.path.join(TEMPLATE_DIR, 'nested_methods')
 JSON_DIR = os.path.join(TEMPLATE_DIR, 'json')
 
-# Nested File Paths:
-# /templates
+# === Template file paths ===
 CMAKE_PATH = os.path.join(TEMPLATE_DIR, '.cmake.txt')
 PLUGIN_CONF_PATH = os.path.join(TEMPLATE_DIR, '.plugin_conf_in.txt')
 PLUGIN_HEADER_PATH = os.path.join(TEMPLATE_DIR, '.plugin_header.txt')
@@ -37,7 +45,7 @@ RPC_NOTIFICATION_CLASS_PATH = os.path.join(NESTED_CLASS_DIR, '.rpc_inotification
 # /templates/nested_methods
 CONFIGURE_METHOD = os.path.join(NESTED_METHOD_DIR, '.configure.txt')
 
-# /templates/.json
+# /templates/json
 PLUGIN_JSON = os.path.join(JSON_DIR, '.plugin_json.txt')
 JSON_INFO = os.path.join(JSON_DIR, '.json_info.txt')
 JSON_CONFIGURATION = os.path.join(JSON_DIR, '.json_configuration.txt')

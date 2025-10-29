@@ -1,6 +1,5 @@
-class Notification : {{NOTIFICATION_CLASS}} {
+class Notification {{NOTIFICATION_CLASS}} {
 public:
-~INDENT_INCREASE~
     Notification(const Notification&) = delete;
     Notification& operator=(const Notification&) = delete;
     Notification(Notification&&) = delete;
@@ -8,11 +7,9 @@ public:
     Notification() = delete;
 
     explicit Notification({{PLUGIN_NAME}}& parent)
-~INDENT_INCREASE~
         : RPC::IRemoteConnection::INotification()
         {{NOTIFICATION_CONSTRUCTOR}}
         , _parent(parent)
-~INDENT_DECREASE~
     {
     }
 
@@ -22,23 +19,19 @@ public:
     {
     }
 
-    void Deactivated(RPC::IRemoteConnection* connection) override
-    {
-~INDENT_INCREASE~
+    void Deactivated(RPC::IRemoteConnection* connection) override {
         _parent.Deactivated(connection);
-~INDENT_DECREASE~
     }
 
+    void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {
+        _parent.Dangling(remote, interfaceId);
+    }
     {{NOTIFICATION_FUNCTION}}
     BEGIN_INTERFACE_MAP(Notification)
-~INDENT_INCREASE~
     INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
+    INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)
     {{NOTIFICATION_ENTRY}}
-~INDENT_DECREASE~
     END_INTERFACE_MAP
-~INDENT_DECREASE~
 private:
-~INDENT_INCREASE~
     {{PLUGIN_NAME}}& _parent;
-~INDENT_DECREASE~
 };

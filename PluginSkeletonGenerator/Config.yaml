@@ -1,0 +1,52 @@
+# Please do not move this file!
+# You may duplicate/copy this file
+# Config.yaml allows you to set up parameters for your plugin.
+
+# NOTE: Specify the name for your plugin
+# NOTE: This will create a repository in the folder where you run PluginSkeletonGenerator.py.
+# NOTE: Ensure there does not exist a repository with this name.
+PluginName: ExamplePlugin
+
+# NOTE: Whether the plugin should run out-of-process
+# NOTE: Options are either: true/false
+OutOfProcess: true
+
+# NOTE: Whether the plugin uses a configuration
+# NOTE: Options are either: true/false
+PluginConfig: true
+
+# NOTE: Provide FULL locations of the interface headers to parse (as a list)
+# EXAMPLE: 
+# Paths:
+#  - /home/Thunder/ThunderInterfaces/interfaces/ITest.h
+#  - /home/Thunder/ThunderInterfaces/interfaces/ITestOther.h
+Paths:
+  - example.h
+
+# NOTE: Provide any Thunder subsystems used (as a list)
+# EXAMPLE: 
+# Preconditions:
+#  - PLATFORM
+#  - NETWORK
+Preconditions:
+  - PLATFORM
+  - PLATFORMv2
+Terminations:
+  - TERMINATED
+Controls:
+  - TESTING
+
+# OPTIONAL: Allows the ability to choose which interface to use in a header, if there is more than one root level
+# interface
+# EXAMPLE:
+# SelectInterfaces: {"example.h": ["IWifiControl", "IWifiControlTwo"]}
+SelectInterfaces: {"example.h": ["IWifiControl", "IWifiControlTwo"]}
+
+# NOTE: If your interface is in ThunderInterfaces, by default it will appear like this:
+# #include <interfaces/...>
+# #include <interfaces/json/...>
+# NOTE: If you wish to change "interfaces" to something else, specify it here.
+# You can provide mappings per interface if needed:
+# Locations:
+#   /home/path/to/interface/interface.h: MyCustomInterfaces
+Locations: {example.h: Testing}

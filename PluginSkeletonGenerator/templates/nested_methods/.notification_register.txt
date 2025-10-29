@@ -1,4 +1,3 @@
-~INDENT_INCREASE~
 ASSERT(notification);
 
 _adminLock.Lock();
@@ -6,10 +5,7 @@ auto item = std::find(_notifications.begin(), _notifications.end(), notification
 ASSERT(item == _notifications.end());
 
 if (item == _notifications.end()) {
-~INDENT_INCREASE~
 notification->AddRef();
 _notifications.push_back(notification);
-~INDENT_DECREASE~
 }
 _adminLock.Unlock();
-~INDENT_DECREASE~

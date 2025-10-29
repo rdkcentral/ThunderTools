@@ -2,5 +2,17 @@
 */*
 
 # Except for the current existing ones
-!*/templates
-!*/tests
+!*templates
+!*templates/**
+!*core
+!*core/**
+!*/data
+!*data/**
+!*generators
+!*generators/**
+!*menu
+!*menu/**
+!*utils
+!*utils/**
+!*parser
+!*parser/**

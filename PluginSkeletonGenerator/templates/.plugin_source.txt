@@ -17,57 +17,37 @@
  * limitations under the License.
  */
 
-{{INCLUDE}}
-{{JSONRPC_INTERFACE_INCLUDES}}
+{{INCLUDE_STATEMENTS}}
 
 namespace Thunder {
 namespace Plugin {
-~INDENT_INCREASE~
 
     namespace {
-~INDENT_INCREASE~
 
         static Metadata<{{PLUGIN_NAME}}>metadata( 
-~INDENT_INCREASE~
             // Version
             1, 0, 0,
             // Preconditions
-            {},
+            {{{PRECONDITIONS}}},
             // Terminations
-            {},
+            {{{TERMINATIONS}}},
             // Controls
-            {}
-~INDENT_DECREASE~
+            {{{CONTROLS}}}
         );
-~INDENT_DECREASE~
     }
 
-// Implement all methods from {{PLUGIN_NAME}}.h
-
 const string {{PLUGIN_NAME}}::Initialize({{VARIABLE_NOT_USED_INITIAL}}PluginHost::IShell* service) {
-~INDENT_INCREASE~
     {{INITIALIZE_IMPLEMENTATION}}
-~INDENT_DECREASE~
 }
 
-void {{PLUGIN_NAME}}::Deinitialize({{VARIABLE_NOT_USED}}PluginHost::IShell* service) {
-~INDENT_INCREASE~
+void {{PLUGIN_NAME}}::Deinitialize({{VARIABLE_NOT_USED_DEINITIAL}}PluginHost::IShell* service) {
     {{DEINITIALIZE_IMPLEMENTATION}}
-~INDENT_DECREASE~
 }
 
 string {{PLUGIN_NAME}}::Information() const {
-~INDENT_INCREASE~
     return (string());
-~INDENT_DECREASE~
 }
 
-void {{PLUGIN_NAME}}::{{PLUGIN_NAME}}Method() {
-
-}
-
-{{PLUGIN_METHOD_IMPL}}
-{{INHERITED_METHOD_IMPL}}
-~INDENT_DECREASE~
+{{SOURCE_METHOD_IMPL}}
 } // Plugin
 } // Thunder
