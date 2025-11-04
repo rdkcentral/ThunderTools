@@ -477,8 +477,14 @@ def Create(log, args, schema, path, indent_size = 4):
                     notification_example_method = "myid." + method
 
                 if "id" in props:
-                    notification_generic_method = "<%s>.%s" % (props["id"]["name"].lower(), notification_generic_method)
-                    notification_example_method = (props["id"]["example"] if "example" in props["id"] else "?") + "." + notification_example_method
+                    if "deprecated" in props["id"]:
+                        notification_generic_method = "<%s>.%s" % (props["id"]["name"].lower(), notification_generic_method)
+                        notification_example_method = (props["id"]["example"] if "example" in props["id"] else "?") + "." + notification_example_method
+                    else:
+                        notification_generic_method = "%s@<%s>" % (notification_generic_method, props["id"]["name"].lower())
+                        notification_example_method = notification_example_method + "@" + (props["id"]["example"] if "example" in props["id"] else "?")
+                        _registrant2 += "@" + (props["id"]["example"] if "example" in props["id"] else "?")
+
 
                 generic_method = "%s.1.%s" % (classname, _registrant)
                 call_method ="%s.1.%s" % (classname, _registrant2)
@@ -565,7 +571,10 @@ def Create(log, args, schema, path, indent_size = 4):
                         if "name" not in props["id"] or "example" not in props["id"]:
                             raise DocumentationError("'%s': id field needs 'name' and 'example' properties" % method)
 
-                        MdParagraph("> The *%s* parameter shall be passed within the *id* parameter to the ``register`` call, i.e. ``<%s>.<client-id>``." % (props["id"]["name"], props["id"]["name"].lower()))
+                        if "deprecated" in props["id"]:
+                            MdParagraph("> The *%s* parameter shall be passed within the *id* parameter to the ``register`` call, i.e. ``<%s>.<client-id>``. This registration syntax is **deprecated** and will be changed in the next major release." % (props["id"]["name"], props["id"]["name"].lower()))
+                        else:
+                            MdParagraph("> The *%s* parameter shall be passed as index to the ``register`` call, i.e. ``register@<%s>``." % (props["id"]["name"], props["id"]["name"].lower()))
 
                     MdHeader("Notification Parameters", 3)
                 else:
@@ -617,8 +626,10 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 client = "myid"
 
-                if "id" in props and "example" in props["id"]:
-                    client = props["id"]["example"] + "." + client
+                if "id" in props:
+                    if "deprecated" in props["id"]:
+                        if "example" in props["id"]:
+                            client = props["id"]["example"] + "." + client
 
                 text = '{ "jsonrpc": "2.0", "id": 42, "method": "%s", "params": {"event": "%s", "id": "%s" } }' % (call_method, notification_event, client)
                 try:
@@ -679,8 +690,8 @@ def Create(log, args, schema, path, indent_size = 4):
                 if is_notification:
                     MdParagraph("> The *client ID* parameter is passed within the notification designator, i.e. ``%s``." % notification_generic_method)
 
-                    if "id" in props:
-                        MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``." % (props["id"]["name"], notification_generic_method))
+                    if "id" in props and "deprecated" in props["id"]:
+                        MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``. This syntax is deprecated." % (props["id"]["name"], notification_generic_method))
 
                     if "@lookup" in props:
                         MdParagraph("> The *%s instance id* parameter is passed within the notification designator, i.e. ``%s``." % (props["@lookup"]["prefix"].lower(), notification_generic_method))

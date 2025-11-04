@@ -1336,10 +1336,18 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                             obj["id"] = BuildParameters(None, [method.vars[0]], config.RpcFormat.COLLAPSED, True, False)
 
+                            deprecated = "index-deprecated" in  method.vars[0].meta.decorators
+
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
-                                obj["id"]["@originalname"] = "_designatorId"
+                                obj["id"]["@originalname"] = "_designatorId" if deprecated else "_index"
                                 obj["id"]["@generated"] = True
+
+                                if deprecated:
+                                    obj["id"]["deprecated"] = True
+                                    varsidx = 1
+                                else:
+                                    varsidx = 0 if isinstance(method.vars[0].type.type, CppParser.Optional) else 1
 
                                 if "example" not in obj["id"]:
                                     obj["id"]["example"] = "0" if obj["id"]["type"] == "integer" else "abc"
@@ -1347,7 +1355,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 if obj["id"]["type"] not in ["integer", "string"]:
                                     raise CppParseError(method.vars[0], "id of a notification must be integer, enum or string type")
 
-                                varsidx = 1
                             else:
                                 raise CppParseError(method.vars[0], "failed to determine type of notification id parameter")
 
