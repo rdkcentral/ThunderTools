@@ -942,6 +942,7 @@ class JsonNotification(JsonMethod):
             schema["id"]["type"] = "string"
 
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
+        self.sendif_deprecated = schema["id"].get("deprecated") if "id" in schema else False
         self.is_status_listener = schema.get("statuslistener")
 
         self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
@@ -955,7 +956,8 @@ class JsonCallback(JsonMethod):
     def __init__(self, name, parent, notification, schema, included=None):
         JsonMethod.__init__(self, name, parent, schema, included)
         self.notification = notification
-        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "_designatorId", "@generated": True})
+        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "_index", "@generated": True})
+        self.notification.sendif_deprecated = False
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
