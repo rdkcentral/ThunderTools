@@ -650,7 +650,7 @@ class SourceData(FileData):
             return short_name
 
     def _generateFirstCOMRPCNoPrefix(self):
-        name = self.m_comrpc_interfaces[0]
+        name = self.m_comrpc_interfaces[0] if self.m_comrpc_interfaces else ""
         return convertToBaseName(name)
 
     def _generateInitialAssert(self):

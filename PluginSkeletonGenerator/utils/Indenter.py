@@ -77,7 +77,8 @@ class Indenter:
                 continue
 
             # Closing Brackets
-            if re.match(r'^}\s*;?\s*$', line):
+            # if re.match(r'^}\s*;?\s*$', line):
+            if line.startswith('}'):
                 indent = max(0, indent - 1)
                 if class_stack:
                     class_stack.pop()
@@ -173,4 +174,10 @@ class Indenter:
         else:
             lines = [line.strip() if line.strip() else '' for line in lines]
 
-        return '\n'.join(self._collapseBlank(lines)) + '\n'
+        lines = self._collapseBlank(lines)
+        i = len(lines)
+        while i > 0 and lines[i-1] == '':
+            i -= 1
+        lines = lines[:i]
+
+        return '\n'.join(lines)
