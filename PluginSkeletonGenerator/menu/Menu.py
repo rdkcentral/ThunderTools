@@ -52,7 +52,7 @@ def prompts() -> Tuple[str, bool, bool, List[str], Dict[str, str], List[str], Li
             break
         header_files.append(path)
  
-    if not header_files:
+    if not header_files and out_of_process:
         print("Error: At least one header path must be provided")
         sys.exit(1)
 
@@ -207,4 +207,3 @@ def menu() -> None:
         controls,
     )
     coordinator.generateAll()
- 
