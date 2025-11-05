@@ -175,7 +175,9 @@ class Indenter:
             lines = [line.strip() if line.strip() else '' for line in lines]
 
         lines = self._collapseBlank(lines)
-        while lines and lines[-1] == '':
-            lines.pop()
+        i = len(lines)
+        while i > 0 and lines[i-1] == '':
+            i -= 1
+        lines = lines[:i]
 
         return '\n'.join(lines)
