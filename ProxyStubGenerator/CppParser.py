@@ -487,9 +487,11 @@ class Identifier():
                         raise ParserError("in/out tags not allowed here")
                 elif tag == "ASINTERFACE":
                     self.meta.decorators.append("interface-iterator")
-                elif tag == "INDEX":
+                elif tag == "INDEX" or tag == "INDEX-DEPRECATED":
                     if tags_allowed:
                         self.meta.is_index = True
+                        if tag == "INDEX-DEPRECATED":
+                            self.meta.decorators.append("index-deprecated")
                     else:
                         raise ParserError("@index tag not allowed here")
                 elif tag == "LENGTH":
@@ -1968,7 +1970,9 @@ def __Tokenize(contents,log = None):
                 if _find("@inout", token):
                     tagtokens.append("@IN")
                     tagtokens.append("@OUT")
-                if _find("@index", token):
+                if _find("@index:deprecated", token):
+                    tagtokens.append("@INDEX-DEPRECATED")
+                elif _find("@index", token):
                     tagtokens.append("@INDEX")
                 if _find("@property", token):
                     tagtokens.append("@PROPERTY")
