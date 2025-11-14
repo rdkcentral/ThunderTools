@@ -128,28 +128,39 @@ class HeaderData(FileData):
         return f'void Deactivated(RPC::IRemoteConnection* connection);' if self.m_out_of_process else ''
 
     def _generateHeaderDanglingMethod(self):
-        return f'void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);' if self.m_out_of_process else ''
+        return f'void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);' if self.m_out_of_process and self.m_notification_entries else ''
     
     def _generateNotifClass(self):
         entries = self.m_blueprint.notification_entries
         if not entries:
-            return ": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"
+            return ": public RPC::IRemoteConnection::INotification"
         derived = [f"public {fq_name}" for fq_name, _ in entries]
         return generateSimpleText([": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"] + derived, sep=", ")
 
     def _generateNotifConstructor(self):
         entries = self.m_blueprint.notification_entries
-        lines = [f", {fq_name}()" for fq_name, _ in entries]
+        lines = []
+        if entries:
+            lines.append(", PluginHost::IShell::ICOMLink::INotification()")
+        lines.extend([f", {fq_name}()" for fq_name, _ in entries])
         return generateSimpleText(lines)
 
     def _generateNotifEntry(self):
         entries = self.m_blueprint.notification_entries
-        lines = [f"INTERFACE_ENTRY({fq_name})" for fq_name, _ in entries]
+        lines = []
+        if entries:
+            lines.append('INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)')
+        lines.extend([f"INTERFACE_ENTRY({fq_name})" for fq_name, _ in entries])
         return generateSimpleText(lines)
 
     def _generateNotifFunction(self):
         entries = self.m_blueprint.notification_entries
         result = []
+
+        if entries:
+            result.append("void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {"
+        "\n_parent.Dangling(remote, interfaceId);"
+        "\n}")
         
         for fq_name, cls_data in entries:
             namespace = fq_name.split("::")[1]
@@ -177,11 +188,9 @@ class HeaderData(FileData):
     def _generateHeaderNotify(self) -> str:
 
         if not self.m_notification_interfaces:
-
             return ''
     
         if self.m_type == self.HeaderType.HEADER_IMPLEMENTATION:
-
             result = []
             for fq_name, cls_data in self.m_blueprint.notification_entries:
                 iface = fq_name.split("::")[-2]
@@ -189,32 +198,25 @@ class HeaderData(FileData):
                 container = f"_{no_i.lower()}Notification"
     
                 for m in cls_data.m_methods:
+                    param_names = []
+                    if m.m_params.strip():
+                        for p in m.m_params.split(","):
+                            param_names.append(p.strip().split()[-1])
+                    param_str = ", ".join(param_names)
 
                     result.extend([
-
-                        f"void Notify{m.m_name}() const {{",
-
+                        f"void Notify{m.m_name}({m.m_params}) const {{",
                         "    _adminLock.Lock();",
-
                         f"    for (auto* notification : {container}) {{",
-
-                        f"        notification->{m.m_name}();",
-
+                        f"        notification->{m.m_name}({param_str if param_str else ''});",
                         "    }",
-
                         "    _adminLock.Unlock();",
-
                         "}",
-
                         ""
-
                     ])
-    
             return generateSimpleText(result, remove_empty=False)
-    
         return ''
  
-
     def _generateHeaderTimeout(self) -> str:
         if self.m_out_of_process:
             return generateSimpleText([
@@ -501,8 +503,8 @@ class SourceData(FileData):
             "{{NESTED_QUERY}}": self._generateNestedQuery(),
             "{{CONFIGURE_IP}}": self._generateConfigurationIP(),
             "{{ASSERT_IMPL}}": self._generateInitialAssert(),
-            "{{REGISTER_NOTIFICATION}}": "_service->Register(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));",
-            "{{UNREGISTER_NOTIFICATION}}": "_service->Unregister(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));",
+            "{{REGISTER_NOTIFICATION}}": self._generateRegisterNotification(),
+            "{{UNREGISTER_NOTIFICATION}}": self._generateUnregisterNotification(),
             "{{DEINITIALIZE_OOP}}": self._generateDeinitializeOOP(),
             "{{INCLUDE_STATEMENTS}}": self._generateSourceIncludeStatements(),
             "{{SOURCE_METHOD_IMPL}}": self._generateSourcePluginMethods(),
@@ -517,6 +519,18 @@ class SourceData(FileData):
             "{{DEINITIALIZE_IMPLEMENTATION}}": self._generateDeinitializeImplementation(),
         }
     
+    def _generateRegisterNotification(self):
+        if self.m_notification_entries:
+            return "_service->Register(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));" \
+            "\n_service->Register(static_cast<PluginHost::IShell::ICOMLink::INotification*>(&_notification));"
+        return "_service->Register(&_notification);"
+    
+    def _generateUnregisterNotification(self):
+        if self.m_notification_entries:
+            return "_service->Unregister(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));" \
+            "\n_service->Unregister(static_cast<PluginHost::IShell::ICOMLink::INotification*>(&_notification));"
+        return "_service->Unregister(&_notification);"
+
     def _generatePreconditions(self):
         if not self.m_preconditions:
             return ''
@@ -572,16 +586,16 @@ class SourceData(FileData):
             )
     
             dangling = []
-            dangling.append(
-                f"void {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{\n"
-                "ASSERT(remote != nullptr);\n"
-            )
-    
-            impl_var = self.m_comrpc_interfaces[0][1:]
-            impl_var_cpp = f"_impl{impl_var}" if impl_var else "_implementation"
-    
             entries = list(getattr(self.m_blueprint, "notification_entries", []))
             if entries:
+                dangling.append(
+                    f"void {self.m_plugin_name}::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {{\n"
+                    "ASSERT(remote != nullptr);\n"
+                )
+        
+                impl_var = self.m_comrpc_interfaces[0][1:]
+                impl_var_cpp = f"_impl{impl_var}" if impl_var else "_implementation"
+        
                 for fq_name, _ in entries:
                     dangling.append(
                         f"    if (interfaceId == {fq_name}::ID) {{\n"
@@ -591,13 +605,10 @@ class SourceData(FileData):
                         f"            revokedInterface->Release();\n"
                         f"        }}\n"
                         f"    }}\n"
+                        f"    }}\n"
                     )
-            else:
-                dangling.append("    // No notification interfaces to unregister.\n")
-    
-            dangling.append("}\n")
  
-            return "".join(method) + "".join(dangling)
+            return "\n".join(method) + "\n".join(dangling)
         lines = []
 
         for full_name, (cls_data, _) in self.m_blueprint.parsed_data.items():
@@ -696,10 +707,10 @@ class SourceData(FileData):
 
         if not self.m_comrpc_interfaces:
             return ""
- 
+
         interfaces = self.m_comrpc_interfaces
         N = len(interfaces)
-    
+
         # qi = queryinterface
         has_qi = N >= 2
         init_lines = []
@@ -711,11 +722,14 @@ class SourceData(FileData):
                 full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
                 namespace = self._extractStrippedNamespace(full_name)
                 qualified_json = f"{namespace}::{json_iface}"
-                init_lines.extend([
-                    f"_impl{name}->Register(&_notification);",
-                    f"{qualified_json}::Register(*this, _impl{name});"
-                ])
-    
+                
+                # check if this interface is in notification entries before adding Register call
+                has_notifications = any(short_name in self.m_notification_interfaces for short_name in self.m_notification_interfaces)
+                
+                if has_notifications:
+                    init_lines.append(f"_impl{name}->Register(&_notification);")
+                    init_lines.append(f"{qualified_json}::Register(*this, _impl{name});")
+
         if self.m_plugin_config:
             rootName = convertToBaseName(interfaces[0])
             if init_lines and init_lines[-1] != "":
@@ -730,38 +744,33 @@ class SourceData(FileData):
                 "    configuration->Release();",
                 "}"
             ])
-    
+
         has_init = bool(init_lines)
         has_work = has_qi or has_init
-    
+
         # for the if statment: close or "else"
         if not has_work:
             return generateSimpleText(["}"])
         lines = ["} else {"]
-    
+
         if has_qi:
             for idx, short_name in enumerate(interfaces[1:], start=1):
-                prev = interfaces[idx - 1]
-                prevName = convertToBaseName(prev)
-                name = convertToBaseName(short_name)
-    
+                baseName = convertToBaseName(short_name)
                 full_name = next((k for k in self.m_parsed if k.endswith(f"::{short_name}")), None)
                 namespace = self._extractStrippedNamespace(full_name)
-                qualified = f"{namespace}::{short_name}"
-    
                 lines.extend([
-                    f"_impl{name} = _impl{prevName}->QueryInterface<{qualified}>();",
-                    f"if (_impl{name} == nullptr) {{",
-                    f'    message = _T("Couldn\'t create instance of _impl{short_name}");',
+                    f"_impl{baseName} = _impl{convertToBaseName(interfaces[0])}->QueryInterface<{namespace}::{short_name}>();",
+                    f"if (_impl{baseName} == nullptr) {{",
+                    f'message = _T("Failed to acquire {short_name} interface.");',
                     "} else {"
                 ])
-    
+
         if has_init:
             lines.extend(init_lines)
 
         close_count = 1 + (N - 1 if has_qi else 0)
         lines.extend("}" for _ in range(close_count))
-    
+
         return generateSimpleText(lines)
 
     def _generateDeinitializeOOP(self):
@@ -779,8 +788,12 @@ class SourceData(FileData):
         lines.append(f"if (_impl{firstBase} != nullptr) {{")
 
         if firstJson in self.m_jsonrpc_interfaces:
-            lines.append(f"_impl{firstBase}->Unregister(&_notification);")
-            lines.append(f"{namespace_first}::{firstJson}::Unregister(*this);")
+            # check if this interface is in notification entries before adding Register call
+            has_notifications = any(short_name in self.m_notification_interfaces for short_name in self.m_notification_interfaces)
+            
+            if has_notifications:
+                lines.append(f"_impl{firstBase}->Unregister(&_notification);")
+                lines.append(f"{namespace_first}::{firstJson}::Unregister(*this);")
 
         for comrpc in self.m_comrpc_interfaces[1:]:
             baseName = convertToBaseName(comrpc)
@@ -793,8 +806,10 @@ class SourceData(FileData):
             lines.append(f"if (_impl{baseName} != nullptr) {{")
 
             if jsonName in self.m_jsonrpc_interfaces:
-                lines.append(f"{namespace}::{jsonName}::Unregister(*this);")
-                lines.append(f"_impl{baseName}->Unregister(&_notification);")
+                has_notifications = any(short_name in self.m_notification_interfaces for short_name in self.m_notification_interfaces)
+                if has_notifications:
+                    lines.append(f"_impl{baseName}->Unregister(&_notification);")
+                    lines.append(f"{namespace}::{jsonName}::Unregister(*this);")
 
             lines.append(f"_impl{baseName}->Release();")
             lines.append(f"_impl{baseName} = nullptr;")
@@ -808,7 +823,7 @@ class SourceData(FileData):
             f"_impl{firstBase} = nullptr;",
             ])
         lines.append("\n")
-        lines.append(f"ASSERT(result == Core::ERROR_DESTRUCTION_SUCCEEDED);")
+        lines.append(f"ASSERT((result == Core::ERROR_DESTRUCTION_SUCCEEDED) || (result == Core::ERROR_CONNECTION_CLOSED));")
         lines.append("\n")
         lines.extend([
             f"// The process can disappear in the meantime...",
