@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 
 
 # If not stated otherwise in this file or this component's license file the
 # following copyright and licenses apply:
@@ -994,7 +994,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         if self.restrict_range.max >= (16*1024*1024):
                             aux_size = "uint32_t"
                         elif self.restrict_range.max >= (64*1024):
-                            aux_size = "Core::Frame::UInt24"
+                            aux_size = "Core::UInt24"
                         elif self.restrict_range.max < 256:
                             aux_size = "uint8_t"
 
@@ -1019,10 +1019,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             if self.restrict_range.has_min and self.restrict_range.has_max:
                                 if ((self.restrict_range.min < (-32*1024)) and (self.restrict_range.min >= (-8*1024*1024))) or \
                                     ((self.restrict_range.max >= (32*1024)) and (self.restrict_range.max < (8*1024*1024))):
-                                    self.type_name = "Core::Frame::SInt24"
+                                    self.type_name = "Core::SInt24"
                         else:
                             if (self.restrict_range.has_max and ((self.restrict_range.max >= (64*1024)) and (self.restrict_range.max < (16*1024*1024)))):
-                                self.type_name = "Core::Frame::UInt24"
+                                self.type_name = "Core::UInt24"
 
                 if isinstance(self.kind, CppParser.Optional):
                     #if self.kind.optional.type.IsPointer() and not isinstance(self.kind.optional.type.Resolve().type, CppParser.Class) and not:
@@ -1222,20 +1222,20 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 elif self.proxy_instance or self.return_proxy:
                     return "sizeof(%s)" % INSTANCE_ID
                 elif self.is_buffer:
-                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif self.is_string:
                     if self.is_ccstring:
                         return "(sizeof(uint32_t))"
                     else:
-                        return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                        return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
-                    return "Core::Frame::RealSize<%s>()" % self.type_name
+                    return "Core::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "1" # always one byte
                 elif isinstance(self.kind, CppParser.MacAddress):
                     return "6" # always six bytes
                 elif isinstance(self.kind, CppParser.DynamicArray):
-                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, CppParser.Time):
                     return "sizeof(%s)" % self.target_type_name
                 else:
