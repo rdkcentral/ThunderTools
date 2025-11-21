@@ -440,7 +440,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 parameters.append("_obj")
 
         if event.sendif_type:
-            if has_extra_index or event.sendif_deprecated:
+            if has_extra_index or event.sendif_deprecated or params_type == "json":
                 parameters.append(names.id)
             else:
                 parameters.append(params.properties[0].name)
