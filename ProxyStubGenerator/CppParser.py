@@ -583,6 +583,8 @@ class Identifier():
                         par = par[:-1]
                     self.meta.retval[par] = string[i + 2]
                     skip = 2
+                elif tag == "WRAPPED":
+                    self.meta.decorators.append("wrapped")
                 elif tag == "STATUSLISTENER":
                     self.meta.decorators.append("statuslistener")
                 elif tag == "DEPRECATED":
@@ -1992,10 +1994,12 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ENCODE-LOOKUP")
                 if _find("@encode:autolookup", token):
                     tagtokens.append("@ENCODE-AUTOLOOKUP")
-                elif _find("@encode:text", token):
+                if _find("@encode:text", token):
                     tagtokens.append("@ENCODE-TEXT")
                 if _find("@statuslistener", token):
                     tagtokens.append("@STATUSLISTENER")
+                if _find("@wrapped", token):
+                    tagtokens.append("@WRAPPED")
                 if _find("@prefix", token):
                     tagtokens.append(__ParseParameterValue(token, "@prefix", False))
                 if _find("@extended", token):
@@ -2265,6 +2269,9 @@ def Parse(contents,log = None):
             encode_enum_next = True
             tokens[i] = ';'
             i += 1
+        elif tokens[i] == "@WRAPPED":
+            wrap_next = True
+            i += 1
         elif tokens[i] == "@PREFIX":
             prefix_next = True
             prefix_string = " ".join(tokens[i+1])
@@ -2318,6 +2325,7 @@ def Parse(contents,log = None):
             object_next = False
             autoobject_next = False
             encode_enum_next = False
+            wrap_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -2444,6 +2452,9 @@ def Parse(contents,log = None):
             elif stub_next:
                 new_class.stub = True
                 stub_next = False
+            if wrap_next:
+                new_class.meta.decorators.append("wrapped")
+                wrap_next = True
             if event_next or json_next:
                 new_class.is_collapsed = collapsed_next
                 new_class.is_extended = extended_next
@@ -2490,6 +2501,7 @@ def Parse(contents,log = None):
             object_next = False
             autoobject_next = False
             encode_enum_next = False
+            wrap_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""

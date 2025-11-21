@@ -437,6 +437,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         if face.obj.sourcelocation:
             info["sourcelocation"] = face.obj.sourcelocation
 
+        # global switch for interface
+        wrapped_result = "wrapped" in face.obj.meta.decorators
+
         if face.obj.json_version:
             try:
                 info["version"] = [int(x) for x in face.obj.json_version.split(".")]
@@ -957,10 +960,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         def BuildIndex(var, test=False):
             return BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
 
-        def BuildResult(vars, is_property=False, test=False):
+        def BuildResult(vars, is_property=False, test=False, method=None):
             params = {"type": "object"}
             properties = OrderedDict()
             required = []
+
+            method_wrapped = method and "wrapped" in method.retval.meta.decorators
 
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
@@ -992,8 +997,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             if is_property and len(properties) != 1:
                 raise CppParseError(var, "property getter must have exactly one output parameter")
 
+            if len(properties) != 1 and method_wrapped:
+                log.WarnLine(method, "@wrapped has no effect on this method")
+
             if len(properties) == 1:
-                return list(properties.values())[0]
+                if wrapped_result or method_wrapped:
+                    params["required"] = required
+                    return params
+                else:
+                    return list(properties.values())[0]
             elif len(properties) > 1:
                 params["required"] = required
                 return params
@@ -1175,9 +1187,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 obj["readonly"] = True
 
                             if result_name not in obj:
-                                obj[result_name] = BuildResult([method.vars[value]], True, False)
+                                obj[result_name] = BuildResult([method.vars[value]], True, False, method)
                             else:
-                                test = BuildResult([method.vars[value]], True, True)
+                                test = BuildResult([method.vars[value]], True, True, method)
 
                                 if not test:
                                     raise CppParseError(method.vars[value], "property getter method must have one output parameter")
@@ -1238,7 +1250,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         #        raise CppParseError(method, "parameters must not use the same name as the method")
 
 
-                    obj["result"] = BuildResult(method.vars)
+                    obj["result"] = BuildResult(method.vars, method=method)
                     methods[prefix + method_name] = obj
 
                 else:
@@ -1403,7 +1415,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         obj["statuslistener"] = True
 
                     params = BuildParameters(None, method.vars[varsidx:], rpc_format, False)
-                    retvals = BuildResult(method.vars[varsidx:])
+                    retvals = BuildResult(method.vars[varsidx:], method)
 
                     if retvals and retvals["type"] != "null":
                         raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
