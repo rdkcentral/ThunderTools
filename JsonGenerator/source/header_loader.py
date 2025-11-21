@@ -170,10 +170,10 @@ class CppParseError(RuntimeError):
     def __init__(self, obj, msg):
         if obj:
             try:
-                msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.TypeStrong())
+                msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.Signature())
                 super(CppParseError, self).__init__(msg)
             except:
-                super(CppParseError, self).__init__("unknown parsing failure: %s(%i): %s" % (obj.parser_file, obj.parser_line, msg))
+                super(CppParseError, self).__init__("generic parsing failure: %s(%i): %s" % (obj.parser_file, obj.parser_line, msg))
         else:
             super(CppParseError, self).__init__(msg)
 
@@ -348,21 +348,21 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             else:
                 if "@optionaltype" not in properties:
                     if not quiet:
-                        log.Info(var, "@optional tag is deprecated, use Core::OptionalType<> instead")
+                        log.WarnLine(var, "%s: @optional tag is deprecated, use Core::OptionalType<...> instead" % var.name)
 
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
                     if not var.meta.output:
                         if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
                             if not var.meta.default and not quiet:
-                                log.WarnLine(var, "default value is assumed to be 0 (use @default)")
+                                log.WarnLine(var, "%s: default value is assumed to be (%s)0 (use @default with @optional)" % (var.name, var.type.TypeName()))
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
-                            raise CppParseError(var, "@optional is not supported for this type")
+                            raise CppParseError(var, "%s: @optional is not supported for this type" % var.name)
                     else:
                         if not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
-                            raise CppParseError(var, "@optional is not supported for this type on output")
+                            raise CppParseError(var, "%s: @optional is not supported for this type on output" % var.name)
                 else:
-                    log.WarnLine(var, "@optional is redundant for OptionalType")
+                    log.WarnLine(var, "%s: @optional is redundant for OptionalType<...>" % var.name)
 
                 properties["optional"] = True
                 ConvertDefault(var, properties["type"], properties)
@@ -824,11 +824,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if not isinstance(type, list):
                         if isinstance(type.Type(), CppParser.Typedef):
                             if type.Type().is_event:
-                                events.append(type)
+                                events.append(var)
                             ResolveTypedef(resolved, events, type.Type())
                         else:
                             if isinstance(type.Type(), CppParser.Class) and type.Type().is_event:
-                                events.append(type)
+                                events.append(var)
                     else:
                         raise CppParseError(var, "undefined type: '%s'" % " ".join(type))
 
@@ -1076,10 +1076,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
             for e in event_params:
-                exists = any(x.obj.type == e.type.type for x in event_interfaces)
+                exists = any(x.obj.type == e.type.type.type for x in event_interfaces)
 
                 if not exists:
-                    event_interfaces.add(CppInterface.Interface(ResolveTypedef(e).type, 0, file))
+                    event_interfaces.add(CppInterface.Interface(ResolveTypedef(e.type).type, 0, file))
 
             obj = None
 
@@ -1243,6 +1243,41 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by reference parameter")
+            else:
+                for p in method.vars:
+                    if p.meta.is_index:
+                        index_found = False
+                        for e in event_params:
+                            for ev in event_interfaces:
+                                if ev.obj.type == e.type.type.type:
+                                    for evm in e.type.type.methods:
+                                        for evmp in evm.vars:
+                                            if evmp.name == p.name:
+                                                if "index-by-register" not in evmp.meta.decorators:
+                                                    if "index-deprecated" in p.meta.decorators:
+                                                        if "index-deprecated" not in evmp.meta.decorators and evmp.meta.is_index:
+                                                            raise CppParseError(evm, "%s: event index depreciation mismatch (expected @index:deprecated)" % evmp.name)
+                                                        evmp.meta.decorators.append("index-deprecated")
+                                                    elif "index-deprecated" in evmp.meta.decorators and evmp.meta.is_index:
+                                                        raise CppParseError(evm, "%s: event index depreciation mismatch (did not expect @index:deprecated)" % evmp.name)
+
+                                                    if evmp.meta.is_index:
+                                                        log.WarnLine(evm, "%s: @index is deprecated here, already specified by registration method '%s'" % (evmp.name, evm.full_name))
+
+                                                    evmp.meta.decorators.append("index-by-register")
+                                                    evmp.meta.is_index = True
+
+                                                    if isinstance(p.type.type, CppParser.Optional):
+                                                        evmp.type.type = CppParser.Optional(CppParser.OptionalElement(evmp, [evmp.type.type.type]))
+                                                        evmp.type.ref |= CppParser.Ref.REFERENCE
+
+                                                    if str(evmp.type.type) != str(p.type.type):
+                                                        raise CppParseError(evm, "%s: event index type mismatch (expected '%s')" % (evmp.name, p.type))
+
+                                                index_found = True
+
+                        if not index_found:
+                            raise CppParseError(p, "event index '%s' not found in any event methods" % p.name)
 
             if obj:
                 if method.retval.meta.is_deprecated:
@@ -1325,22 +1360,28 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if len(method.vars) > 0:
                         for v in method.vars[1:]:
                             if v.meta.is_index:
-                                log.WarnLine(method, "@index ignored on non-first parameter of '%s'" % method.name)
+                                if "index-by-register" not in v.meta.decorators:
+                                    log.WarnLine(method, "%s: @index ignored, event index must be at the first parameter" % v.name)
+                                else:
+                                    raise CppParseError(method, "%s: event index must be at the first parameter" % v.name)
 
                         if method.vars[0].meta.is_index:
                             if method.vars[0].type.IsPointer():
-                                raise CppParseError(method.vars[0], "index to a notification must not be pointer")
+                                raise CppParseError(method, "%s: index to a notification must not be pointer" % method.vars[0].name)
 
                             if not method.vars[0].type.IsConst() and method.vars[0].type.IsReference():
-                                raise CppParseError(method.vars[0], "index to a notification must be an input parameter")
+                                raise CppParseError(method, "%s: index to a notification must be an input parameter" % method.vars[0].name)
+
+                            if not "index-by-register" in method.vars[0].meta.decorators:
+                                log.WarnLine(method, "%s: @index is deprecated here, declare in event registration method instead" % method.vars[0].name)
 
                             obj["id"] = BuildParameters(None, [method.vars[0]], config.RpcFormat.COLLAPSED, True, False)
 
-                            deprecated = "index-deprecated" in  method.vars[0].meta.decorators
+                            deprecated = "index-deprecated" in method.vars[0].meta.decorators
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
-                                obj["id"]["@originalname"] = "_designatorId" if deprecated else "_index"
+                                obj["id"]["@originalname"] = "designatorId_" if deprecated else "index_"
                                 obj["id"]["@generated"] = True
 
                                 if deprecated:

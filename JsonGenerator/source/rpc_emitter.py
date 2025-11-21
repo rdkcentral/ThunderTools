@@ -161,21 +161,21 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     return converted, error_condition_emitted
 
 
-def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False, legacy_array=False):
+def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False, has_extra_index=False, legacy_array=False, async_event=False):
 
     def trim(identifier):
         return str(identifier).replace(ns + "::", "").replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
 
     names = DottedDict()
-    names['module'] = "_module"
-    names['instance_id'] = "_instanceId"
-    names['id'] = "_id"
-    names['client'] = "_client"
-    names['params'] = "_params"
-    names['designator'] = "_designator"
-    names['sendif'] = "_sendIfMethod"
-    names["index"] = "_index"
-    names['designator_id'] = "_designatorId"
+    names['module'] = "module_"
+    names['instance_id'] = "instanceId_"
+    names['id'] = "id_"
+    names['client'] = "client_"
+    names['params'] = "params_"
+    names['designator'] = "designator_"
+    names['sendif'] = "sendIfMethod_"
+    names["index"] = "index_"
+    names['designator_id'] = "designatorId_"
 
     prefix = ("%s." % names.module) if not legacy else ""
 
@@ -205,7 +205,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     if lookup:
         parameters.append("const %s* const %s" % (trim(lookup["fullname"]), "_obj"))
 
-    if event.sendif_type:
+    if event.sendif_type and (has_extra_index or event.sendif_deprecated or params_type != "native"):
         parameters.append("const %s& %s" % (event.sendif_type.cpp_native_type_opt, names.id))
 
     if not params.is_void:
@@ -246,6 +246,9 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
     if not legacy:
         parameters.insert(0, "const %s& %s" % (names.jsonrpc_type, names.module))
+
+        if has_extra_index and params_type == "object":
+            parameters.append("const bool")
 
         if event.is_status_listener and has_client:
             parameters.append("const string& %s" % (names.client))
@@ -437,13 +440,19 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 parameters.append("_obj")
 
         if event.sendif_type:
-            parameters.append(names.id)
+            if has_extra_index or event.sendif_deprecated:
+                parameters.append(names.id)
+            else:
+                parameters.append(params.properties[0].name)
 
         if not params.is_void:
             parameters.append(names.params)
 
         # Emit the local call
         if not legacy:
+            if has_extra_index:
+                parameters.append("true")
+
             if event.is_status_listener and has_client:
                 parameters.append(names.client)
 
@@ -510,12 +519,15 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                     emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.designator_id, names.designator, names.designator))
 
                 converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
-                cond.append("(%s == %s)" % ( names.id, converted))
 
+                cond.append("(%s == %s)" % ( names.id, converted))
             else:
                 if event.sendif_type:
                     converted, _ = FromString(emit, event.sendif_type, emit_restrictions=False)
-                    cond.append("(%s == %s)" % ( names.id, converted))
+                    if has_extra_index:
+                        cond.append("(%s == %s)" % ( names.id, converted))
+                    elif event.sendif_type.optional:
+                        cond.append("((%s.IsSet() == false) || (%s == %s))" % (converted, names.id, converted))
 
                 if event.is_status_listener and has_client:
                     cond.append("(%s == %s)" % (names.client, names.designator))
@@ -580,10 +592,14 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
     if needs_legacy_array_as_string and not legacy_array and params_type == "native":
         emit.Line("// legacy array as string version")
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, legacy_array=True)
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=has_extra_index, legacy_array=True, async_event=async_event)
 
     if event.is_status_listener and not has_client:
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, legacy_array=legacy_array)
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, has_extra_index=has_extra_index, legacy_array=legacy_array, async_event=async_event)
+
+    if event.sendif_type and not event.sendif_deprecated and not has_extra_index and not has_client and params_type != "json":
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=True, legacy_array=legacy_array, async_event=async_event)
+
 
 
 def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, prototypes = []):
@@ -693,7 +709,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             params.append("const string& client")
 
             if (m.sendif_type and not m.sendif_deprecated):
-                params.append("const string& index")
+                params.append("%s index" % (m.sendif_type.cpp_native_as_input_param))
 
             params.append("const PluginHost::JSONRPCSupportsEventStatus::Status status")
 
@@ -788,7 +804,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("POP_WARNING()")
                 emit.Line()
 
-    def _EmitEvents(events, namespace = None):
+    def _EmitEvents(events, namespace = None, async_event = False):
         assert events
 
         if not namespace:
@@ -799,14 +815,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line()
 
         for event in events:
-            EmitEvent(emit, ns, root, event, "object")
+            EmitEvent(emit, ns, root, event, "object", async_event=async_event)
 
             if not event.params.is_void:
                 if isinstance(event.params, JsonObject):
-                    EmitEvent(emit, ns, root, event, "json")
+                    EmitEvent(emit, ns, root, event, "json", async_event=async_event)
 
                 if not isinstance(event.params, JsonArray):
-                    EmitEvent(emit, ns, root, event, "native")
+                    EmitEvent(emit, ns, root, event, "native", async_event=async_event)
 
 
         emit.Unindent()
@@ -836,24 +852,57 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
 
             for event in listener_events:
+                lambda_params = []
+                lambda_params.append("%s%s" % ("&" if legacy else "", names.handler))
+
+                has_lookup = event in lookup_events
+
+                params = []
+                params.append("const uint32_t%s" % (" channelId_" if has_lookup else ""))
+                params.append("const string&%s" % (" instanceId_" if has_lookup else ""))
+                params.append("const string& client_")
+                params.append("const string&%s" % (" index_" if event.sendif_type and not event.sendif_deprecated else ""))
+                params.append("const %s::Status status_" % "PluginHost::JSONRPCSupportsEventStatus")
+
+                call_params = []
+                call_params.append("client_")
+                call_params.append("status_")
+
                 emit.Line("%s.PluginHost::JSONRPCSupportsEventStatus::RegisterEventStatusListener(_T(\"%s\")," % (names.module, event.json_name.replace("#ID","")))
                 emit.Indent()
 
-                if event in lookup_events:
+                if has_lookup:
                     lookup = event.schema.get("@lookup")
-                    emit.Line("[&%s,%s%s](const uint32_t channelId, const string& instanceId, const string& client, const string&%s, const %s::Status status) {" % (names.module, "&" if legacy else "", names.handler, " index" if (event.sendif_type and not event.sendif_deprecated) else "", "PluginHost::JSONRPCSupportsEventStatus"))
+                    emit.Line("[&%s,%s%s](%s) {" % (names.module, ("&" if legacy else ""), names.handler, ", ".join(params)))
                     emit.Indent()
-                    emit.Line("%s* object = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(instanceId, Core::JSONRPC::Context(channelId));" % (trim(lookup["fullname"]), names.module, trim(lookup["fullname"])))
-                    emit.Line("if (object != nullptr) {")
+                    emit.Line("%s* _object__ = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(instanceId_, Core::JSONRPC::Context(channelId_));" % (trim(lookup["fullname"]), names.module, trim(lookup["fullname"])))
+                    emit.Line("if (_object__ != nullptr) {")
                     emit.Indent()
-                    emit.Line("%s%sOn%sEventRegistration(object, client, %sstatus);" % (names.handler, '.' if legacy else '->', event.cpp_name, "index, " if (event.sendif_type and not event.sendif_deprecated) else ""))
-                    emit.Line("object->Release();")
+
+                    call_params.insert(0, "_object__")
+                else:
+                    emit.Line("[%s](%s) {" % (", ".join(lambda_params), ", ".join(params)))
+                    emit.Indent()
+
+
+                if event.sendif_type and not event.sendif_deprecated:
+                    emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
+                    converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                    call_params.insert((2 if has_lookup else 1), converted)
+
+                    emit.Line("if (_errorCode__ == %s) {" % CoreError("none"))
+                    emit.Indent()
+
+                emit.Line("%s%sOn%sEventRegistration(%s);" % (names.handler, ('.' if legacy else '->'), event.cpp_name, ", ".join(call_params)))
+
+                if event.sendif_type and not event.sendif_deprecated:
                     emit.Unindent()
                     emit.Line("}")
-                else:
-                    emit.Line("[%s%s](const uint32_t&, const string&, const string& client, const string&%s, const %s::Status status) {" % ("&" if legacy else "", names.handler, " index" if (event.sendif_type and not event.sendif_deprecated) else "", names.jsonrpc_type))
-                    emit.Indent()
-                    emit.Line("%s%sOn%sEventRegistration(client, %sstatus);" % (names.handler, '.' if legacy else '->', event.cpp_name, "index, " if (event.sendif_type and not event.sendif_deprecated) else ""))
+
+                if has_lookup:
+                    emit.Line("_object__->Release();")
+                    emit.Unindent()
+                    emit.Line("}")
 
                 emit.Unindent()
                 emit.Line("});")
@@ -1662,9 +1711,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     names['impl'] = "_implementation__"
     names['handler'] = ("_handler_" if not is_json_source else names.impl)
     names['handler_interface'] = "IHandler"
-    names['context'] = "context"
-    names['id'] = "id"
-    names['instance_id'] = "instanceId"
+    names['context'] = "context_"
+    names['id'] = "id_"
+    names['instance_id'] = "instanceId_"
+    names["index"] = "index_"
+    names["client"] = "client_"
 
     names['namespace'] = ("J" + root.json_name)
     names['interface'] = (root.info["interface"] if "interface" in root.info else ("I" + root.json_name))
@@ -1730,7 +1781,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line()
 
         for aev in async_events:
-            _EmitEvents([aev], aev.name.capitalize())
+            _EmitEvents([aev], aev.name.capitalize(), True)
 
         emit.Unindent()
         emit.Line("} // namespace Async")
