@@ -299,6 +299,10 @@ class JsonType():
         return self.cpp_native_type
 
     @property
+    def cpp_native_as_input_param(self):
+        return ("const " + self.cpp_native_type_opt + ("&" if (not isinstance(self, JsonFundamental) or self.optional) else ""))
+
+    @property
     def is_void(self):
         return (self.cpp_type == "void")
 
@@ -315,10 +319,13 @@ class JsonType():
     def is_copy_ctor_needed(self):
         return False
 
+class JsonFundamental:
+    pass
+
 class JsonNative:
     pass
 
-class JsonNull(JsonNative, JsonType):
+class JsonNull(JsonNative, JsonFundamental, JsonType):
     @property
     def cpp_type(self):
         return self.cpp_native_type
@@ -327,7 +334,7 @@ class JsonNull(JsonNative, JsonType):
     def cpp_native_type(self):
         return "void"
 
-class JsonBoolean(JsonNative, JsonType):
+class JsonBoolean(JsonNative, JsonFundamental, JsonType):
     @property
     def cpp_class(self):
         return CoreJson("Boolean")
@@ -337,7 +344,7 @@ class JsonBoolean(JsonNative, JsonType):
         return "bool"
 
 
-class JsonInteger(JsonNative, JsonType):
+class JsonInteger(JsonNative, JsonFundamental, JsonType):
     def __init__(self, name, parent, schema, size = config.DEFAULT_INT_SIZE, signed = False):
         JsonType.__init__(self, name, parent, schema)
         self.size = schema["size"] if "size" in schema else size
@@ -372,7 +379,7 @@ class AuxJsonAuto(JsonInteger):
         return "auto"
 
 
-class JsonNumber(JsonNative, JsonType):
+class JsonNumber(JsonNative, JsonFundamental, JsonType):
     def __init__(self, name, parent, schema):
         JsonType.__init__(self, name, parent, schema)
         self.size = schema["size"] if "size" in schema else 32
@@ -408,7 +415,7 @@ class JsonString(JsonNative, JsonType):
     def cpp_concrete_type(self):
         return "string"
 
-class JsonInstanceId(JsonNative, JsonType):
+class JsonInstanceId(JsonNative, JsonFundamental, JsonType):
     @property
     def cpp_class(self):
         return CoreJson("InstanceId")
@@ -475,7 +482,7 @@ class JsonMacAddress(JsonNative, JsonType):
         return ".ToString()"
 
 
-class JsonEnum(JsonRefCounted, JsonType):
+class JsonEnum(JsonRefCounted, JsonFundamental, JsonType):
     def __init__(self, name, parent, schema, enum_type, included = None):
         JsonRefCounted.__init__(self)
         JsonType.__init__(self, name, parent, schema, included)
@@ -956,7 +963,7 @@ class JsonCallback(JsonMethod):
     def __init__(self, name, parent, notification, schema, included=None):
         JsonMethod.__init__(self, name, parent, schema, included)
         self.notification = notification
-        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "_index", "@generated": True})
+        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
         self.notification.sendif_deprecated = False
 
 class JsonProperty(JsonMethod):
