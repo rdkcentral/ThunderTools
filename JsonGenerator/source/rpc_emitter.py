@@ -345,6 +345,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                         if "@container" in p.schema:
                             encoded_name = "_%sEncoded__" % (p.local_name)
                             emit.Line("string %s;" % encoded_name)
+                            
                             if encode == "base64":
                                 emit.Line("Core::ToString(%s, true, %s);" % (local_name,  encoded_name))
                             elif encode == "hex":
@@ -358,6 +359,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                             encoded_name = "_%sEncoded__" % (p.local_name)
                             emit.Line("ASSERT(%s != nullptr);" % local_name)
                             emit.Line("string %s;" % encoded_name)
+                            
                             if encode == "base64":
                                 emit.Line("Core::ToString(%s, %s, true, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
                             elif encode == "hex":
@@ -440,7 +442,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 parameters.append("_obj")
 
         if event.sendif_type:
-            if has_extra_index or event.sendif_deprecated:
+            if has_extra_index or event.sendif_deprecated or params_type == "json":
                 parameters.append(names.id)
             else:
                 parameters.append(params.properties[0].name)
