@@ -1001,7 +1001,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 log.WarnLine(method, "@wrapped has no effect on this method")
 
             if len(properties) == 1:
-                if wrapped_result or method_wrapped:
+                if (wrapped_result or method_wrapped) and properties[list(properties.keys())[0]]["type"] != "object":
                     params["required"] = required
                     return params
                 else:
@@ -1415,7 +1415,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         obj["statuslistener"] = True
 
                     params = BuildParameters(None, method.vars[varsidx:], rpc_format, False)
-                    retvals = BuildResult(method.vars[varsidx:], method)
+                    retvals = BuildResult(method.vars[varsidx:], method=method)
 
                     if retvals and retvals["type"] != "null":
                         raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
