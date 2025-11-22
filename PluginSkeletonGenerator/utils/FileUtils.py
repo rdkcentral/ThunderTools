@@ -6,21 +6,18 @@ class FileUtils:
         lines = template.split('\n')
         result_lines = []
         
+        pattern = re.compile('|'.join(re.escape(k) for k in keywords))
+        # {{}} pattern used in templates
+        placeholder_only_pattern = re.compile(r'^\s*\{\{[^}]+\}\}\s*$')
+        
         for line in lines:
             stripped_line = line.strip()
             
-            # {{}} patten used in templates
-            placeholder_only_pattern = r'^\s*\{\{[^}]+\}\}\s*$'
-            
-            if re.match(placeholder_only_pattern, stripped_line):
-                # check if placeholder becomes empty after replacement
-                pattern = re.compile('|'.join(re.escape(k) for k in keywords))
+            if placeholder_only_pattern.match(stripped_line):
                 replaced_line = pattern.sub(lambda m: keywords[m.group(0)], line)
-                
                 if replaced_line.strip():
                     result_lines.append(replaced_line)
             else:
-                pattern = re.compile('|'.join(re.escape(k) for k in keywords))
                 replaced_line = pattern.sub(lambda m: keywords[m.group(0)], line)
                 result_lines.append(replaced_line)
         
