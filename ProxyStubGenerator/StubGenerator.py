@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python3 
 
 # If not stated otherwise in this file or this component's license file the
 # following copyright and licenses apply:
@@ -994,7 +994,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         if self.restrict_range.max >= (16*1024*1024):
                             aux_size = "uint32_t"
                         elif self.restrict_range.max >= (64*1024):
-                            aux_size = "Core::Frame::UInt24"
+                            aux_size = "Core::UInt24"
                         elif self.restrict_range.max < 256:
                             aux_size = "uint8_t"
 
@@ -1019,10 +1019,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             if self.restrict_range.has_min and self.restrict_range.has_max:
                                 if ((self.restrict_range.min < (-32*1024)) and (self.restrict_range.min >= (-8*1024*1024))) or \
                                     ((self.restrict_range.max >= (32*1024)) and (self.restrict_range.max < (8*1024*1024))):
-                                    self.type_name = "Core::Frame::SInt24"
+                                    self.type_name = "Core::SInt24"
                         else:
                             if (self.restrict_range.has_max and ((self.restrict_range.max >= (64*1024)) and (self.restrict_range.max < (16*1024*1024)))):
-                                self.type_name = "Core::Frame::UInt24"
+                                self.type_name = "Core::UInt24"
 
                 if isinstance(self.kind, CppParser.Optional):
                     #if self.kind.optional.type.IsPointer() and not isinstance(self.kind.optional.type.Resolve().type, CppParser.Class) and not:
@@ -1222,20 +1222,20 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 elif self.proxy_instance or self.return_proxy:
                     return "sizeof(%s)" % INSTANCE_ID
                 elif self.is_buffer:
-                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif self.is_string:
                     if self.is_ccstring:
                         return "(sizeof(uint32_t))"
                     else:
-                        return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                        return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
-                    return "Core::Frame::RealSize<%s>()" % self.type_name
+                    return "Core::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "1" # always one byte
                 elif isinstance(self.kind, CppParser.MacAddress):
                     return "6" # always six bytes
                 elif isinstance(self.kind, CppParser.DynamicArray):
-                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, CppParser.Time):
                     return "sizeof(%s)" % self.target_type_name
                 else:
@@ -2765,7 +2765,7 @@ if __name__ == "__main__":
         print("   @in                    - indicates an input parameter")
         print("   @out                   - indicates an output parameter")
         print("   @inout                 - indicates an input/output parameter (equivalent of @in @out)")
-        print("   @restrict              - specifies valid range for a parameter (for buffers and strings: valid size)")
+        print("   @restrict:[{min}..]{max} - specifies valid range for a parameter (for buffers, vectors, iterators, strings: valid size)")
         print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1, @restrict:nonempty")
         print("   @interface:{expr}      - specifies a parameter or value indicating interface ID value for void* interface passing")
         print("   @length:{expr}         - specifies a buffer length value (a constant, a parameter name or a math expression)")
@@ -2789,13 +2789,14 @@ if __name__ == "__main__":
         print("   @iterator              - tags a C++ class to be generated as an JSON-RPC interator")
         print("   @property              - tags C++ method to be generated as a JSON-RPC property")
         print("   @async                 - indicates that a method is asynchronous")
+        print("   @wrapped               - enforces object result even if a single item is returned (method or interface level)")
         print("   @statuslistener        - emits registration/unregistration status listeners for an event")
         print("   @bitmask               - indicates that enumerator lists should be packed into into a bit mask")
         print("   @index                 - indicates that a parameter in a JSON-RPC property or notification is an index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
         print("   @extract               - indicates that that if only one element is present in the array it shall be taken out of it")
         print("   @optional              - indicates that a parameter, struct member or property index is optional (deprecated, use Core::OptionalType instead)")
-        print("   @default:{value}       - set a default value for an optional parameter")
+        print("   @default:{value}       - set a default value for the deprecated optional parameter (deprecated)")
         print("   @encode:{method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
         print("   @encode:{lookup}       - encodes interface instances to JSON using lookup methods (lookup, autolookup) ")
         print("   @encode:bitmask        - encodes a bitmask enum to a JSON array")
