@@ -9,7 +9,7 @@ class FileUtils:
         for line in lines:
             stripped_line = line.strip()
             
-            # {{}} patten used in templates
+            # {{}} pattern used in templates
             placeholder_only_pattern = r'^\s*\{\{[^}]+\}\}\s*$'
             
             if re.match(placeholder_only_pattern, stripped_line):
