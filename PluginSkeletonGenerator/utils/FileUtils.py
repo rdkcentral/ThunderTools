@@ -13,7 +13,16 @@ class FileUtils:
         for line in lines:
             stripped_line = line.strip()
             
+<<<<<<< HEAD
             if placeholder_only_pattern.match(stripped_line):
+=======
+            # {{}} pattern used in templates
+            placeholder_only_pattern = r'^\s*\{\{[^}]+\}\}\s*$'
+            
+            if re.match(placeholder_only_pattern, stripped_line):
+                # check if placeholder becomes empty after replacement
+                pattern = re.compile('|'.join(re.escape(k) for k in keywords))
+>>>>>>> da9604afc913fd87a3cf9e3c40c463d11e825ad2
                 replaced_line = pattern.sub(lambda m: keywords[m.group(0)], line)
                 if replaced_line.strip():
                     result_lines.append(replaced_line)
