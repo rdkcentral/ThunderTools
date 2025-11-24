@@ -242,7 +242,7 @@ def Create(log, args, schema, path, indent_size = 4):
                     else:
                         obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
 
-                    if obj.get("@lookup-id"):
+                    if obj.get("@lookup"):
                         if row == "...":
                             row = ""
                         elif row:
@@ -289,7 +289,7 @@ def Create(log, args, schema, path, indent_size = 4):
             _mp = _p + _m
 
             if "$METHODSANDPROPERTIES[0]" in description:
-                return description.replace("$METHODSANDPROPERTIES[0]", _mp[0] if _mp else "")
+                return description.replace("$METHODSANDPROPERTIES[0]", "methodName")
             elif "$METHODSANDPROPERTIES" in description:
                 return description.replace("$METHODSANDPROPERTIES", ", ".join(_mp) if _mp else "")
             elif "$METHODS[0]" in description:
@@ -301,11 +301,11 @@ def Create(log, args, schema, path, indent_size = 4):
             elif "$PROPERTIES" in description:
                 return description.replace("$PROPERTIES", ", ".join(_p) if _p else "")
             elif "$EVENTS[0]" in description:
-                return description.replace("$EVENTS[0]", _e[0] if _e else "")
+                return description.replace("$EVENTS[0]", "eventName")
             elif "$EVENTSWITHLINKS" in description:
-                return description.replace("$EVENTSWITHLINKS", ", ".join(["[%s](#notification_%s)" % (x, x) for x in _e]) if _e else "")
+                return description.replace("$EVENTSWITHLINKS", ", ".join(["[%s](#notification_%s)" % (x, x.replace("::","__")) for x in _e]).replace("#ID","") if _e else "")
             elif "$EVENTS" in description:
-                return description.replace("$EVENTS", ", ".join(_p) if _p else "")
+                return description.replace("$EVENTS", ", ".join(_p) if _p else "").replace("#ID","")
             else:
                 return description
 
@@ -336,8 +336,8 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 if obj.get("opaque"):
                     json_data += default if default else "{ }"
-                elif "@lookup-id" in obj:
-                    json_data += '"%s"' % (default if default else ("1" if obj["@lookup-type"] == "auto" else "id1"))
+                elif "@lookup" in obj:
+                    json_data += '"%s"' % (default if default else ("1" if obj["@lookup"] == "auto" else "id1"))
                 else:
                     json_data += '"%s"' % (default if default else "...")
 
@@ -459,7 +459,7 @@ def Create(log, args, schema, path, indent_size = 4):
                 _events = [props["events"]] if isinstance(props["events"], str) else props["events"]
                 MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), _events))))
 
-            idex = ("1" if props["@lookup"]["id"] == "@generate" else "id1") if "@lookup" in props else ""
+            idex = ("1" if props["@lookup"]["id"] == "generate" else "id1") if "@lookup" in props else ""
 
             if is_notification:
                 if "@lookup" in props:
@@ -574,15 +574,18 @@ def Create(log, args, schema, path, indent_size = 4):
                         if "deprecated" in props["id"]:
                             MdParagraph("> The *%s* parameter shall be passed within the *id* parameter to the ``register`` call, i.e. ``<%s>.<client-id>``. This registration syntax is **deprecated** and will be changed in the next major release." % (props["id"]["name"], props["id"]["name"].lower()))
                         else:
-                            MdParagraph("> The *%s* parameter shall be passed as index to the ``register`` call, i.e. ``register@<%s>``." % (props["id"]["name"], props["id"]["name"].lower()))
+                            if "@optionaltype" in props["id"]:
+                                MdParagraph("> The *%s* parameter is optional. If set it shall be passed as index to the ``register`` call, i.e. ``register@<%s>``." % (props["id"]["name"], props["id"]["name"].lower()))
+                            else:
+                                MdParagraph("> The *%s* parameter shall be passed as index to the ``register`` call, i.e. ``register@<%s>``." % (props["id"]["name"], props["id"]["name"].lower()))
 
                     MdHeader("Notification Parameters", 3)
                 else:
                     if "@async" in props:
                         MdParagraph("> This method is asynchronous.")
 
-                    if "result" in props and "@lookup-id" in props["result"] and props["result"].get("@lookup-type") == "auto":
-                        MdParagraph("> This method creates an instance of a *%s* object." % props["result"]["@lookup-id"].lower())
+                    if "result" in props and "@lookup" in props["result"] and props["result"]["@lookup"] == "auto":
+                        MdParagraph("> This method creates an instance of a *%s* object." % props["result"]["@originalname"].lower())
 
                     MdHeader("Parameters", 3)
 
@@ -690,8 +693,14 @@ def Create(log, args, schema, path, indent_size = 4):
                 if is_notification:
                     MdParagraph("> The *client ID* parameter is passed within the notification designator, i.e. ``%s``." % notification_generic_method)
 
-                    if "id" in props and "deprecated" in props["id"]:
-                        MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``. This syntax is deprecated." % (props["id"]["name"], notification_generic_method))
+                    if "id" in props:
+                        if "deprecated" in props["id"]:
+                            MdParagraph("> The *%s* parameter is passed within the notification designator, i.e. ``%s``. This syntax is deprecated." % (props["id"]["name"], notification_generic_method))
+                        else:
+                            if "@optionaltype" in props["id"]:
+                                MdParagraph("> The *%s* parameter is optionally passed as index within the notification designator, i.e. ``%s``. " % (props["id"]["name"], notification_generic_method))
+                            else:
+                                MdParagraph("> The *%s* parameter is passed as index within the notification designator, i.e. ``%s``. " % (props["id"]["name"], notification_generic_method))
 
                     if "@lookup" in props:
                         MdParagraph("> The *%s instance id* parameter is passed within the notification designator, i.e. ``%s``." % (props["@lookup"]["prefix"].lower(), notification_generic_method))
