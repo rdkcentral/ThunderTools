@@ -167,10 +167,7 @@ class HeaderData(FileData):
             jprefix = f"J{namespace[1:]}" if namespace.startswith("I") else f"J{namespace}"
 
             for m in cls_data.m_methods:
-                param_names = []
-                if m.m_params.strip():
-                    for p in m.m_params.split(","):
-                        param_names.append(p.strip().split()[-1])
+                _, param_names = self.commentParamnames(m.m_params)
                 param_str = ", ".join(param_names)
                 add_const = " const" if getattr(m, "m_is_const", False) else ""
                 result.extend([
@@ -198,10 +195,7 @@ class HeaderData(FileData):
                 container = f"_{no_i.lower()}Notification"
     
                 for m in cls_data.m_methods:
-                    param_names = []
-                    if m.m_params.strip():
-                        for p in m.m_params.split(","):
-                            param_names.append(p.strip().split()[-1])
+                    _, param_names = self.commentParamnames(m.m_params)
                     param_str = ", ".join(param_names)
 
                     result.extend([
@@ -669,20 +663,24 @@ class SourceData(FileData):
 
     def _generateJSONRegisterIP(self) -> str:
         lines = []
-        for full_name in self.m_parsed:
-            short_name = full_name.split("::")[-1]
-            if short_name in self.m_jsonrpc_interfaces:
-                namespace = self._extractStrippedNamespace(full_name)
-                lines.append(f"{namespace}::{short_name}::Register(*this, this);")
+        for short_name in self.m_comrpc_interfaces:
+            json_iface = convertToJSONRPC(short_name)
+            if json_iface in self.m_jsonrpc_interfaces:
+                full_name = self.resolveFullName(short_name)
+                if full_name:
+                    namespace = self._extractStrippedNamespace(full_name)
+                    lines.append(f"{namespace}::{json_iface}::Register(*this, this);")
         return generateSimpleText(lines)
 
     def _generateJSONUnregisterIP(self) -> str:
         lines = []
-        for full_name in self.m_parsed:
-            short_name = full_name.split("::")[-1]
-            if short_name in self.m_jsonrpc_interfaces:
-                namespace = self._extractStrippedNamespace(full_name)
-                lines.append(f"{namespace}::{short_name}::Unregister(*this);")
+        for short_name in self.m_comrpc_interfaces:
+            json_iface = convertToJSONRPC(short_name)
+            if json_iface in self.m_jsonrpc_interfaces:
+                full_name = self.resolveFullName(short_name)
+                if full_name:
+                    namespace = self._extractStrippedNamespace(full_name)
+                    lines.append(f"{namespace}::{json_iface}::Unregister(*this);")
         return generateSimpleText(lines)
 
     def _generateConfigurationIP(self):
@@ -723,12 +721,9 @@ class SourceData(FileData):
                 namespace = self._extractStrippedNamespace(full_name)
                 qualified_json = f"{namespace}::{json_iface}"
                 
-                # check if this interface is in notification entries before adding Register call
-                has_notifications = any(short_name in self.m_notification_interfaces for short_name in self.m_notification_interfaces)
-                
-                if has_notifications:
+                if short_name in self.m_notification_interfaces:
                     init_lines.append(f"_impl{name}->Register(&_notification);")
-                    init_lines.append(f"{qualified_json}::Register(*this, _impl{name});")
+                init_lines.append(f"{qualified_json}::Register(*this, _impl{name});")
 
         if self.m_plugin_config:
             rootName = convertToBaseName(interfaces[0])
@@ -788,12 +783,10 @@ class SourceData(FileData):
         lines.append(f"if (_impl{firstBase} != nullptr) {{")
 
         if firstJson in self.m_jsonrpc_interfaces:
-            # check if this interface is in notification entries before adding Register call
-            has_notifications = any(short_name in self.m_notification_interfaces for short_name in self.m_notification_interfaces)
+            lines.append(f"{namespace_first}::{firstJson}::Unregister(*this);")
             
-            if has_notifications:
+            if first in self.m_notification_interfaces:
                 lines.append(f"_impl{firstBase}->Unregister(&_notification);")
-                lines.append(f"{namespace_first}::{firstJson}::Unregister(*this);")
 
         for comrpc in self.m_comrpc_interfaces[1:]:
             baseName = convertToBaseName(comrpc)
@@ -806,10 +799,10 @@ class SourceData(FileData):
             lines.append(f"if (_impl{baseName} != nullptr) {{")
 
             if jsonName in self.m_jsonrpc_interfaces:
-                has_notifications = any(short_name in self.m_notification_interfaces for short_name in self.m_notification_interfaces)
-                if has_notifications:
+                lines.append(f"{namespace}::{jsonName}::Unregister(*this);")
+                
+                if comrpc in self.m_notification_interfaces:
                     lines.append(f"_impl{baseName}->Unregister(&_notification);")
-                    lines.append(f"{namespace}::{jsonName}::Unregister(*this);")
 
             lines.append(f"_impl{baseName}->Release();")
             lines.append(f"_impl{baseName} = nullptr;")
