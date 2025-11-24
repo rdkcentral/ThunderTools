@@ -114,7 +114,8 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
             Decode("uint16_t", "sizeof(%s)" % converted)
 
         elif "@container" in param.schema:
-            Decode("uint32_t", (str(param.schema.get("range")[1])) if "range" in param.schema else "-1")
+            assert "range" in param.schema
+            Decode("uint32_t", str(param.schema.get("range")[1]))
             needs_move = True
 
     elif isinstance(param, (JsonInteger, JsonBoolean)):
@@ -345,7 +346,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                         if "@container" in p.schema:
                             encoded_name = "_%sEncoded__" % (p.local_name)
                             emit.Line("string %s;" % encoded_name)
-                            
+
                             if encode == "base64":
                                 emit.Line("Core::ToString(%s, true, %s);" % (local_name,  encoded_name))
                             elif encode == "hex":
@@ -359,7 +360,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                             encoded_name = "_%sEncoded__" % (p.local_name)
                             emit.Line("ASSERT(%s != nullptr);" % local_name)
                             emit.Line("string %s;" % encoded_name)
-                            
+
                             if encode == "base64":
                                 emit.Line("Core::ToString(%s, %s, true, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
                             elif encode == "hex":
@@ -1136,11 +1137,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("%s %s[%s]{};" % (param.original_type, param.temp_name, size))
                 else:
                     dest_var = param.TempName("container") if param.optional and is_readable else param.temp_name
+
                     if is_readable:
                         emit.Line("%s %s{};" % (param.original_type, dest_var))
                     else:
                         emit.Line("%s %s{};" % (param.original_type_opt, dest_var))
-                    size = (str(param.schema.get("range")[1]) + " + 1") if "range" in param.schema else "-1"
+
+                    assert "range" in param.schema
+                    size = str(param.schema.get("range")[1])
 
                 if length_param:
                     conditions = Restrictions(reverse=True)
@@ -1186,9 +1190,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.EnterBlock(conditions, scoped=True)
 
                     if param_meta.flags.encode in ["base64", "mac", "hex"]:
-                        if param_meta.flags.size:
+                        if param_meta.flags.encode == "base64":
                             size_var = param.TempName("Size_")
-                            emit.Line("uint16_t %s{%s};" % (size_var, size))
+                            emit.Line("uint32_t %s(%s);" % (size_var, size))
                         else:
                             size_var = size
 
