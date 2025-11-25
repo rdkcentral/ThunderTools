@@ -998,10 +998,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 raise CppParseError(var, "property getter must have exactly one output parameter")
 
             if len(properties) != 1 and method_wrapped:
-                log.WarnLine(method, "@wrapped has no effect on this method")
+                log.WarnLine(method, "%s(): @wrapped has no effect on this method" % method.name)
 
             if len(properties) == 1:
-                if (wrapped_result or method_wrapped) and properties[list(properties.keys())[0]]["type"] != "object":
+                if not is_property and (method_wrapped or (wrapped_result and properties[list(properties.keys())[0]]["type"] != "object")):
                     params["required"] = required
                     return params
                 else:
@@ -1098,6 +1098,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             if method.retval.meta.is_property or (prefix + method_name) in properties:
                 if "async" in method.retval.meta.decorators:
                     raise CppParseError(method, "a property cannot be asynchronous")
+
+                if "wrapped" in method.retval.meta.decorators:
+                    log.WarnLine(method, "%s(): @wrapped is not supported for properties" % method.name)
 
                 try:
                     obj = properties[prefix + method_name]
