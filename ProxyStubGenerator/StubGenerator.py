@@ -855,7 +855,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 self.name = name
 
-                self.iterator_optimization = self.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not "sequential-iterator" in self.identifier.meta.decorators
+                self.iterator_optimization = self.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not "interface-iterator" in self.identifier.meta.decorators
 
                 if has_proxy and not self.iterator_optimization:
                     # Have to use instance_id instead of the class name
