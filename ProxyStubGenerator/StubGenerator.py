@@ -62,7 +62,7 @@ INSTANCE_ID = "Core::instance_id"
 HRESULT = "Core::hresult"
 
 DEFAULT_DEFINITIONS_FILE = "default.h"
-IDS_DEFINITIONS_FILE = "Ids.h"
+MODULE_FILE = "Module.h"
 
 log = Log.Log(NAME, BE_VERBOSE, SHOW_WARNINGS)
 
@@ -2717,7 +2717,7 @@ if __name__ == "__main__":
                            action='append',
                            default=[],
                            nargs="*",
-                           help="include an additional C++ header file, can be used multiple times (default: include 'Ids.h')")
+                           help="include an additional C++ header file, can be used multiple times (default: include 'Module.h')")
     argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
                            help='add an include search path, can be used multiple times')
 
@@ -2841,9 +2841,9 @@ if __name__ == "__main__":
         for elem in files:
             if os.path.isdir(elem):
                 interface_files += [ os.path.join(elem, f) for f in os.listdir(elem)
-                    if (os.path.isfile(os.path.join(elem, f)) and re.match("I.*\\.h", f) and f != IDS_DEFINITIONS_FILE) ]
+                    if (os.path.isfile(os.path.join(elem, f)) and re.match("I.*\\.h", f)) ]
             elif os.path.isfile(elem):
-                if re.match(".*I.*\\.h", elem) and not elem.endswith(IDS_DEFINITIONS_FILE):
+                if re.match(".*I.*\\.h", elem):
                     interface_files += [elem]
             else:
                 log.Error("invalid file or directory", elem)
@@ -2870,7 +2870,7 @@ if __name__ == "__main__":
 
             for source_file in interface_files:
                 try:
-                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), IDS_DEFINITIONS_FILE) ]
+                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), MODULE_FILE) ]
                     _extra_includes.extend(args.extra_includes)
 
                     tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths,
