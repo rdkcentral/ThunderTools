@@ -1,4 +1,4 @@
-#!/usr/bin/env python3 
+#!/usr/bin/env python3
 
 # If not stated otherwise in this file or this component's license file the
 # following copyright and licenses apply:
@@ -735,6 +735,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Always resovlve the type in typedefs...
                 additional_ref = (CppParser.Ref.CONST if self.is_const else 0)
                 self.type = self.identifier_type.Resolve(additional_ref)
+                if not isinstance(self.type, CppParser.Type) and (not identifier.parent or not identifier.parent.omit):
+                    raise TypenameError(identifier, "'%s': undefined type (resolving alias %s)" % (str(self.type), Flatten(str(self.identifier_type.TypeName()), ns)))
+
                 self.kind = self.type.Type()
 
                 is_class = isinstance(self.kind, CppParser.Class)
