@@ -850,19 +850,25 @@ class Identifier():
 
     def TypeStrong(self):
         if self.array:
-            return ("%s[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
+            return ("%s[%s]" % (self.type.Proto("noref|noptr"), self.array))
         else:
             return self.Proto()
 
+    def TypeStrongNoCV(self):
+        if self.array:
+            return ("%s[%s]" % (self.type.Proto("noref|noptr|nocv|nopcv"), self.array))
+        else:
+            return self.type.Proto("nocv|nopcv")
+
     def ProtoFmt(self):
         if self.array:
-            return ("%s @[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
+            return ("%s @[%s]" % (self.type.Proto("noref|noptr"), self.array))
         else:
             return "%s @" % self.Proto()
 
     def Signature(self, override=None):
         if self.array:
-            return ("%s %s[%s]" % (self.type.Proto("nocv|noref|noptr"), override if override != None else self.name, self.array))
+            return ("%s %s[%s]" % (self.type.Proto(), override if override != None else self.name, self.array))
         else:
             return (self.Proto() + " " + (override if override != None else self.name))
 
