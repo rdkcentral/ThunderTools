@@ -1369,7 +1369,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 if ENABLE_RANGE_VERIFICATION:
                     emit.Line("if (!(%s)) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }" % " && ".join(restrictions))
-                    print("e")
 
         def CheckSize(p):
             if ENABLE_INTEGRITY_VERIFICATION:
@@ -1850,7 +1849,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 face_name = Flatten(interface.obj.type, ns)
 
             if ENABLE_INTEGRITY_VERIFICATION:
-                emit.Line("if (%s->Parameters().Length() < (sizeof(%s) + sizeof(uint32_t) + 1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % (vars["message"], INSTANCE_ID))
+                emit.Line("if (%s->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % (vars["message"]))
                 emit.Line()
 
             implementation_type = (method.CVString() + " " + face_name).strip()
@@ -2479,11 +2478,28 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             if EMIT_TRACES:
                 emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
 
-            for _, [_, _, stub, proxy, interface, _ ]  in announce_list.items():
-                emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>();" % (Flatten(interface.obj.type, ns), proxy, stub))
+            if announce_list:
+                security_options = []
+                security_var = ""
 
-            if EMIT_TRACES:
-                emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
+                # These should always go together...
+                assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
+
+                if ENABLE_INSTANCE_VERIFICATION:
+                    security_options.append("static_cast<std::underlying_type<RPC::SecureProxyStubType>::type>(RPC::SecureProxyStubType::PROXYSTUBS_SECURITY_SECURE)")
+                if ENABLE_INTEGRITY_VERIFICATION:
+                    security_options.append("static_cast<std::underlying_type<RPC::SecureProxyStubType>::type>(RPC::SecureProxyStubType::PROXYSTUBS_SECURITY_COHERENT)")
+
+                if security_options:
+                    security_var = "security"
+                    emit.Line("const RPC::SecureProxyStubType %s = static_cast<RPC::SecureProxyStubType>(%s);"  % (security_var, " | ".join(security_options)))
+                    emit.Line()
+
+                for _, [_, _, stub, proxy, interface, _ ]  in announce_list.items():
+                    emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>(%s);" % (Flatten(interface.obj.type, ns), proxy, stub, security_var))
+
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
 
             emit.IndentDec()
             emit.Line("}")
@@ -2491,14 +2507,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line("{")
             emit.IndentInc()
 
-            if EMIT_TRACES:
-                emit.Line("fprintf(stderr, \"*** Recalling %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
+            if announce_list:
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Recalling %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
 
-            for _, [_, _, _, _, interface, _ ]  in announce_list.items():
-                emit.Line("RPC::Administrator::Instance().Recall<%s>();" % (Flatten(interface.obj.type, ns)))
+                for _, [_, _, _, _, interface, _ ]  in announce_list.items():
+                    emit.Line("RPC::Administrator::Instance().Recall<%s>();" % (Flatten(interface.obj.type, ns)))
 
-            if EMIT_TRACES:
-                emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
 
             emit.IndentDec()
             emit.Line("}")
@@ -2589,45 +2606,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
     return interfaces, omit_interface_used
 
 
-def GenerateIdentification(name):
-    if not os.path.exists(name):
-        with open(name, "w") as file:
-            emit = Emitter(file, INDENT_SIZE)
-            emit.Line("//")
-            emit.Line("// generated automatically")
-            emit.Line()
-            emit.Line("#include \"Module.h\"")
-            emit.Line("#include <com/ProxyStubs.h>")
-            emit.Line()
-            emit.Line("extern \"C\" {")
-            emit.Line()
-
-            options = []
-
-            # These should always go together...
-            assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
-
-            if ENABLE_INSTANCE_VERIFICATION:
-                options.append("PROXYSTUBS_OPTIONS_SECURE")
-            if ENABLE_INTEGRITY_VERIFICATION:
-                options.append("PROXYSTUBS_OPTIONS_COHERENT")
-            if not options:
-                options.append("0")
-
-            emit.Line("EXTERNAL_EXPORT proxystubs_options_t proxystubs_options()")
-            emit.Line("{")
-            emit.IndentInc()
-            emit.Line("return (static_cast<proxystubs_options_t>(%s));" % " | ".join(options))
-            emit.IndentDec()
-            emit.Line("}")
-            emit.IndentDec()
-            emit.Line()
-            emit.Line("}")
-            emit.Line()
-
-            log.Info("created file %s" % os.path.basename(name))
-
-
 # -------------------------------------------------------------------------
 # entry point
 
@@ -2661,11 +2639,6 @@ if __name__ == "__main__":
                            action="store_true",
                            default=False,
                            help="emit additional frame coherency verification (default: no extra verification)")
-    argparser.add_argument("--no-identify",
-                           dest="noidentify",
-                           action="store_true",
-                           default=False,
-                           help="do not emit additional file with identification code (default: emit identification code)")
     argparser.add_argument("--traces",
                            dest="traces",
                            action="store_true",
@@ -2861,15 +2834,6 @@ if __name__ == "__main__":
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
                 lua_enums = dict()
-
-            if args.code and not args.noidentify:
-                output_file = os.path.join(os.path.dirname(interface_files[0]) if not OUTDIR else OUTDIR, "ProxyStubsMetadata.cpp")
-
-                out_dir = os.path.dirname(output_file)
-                if not os.path.exists(out_dir):
-                    os.makedirs(out_dir)
-
-                GenerateIdentification(output_file)
 
             for source_file in interface_files:
                 try:
