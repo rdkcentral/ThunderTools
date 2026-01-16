@@ -1277,7 +1277,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                                         raise CppParseError(evm, "%s: event index depreciation mismatch (did not expect @index:deprecated)" % evmp.name)
 
                                                     if evmp.meta.is_index:
-                                                        log.WarnLine(evm, "%s: @index is deprecated here, already specified by registration method '%s'" % (evmp.name, evm.full_name))
+                                                        log.WarnLine(evm, "%s: @index is redundant here, already specified by registration method '%s'" % (evmp.name, evm.full_name))
 
                                                     evmp.meta.decorators.append("index-by-register")
                                                     evmp.meta.is_index = True
@@ -1292,7 +1292,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                                 index_found = True
 
                         if not index_found:
-                            raise CppParseError(p, "event index '%s' not found in any event methods" % p.name)
+                            raise CppParseError(p, "event index '%s' not found in any of the %s methods" % (p.name, ", ".join([x.full_name for x in event_params])))
 
             if obj:
                 if method.retval.meta.is_deprecated:
@@ -1388,7 +1388,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 raise CppParseError(method, "%s: index to a notification must be an input parameter" % method.vars[0].name)
 
                             if not "index-by-register" in method.vars[0].meta.decorators:
-                                log.WarnLine(method, "%s: @index is deprecated here, declare in event registration method instead" % method.vars[0].name)
+                                def MaybeWarning():
+                                    for e in interfaces:
+                                        for m in e.obj.methods:
+                                            for p in m.vars:
+                                                if isinstance(p.type.type, CppParser.Class) and p.type.type.is_event:
+                                                    log.WarnLine(method, "%s: @index is not recommended here, declare in event registration method instead: %s()" % (method.vars[0].name, m.full_name))
+                                                    return
+                                MaybeWarning()
 
                             obj["id"] = BuildParameters(None, [method.vars[0]], config.RpcFormat.COLLAPSED, True, False)
 
