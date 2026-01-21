@@ -1,0 +1,660 @@
+name: Generate plugin skeletons
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - "PluginSkeletonGenerator/**"
+      - ".github/workflows/PluginSkeletonGenerator.yml"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "PluginSkeletonGenerator/**"
+      - ".github/workflows/PluginSkeletonGenerator.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+  models: read
+
+concurrency:
+  group: pages-previews-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  Thunder:
+    uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
+
+  ThunderInterfaces:
+    needs: Thunder
+    uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@master
+
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Define generator variants
+        id: set-matrix
+        shell: python
+        run: |
+          import json, os
+
+          # Edit only this list to add/change build types
+          variants = [
+            {
+              "name": "InProcess",
+              "header": "IMath.h",
+              "answers": ["InProcess", "N", "N", "__INTERFACES_H__", "", "N", ""]
+            },
+            {
+              "name": "OutOfProcess",
+              "header": "IBrowser.h",
+              "answers": ["OutOfProcess", "Y", "N", "__INTERFACES_H__", "", "", "N", ""]
+            },
+            {
+              "name": "InProcessConfig",
+              "header": "IPower.h",
+              "answers": ["InProcessConfig", "N", "Y", "__INTERFACES_H__", "", "N", ""]
+            },
+            {
+              "name": "OutOfProcessConfig",
+              "header": "INetworkControl.h",
+              "answers": ["OutOfProcessConfig", "Y", "Y", "__INTERFACES_H__", "", "N", ""]
+            },
+            {
+              "name": "InProcessPreconditions",
+              "header": "ITimeSync.h",
+              "answers": ["InProcessPreconditions", "N", "N", "__INTERFACES_H__", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""]
+            },
+            {
+              "name": "OutOfProcessPreconditions",
+              "header": "IMessageControl.h",
+              "answers": ["OutOfProcessPreconditions", "Y", "N", "__INTERFACES_H__", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""]
+            },
+            {
+              "name": "InProcessConfigPreconditions",
+              "header": "IDictionary.h",
+              "answers": ["InProcessConfigPreconditions", "N", "Y", "__INTERFACES_H__", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""]
+            },
+            {
+              "name": "OutOfProcessConfigPreconditions",
+              "header": "IBluetooth.h",
+              "answers": ["OutOfProcessConfigPreconditions", "Y", "Y", "__INTERFACES_H__", "", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""]
+            }
+          ]
+
+          include = []
+          for v in variants:
+            stdin = "\n".join(v["answers"]) + "\n"
+            include.append({"name": v["name"], "header": v["header"], "stdin": stdin})
+
+          matrix = json.dumps({"include": include})
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as f:
+            f.write(f"matrix={matrix}\n")
+
+  generate:
+    runs-on: ubuntu-latest
+    needs: [ prepare ]
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    steps:
+      - name: Checkout this repo
+        uses: actions/checkout@v4
+
+      - name: Checkout ThunderInterfaces
+        uses: actions/checkout@v4
+        with:
+          repository: rdkcentral/ThunderInterfaces
+          path: ThunderInterfaces
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Install Python deps
+        run: |
+          python -m pip install --upgrade pip
+          python -m pip install PyYAML
+
+      - name: Run PluginSkeletonGenerator
+        shell: bash
+        env:
+          HEADER: ${{ matrix.header }}
+          VARIANT_STDIN: ${{ matrix.stdin }}
+        run: |
+          set -euo pipefail
+          mkdir -p generated
+          cd generated
+
+          INTERFACES_H="${GITHUB_WORKSPACE}/ThunderInterfaces/interfaces/${HEADER}"
+          STDIN="${VARIANT_STDIN/__INTERFACES_H__/${INTERFACES_H}}"
+
+          printf '%b' "$STDIN" | python ../PluginSkeletonGenerator/PluginSkeletonGenerator.py
+
+      - name: Upload generated variant as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: PluginSkeleton-${{ matrix.name }}
+          path: generated/${{ matrix.name }}/
+          compression-level: 9
+
+  publish_pages:
+    runs-on: ubuntu-latest
+    needs: [ prepare, generate ]
+
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Download all generated artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Checkout gh-pages (baseline for PR diffs)
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: ghpages_baseline
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Setup Node (for diff2html-cli)
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build static preview site (and diff for PRs)
+        id: build_site
+        shell: bash
+        env:
+          MATRIX_JSON: ${{ needs.prepare.outputs.matrix }}
+          TOOL_NAME: "PluginSkeletonGenerator"
+        run: |
+          set -euo pipefail
+
+          HAS_DIFF="false"
+          mkdir -p site
+
+          # ----- Set BASE_DIR based on event type -----
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_DIR="previews/pr-${{ github.event.pull_request.number }}"
+          else
+            BASE_DIR="master"
+          fi
+
+          # ----- Define RUN_DIR using the guaranteed-set BASE_DIR -----
+          RUN_DIR="${BASE_DIR}/run-${{ github.run_id }}"
+          export BASE_DIR RUN_DIR
+          echo "BASE_DIR=$BASE_DIR" >> "$GITHUB_ENV"
+          echo "RUN_DIR=$RUN_DIR" >> "$GITHUB_ENV"
+
+          mkdir -p "site/$RUN_DIR"
+          touch site/.nojekyll
+
+          # ----- PR-only: diff vs gh-pages baseline -----
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/master/latest_raw"
+            mkdir -p diffs "site/$RUN_DIR/diff"
+            > diffs/plugins_with_diffs.txt
+
+            python - <<'PY' > variant_names.txt
+          import json, os
+          try:
+              m = json.loads(os.environ["MATRIX_JSON"])
+              for item in m["include"]:
+                  print(item["name"])
+          except:
+              pass
+          PY
+
+            while read -r name; do
+              if [[ -d "${BASELINE_ROOT}/${name}" ]]; then
+                git diff --no-index \
+                  --src-prefix=baseline/ \
+                  --dst-prefix=generated/ \
+                  -- "${BASELINE_ROOT}/${name}" "artifacts/PluginSkeleton-${name}" \
+                  > "diffs/${name}.diff" || true
+
+                if [[ -s "diffs/${name}.diff" ]]; then
+                  npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/${name}.html" -- "diffs/${name}.diff"
+                  echo "$name" >> diffs/plugins_with_diffs.txt
+                fi
+              else
+                cat > "site/$RUN_DIR/diff/${name}.html" <<HTML
+          <!doctype html>
+          <meta charset="utf-8">
+          <title>${name} diff</title>
+          <p>No baseline found at <code>master/latest_raw/${name}</code> on gh-pages.</p>
+          HTML
+                echo "$name" >> diffs/plugins_with_diffs.txt
+              fi
+            done < variant_names.txt
+
+            cat diffs/*.diff 2>/dev/null > diffs/combined.diff || true
+            head -c 20000 diffs/combined.diff > diffs/combined_trunc.diff 2>/dev/null || true
+
+            if [[ -s diffs/plugins_with_diffs.txt ]]; then
+              HAS_DIFF="true"
+            fi
+          fi
+          
+          echo "has_diff=$HAS_DIFF" >> "$GITHUB_OUTPUT"
+
+          # ----- Copy all generated variants -----
+          python - <<'PY' > variant_names.txt
+          import json, os
+          m = json.loads(os.environ["MATRIX_JSON"])
+          for item in m["include"]:
+              print(item["name"])
+          PY
+
+          mkdir -p "site/$RUN_DIR/baseline"
+
+          while read -r name; do
+            cp -a "artifacts/PluginSkeleton-${name}" "site/$RUN_DIR/${name}"
+            cp -a "artifacts/PluginSkeleton-${name}" "site/$RUN_DIR/baseline/${name}"
+          done < variant_names.txt
+
+          # ----- Dark theme CSS -----
+          mkdir -p "site/$RUN_DIR/assets"
+          cat > "site/$RUN_DIR/assets/style.css" <<'CSS'
+          :root{
+            color-scheme: dark;
+            --bg:#0d1117; --fg:#c9d1d9; --muted:#8b949e; --link:#58a6ff;
+            --border:#30363d; --card:#161b22;
+          }
+          body{margin:0;font:18px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;background:var(--bg);color:var(--fg)}
+          a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+          .container{max-width:1100px;margin:0 auto;padding:24px}
+          .nav{display:flex;gap:14px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--border);
+               background:rgba(13,17,23,.92);position:sticky;top:0;z-index:10}
+          .nav a{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+          h1{font-size:28px;margin:18px 0}
+          CSS
+
+          # ----- Build hub + folder indexes -----
+          python - <<'PY'
+          from pathlib import Path
+          import html, json, os, re
+
+          matrix = json.loads(os.environ["MATRIX_JSON"])
+          variants = [i["name"] for i in matrix["include"]]
+
+          run_root = Path("site") / os.environ["RUN_DIR"]
+          css_root = "./assets/style.css"
+
+          def nav(home: str) -> str:
+              links = [f"<a href='{home}'>Preview</a>"]
+              for v in variants:
+                  links.append(f"<a href='{home}{html.escape(v)}/'>{html.escape(v)}</a>")
+              links.append(f"<a href='{home}diff/'>Diff</a>")
+              return "".join(links)
+
+          def wrap(title: str, home: str, body_html: str, css_href: str) -> str:
+              return "\n".join([
+                  "<!doctype html>",
+                  "<html><head><meta charset='utf-8'>",
+                  f"<title>{html.escape(title)}</title>",
+                  f"<link rel='stylesheet' href='{html.escape(css_href)}'>",
+                  "</head><body>",
+                  f"<div class='nav'>{nav(home)}</div>",
+                  "<div class='container'>",
+                  body_html,
+                  "</div></body></html>",
+              ])
+
+          # ----- Hub page -----
+          items = ["<h1>PluginSkeletonGenerator output</h1><ul>"]
+          for v in variants:
+              items.append(f"<li><a href='./{html.escape(v)}/'>Browse {html.escape(v)}</a></li>")
+          if (run_root / "diff").exists():
+              items.append("<li><a href='./diff/'>Diff vs master/latest_raw</a></li>")
+          items.append("</ul>")
+          (run_root / "index.html").write_text(wrap("Preview", "./", "\n".join(items), css_root), encoding="utf-8")
+
+          def rel_home(dir_path: Path) -> str:
+              rel = dir_path.relative_to(run_root)
+              depth = len(rel.parts)
+              return "./" if depth == 0 else "../" * depth
+
+          def write_dir_index(dir_path: Path):
+              home = rel_home(dir_path)
+              css_href = f"{home}assets/style.css"
+              entries = sorted(dir_path.iterdir(), key=lambda p: (p.is_file(), p.name.lower()))
+              lst = ["<h1>%s</h1><ul>" % html.escape(dir_path.name), f"<li><a href='{home}'>⟵ Back to preview</a></li>"]
+              for p in entries:
+                  if p.name == "index.html":
+                      continue
+                  name = p.name + ("/" if p.is_dir() else "")
+                  href = p.name + ("/" if p.is_dir() else "")
+                  lst.append(f"<li><a href='{html.escape(href)}'>{html.escape(name)}</a></li>")
+              lst.append("</ul>")
+              (dir_path / "index.html").write_text(wrap(dir_path.name, home, "\n".join(lst), css_href), encoding="utf-8")
+
+          def walk(root: Path):
+              if not root.exists():
+                  return
+              for d in [root] + [p for p in root.rglob("*") if p.is_dir()]:
+                  write_dir_index(d)
+
+          for v in variants:
+              walk(run_root / v)
+          walk(run_root / "diff")
+
+          # ----- Diff index -----
+          diff_dir = run_root / "diff"
+          if diff_dir.exists():
+              home = rel_home(diff_dir)
+              css_href = f"{home}assets/style.css"
+
+              plugins_with_diffs_path = Path("diffs/plugins_with_diffs.txt")
+              if plugins_with_diffs_path.exists():
+                  plugins_with_diffs = [
+                      line.strip() for line in plugins_with_diffs_path.read_text(encoding="utf-8").splitlines() if line.strip()
+                  ]
+              else:
+                  plugins_with_diffs = []
+
+              if plugins_with_diffs:
+                  body = (
+                      "<h1>Diff</h1><ul>"
+                      f"<li><a href='{home}'>⟵ Back to preview</a></li>"
+                      + "".join(f"<li><a href='./{html.escape(v)}.html'>{html.escape(v)}</a></li>" for v in plugins_with_diffs)
+                      + "</ul>"
+                  )
+              else:
+                  body = (
+                      "<h1>Diff</h1>"
+                      f"<p><a href='{home}'>⟵ Back to preview</a></p>"
+                      "<p>No changes detected in any generated plugin.</p>"
+                  )
+              (diff_dir / "index.html").write_text(wrap("Diff", home, body, css_href), encoding="utf-8")
+
+          # ----- Patch diff2html pages -----
+          for v in variants:
+              p = diff_dir / f"{v}.html"
+              if not p.exists():
+                  continue
+              home = rel_home(p.parent)
+              css_href = f"{home}assets/style.css"
+              txt = p.read_text(encoding="utf-8")
+
+              if css_href not in txt:
+                  txt = re.sub(r"</head>", f"  <link rel='stylesheet' href='{css_href}'>\n</head>", txt, count=1, flags=re.I)
+
+              if "class='nav'" not in txt and 'class="nav"' not in txt:
+                  txt = re.sub(r"<body[^>]*>", lambda m: m.group(0) + f"\n<div class='nav'>{nav(home)}</div>\n<div class='container'>", txt, count=1, flags=re.I)
+                  txt = re.sub(r"</body>", "</div>\n</body>", txt, count=1, flags=re.I)
+
+              p.write_text(txt, encoding="utf-8")
+          PY
+
+          # ----- On master pushes: also publish stable baselines -----
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            rm -rf "site/master/latest"
+            mkdir -p "site/master"
+            cp -a "site/$RUN_DIR" "site/master/latest"
+
+            rm -rf "site/master/latest_raw"
+            cp -a "site/$RUN_DIR/baseline" "site/master/latest_raw"
+
+            cat > "site/master/index.html" <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./latest/">
+          <a href="./latest/">Open latest master baseline</a>
+          HTML
+          fi
+
+          # ----- Stable pointer page -----
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            mkdir -p "site/$BASE_DIR"
+            cat > "site/$BASE_DIR/index.html" <<HTML
+          <!doctype html>
+          <meta charset="utf-8">
+          <meta http-equiv="refresh" content="0; url=./run-${{ github.run_id }}/">
+          <a href="./run-${{ github.run_id }}/">Open latest run</a>
+          HTML
+          fi
+
+          # ----- Optional tool root index -----
+          cat > "site/index.html" <<'HTML'
+          <!doctype html>
+          <meta charset="utf-8">
+          <h1>ThunderTools PluginSkeletonGenerator previews</h1>
+          <ul>
+            <li><a href="./master/">master</a></li>
+            <li><a href="./previews/">previews</a></li>
+          </ul>
+          HTML
+
+      - name: Deploy to gh-pages (keep other previews)
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          destination_dir: PluginSkeletonGenerator
+          keep_files: true
+
+      - name: Prepare diff for AI
+        if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+
+          p = Path("diffs/combined_trunc.diff")
+          if not p.exists():
+              Path("diffs/combined_ai.diff").write_text("", encoding="utf-8")
+              raise SystemExit(0)
+
+          text = p.read_text(encoding="utf-8", errors="ignore")
+          text = text.replace("ghpages_baseline/PluginSkeletonGenerator/master/latest_raw/", "baseline/")
+          text = text.replace("artifacts/PluginSkeleton-", "generated/")
+          Path("diffs/combined_ai.diff").write_text(text, encoding="utf-8")
+          PY
+
+      - name: AI summary (GitHub Models)
+        if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
+        id: ai
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          DIFF_TEXT="$(cat diffs/combined_ai.diff 2>/dev/null || true)"
+          if [[ -z "$DIFF_TEXT" ]]; then
+            echo "summary=No diff available to summarize." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          export DIFF_TEXT
+
+          payload="$(python - <<'PY'
+          import json, os
+          print(json.dumps({
+            "model": "openai/gpt-4.1",
+            "messages": [
+              {"role": "system", "content": "Summarize these diffs for reviewers. Ignore build/CI paths. Start directly with the bullet points; do not provide an intro sentence."},
+              {"role": "user", "content": os.environ["DIFF_TEXT"][:20000]}
+            ],
+            "temperature": 0.2
+          }))
+          PY
+          )"
+
+          http_code="$(
+            curl -sS -L \
+              -o resp.json \
+              -w '%{http_code}' \
+              -H "Accept: application/vnd.github+json" \
+              -H "Authorization: Bearer ${GH_TOKEN}" \
+              -H "X-GitHub-Api-Version: 2022-11-28" \
+              -H "Content-Type: application/json" \
+              https://models.github.ai/inference/chat/completions \
+              -d "$payload" || true
+          )"
+
+          if [[ "$http_code" != "200" ]]; then
+            echo "GitHub Models call failed: HTTP $http_code" >&2
+            echo "Response (first 800 chars):" >&2
+            head -c 800 resp.json >&2 || true
+            echo "summary=AI summary unavailable (HTTP $http_code). Check workflow logs." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          summary="$(python - <<'PY'
+          import json
+          with open("resp.json", "r", encoding="utf-8", errors="ignore") as f:
+            obj = json.load(f)
+          print(obj["choices"][0]["message"]["content"].strip())
+          PY
+          )"
+
+          if [[ -z "$summary" ]]; then
+            echo "summary=AI summary returned empty content." >> "$GITHUB_OUTPUT"
+          else
+            {
+              echo "summary<<EOF"
+              echo "$summary"
+              echo "EOF"
+            } >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Wait for Pages to be available
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/PluginSkeletonGenerator/${{ env.RUN_DIR }}/"
+
+          echo "Waiting for: $URL"
+          for i in {1..30}; do
+            code="$(curl -s -o /dev/null -L -w '%{http_code}' "$URL" || true)"
+            if [[ "$code" == "200" || "$code" == "301" || "$code" == "302" ]]; then
+              echo "Pages is live (HTTP $code)"
+              exit 0
+            fi
+            echo "Not live yet (HTTP $code), retrying in 3s..."
+            sleep 3
+          done
+
+          echo "Timed out waiting for GitHub Pages to serve the new content."
+          exit 0
+
+      - name: Comment PR with Pages link (run-versioned)
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            Plugin skeleton preview (latest run):
+            https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/PluginSkeletonGenerator/${{ env.RUN_DIR }}/
+
+            ${{ steps.build_site.outputs.has_diff == 'true' && '**AI summary of generated diff:**' || '**No changes detected** in generated plugin code. The PR changes are internal to the generator or do not affect output.' }}
+            ${{ steps.build_site.outputs.has_diff == 'true' && steps.ai.outputs.summary || '' }}
+
+  compile_generated_plugins:
+    name: Compile generated plugins
+    runs-on: ubuntu-latest
+    needs: [ prepare, generate, ThunderInterfaces ]
+    strategy:
+      fail-fast: false
+      matrix:
+        build_type: [Debug, Release, MinSizeRel]
+        architecture: [32, 64]
+
+    steps:
+      - name: Install build tools
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y ninja-build
+          if [[ "${{ matrix.architecture }}" == "32" ]]; then
+            sudo apt-get install -y gcc-multilib g++-multilib
+          fi
+
+      - name: Download all artifacts from this run
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts_all
+
+      - name: Unpack Thunder + ThunderInterfaces for this flavor
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          SUFFIX="${{ matrix.build_type }}${{ matrix.architecture == 32 && '_x86' || '' }}"
+
+          THUNDER_ART_DIR="artifacts_all/Thunder-${SUFFIX}-artifact"
+          TI_ART_DIR="artifacts_all/ThunderInterfaces-${SUFFIX}-artifact"
+
+          mkdir -p "${{ matrix.build_type }}"
+
+          tar -xvzf "${THUNDER_ART_DIR}/${SUFFIX}.tar.gz"
+          tar -xvzf "${TI_ART_DIR}/${SUFFIX}.tar.gz"
+
+          rm -f "${THUNDER_ART_DIR}/${SUFFIX}.tar.gz" "${TI_ART_DIR}/${SUFFIX}.tar.gz"
+
+      - name: Build all generated plugins
+        shell: bash
+        env:
+          MATRIX_JSON: ${{ needs.prepare.outputs.matrix }}
+        run: |
+          set -euo pipefail
+
+          MODULES_DIR="${PWD}/${{ matrix.build_type }}/install/usr/include/WPEFramework/Modules"
+
+          python - <<'PY' > variant_names.txt
+          import json, os
+          m = json.loads(os.environ["MATRIX_JSON"])
+          for item in m["include"]:
+            print(item["name"])
+          PY
+
+          while read -r name; do
+            SRC_DIR="artifacts_all/PluginSkeleton-${name}"
+
+            if [[ ! -d "$SRC_DIR" ]]; then
+              echo "Missing generated artifact for variant: $name"
+              echo "Expected directory: $SRC_DIR"
+              exit 1
+            fi
+
+            BUILD_DIR="${{ matrix.build_type }}/build/${name}"
+
+            cmake -G Ninja -S "$SRC_DIR" -B "$BUILD_DIR" \
+              -DCMAKE_BUILD_TYPE="${{ matrix.build_type }}" \
+              -DCMAKE_CXX_FLAGS="-Wall -Wextra -Wpedantic -Werror -m${{ matrix.architecture }}" \
+              -DCMAKE_C_FLAGS="-Wall -Wextra -Wpedantic -Werror -m${{ matrix.architecture }}" \
+              -DCMAKE_INSTALL_PREFIX="${{ matrix.build_type }}/install/usr" \
+              -DCMAKE_MODULE_PATH="${MODULES_DIR}"
+
+            cmake --build "$BUILD_DIR" --target install
+          done < variant_names.txt
+
+      - name: Tar files
+        shell: bash
+        run: |
+          set -euo pipefail
+          SUFFIX="${{ matrix.build_type }}${{ matrix.architecture == 32 && '_x86' || '' }}"
+          tar -czvf "${SUFFIX}.tar.gz" "${{ matrix.build_type }}"
+
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: ThunderNanoServices-${{ matrix.build_type }}${{ matrix.architecture == 32 && '_x86' || '' }}-artifact
+          path: ${{ matrix.build_type }}${{ matrix.architecture == 32 && '_x86' || '' }}.tar.gz
