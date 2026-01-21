@@ -157,6 +157,8 @@ jobs:
 
       - name: Checkout gh-pages (baseline for PR diffs)
         if: github.event_name == 'pull_request'
+        id: checkout_baseline
+        continue-on-error: true
         uses: actions/checkout@v4
         with:
           ref: gh-pages
