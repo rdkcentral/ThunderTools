@@ -217,7 +217,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                     or (isinstance(p, JsonString) and p.schema.get("encode")))
 
             if params.properties and params.do_create:
-                for i,p in enumerate(params.properties):
+                for p in params.properties:
 
                     if CheckLegacyArray(p):
                         parameters.append("const string& %s" % p.local_name)
@@ -231,7 +231,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
         elif params_type == "json":
             if params.properties and params.do_create:
-                for i,p in enumerate(params.properties):
+                for p in params.properties:
                     parameters.append("const %s& %s" % (p.cpp_type, p.local_name))
             else:
                 parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
