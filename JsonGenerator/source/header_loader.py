@@ -1259,6 +1259,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by reference parameter")
             else:
+                # See if index is by a Register method
                 for p in method.vars:
                     if p.meta.is_index:
                         index_found = False
@@ -1269,6 +1270,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                         for evmp in evm.vars:
                                             if evmp.name == p.name:
                                                 if "index-by-register" not in evmp.meta.decorators:
+                                                    # If index is also tagged by method the they must not differ in depracation tag
                                                     if "index-deprecated" in p.meta.decorators:
                                                         if "index-deprecated" not in evmp.meta.decorators and evmp.meta.is_index:
                                                             raise CppParseError(evm, "%s: event index depreciation mismatch (expected @index:deprecated)" % evmp.name)
@@ -1282,7 +1284,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                                     evmp.meta.decorators.append("index-by-register")
                                                     evmp.meta.is_index = True
 
-                                                    if isinstance(p.type.type, CppParser.Optional):
+                                                    # Usually index by Register will be optional, so allow the difference in optionality (but not in the underylying type!)
+                                                    # and the index in method will implicitly also be made optional
+                                                    if isinstance(p.type.type, CppParser.Optional) and not isinstance(evmp.type.type, CppParser.Optional):
                                                         evmp.type.type = CppParser.Optional(CppParser.OptionalElement(evmp, [evmp.type.type.type]))
                                                         evmp.type.ref |= CppParser.Ref.REFERENCE
 
