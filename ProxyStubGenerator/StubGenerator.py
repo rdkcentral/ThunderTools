@@ -239,6 +239,11 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
         emit.Line("-- Generated automatically. DO NOT EDIT")
         emit.Line()
         emit.Line("GENERATOR_VERSION = 2")
+        emit.Line("FRAMEWORK_NAMESPACE = \"%s\"" % FRAMEWORK_NAMESPACE)
+
+        if ENABLE_ITERATOR_OPTIMIZATION:
+            emit.Line("COLLATED_ITERATORS = true")
+
         emit.Line()
         emit.Line("INTERFACES, METHODS, ENUMS, Type = ...")
         emit.Line()
