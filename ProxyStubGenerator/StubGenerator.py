@@ -366,11 +366,12 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     return optional_type
 
                 if param.IsPointer() and isinstance(p, CppParser.Class):
-                    iterator_optimization = p.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not "interface-iterator" in meta.decorators
+                    iterator_optimization = p.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not p.is_force_interface
 
                     if iterator_optimization:
                         size = "16"
                         if meta.range.has_max:
+                            # todo: missing int24 optimization opportunity
                             if meta.range.max < 256:
                                 size = "8"
                             elif meta.range.max > 65535:
@@ -378,6 +379,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                         lua_type.append_type(("VECTOR" + size), param, paramtype)
                         lua_type.append("element", Convert(p.resolvedArgs[0], None, None))
+                        lua_type.append("optimized_iterator", "true")
                     else:
                         index = 0
 
@@ -524,7 +526,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                             if (isinstance(e.value, int)):
                                 data[e.value] = e.name
                             else:
-                                log.Warn("unable to evaluate enum value '%s'" % "".join([str(x) for x in e.value]))
+                                log.Warn("unable to evaluate the numeric value of enumerator '%s'" % "".join([str(x) for x in e.value]))
 
                         enums_list[name] = data
 
@@ -563,6 +565,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                 elif isinstance(p, CppParser.Vector):
                     size = "16"
                     if meta.range.has_max:
+                        # todo: missing int24 optimization opportunity
                         if meta.range.max < 256:
                             size = "8"
                         elif meta.range.max > 65535:
@@ -572,6 +575,14 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     lua_type.append("element", Convert(p.element, None, None))
                 else:
                     assert False, "Unimplemented type in lua generator: %s" % p
+
+                # Pass restrict range along
+                if meta.range.has_min and meta.range.has_max:
+                    lua_type.append("restrict", "{ min = %s, max = %s }" % (meta.range.min, meta.range.max))
+                elif meta.range.has_max:
+                    lua_type.append("restrict", "{ max = %s }" % meta.range.max)
+                elif meta.range.has_min:
+                    lua_type.append("restrict", "{ min = %s }" % meta.range.min)
 
                 return lua_type
 
@@ -626,7 +637,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
             if lua_params:
                 lua_method.append("params", "{ %s }" % ", ".join([str(x) for x in lua_params]))
 
-            #emit.Line("-- %s" % m.Proto())
             emit.Line("[%s] = { %s }%s " % (idx + 3, lua_method.join(), ("," if idx != len(emit_methods) - 1 else "")))
 
         emit.IndentDec()
