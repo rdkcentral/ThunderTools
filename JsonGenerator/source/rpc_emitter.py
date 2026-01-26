@@ -206,7 +206,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     if lookup:
         parameters.append("const %s* const %s" % (trim(lookup["fullname"]), "_obj"))
 
-    if event.sendif_type and (has_extra_index or event.sendif_deprecated or params_type != "native"):
+    if event.sendif_type and (((has_extra_index or not event.sendif_type.optional) or event.sendif_deprecated) or params_type != "native"):
         parameters.append("const %s& %s" % (event.sendif_type.cpp_native_type_opt, names.id))
 
     if not params.is_void:
@@ -218,17 +218,12 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
             if params.properties and params.do_create:
                 for p in params.properties:
-                    if p.schema.get("@lookup") == "custom":
-                        has_custom_lookup_params = True
 
                     if CheckLegacyArray(p):
                         parameters.append("const string& %s" % p.local_name)
                     else:
                         parameters.append(trim(p.local_proto))
             else:
-                if params.schema.get("@lookup") == "custom":
-                    has_custom_lookup_params = True
-
                 if CheckLegacyArray(params):
                     parameters.append("const string& %s" % p.local_name)
                 else:
@@ -443,10 +438,10 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 parameters.append("_obj")
 
         if event.sendif_type:
-            if has_extra_index or event.sendif_deprecated or params_type == "json":
+            if (((has_extra_index or not event.sendif_type.optional) or event.sendif_deprecated) or params_type != "native"):
                 parameters.append(names.id)
             else:
-                parameters.append(params.properties[0].name)
+                parameters.append(params.properties[0].name + (".Value()" if (params.properties[0].optional and params_type == "native") else ""))
 
         if not params.is_void:
             parameters.append(names.params)
@@ -512,7 +507,6 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 cond.append("(%s == %s)" % ("_errorCode__", CoreError("none")))
 
             if event.sendif_type and event.sendif_deprecated:
-
                 if event.is_status_listener and has_client:
                     emit.Line("const size_t _dot = %s.find('.');" % (names.designator))
                     emit.Line("const string %s = %s.substr(0, _dot);" % (names.designator_id, names.designator))
@@ -527,10 +521,10 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
             else:
                 if event.sendif_type:
                     converted, _ = FromString(emit, event.sendif_type, emit_restrictions=False)
-                    if has_extra_index:
-                        cond.append("(%s == %s)" % ( names.id, converted))
-                    elif event.sendif_type.optional:
+                    if event.sendif_type.optional and not has_extra_index:
                         cond.append("((%s.IsSet() == false) || (%s == %s))" % (converted, names.id, converted))
+                    else:
+                        cond.append("(%s == %s)" % ( names.id, converted))
 
                 if event.is_status_listener and has_client:
                     cond.append("(%s == %s)" % (names.client, names.designator))
@@ -600,7 +594,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     if event.is_status_listener and not has_client:
         EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, has_extra_index=has_extra_index, legacy_array=legacy_array, async_event=async_event)
 
-    if event.sendif_type and not event.sendif_deprecated and not has_extra_index and not has_client and params_type != "json":
+    if event.sendif_type and event.sendif_type.optional and not event.sendif_deprecated and not has_extra_index and not has_client and params_type != "json":
         EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=True, legacy_array=legacy_array, async_event=async_event)
 
 
