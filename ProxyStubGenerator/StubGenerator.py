@@ -251,7 +251,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
     emit.Line("--  %s" % os.path.basename(source_file))
 
     iface_namespace_l = ns.split("::")
-    iface_namespace = iface_namespace_l[-1]
 
     for iface in interfaces:
         iface_name = Flatten(iface.obj.type, ns)
@@ -291,9 +290,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
         for idx, m in enumerate(emit_methods):
             name = "name = \"%s\"" % m.name
-            params = []
-            retval = []
-            items = [ name ]
 
             def ParseLength(param, length, retval, vars):
                 def _Convert(size):
@@ -306,7 +302,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 if isinstance(length, list) and len(length) == 1:
                     if length[0] == "void":
-                        return [_Convert(param.Type().size), None]
+                        return ['8', 1]
                     elif length[0] == "return":
                         return [_Convert(retval.type.Type().size), "return"]
 
@@ -407,6 +403,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     if paramtype.array or meta.length or meta.maxlength:
                         parsed = ParseLength(param, [str(paramtype.array)] if paramtype.array else meta.length if meta.length else meta.maxlength, retval, vars)
 
+                        length_param = None
+                        length_value = None
+
                         if parsed[1]:
                             if (isinstance(parsed[1], str)):
                                 length_param = parsed[1]
@@ -414,11 +413,17 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                                 length_value = parsed[1]
 
                         if isinstance(p, CppParser.Integer) and p.size == "char":
+                            # char[] is sent as a buffer
                             lua_type.append_type(("BUFFER" + parsed[0]), param, paramtype)
                         else:
                             element = Convert(paramtype, None, None, allow_ptr=False)
-                            lua_type.append_type(("ARRAY" + parsed[0]), param, paramtype)
+
+                            # "ARRAY" for fixed array, "ARRAYn" for variable array
+                            lua_type.append_type("ARRAY" + (parsed[0] if length_param else ""), param, paramtype)
                             lua_type.append("element", "{ %s }" % element.join())
+
+                            if length_value:
+                                lua_type.append("count", length_value)
 
                     elif meta.interface:
                         index = 0
@@ -438,12 +443,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                             lua_type.append("interface_param", index)
 
                     else:
-                        assert False
+                        raise TypenameError(paramtype, "%s: unable to determine array/buffer size" % paramtype.name)
 
                 elif isinstance(p, CppParser.Integer):
-                    length_param = None
-                    length_value = None
-
                     if paramtype.type.TypeName().endswith(HRESULT):
                         value = "HRESULT"
                     elif p.size == "char" and "signed" not in p.type and "unsigned" not in p.type and "_t" not in p.type:
@@ -485,11 +487,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                                         break
 
                     lua_type.append_type(value, param, paramtype)
-
-                    if length_param:
-                        lua_type.append("length_param", length_param)
-                    elif length_value:
-                        lua_type.append("length_value", length_value)
 
                 elif isinstance(p, CppParser.String):
                     size = "16"
@@ -2934,7 +2931,8 @@ if __name__ == "__main__":
         if interface_files:
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
-                lua_file = open(("." if not OUTDIR else OUTDIR) + os.sep + name, "w")
+                output_file = ("." if not OUTDIR else OUTDIR) + os.sep + name
+                lua_file = open(output_file, "w")
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
                 lua_enums = dict()
