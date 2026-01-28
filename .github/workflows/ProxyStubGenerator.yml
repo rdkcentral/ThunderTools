@@ -1,0 +1,415 @@
+name: ProxyStubGenerator Checks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - "ProxyStubGenerator/**"
+      - ".github/workflows/ProxyStubGenerator.yml"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "ProxyStubGenerator/**"
+      - ".github/workflows/ProxyStubGenerator.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+  models: read
+
+concurrency:
+  group: proxystub-previews-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  Thunder:
+    uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
+
+  ThunderInterfaces:
+    needs: Thunder
+    uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@master
+
+  harvest_generated_code:
+    runs-on: ubuntu-latest
+    needs: ThunderInterfaces
+    strategy:
+      fail-fast: false
+      matrix:
+        artifact_name: 
+          - "ThunderInterfaces-Debug-artifact"
+          - "ThunderInterfaces-Release-artifact"
+
+    steps:
+      - name: Download ThunderInterfaces Artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ matrix.artifact_name }}
+          path: download_temp
+
+      - name: Extract and Isolate Generated Files
+        run: |
+          set -euo pipefail
+
+          # ----- Paths to the generated files -----
+          PATHS_TO_HARVEST=(
+            "ThunderInterfaces/interfaces/generated"
+            "Thunder/Source/com/generated"
+            "Thunder/Source/core/generated"
+            "Thunder/Source/plugins/generated"
+          )
+
+          VARIANT="${{ matrix.artifact_name }}"
+          VARIANT="${VARIANT#ThunderInterfaces-}"
+          VARIANT="${VARIANT%-artifact}"
+
+          DEST_DIR="generated_proxies/$VARIANT"
+          mkdir -p "$DEST_DIR"
+
+          TAR_FILE=$(find download_temp -name "*.tar.gz" | head -n 1)
+          if [[ -z "$TAR_FILE" ]]; then
+            echo "::error::No tarball found"
+            exit 1
+          fi
+
+          mkdir -p temp_extract
+          tar -xzf "$TAR_FILE" -C temp_extract
+
+          echo "Scanning artifact for configured paths..."
+
+          for REL_PATTERN in "${PATHS_TO_HARVEST[@]}"; do
+            echo "Searching for path suffix: $REL_PATTERN"
+
+            FOUND_PATHS=$(find temp_extract -type d | grep "${REL_PATTERN}$" || true)
+
+            if [[ -z "$FOUND_PATHS" ]]; then
+              echo "::warning::Path suffix '$REL_PATTERN' not found in artifact."
+              continue
+            fi
+
+            echo "$FOUND_PATHS" | while read -r SRC; do
+              # Structure the output: if we found ".../build/Thunder/Source/com/generated", we want output "Thunder/Source/com/generated"
+              # We use the pattern itself as the destination structure to keep it recognized - this ensures "Thunder/..." stays separate from "ThunderInterfaces/..."
+              SUB_DEST="$DEST_DIR/$REL_PATTERN"
+
+              echo "  -> Found: $SRC"
+              echo "  -> Copying to: $SUB_DEST"
+
+              mkdir -p "$SUB_DEST"
+              cp -r "$SRC"/* "$SUB_DEST/"
+            done
+          done
+
+          # ----- Verify results -----
+          if [[ -z "$(ls -A "$DEST_DIR")" ]]; then
+             echo "::error::No files extracted. Debugging structure:"
+             find temp_extract -maxdepth 4
+             exit 1
+          fi
+
+          rm -rf temp_extract download_temp
+
+      - name: Upload Variant Proxy
+        uses: actions/upload-artifact@v4
+        with:
+          name: ProxyStub-Output-${{ strategy.job-index }}
+          path: generated_proxies/
+          retention-days: 1
+
+  publish_pages:
+    runs-on: ubuntu-latest
+    needs: harvest_generated_code
+
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Download All Generated Variants
+        uses: actions/download-artifact@v4
+        with:
+          pattern: ProxyStub-Output-*
+          path: artifacts_all
+          merge-multiple: true
+
+      - name: Checkout gh-pages (baseline)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: ghpages_baseline
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Build static preview site
+        id: build_site
+        shell: bash
+        env:
+          TOOL_NAME: "ProxyStubGenerator"
+        run: |
+          set -euo pipefail
+
+          HAS_DIFF="false"
+          mkdir -p site
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_DIR="previews/pr-${{ github.event.pull_request.number }}"
+          else
+            BASE_DIR="master"
+          fi
+
+          RUN_DIR="${BASE_DIR}/run-${{ github.run_id }}"
+
+          # ----- Save for future steps -----
+          echo "RUN_DIR=$RUN_DIR" >> "$GITHUB_ENV"
+          
+          # ----- Export for the current step (the Python script below needs this) -----
+          export RUN_DIR
+          export HAS_DIFF  # We will update this later, but export it now
+
+          mkdir -p "site/$RUN_DIR"
+          touch site/.nojekyll
+
+          # ----- Prepare 'generated' folder -----
+          mkdir -p generated
+          cp -r artifacts_all/* generated/
+
+          # ----- PR-only: diff vs gh-pages baseline -----
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/master/latest_raw"
+            mkdir -p diffs "site/$RUN_DIR/diff"
+
+            if [[ -d "$BASELINE_ROOT" ]]; then
+               git diff --no-index \
+                  --src-prefix=baseline/ \
+                  --dst-prefix=generated/ \
+                  -- "$BASELINE_ROOT" "generated" \
+                  > "diffs/combined.diff" || true
+            else
+               mkdir empty_dir
+               git diff --no-index \
+                  --src-prefix=baseline/ \
+                  --dst-prefix=generated/ \
+                  -- "empty_dir" "generated" \
+                  > "diffs/combined.diff" || true
+            fi
+
+            if [[ -s "diffs/combined.diff" ]]; then
+               HAS_DIFF="true"
+               export HAS_DIFF  # Update export so Python sees "true"
+
+               npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/index.html" -- "diffs/combined.diff"
+               head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff
+            else
+               mkdir -p "site/$RUN_DIR/diff"
+               echo "<h1>No changes detected</h1>" > "site/$RUN_DIR/diff/index.html"
+            fi
+          fi
+
+          echo "has_diff=$HAS_DIFF" >> "$GITHUB_OUTPUT"
+
+          # ----- Copy files for browsing -----
+          mkdir -p "site/$RUN_DIR/browse"
+          cp -r generated/* "site/$RUN_DIR/browse/"
+
+          # ----- Generate Site with Python -----
+          # Pass env vars explicitly to be 100% safe
+          RUN_DIR="$RUN_DIR" HAS_DIFF="$HAS_DIFF" python - <<'PY'
+          import os
+          from pathlib import Path
+          import html
+
+          run_dir = os.environ["RUN_DIR"]
+          has_diff = os.environ.get("HAS_DIFF") == "true"
+
+          site_root = Path("site") / run_dir
+          browse_root = site_root / "browse"
+
+          # ----- Generate Dark Theme CSS -----
+          css_path = site_root / "assets" / "style.css"
+          css_path.parent.mkdir(parents=True, exist_ok=True)
+          css_path.write_text("""
+          :root{color-scheme:dark;--bg:#0d1117;--fg:#c9d1d9;--muted:#8b949e;--link:#58a6ff;--border:#30363d;--card:#161b22;}
+          body{margin:0;font:18px/1.55 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg)}
+          a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+          .container{max-width:1100px;margin:0 auto;padding:24px}
+          .nav{display:flex;gap:14px;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(13,17,23,.95);position:sticky;top:0}
+          .nav a{padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card)}
+          ul{list-style:none;padding:0} li{padding:4px 0}
+          """, encoding="utf-8")
+
+          def nav_html(rel_home):
+              links = [f"<a href='{rel_home}index.html'>Home</a>", f"<a href='{rel_home}browse/index.html'>Browse Files</a>"]
+              if has_diff:
+                  links.append(f"<a href='{rel_home}diff/index.html'>View Diff</a>")
+              return "".join(links)
+
+          def wrap_page(title, body, rel_path=""):
+              return f"""<!doctype html>
+              <html><head><meta charset='utf-8'><title>{title}</title>
+              <link rel='stylesheet' href='{rel_path}assets/style.css'>
+              </head><body>
+              <div class='nav'>{nav_html(rel_path)}</div>
+              <div class='container'>{body}</div>
+              </body></html>"""
+
+          # ----- Recursive Directory Listing -----
+          def generate_index(directory, relative_to_root):
+              items = sorted(directory.iterdir(), key=lambda p: (p.is_file(), p.name))
+              links = []
+
+              if directory != browse_root:
+                  links.append(f"<li><a href='../index.html'>.. (Parent Directory)</a></li>")
+
+              for item in items:
+                  if item.name == "index.html": continue
+                  name = item.name + ("/" if item.is_dir() else "")
+                  href = item.name + ("/index.html" if item.is_dir() else "")
+                  links.append(f"<li><a href='{href}'>{name}</a></li>")
+
+              body = f"<h1>Index of {html.escape(directory.name)}</h1><ul>{''.join(links)}</ul>"
+
+              depth = len(directory.relative_to(site_root).parts)
+              rel_assets = "../" * depth
+
+              (directory / "index.html").write_text(wrap_page(directory.name, body, rel_assets), encoding="utf-8")
+
+              for item in items:
+                  if item.is_dir():
+                      generate_index(item, relative_to_root)
+
+          if browse_root.exists():
+              generate_index(browse_root, "")
+
+          # ----- Main Landing Page -----
+          main_body = """
+          <h1>ProxyStubGenerator Results</h1>
+          <p>Generated proxy and stub code from ThunderInterfaces build.</p>
+          <ul>
+            <li><a href='./browse/index.html'>Browse Generated Code</a></li>
+          """
+          if has_diff:
+              main_body += "<li><a href='./diff/index.html'>View Diff vs Master</a></li>"
+
+          main_body += "</ul>"
+          (site_root / "index.html").write_text(wrap_page("ProxyStub Results", main_body, ""), encoding="utf-8")
+          PY
+
+          # ----- Master Push: Update Baseline -----
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "Updating master baseline..."
+
+            # ----- Update Browsable Site -----
+            rm -rf "site/master/latest"
+            mkdir -p "site/master/latest"
+            # Copy contents of the current run
+            cp -a "site/$RUN_DIR"/* "site/master/latest/"
+
+            # ----- Update Raw Baseline (for future diffs) -----
+            # Remove old directory completely
+            rm -rf "site/master/latest_raw"
+            mkdir -p "site/master/latest_raw"
+            # Copy fresh generated artifacts
+            cp -r generated/* "site/master/latest_raw/"
+
+            echo "Baseline updated."
+          fi
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          destination_dir: ProxyStubGenerator
+          keep_files: true
+
+      - name: AI Summary
+        if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
+        id: ai
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          import sys
+
+          # ----- Read the diff -----
+          diff_path = "diffs/combined_trunc.diff"
+          try:
+              with open(diff_path, "r", encoding="utf-8", errors="ignore") as f:
+                  diff_text = f.read()
+          except Exception as e:
+              print(f"::warning::Could not read diff file: {e}")
+              sys.exit(0)
+
+          if not diff_text.strip():
+              print("::warning::Diff text is empty.")
+              sys.exit(0)
+
+          # ----- Construct Payload -----
+          url = "https://models.github.ai/inference/chat/completions"
+          headers = {
+              "Content-Type": "application/json",
+              "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+              "Accept": "application/vnd.github+json" 
+          }
+
+          # 25,000 characters is roughly ~6-7k tokens, leaving room for the system prompt + response
+          SAFE_LIMIT = 25000
+
+          payload = {
+              "model": "openai/gpt-4.1", # Or try "gpt-4o" if available, it has a larger context
+              "messages": [
+                  {"role": "system", "content": "You are a C++ expert. Summarize the changes in this diff. Start with bullet points."},
+                  {"role": "user", "content": diff_text[:SAFE_LIMIT]} 
+              ],
+              "temperature": 0.5
+          }
+
+          # ----- Send Request -----
+          try:
+              req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
+              with urllib.request.urlopen(req) as resp:
+                  data = json.load(resp)
+                  
+                  # ----- Extract content -----
+                  summary = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+                  if summary:
+                      # ----- Write to GITHUB_OUTPUT using the new multiline syntax -----
+                      with open(os.environ["GITHUB_OUTPUT"], "a") as gh_out:
+                          gh_out.write("summary<<EOF\n")
+                          gh_out.write(summary + "\n")
+                          gh_out.write("EOF\n")
+                  else:
+                      print("::warning::AI returned empty content.")
+                      print(f"Debug response: {json.dumps(data)}")
+
+          except urllib.error.HTTPError as e:
+              print(f"::error::API Request failed: {e.code} {e.reason}")
+              print(e.read().decode("utf-8", errors="ignore"))
+          except Exception as e:
+              print(f"::error::Unexpected error: {e}")
+          PY
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### ProxyStubGenerator Results
+
+            [View Results](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/ProxyStubGenerator/${{ env.RUN_DIR }}/)
+
+            ${{ steps.build_site.outputs.has_diff == 'true' && '**Changes detected.**' || '**No changes detected.**' }}
+
+            ${{ steps.build_site.outputs.has_diff == 'true' && steps.ai.outputs.summary || '' }}
