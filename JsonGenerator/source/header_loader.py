@@ -353,7 +353,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
                     if not var.meta.output:
-                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
+                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Int24, CppParser.Enum)):
                             if not var.meta.default and not quiet:
                                 log.WarnLine(var, "%s: default value is assumed to be (%s)0 (use @default with @optional)" % (var.name, var.type.TypeName()))
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
@@ -555,7 +555,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     result = ["array", props]
 
                 # C-style buffers converted to JSON array (not char type or fixed array)
-                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
+                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Int24, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
                     if encoding:
                         raise CppParseError(var, "'%s': @encode only available for char buffers" % var.name)
 
@@ -626,6 +626,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
 
                     result = [ "integer", { "size": size, "signed": cppType.signed } ]
+
+                # Int24
+                elif isinstance(cppType, CppParser.Int24):
+                    result = [ "integer", { "size": 24, "signed": cppType.signed } ]
 
                 # Instance ID
                 elif isinstance(cppType, CppParser.InstanceId):

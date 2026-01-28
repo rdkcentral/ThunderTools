@@ -445,7 +445,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     else:
                         raise TypenameError(paramtype, "%s: unable to determine array/buffer size" % paramtype.name)
 
-                elif isinstance(p, CppParser.Integer):
+                elif isinstance(p, (CppParser.Integer, CppParser.Int24)):
                     if paramtype.type.TypeName().endswith(HRESULT):
                         value = "HRESULT"
                     elif p.size == "char" and "signed" not in p.type and "unsigned" not in p.type and "_t" not in p.type:
@@ -455,6 +455,8 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                             value = "INT8"
                         elif p.size == "short":
                             value = "INT16"
+                        elif p.size == "int24":
+                            value = "INT24"
                         elif p.size == "long":
                             value = "INT32"
                         elif p.size == "long long":
@@ -874,7 +876,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 name = (override_name or (prefix + self.identifier.name).replace("__anonymous_", ""))
                 self.value = self.identifier.value
 
-                self.is_integer = isinstance(self.kind, CppParser.Integer)
+                self.is_integer = isinstance(self.kind, CppParser.Integer) # not CppParser.Int24!
+                self.is_integer_ext = isinstance(self.kind, (CppParser.Integer, CppParser.Int24))
                 self.is_string = isinstance(self.kind, CppParser.String)
                 self.is_ccstring = (isinstance(self.kind, CppParser.String) and self.kind.is_cc)
 
@@ -1052,8 +1055,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         self.restrict_range = self.max_length_of.meta.range
 
                 if self.restrict_range.is_set:
-                    if self.is_integer and not self.is_buffer:
+                    if self.is_integer_ext and not self.is_buffer:
                         if not no_length_warnings and self.restrict_range.has_max:
+                            # Check if int size is chosen efficiently based on restrict, but do not suggest using int24 if restrict < 16M!
                             if (((self.restrict_range.max < 256) and (self.kind.max > 256)) \
                                     or ((self.restrict_range.max < (64*1024)) and (self.kind.max > (64*1024))) \
                                     or ((self.restrict_range.max < (4*1024*1024*1024)) and (self.kind.max > (4*1024*1024*1024)))):
@@ -1254,7 +1258,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Buffer<uint8_t>(6, %s)" % self.as_lvalue
 
                 # The integral types
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger, CppParser.Enum)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.BuiltinInteger, CppParser.Enum)):
                     return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
@@ -1297,7 +1301,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Buffer<uint8_t>(6, %s)" % self.as_lvalue
 
                 # The integral types
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
@@ -1331,7 +1335,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         return "(sizeof(uint32_t))"
                     else:
                         return "Core::RealSize<%s>()" % self.peek_length.type_name
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Core::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "1" # always one byte

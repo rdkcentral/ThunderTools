@@ -46,6 +46,9 @@ namespace std {
   class vector;
 }
 
+typedef __stubgen_int24 int24_t;
+typedef __stubgen_uint24 uint24_t;
+
 namespace __FRAMEWORK_NAMESPACE__ {
 
   namespace ProxyStub {
@@ -58,6 +61,8 @@ namespace __FRAMEWORK_NAMESPACE__ {
     typedef __stubgen_macaddress MACAddress;
 
     typedef uint32_t hresult;
+    typedef __stubgen_int24 Int24;
+    typedef __stubgen_uint24 UInt24;
 
     template<typename T>
     struct OptionalType;
