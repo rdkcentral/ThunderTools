@@ -1,0 +1,31 @@
+{
+  "$schema": "plugin.schema.json",
+  "info": {
+    "title": "InProcessConfigPreconditions Plugin",
+    "callsign": "InProcessConfigPreconditions",
+    "locator": "libThunderInProcessConfigPreconditions.so",
+    "status": "development",
+    "description": [
+      ""
+    ],
+    "version": "1.0"
+  },
+  "configuration": {
+    "type": "object",
+    "properties": {
+      "configuration": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "example": {
+            "type": "string",
+            "description": "Note: This is an example!"
+          }
+        }
+      }
+    }
+  },
+  "interface": {
+    "$cppref": "{cppinterfacedir}/IDictionary.h"
+  }
+}
