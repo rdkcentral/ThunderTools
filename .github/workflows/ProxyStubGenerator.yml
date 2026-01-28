@@ -62,6 +62,7 @@ jobs:
           VARIANT="${{ matrix.artifact_name }}"
           VARIANT="${VARIANT#ThunderInterfaces-}"
           VARIANT="${VARIANT%-artifact}"
+          echo "VARIANT=$VARIANT" >> "$GITHUB_ENV"
 
           DEST_DIR="generated_proxies/$VARIANT"
           mkdir -p "$DEST_DIR"
@@ -112,7 +113,7 @@ jobs:
       - name: Upload Variant Proxy
         uses: actions/upload-artifact@v4
         with:
-          name: ProxyStub-Output-${{ strategy.job-index }}
+          name: ProxyStub-Output-${{ env.VARIANT }}
           path: generated_proxies/
           retention-days: 1
 
@@ -256,7 +257,7 @@ jobs:
               </body></html>"""
 
           # ----- Recursive Directory Listing -----
-          def generate_index(directory, relative_to_root):
+          def generate_index(directory):
               items = sorted(directory.iterdir(), key=lambda p: (p.is_file(), p.name))
               links = []
 
@@ -278,10 +279,10 @@ jobs:
 
               for item in items:
                   if item.is_dir():
-                      generate_index(item, relative_to_root)
+                      generate_index(item)
 
           if browse_root.exists():
-              generate_index(browse_root, "")
+              generate_index(browse_root)
 
           # ----- Main Landing Page -----
           main_body = """
