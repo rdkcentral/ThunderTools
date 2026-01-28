@@ -238,13 +238,19 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
         emit.Line("-- Interfaces definition data file")
         emit.Line("-- Generated automatically. DO NOT EDIT")
         emit.Line()
+        emit.Line("GENERATOR_VERSION = 2")
+        emit.Line("FRAMEWORK_NAMESPACE = \"%s\"" % FRAMEWORK_NAMESPACE)
+
+        if ENABLE_ITERATOR_OPTIMIZATION:
+            emit.Line("COLLATED_ITERATORS = true")
+
+        emit.Line()
         emit.Line("INTERFACES, METHODS, ENUMS, Type = ...")
         emit.Line()
 
     emit.Line("--  %s" % os.path.basename(source_file))
 
     iface_namespace_l = ns.split("::")
-    iface_namespace = iface_namespace_l[-1]
 
     for iface in interfaces:
         iface_name = Flatten(iface.obj.type, ns)
@@ -269,6 +275,8 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
         id_value = id_enumerator.value
 
+        assert isinstance(id_value, int), "Failed to determine interface ID for %s" % iface_name
+
         if id_value in interfaces_list:
             log.Info("Skipping duplicate interface definition %s (%s)" % (iface_name, id_value))
             continue
@@ -282,9 +290,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
         for idx, m in enumerate(emit_methods):
             name = "name = \"%s\"" % m.name
-            params = []
-            retval = []
-            items = [ name ]
 
             def ParseLength(param, length, retval, vars):
                 def _Convert(size):
@@ -297,7 +302,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 if isinstance(length, list) and len(length) == 1:
                     if length[0] == "void":
-                        return [_Convert(param.Type().size), None]
+                        return ['8', 1]
                     elif length[0] == "return":
                         return [_Convert(retval.type.Type().size), "return"]
 
@@ -320,8 +325,33 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 return [size, value]
 
+            class LuaObject:
+                def __init__(self):
+                    self._store = OrderedDict()
+                def append(self, tag, value, quoted=False, front=False):
+                    self._store[tag] = ('"%s"' % str(value) if quoted else value)
+                    if front:
+                        self._store.move_to_end(tag, False)
+                def join(self):
+                    return ", ".join(('%s = %s' % (x, self._store[x])) for x in self._store)
+                def empty(self):
+                    return (len(self._store) == 0)
+                def __str__(self):
+                    return "{ %s }" % self.join()
 
-            def Convert(paramtype, retval, vars, hresult=False):
+            class LuaTypeObject(LuaObject):
+                def append_type(self, lua_type, param, param_type=None):
+                    self.append("type", ("Type." + lua_type))
+                    class_name = None
+                    if param:
+                        class_name = Flatten(param.TypeName(), ns)
+                        self.append("class", class_name, quoted=True)
+                    if param_type:
+                        proto = Flatten(param_type.TypeStrongNoCV(), ns)
+                        if class_name != proto:
+                            self.append("proto", proto, quoted=True)
+
+            def Convert(paramtype, retval, vars, hresult=False, allow_ptr = True):
                 if isinstance(paramtype.type, list):
                     return
 
@@ -329,17 +359,52 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                 meta = paramtype.meta
                 p = param.Type()
 
+                lua_type = LuaTypeObject()
+
                 if isinstance(p, CppParser.Optional):
                     optional_type = Convert(p.optional, retval, vars, hresult)
-                    optional_type.append("optional = true")
+                    optional_type.append("optional", "true")
                     return optional_type
 
-                if isinstance(p, CppParser.Integer):
-                    length_param = None
-                    length_value = None
+                if param.IsPointer() and isinstance(p, CppParser.Class):
+                    iterator_optimization = p.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not p.is_force_interface
 
-                    if param.IsPointer():
-                        parsed = ParseLength(param, paramtype.array if paramtype.array else meta.length if meta.length else meta.maxlength, retval, vars)
+                    if iterator_optimization:
+                        size = "16"
+                        if meta.range.has_max:
+                            # todo: missing int24 optimization opportunity
+                            if meta.range.max < 256:
+                                size = "8"
+                            elif meta.range.max > 65535:
+                                size = "32"
+
+                        lua_type.append_type(("VECTOR" + size), param, paramtype)
+                        lua_type.append("element", Convert(p.resolvedArgs[0], None, None))
+                        lua_type.append("optimized_iterator", "true")
+                    else:
+                        index = 0
+
+                        if meta.interface:
+                            counter = 0
+                            for v in vars:
+                                if v.meta.input or not v.meta.output:
+                                    counter += 1
+
+                                if meta.interface[0] == v.name:
+                                    index = counter
+                                    break
+
+                        lua_type.append_type("OBJECT", param)
+
+                        if index:
+                            lua_type.append("interface_param", index)
+
+                elif param.IsPointer() and allow_ptr:
+                    if paramtype.array or meta.length or meta.maxlength:
+                        parsed = ParseLength(param, [str(paramtype.array)] if paramtype.array else meta.length if meta.length else meta.maxlength, retval, vars)
+
+                        length_param = None
+                        length_value = None
 
                         if parsed[1]:
                             if (isinstance(parsed[1], str)):
@@ -347,24 +412,67 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                             elif (isinstance(parsed[1], int)):
                                 length_value = parsed[1]
 
-                        value = "BUFFER" + parsed[0]
-                    else:
-                        if paramtype.type.TypeName().endswith(HRESULT):
-                            value = "HRESULT"
-                        elif p.size == "char" and "signed" not in p.type and "unsigned" not in p.type and "_t" not in p.type:
-                            value = "CHAR"
+                        if isinstance(p, CppParser.Integer) and p.size == "char":
+                            # char[] is sent as a buffer
+                            lua_type.append_type(("BUFFER" + parsed[0]), param, paramtype)
                         else:
-                            if p.size == "char":
-                                value = "INT8"
-                            elif p.size == "short":
-                                value = "INT16"
-                            elif p.size == "long":
-                                value = "INT32"
-                            elif p.size == "long long":
-                                value = "INT64"
+                            element = Convert(paramtype, None, None, allow_ptr=False)
 
-                            if not p.signed:
-                                value = "U" + value
+                            # "ARRAY" for fixed array, "ARRAYn" for variable array
+                            lua_type.append_type("ARRAY" + (parsed[0] if length_param else ""), param, paramtype)
+                            lua_type.append("element", "{ %s }" % element.join())
+
+                            if length_value:
+                                lua_type.append("count", length_value)
+
+                    elif meta.interface:
+                        index = 0
+
+                        counter = 0
+                        for v in vars:
+                            if v.meta.input or not v.meta.output:
+                                counter += 1
+
+                            if meta.interface[0] == v.name:
+                                index = counter
+                                break
+
+                        lua_type.append_type("OBJECT", param)
+
+                        if index:
+                            lua_type.append("interface_param", index)
+
+                    else:
+                        raise TypenameError(paramtype, "%s: unable to determine array/buffer size" % paramtype.name)
+
+                elif isinstance(p, CppParser.Integer):
+                    if paramtype.type.TypeName().endswith(HRESULT):
+                        value = "HRESULT"
+                    elif p.size == "char" and "signed" not in p.type and "unsigned" not in p.type and "_t" not in p.type:
+                        value = "CHAR"
+                    else:
+                        if p.size == "char":
+                            value = "INT8"
+                        elif p.size == "short":
+                            value = "INT16"
+                        elif p.size == "long":
+                            value = "INT32"
+                        elif p.size == "long long":
+                            value = "INT64"
+
+                        if value == "INT32":
+                            # optimization opportunity for long int
+                            if p.signed:
+                                if meta.range.has_min and  meta.range.has_max:
+                                    if ((meta.range.min < (-32*1024)) and (meta.range.min >= (-8*1024*1024))) or \
+                                        ((meta.range.max >= (32*1024)) and (meta.range.max < (8*1024*1024))):
+                                            value = "INT24"
+                            else:
+                                if (meta.range.has_max and ((meta.range.max >= (64*1024)) and (meta.range.max < (16*1024*1024)))):
+                                    value = "INT24"
+
+                        if not p.signed:
+                            value = "U" + value
 
                     if value == "UINT32":
                         if hresult:
@@ -372,56 +480,33 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                         else:
                             if retval and retval.meta.interface and retval.meta.interface[0] == paramtype.name:
                                 value = "INTERFACE"
-                            else:
+                            elif vars:
                                 for v in vars:
                                     if v.meta.interface and v.meta.interface[0] == paramtype.name:
                                         value = "INTERFACE"
                                         break
 
-                    rvalue = ["type = Type." + value]
-
-                    if length_param:
-                        rvalue.append("length_param = \"%s\"" % length_param)
-                    elif length_value:
-                        rvalue.append("length_value = %i" % length_value)
-
-                    return rvalue
+                    lua_type.append_type(value, param, paramtype)
 
                 elif isinstance(p, CppParser.String):
-                    return ["type = Type.STRING"]
+                    size = "16"
+                    if meta.range.has_max:
+                        if meta.range.max >= (16*1024*1024):
+                            size = "32"
+                        elif meta.range.max >= (64*1024):
+                            size = "24"
+                        elif meta.range.max < 256:
+                            size = "8"
+                    elif p.is_cc:
+                        size = "32"
+
+                    lua_type.append_type(("STRING" + size), param)
 
                 elif isinstance(p, CppParser.Bool):
-                    return ["type = Type.BOOL"]
+                    lua_type.append_type("BOOL", param)
 
                 elif isinstance(p, CppParser.Float):
-                    if p.type == "float":
-                        return ["type = Type.FLOAT32"]
-                    elif p.type == "double":
-                        return ["type = Type.FLOAT64"]
-
-                elif isinstance(p, CppParser.Class):
-                    if param.IsPointer():
-                        return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName(), ns)]
-                    else:
-                        value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name, ns)]
-                        pod_params = []
-
-                        kind = p.Merge()
-
-                        for v in kind.vars:
-                            param_info = Convert(v, None, kind.vars)
-                            text = []
-                            text.append('name = "%s"' % v.name)
-
-                            if param_info:
-                                text.extend(param_info)
-
-                            pod_params.append("{ %s }" % ", ".join(text))
-
-                        if pod_params:
-                            value.append("pod = { %s }" % ", ".join(pod_params))
-
-                        return value
+                    lua_type.append_type(("FLOAT32" if p.type == "float" else "FLOAT64"), param)
 
                 elif isinstance(p, CppParser.Enum):
                     value = "32"
@@ -443,103 +528,118 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                             if (isinstance(e.value, int)):
                                 data[e.value] = e.name
                             else:
-                                log.Warn("unable to evaluate enum value '%s'" % "".join([str(x) for x in e.value]))
+                                log.Warn("unable to evaluate the numeric value of enumerator '%s'" % "".join([str(x) for x in e.value]))
 
                         enums_list[name] = data
 
-                    value =  ["type = Type.ENUM" + signed + value, "enum = \"%s\"" % name]
+                    lua_type.append_type(("ENUM" + signed + value), param)
 
                     if "bitmask" in meta.decorators or "bitmask" in paramtype.meta.decorators:
-                        value.append("bitmask = true")
+                        lua_type.append("bitmask", "true")
 
-                    return value
+                elif isinstance(p, CppParser.Time):
+                    lua_type.append_type("TIME", param)
+
+                elif isinstance(p, CppParser.MacAddress):
+                    lua_type.append_type("MAC", param)
 
                 elif isinstance(p, CppParser.BuiltinInteger) and paramtype.type.TypeName().endswith(INSTANCE_ID):
-                    return ["type = Type.OBJECT" ] # but without a class
+                    lua_type.append_type("OBJECT", None) # without class!
 
                 elif isinstance(p, CppParser.Void):
-                    if param.IsPointer():
-                        index = 0
+                    pass # nothing to do!
 
-                        if meta.interface:
-                            counter = 0
-                            for v in vars:
-                                if v.meta.input or not v.meta.output:
-                                    counter += 1
+                elif isinstance(p, CppParser.Class):
+                    value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name, ns)]
+                    lua_type.append_type("POD", param)
+                    pod_params = []
 
-                                if meta.interface[0] == v.name:
-                                    index = counter
-                                    break
+                    kind = p.Merge()
 
-                        value = ["type = Type.OBJECT"]
+                    for v in kind.vars:
+                        param_info = Convert(v, None, kind.vars)
+                        param_info.append("name", v.name, quoted=True, front=True)
+                        pod_params.append(param_info)
 
-                        if index:
-                            value.append("interface_param = %s" % index)
+                    if pod_params:
+                        lua_type.append("element", ("{ %s }" % ", ".join([str(x) for x in pod_params])))
 
-                        return value
-                    else:
-                        return None
+                elif isinstance(p, CppParser.Vector):
+                    size = "16"
+                    if meta.range.has_max:
+                        # todo: missing int24 optimization opportunity
+                        if meta.range.max < 256:
+                            size = "8"
+                        elif meta.range.max > 65535:
+                            size = "32"
 
-                return ["type = nil"]
+                    lua_type.append_type(("VECTOR" + size), param, paramtype)
+                    lua_type.append("element", Convert(p.element, None, None))
+                else:
+                    assert False, "Unimplemented type in lua generator: %s" % p
 
-            rv = Convert(m.retval, m.retval, m.vars, assume_hresult)
-            if rv:
-                text = []
+                # Pass restrict range along
+                if meta.range.has_min and meta.range.has_max:
+                    lua_type.append("restrict", "{ min = %s, max = %s }" % (meta.range.min, meta.range.max))
+                elif meta.range.has_max:
+                    lua_type.append("restrict", "{ max = %s }" % meta.range.max)
+                elif meta.range.has_min:
+                    lua_type.append("restrict", "{ min = %s }" % meta.range.min)
 
-                if m.retval.name and "__anonymous" not in m.retval.name:
-                    text.append("name = \"%s\"" % m.retval.name)
+                return lua_type
 
-                text.extend(rv)
+            skip_retval = any((v.meta.length and (v.meta.length[0] == "return")) for v in m.vars)
 
-                skip = False
+            lua_method = LuaObject()
+            lua_retvals = []
+            lua_params = []
 
-                for v in m.vars:
-                    if (v.meta.length and (v.meta.length[0] == "return")):
-                        skip = True
-                        break
+            if not skip_retval:
+                rv = Convert(m.retval, m.retval, m.vars, assume_hresult)
 
-                if not skip:
-                    retval.append(" { %s }" % ", ".join(text))
+                if rv and not rv.empty():
+                    if m.retval.name and "__anonymous" not in m.retval.name:
+                        rv.append("name", m.retval.name, quoted=True, front=True)
+
+                    lua_retvals.append(rv)
 
             for p in m.vars:
                 param = Convert(p, m.retval, m.vars)
 
-                if param:
-                    text = []
-
+                if param and not param.empty():
                     if p.name and "__anonymous" not in p.name:
-                        text.append("name = \"%s\"" % p.name)
-
-                    text.extend(param)
+                        param.append("name", p.name, quoted=True, front=True)
 
                     skip = False
                     skip2 = False
 
                     for v in m.vars:
                         if (v.meta.length and (v.meta.length[0] == p.name)):
-                            # Will not be on the wire on inbound!
+                            # Will not be on the wire on call!
                             skip = True
 
                             if (not v.meta.output or v.meta.input):
-                                # Will not be on the wire on inbound and outbound!
+                                # Will not be on the wire on call and returns!
                                 skip2 = True
 
                     if not skip2:
                         if p.meta.input or not p.meta.output:
-                            params.append(" { %s }" % ", ".join(text))
+                            lua_params.append(param)
 
                     if not skip:
                         if p.meta.output:
-                            retval.append(" { %s }" % ", ".join(text))
+                            lua_retvals.append(param)
 
-            if retval:
-                items.append("retvals = { %s }" % ", ".join(retval))
+            lua_method.append("name", m.name, quoted=True)
+            lua_method.append("signature", Flatten(m.Proto(),ns), quoted=True)
 
-            if params:
-                items.append("params = { %s }" % ", ".join(params))
+            if lua_retvals:
+                lua_method.append("retvals", "{ %s }" % ", ".join([str(x) for x in lua_retvals]))
 
-            # emit.Line("-- %s" % m.Proto())
-            emit.Line("[%s] = { %s }%s " % (idx + 3, ", ".join(items), "," if idx != len(emit_methods) - 1 else ""))
+            if lua_params:
+                lua_method.append("params", "{ %s }" % ", ".join([str(x) for x in lua_params]))
+
+            emit.Line("[%s] = { %s }%s " % (idx + 3, lua_method.join(), ("," if idx != len(emit_methods) - 1 else "")))
 
         emit.IndentDec()
         emit.Line("}")
@@ -858,7 +958,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 self.name = name
 
-                self.iterator_optimization = self.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not "interface-iterator" in self.identifier.meta.decorators
+                self.iterator_optimization = self.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not self.kind.is_force_interface
 
                 if has_proxy and not self.iterator_optimization:
                     # Have to use instance_id instead of the class name
@@ -2744,6 +2844,7 @@ if __name__ == "__main__":
         print("   @restrict:[{min}..]{max} - specifies valid range for a parameter (for buffers, vectors, iterators, strings: valid size)")
         print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1, @restrict:nonempty")
         print("   @interface:{expr}      - specifies a parameter or value indicating interface ID value for void* interface passing")
+        print("   @interface             - specifies an iterator class, iterator parameter or typedef to iterator to be always passed as interface")
         print("   @length:{expr}         - specifies a buffer length value (a constant, a parameter name or a math expression)")
         print("   @maxlength:{expr}      - specifies a maximum buffer length value (a constant, a parameter name or a math expression),")
         print("                            if @maxlength is not specified, expresion from @length is used")
@@ -2830,7 +2931,8 @@ if __name__ == "__main__":
         if interface_files:
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
-                lua_file = open(("." if not OUTDIR else OUTDIR) + os.sep + name, "w")
+                output_file = ("." if not OUTDIR else OUTDIR) + os.sep + name
+                lua_file = open(output_file, "w")
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
                 lua_enums = dict()
