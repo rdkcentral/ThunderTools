@@ -55,7 +55,6 @@ jobs:
           PATHS_TO_HARVEST=(
             "ThunderInterfaces/interfaces/generated"
             "Thunder/Source/com/generated"
-            "Thunder/Source/core/generated"
             "Thunder/Source/plugins/generated"
           )
 
