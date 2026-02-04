@@ -803,15 +803,30 @@ def Create(log, args, schema, path, indent_size = 4):
         property_count = 0
         event_count = 0
 
+        all_methods = []
+        all_events = []
+
         for face in interfaces:
             if "methods" in face:
                 method_count += len(face["methods"])
+                all_methods.extend(face["methods"])
 
             if "properties" in face:
                 property_count += len(face["properties"])
+                all_methods.extend(face["properties"])
 
             if "events" in face:
                 event_count += len(face["events"])
+                all_events.extend(face["events"])
+
+        duplicate_methods = [x for x in set(all_methods) if all_methods.count(x) > 1]
+        duplicate_events = [x for x in set(all_events) if all_events.count(x) > 1]
+
+        if duplicate_methods:
+            log.Warn("CONFLICT DETECTED: Duplicate method/property names in plugin API: %s" %", ".join(duplicate_methods))
+
+        if duplicate_events:
+            log.Warn("CONFLICT DETECTED: Duplicate event names in plugin API: %s" % ", ".join(duplicate_events))
 
         status = info["status"] if "status" in info else "alpha"
 
