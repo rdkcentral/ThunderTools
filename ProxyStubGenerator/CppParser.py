@@ -934,6 +934,8 @@ def Evaluate(identifiers_, as_identifier=False, scope=None):
     return value
 
 
+ANONYMOUS_PREFIX = "__anonymous"
+
 # Holds a name
 class Name:
     def __init__(self, parent_block, name=""):
@@ -941,7 +943,7 @@ class Name:
             ASSERT_ISVALID(name)
         self.parent = parent_block
         # come up with an unique name if none given
-        uniqueId = "__anonymous_" + self.__class__.__name__.lower() + "_" + uuid.uuid4().hex[:8]
+        uniqueId = '_'.join([ANONYMOUS_PREFIX, self.__class__.__name__.lower(), uuid.uuid4().hex[:8]])
         parentName = "" if self.parent == None else self.parent.full_name
         self.name = uniqueId if (not name and self.parent != None) else name
         self.full_name = parentName + ("" if not self.name else "::" + self.name)
@@ -1474,6 +1476,7 @@ class Variable(Identifier, Name):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value, scope=parent_block) if value else None
+
         if self.parent:
             self.parent.vars.append(self)
 
@@ -1492,6 +1495,13 @@ class Parameter(Variable):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[]):
         Variable.__init__(self, parent_block, string, None, valid_specifiers)
         self.def_value = Evaluate(value, scope=parent_block.parent) if value else None
+
+        if self.name.startswith(ANONYMOUS_PREFIX):
+            # Correct the random number, for parameter
+            split = self.name.split('_')
+            split[-1] = str(len(self.parent.vars))
+            self.name = "_".join(split)
+
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
 

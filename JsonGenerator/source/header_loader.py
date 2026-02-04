@@ -457,12 +457,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         clash_msg = "JSON-RPC name clash detected"
 
         passed_interfaces = []
-
-        event_interfaces = set()
+        event_interfaces = []
 
         for interface in face.obj.classes:
             if interface.is_event:
-                event_interfaces.add(CppInterface.Interface(interface, 0, file))
+                event_interfaces.append(CppInterface.Interface(interface, 0, file))
 
         def ResolveTypedef(type, parent=type):
             if isinstance(type, str):
@@ -1371,6 +1370,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         for f in event_interfaces:
             rpc_format = _EvaluateRpcFormat(f.obj)
+
+            log.Info("Emitting notification helpers for %s" % f.obj.full_name)
 
             for method in f.obj.methods:
                 EventParameters(method.vars) # just to check for undefined types...
