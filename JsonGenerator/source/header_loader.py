@@ -1464,8 +1464,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
                             if mm == prefix + method_name:
-                                # raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
-                                method_name += "#"
+                                raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                             if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
                                 raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                             if events[mm].get("alt") == method_name:
