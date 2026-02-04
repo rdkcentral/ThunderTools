@@ -1021,9 +1021,9 @@ namespace ProxyStubs {
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
                 if (reader.Length() < (Core::RealSize<IShell::reason>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                const IShell::reason _parameter_9a286c5d = reader.Number<IShell::reason>();
+                const IShell::reason _parameter_1 = reader.Number<IShell::reason>();
 
-                Core::hresult result = implementation->Activate(_parameter_9a286c5d);
+                Core::hresult result = implementation->Activate(_parameter_1);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<Core::hresult>(result);
@@ -1052,9 +1052,9 @@ namespace ProxyStubs {
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
                 if (reader.Length() < (Core::RealSize<IShell::reason>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                const IShell::reason _parameter_a18cc48e = reader.Number<IShell::reason>();
+                const IShell::reason _parameter_1 = reader.Number<IShell::reason>();
 
-                Core::hresult result = implementation->Deactivate(_parameter_a18cc48e);
+                Core::hresult result = implementation->Deactivate(_parameter_1);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<Core::hresult>(result);
@@ -1083,9 +1083,9 @@ namespace ProxyStubs {
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
                 if (reader.Length() < (Core::RealSize<IShell::reason>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                const IShell::reason _parameter_49153ecc = reader.Number<IShell::reason>();
+                const IShell::reason _parameter_1 = reader.Number<IShell::reason>();
 
-                Core::hresult result = implementation->Unavailable(_parameter_49153ecc);
+                Core::hresult result = implementation->Unavailable(_parameter_1);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<Core::hresult>(result);
@@ -1177,11 +1177,11 @@ namespace ProxyStubs {
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                const uint16_t _parameter_2153512bPeekedLen__ = reader.PeekNumber<uint16_t>();
-                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _parameter_2153512bPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                const string _parameter_2153512b = reader.Text();
+                const uint16_t _parameter_1PeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _parameter_1PeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _parameter_1 = reader.Text();
 
-                RPC::IStringIterator* result = implementation->GetLibrarySearchPaths(static_cast<const string&>(_parameter_2153512b));
+                RPC::IStringIterator* result = implementation->GetLibrarySearchPaths(static_cast<const string&>(_parameter_1));
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<Core::instance_id>(RPC::instance_cast(result));
@@ -2318,12 +2318,12 @@ namespace ProxyStubs {
             return (result);
         }
 
-        Core::hresult Activate(const IShell::reason _parameter_9a286c5d) override
+        Core::hresult Activate(const IShell::reason _parameter_1) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(32));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<IShell::reason>(_parameter_9a286c5d);
+            writer.Number<IShell::reason>(_parameter_1);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
@@ -2345,12 +2345,12 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        Core::hresult Deactivate(const IShell::reason _parameter_a18cc48e) override
+        Core::hresult Deactivate(const IShell::reason _parameter_1) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(33));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<IShell::reason>(_parameter_a18cc48e);
+            writer.Number<IShell::reason>(_parameter_1);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
@@ -2372,12 +2372,12 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        Core::hresult Unavailable(const IShell::reason _parameter_49153ecc) override
+        Core::hresult Unavailable(const IShell::reason _parameter_1) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(34));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<IShell::reason>(_parameter_49153ecc);
+            writer.Number<IShell::reason>(_parameter_1);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
@@ -2460,12 +2460,12 @@ namespace ProxyStubs {
             return {};
         }
 
-        RPC::IStringIterator* GetLibrarySearchPaths(const string& _parameter_2153512b) const override
+        RPC::IStringIterator* GetLibrarySearchPaths(const string& _parameter_1) const override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(38));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_parameter_2153512b);
+            writer.Text(_parameter_1);
 
             RPC::IStringIterator* result{};
 
