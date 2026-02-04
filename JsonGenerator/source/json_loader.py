@@ -35,6 +35,8 @@ import header_loader
 import trackers
 
 
+RESERVED_NAMES = ["exists", "versions", "register", "unregister"]
+
 log = None
 def SetLogger(logger):
     global log
@@ -884,6 +886,8 @@ class JsonMethod(JsonObject):
 
         self.endpoint_name = (config.IMPL_ENDPOINT_PREFIX + super().json_name)
 
+        self._Check()
+
         if (self.rpc_format == config.RpcFormat.COMPLIANT) and not isinstance(self.params, (JsonObject, JsonNull)):
             raise JsonParseError("With 'compliant' format parameters to a method or event need to be an object: '%s'" % self.print_name)
         elif (self.rpc_format == config.RpcFormat.EXTENDED) and not property and not isinstance(self.params, (JsonObject, JsonArray, JsonNull)):
@@ -905,6 +909,10 @@ class JsonMethod(JsonObject):
 
                         event = JsonNotification(self.json_name, self.parent, prop.schema["@async"], included)
                         self.callback = JsonCallback(self.json_name, self.parent, event, prop.schema["@async"], included)
+
+    def _Check(self):
+        if self.name.lower() in RESERVED_NAMES:
+            raise JsonParseError("Method/property name '%s' is reserved and cannot be used in a JSON-RPC interface" % self.name)
 
     @property
     def rpc_format(self):
@@ -962,6 +970,9 @@ class JsonNotification(JsonMethod):
             if not isinstance(param,JsonNative) and param.do_create:
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
+
+    def _Check(self):
+        pass
 
 class JsonCallback(JsonMethod):
     def __init__(self, name, parent, notification, schema, included=None):
