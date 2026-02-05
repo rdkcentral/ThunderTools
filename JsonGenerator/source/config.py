@@ -101,6 +101,7 @@ def Parse(cmdline):
     global AUTO_PREFIX
     global DEFAULT_CASE_CONVENTION
     global IGNORE_SOURCE_CASE_CONVENTION
+    global STATS_FOR_NERDS
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -154,6 +155,12 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "disable all warnings (default: warnings enabled)")
+    argparser.add_argument(
+            "--stats",
+            dest="stats",
+            action="store_true",
+            default=False,
+            help= "regiter version with extra stats (default: stats enabled)")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -388,6 +395,8 @@ def Parse(cmdline):
 
     if "force" in args.format:
         RPC_FORMAT_FORCED = True
+
+    STATS_FOR_NERDS = args.stats
 
     NO_INCLUDES = args.no_includes
     NO_VERSIONING = args.no_versioning

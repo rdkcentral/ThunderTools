@@ -30,6 +30,7 @@ endif()
 set(GENERATOR_INSTALL_PATH "${CMAKE_INSTALL_INCLUDEDIR}/${NAMESPACE}" CACHE PATH "Location to install the generators.")
 set(GENERATOR_MODULE_INSTALL_PATH "${GENERATOR_INSTALL_PATH}/Modules" CACHE INTERNAL "Location where to install the generator cmake modules")
 
+option(JSON_GENERATOR_ENABLE_STATS "Globally enable JSON-RPC stats" OFF)
 option(PROXYSTUB_GENERATOR_ENABLE_SECURITY "Globally enable security checks in proxystubs" OFF)
 option(PROXYSTUB_GENERATOR_ENABLE_COHERENCY "Globally enable frame coherency checks in proxystubs" OFF)
 
