@@ -1404,13 +1404,20 @@ class Enum(Identifier, Block):
         return None
 
 
+class ReturnValue(Identifier):
+    def __init__(self, parent_block, parent, string, valid_specifiers, tags_allowed=True):
+        Identifier.__init__(self, parent_block, parent, string, valid_specifiers, tags_allowed)
+        self.parser_file = CurrentFile()
+        self.parser_line = CurrentLine()
+
+
 # Holds functions
 class Function(Block, Name):
     def __init__(self, parent_block, name, ret_type, valid_specifiers=["static", "extern", "inline"]):
         self.specifiers = []
         Block.__init__(self, parent_block, name if name else self.name)
         Name.__init__(self, parent_block, self.name)
-        self.retval = Identifier(self, self, ret_type, valid_specifiers, False)
+        self.retval = ReturnValue(self, self, ret_type, valid_specifiers, False)
         self.omit = False
         self.stub = False
         self.is_excluded = False

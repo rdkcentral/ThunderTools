@@ -1237,7 +1237,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 else:
                     raise CppParseError(method, "property method must have one parameter")
 
-            elif not event_params:
+            elif not event_params: # method is not related to notifications
                 var_type = ResolveTypedef(method.retval.type)
 
                 if var_type and ((isinstance(var_type.Type(), CppParser.Integer) and (var_type.Type().size == "long")) or not verify):
@@ -1381,6 +1381,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     obj["@originalname"] = method.name
                     varsidx = 0
 
+                    return_value = ConvertParameter(method.retval)
+                    if return_value["type"] != "null":
+                        raise CppParseError(method, "%s: JSON-RPC notification method must not have a return value" % method.name)
+
                     if len(method.vars) > 0:
                         for v in method.vars[1:]:
                             if v.meta.is_index:
@@ -1437,7 +1441,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     retvals = BuildResult(method.vars[varsidx:], method=method)
 
                     if retvals and retvals["type"] != "null":
-                        raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
+                        raise CppParseError(method, "%s: JSON-RPC notification method must not have output parameters" % method.name)
 
                     if method.retval.meta.is_deprecated:
                         obj["deprecated"] = True
