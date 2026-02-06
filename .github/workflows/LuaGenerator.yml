@@ -1,0 +1,392 @@
+name: LuaGenerator Checks
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - "LuaGenerator/**"
+      - "ProxyStubGenerator/**"
+      - ".github/workflows/LuaGenerator.yml"
+      - ".github/workflows/ProxyStubGenerator.yml"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "LuaGenerator/**"
+      - "ProxyStubGenerator/**"
+      - ".github/workflows/LuaGenerator.yml"
+      - ".github/workflows/ProxyStubGenerator.yml"
+
+permissions:
+  contents: write
+  pull-requests: write
+  models: read
+
+concurrency:
+  group: luagenerator-previews-${{ github.head_ref || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  generate_lua:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout ThunderTools
+        uses: actions/checkout@v4
+        with:
+          path: ThunderTools
+
+      - name: Checkout Thunder
+        uses: actions/checkout@v4
+        with:
+          repository: rdkcentral/Thunder
+          path: Thunder
+
+      - name: Checkout ThunderInterfaces
+        uses: actions/checkout@v4
+        with:
+          repository: rdkcentral/ThunderInterfaces
+          path: ThunderInterfaces
+
+      - name: Run LuaGenerator
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          # The script expects to run relative to its location or with dependencies nearby
+          cd ThunderTools/LuaGenerator
+
+          # Make sure script is executable
+          chmod +x GenerateLua.sh
+
+          echo "Running GenerateLua.sh..."
+          ./GenerateLua.sh
+
+          # Verify output exists
+          if [[ ! -f "protocol-thunder-comrpc.data" ]]; then
+            echo "::error::Output file 'protocol-thunder-comrpc.data' was not created!"
+            ls -la
+            exit 1
+          fi
+
+          echo "Generation successful."
+
+      - name: Prepare Artifacts
+        shell: bash
+        run: |
+          mkdir -p generated_lua
+          mv ThunderTools/LuaGenerator/protocol-thunder-comrpc.data generated_lua/
+
+      - name: Upload Generated Lua Data
+        uses: actions/upload-artifact@v4
+        with:
+          name: LuaGenerator-Output
+          path: generated_lua/
+          retention-days: 1
+
+  publish_pages:
+    runs-on: ubuntu-latest
+    needs: generate_lua
+
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: LuaGenerator-Output
+          path: generated
+
+      - name: Checkout gh-pages (baseline)
+        if: github.event_name == 'pull_request'
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: ghpages_baseline
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+
+      - name: Build static preview site
+        id: build_site
+        shell: bash
+        env:
+          TOOL_NAME: "LuaGenerator"
+        run: |
+          set -euo pipefail
+
+          HAS_DIFF="false"
+          mkdir -p site
+
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASE_DIR="previews/pr-${{ github.event.pull_request.number }}"
+          else
+            BASE_DIR="master"
+          fi
+
+          RUN_DIR="${BASE_DIR}/run-${{ github.run_id }}"
+
+          # ----- Save for future steps -----
+          echo "RUN_DIR=$RUN_DIR" >> "$GITHUB_ENV"
+
+          # ----- Export for current step -----
+          export RUN_DIR
+          export HAS_DIFF
+
+          mkdir -p "site/$RUN_DIR"
+          touch site/.nojekyll
+
+          # ----- PR-only: diff vs gh-pages baseline -----
+          if [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/master/latest_raw"
+            mkdir -p diffs "site/$RUN_DIR/diff"
+
+            if [[ -d "$BASELINE_ROOT" ]]; then
+               git diff --no-index \
+                  --src-prefix=baseline/ \
+                  --dst-prefix=generated/ \
+                  -- "$BASELINE_ROOT" "generated" \
+                  > "diffs/combined.diff" || true
+            else
+               mkdir empty_dir
+               git diff --no-index \
+                  --src-prefix=baseline/ \
+                  --dst-prefix=generated/ \
+                  -- "empty_dir" "generated" \
+                  > "diffs/combined.diff" || true
+            fi
+
+            if [[ -s "diffs/combined.diff" ]]; then
+               HAS_DIFF="true"
+               export HAS_DIFF
+
+               npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/index.html" -- "diffs/combined.diff"
+               head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff
+            else
+               mkdir -p "site/$RUN_DIR/diff"
+               echo "<h1>No changes detected</h1>" > "site/$RUN_DIR/diff/index.html"
+            fi
+          fi
+
+          echo "has_diff=$HAS_DIFF" >> "$GITHUB_OUTPUT"
+
+          # ----- Copy files for browsing -----
+          mkdir -p "site/$RUN_DIR/browse"
+          cp -r generated/* "site/$RUN_DIR/browse/"
+
+          # ----- Generate Site with Python -----
+          RUN_DIR="$RUN_DIR" HAS_DIFF="$HAS_DIFF" python - <<'PY'
+          import os
+          from pathlib import Path
+          import html
+
+          run_dir = os.environ["RUN_DIR"]
+          has_diff = os.environ.get("HAS_DIFF") == "true"
+
+          site_root = Path("site") / run_dir
+          browse_root = site_root / "browse"
+
+          # ----- Generate Dark Theme CSS -----
+          css_path = site_root / "assets" / "style.css"
+          css_path.parent.mkdir(parents=True, exist_ok=True)
+          css_path.write_text("""
+          :root{color-scheme:dark;--bg:#0d1117;--fg:#c9d1d9;--muted:#8b949e;--link:#58a6ff;--border:#30363d;--card:#161b22;}
+          body{margin:0;font:18px/1.55 system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--fg)}
+          a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+          .container{max-width:1100px;margin:0 auto;padding:24px}
+          .nav{display:flex;gap:14px;padding:14px 24px;border-bottom:1px solid var(--border);background:rgba(13,17,23,.95);position:sticky;top:0}
+          .nav a{padding:6px 12px;border:1px solid var(--border);border-radius:6px;background:var(--card)}
+          ul{list-style:none;padding:0} li{padding:4px 0}
+          """, encoding="utf-8")
+
+          def nav_html(rel_home):
+              links = [f"<a href='{rel_home}index.html'>Home</a>", f"<a href='{rel_home}browse/index.html'>Browse Files</a>"]
+              if has_diff:
+                  links.append(f"<a href='{rel_home}diff/index.html'>View Diff</a>")
+              return "".join(links)
+
+          def wrap_page(title, body, rel_path=""):
+              return f"""<!doctype html>
+              <html><head><meta charset='utf-8'><title>{title}</title>
+              <link rel='stylesheet' href='{rel_path}assets/style.css'>
+              </head><body>
+              <div class='nav'>{nav_html(rel_path)}</div>
+              <div class='container'>{body}</div>
+              </body></html>"""
+
+          def generate_index(directory):
+              items = sorted(directory.iterdir(), key=lambda p: (p.is_file(), p.name))
+              links = []
+
+              if directory != browse_root:
+                  links.append(f"<li><a href='../index.html'>.. (Parent Directory)</a></li>")
+
+              for item in items:
+                  if item.name == "index.html": continue
+                  name = item.name + ("/" if item.is_dir() else "")
+                  href = item.name + ("/index.html" if item.is_dir() else "")
+                  links.append(f"<li><a href='{href}'>{name}</a></li>")
+
+              body = f"<h1>Index of {html.escape(directory.name)}</h1><ul>{''.join(links)}</ul>"
+
+              depth = len(directory.relative_to(site_root).parts)
+              rel_assets = "../" * depth
+
+              (directory / "index.html").write_text(wrap_page(directory.name, body, rel_assets), encoding="utf-8")
+
+              for item in items:
+                  if item.is_dir():
+                      generate_index(item)
+
+          if browse_root.exists():
+              generate_index(browse_root)
+
+          main_body = """
+          <h1>LuaGenerator Results</h1>
+          <p>Generated protocol data from GenerateLua.sh.</p>
+          <ul>
+            <li><a href='./browse/index.html'>Browse Generated Files</a></li>
+          """
+          if has_diff:
+              main_body += "<li><a href='./diff/index.html'>View Diff vs Master</a></li>"
+
+          main_body += "</ul>"
+          (site_root / "index.html").write_text(wrap_page("LuaGenerator Results", main_body, ""), encoding="utf-8")
+          PY
+
+          # ----- Master Push: Update Baseline -----
+          if [[ "${{ github.event_name }}" != "pull_request" ]]; then
+            echo "Updating master baseline..."
+
+            # Update Browsable Site
+            rm -rf "site/master/latest"
+            mkdir -p "site/master/latest"
+            cp -a "site/$RUN_DIR"/* "site/master/latest/"
+
+            # Update Raw Baseline
+            rm -rf "site/master/latest_raw"
+            mkdir -p "site/master/latest_raw"
+            cp -r generated/* "site/master/latest_raw/"
+
+            echo "Baseline updated."
+          fi
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site
+          destination_dir: LuaGenerator
+          keep_files: true
+
+      - name: AI Summary
+        if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
+        id: ai
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          python - <<'PY'
+          import json
+          import os
+          import urllib.request
+          import sys
+
+          # ----- Read diff -----
+          diff_path = "diffs/combined_trunc.diff"
+          try:
+              with open(diff_path, "r", encoding="utf-8", errors="ignore") as f:
+                  diff_text = f.read()
+          except Exception as e:
+              print(f"::warning::Could not read diff file: {e}")
+              sys.exit(0)
+
+          if not diff_text.strip():
+              print("::warning::Diff text is empty.")
+              sys.exit(0)
+
+          url = "https://models.github.ai/inference/chat/completions"
+          headers = {
+              "Content-Type": "application/json",
+              "Authorization": f"Bearer {os.environ['GH_TOKEN']}",
+              "Accept": "application/vnd.github+json",
+              "X-GitHub-Api-Version": "2022-11-28"
+          }
+
+          SAFE_LIMIT = 25000
+
+          payload = {
+              "model": "openai/gpt-4.1", 
+              "messages": [
+                  {"role": "system", "content": "You are a Lua/Data serialization expert. Summarize the changes in this diff. Start with bullet points."},
+                  {"role": "user", "content": diff_text[:SAFE_LIMIT]} 
+              ],
+              "temperature": 0.5
+          }
+
+          try:
+              req = urllib.request.Request(url, data=json.dumps(payload).encode("utf-8"), headers=headers)
+              with urllib.request.urlopen(req) as resp:
+                  data = json.load(resp)
+                  summary = data.get("choices", [{}])[0].get("message", {}).get("content", "")
+
+                  if summary:
+                      with open(os.environ["GITHUB_OUTPUT"], "a") as gh_out:
+                          gh_out.write("summary<<EOF\n")
+                          gh_out.write(summary + "\n")
+                          gh_out.write("EOF\n")
+                  else:
+                      print("::warning::AI returned empty content.")
+                      print(f"Debug response: {json.dumps(data)}")
+
+          except urllib.error.HTTPError as e:
+              print(f"::error::API Request failed: {e.code} {e.reason}")
+              print(e.read().decode("utf-8", errors="ignore"))
+          except Exception as e:
+              print(f"::error::Unexpected error: {e}")
+          PY
+
+      - name: Wait for Pages to be available
+        if: github.event_name == 'pull_request'
+        shell: bash
+        run: |
+          set -euo pipefail
+          URL="https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/LuaGenerator/${{ env.RUN_DIR }}/"
+
+          echo "Waiting for: $URL"
+          for i in {1..30}; do
+            code="$(curl -s -o /dev/null -L -w '%{http_code}' "$URL" || true)"
+            if [[ "$code" == "200" ]]; then
+              echo "Pages is live (HTTP $code)"
+              exit 0
+            fi
+            echo "Not live yet (HTTP $code), retrying in 3s..."
+            sleep 3
+          done
+
+          echo "::warning::Timed out waiting for GitHub Pages. The link might be 404 initially."
+          exit 0
+
+      - name: Comment on PR
+        if: github.event_name == 'pull_request'
+        uses: peter-evans/create-or-update-comment@v5
+        with:
+          issue-number: ${{ github.event.pull_request.number }}
+          body: |
+            ### LuaGenerator Results
+
+            [View Results](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/LuaGenerator/${{ env.RUN_DIR }}/)
+
+            ${{ steps.build_site.outputs.has_diff == 'true' && '**Changes detected.**' || '**No changes detected.**' }}
+
+            ${{ steps.build_site.outputs.has_diff == 'true' && steps.ai.outputs.summary || '' }}
