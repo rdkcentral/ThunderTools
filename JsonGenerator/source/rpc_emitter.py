@@ -1696,12 +1696,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     methods_and_properties = [x for x in root.properties if not isinstance(x, (JsonNotification))]
     methods = [x for x in methods_and_properties if not isinstance(x, (JsonNotification, JsonProperty))]
+    properties = [x for x in methods_and_properties if isinstance(x, (JsonProperty))]
     events = [x for x in root.properties if isinstance(x, JsonNotification)]
     async_events = []
     async_methods = []
     listener_events = [x for x in events if x.is_status_listener]
     auto_lookup_events = [x for x in events if "@lookup" in x.schema and x.schema["@lookup"].get("id") == "generate"]
     custom_lookup_events = [x for x in events if "@lookup" in x.schema and x.schema["@lookup"].get("id") == "custom"]
+    alt_methods = [x for x in methods if x.alternative]
+    alt_properties = [x for x in properties if x.alternative]
     alt_events = [x for x in events if x.alternative]
     lookup_methods = [x for x in methods_and_properties if x.schema.get("@lookup)")]
 
@@ -1831,7 +1834,15 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("ASSERT(%s.template Exists<%s>() == true);" % (names.module, trim(i["fullname"])))
             emit.Line()
 
-        emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s, Version::Major, Version::Minor, Version::Patch);" % (names.module, Tstring(names.namespace)))
+        version_info = [ Tstring(names.namespace), "Version::Major", "Version::Minor", "Version::Patch" ]
+
+        if config.STATS_FOR_NERDS:
+            method_count = len(methods) + len(alt_methods)
+            property_count = len(properties) + len(alt_properties)
+            event_count = len(events) + len(alt_events)
+            version_info.extend([str(method_count), str(property_count), str(event_count)])
+
+        emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s);" % (names.module, ", ".join(version_info)))
 
         if auto_lookup_interfaces:
             emit.Line()
