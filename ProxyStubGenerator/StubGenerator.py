@@ -2876,6 +2876,7 @@ if __name__ == "__main__":
         print("   @index                 - indicates that a parameter in a JSON-RPC property or notification is an index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
         print("   @extract               - indicates that that if only one element is present in the array it shall be taken out of it")
+        print("                            or, if the parameter is a struct, the object should be collapsed and its members spilled to method parameters")
         print("   @optional              - indicates that a parameter, struct member or property index is optional (deprecated, use Core::OptionalType instead)")
         print("   @default:{value}       - set a default value for the deprecated optional parameter (deprecated)")
         print("   @encode:{method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
