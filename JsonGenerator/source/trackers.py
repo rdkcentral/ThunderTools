@@ -16,7 +16,6 @@
 # limitations under the License.
 
 import config
-import logger
 from json_loader import *
 
 log = None
