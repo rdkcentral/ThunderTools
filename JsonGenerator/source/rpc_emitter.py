@@ -864,8 +864,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("});")
                 emit.Unindent()
                 emit.Line()
-
-                prototypes.append(["void On%sEventRegistration(const string& client, const string& index, const %s::Status status)" % (event.cpp_name, names.jsonrpc_type), None])
         else:
             emit.Line()
             emit.Line("// Unregister event status listeners...")
