@@ -38,10 +38,11 @@ namespace ProxyStubs {
     //  (4) virtual bool ShowWatermark(const bool) = 0
     //  (5) virtual bool CreateWatermark(uint32_t, uint32_t) = 0
     //  (6) virtual bool UpdateWatermark(uint32_t, uint32_t, uint32_t) = 0
-    //  (7) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
-    //  (8) virtual bool DeleteWatermark(uint32_t) = 0
-    //  (9) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
-    //  (10) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
+    //  (7) virtual bool PersistLoadWatermark(uint32_t) = 0
+    //  (8) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
+    //  (9) virtual bool DeleteWatermark(uint32_t) = 0
+    //  (10) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
+    //  (11) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
     //
 
     static ProxyStub::MethodHandler ExchangeWatermarkStubMethods[] = {
@@ -285,7 +286,37 @@ namespace ProxyStubs {
             }
         },
 
-        // (7) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
+        // (7) virtual bool PersistLoadWatermark(uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Core::hresult hresult = Core::ERROR_NONE;
+
+            hresult = [&]() -> Core::hresult {
+                if (message->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+
+                Exchange::IWatermark* implementation = reinterpret_cast<Exchange::IWatermark*>(message->Parameters().Implementation());
+                ASSERT(implementation != nullptr);
+                if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IWatermark::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+
+                RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                uint32_t _id = reader.Number<uint32_t>();
+
+                bool result = implementation->PersistLoadWatermark(_id);
+
+                RPC::Data::Frame::Writer writer(message->Response().Writer());
+                writer.Boolean(result);
+
+                return (Core::ERROR_NONE);
+            } ();
+
+            if (hresult != Core::ERROR_NONE) {
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 7, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
+            }
+        },
+
+        // (8) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -312,12 +343,12 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 7, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 8, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         },
 
-        // (8) virtual bool DeleteWatermark(uint32_t) = 0
+        // (9) virtual bool DeleteWatermark(uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -342,12 +373,12 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 8, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 9, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         },
 
-        // (9) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
+        // (10) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -377,12 +408,12 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 9, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 10, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         },
 
-        // (10) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
+        // (11) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -422,7 +453,7 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 10, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 11, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         }
@@ -487,10 +518,11 @@ namespace ProxyStubs {
     //  (4) virtual bool ShowWatermark(const bool) = 0
     //  (5) virtual bool CreateWatermark(uint32_t, uint32_t) = 0
     //  (6) virtual bool UpdateWatermark(uint32_t, uint32_t, uint32_t) = 0
-    //  (7) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
-    //  (8) virtual bool DeleteWatermark(uint32_t) = 0
-    //  (9) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
-    //  (10) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
+    //  (7) virtual bool PersistLoadWatermark(uint32_t) = 0
+    //  (8) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
+    //  (9) virtual bool DeleteWatermark(uint32_t) = 0
+    //  (10) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
+    //  (11) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
     //
 
     class ExchangeWatermarkProxy final : public ProxyStub::UnknownProxyType<Exchange::IWatermark> {
@@ -727,13 +759,12 @@ namespace ProxyStubs {
             return (result);
         }
 
-        bool AdjustWatermark(uint32_t _id, uint32_t _zorder) override
+        bool PersistLoadWatermark(uint32_t _id) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(7));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
-            writer.Number<uint32_t>(_zorder);
 
             bool result{};
 
@@ -758,12 +789,13 @@ namespace ProxyStubs {
             return (result);
         }
 
-        bool DeleteWatermark(uint32_t _id) override
+        bool AdjustWatermark(uint32_t _id, uint32_t _zorder) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(8));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
+            writer.Number<uint32_t>(_zorder);
 
             bool result{};
 
@@ -788,9 +820,39 @@ namespace ProxyStubs {
             return (result);
         }
 
-        Exchange::PalettedImageData GetPalettedWatermark(uint32_t _id) override
+        bool DeleteWatermark(uint32_t _id) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(9));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_id);
+
+            bool result{};
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+                    if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    result = reader.Boolean();
+
+                    return (Core::ERROR_NONE);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 9, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
+            }
+
+            return (result);
+        }
+
+        Exchange::PalettedImageData GetPalettedWatermark(uint32_t _id) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(10));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -823,7 +885,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 9, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 10, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
 
@@ -832,7 +894,7 @@ namespace ProxyStubs {
 
         bool ModifyPalettedWatermark(uint32_t _id, Exchange::PalettedImageData _data) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(10));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(11));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -859,7 +921,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 10, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IWatermark::ID, 11, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
 

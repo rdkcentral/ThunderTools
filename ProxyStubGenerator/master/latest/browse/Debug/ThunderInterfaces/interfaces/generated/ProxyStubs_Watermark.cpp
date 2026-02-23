@@ -33,10 +33,11 @@ namespace ProxyStubs {
     //  (4) virtual bool ShowWatermark(const bool) = 0
     //  (5) virtual bool CreateWatermark(uint32_t, uint32_t) = 0
     //  (6) virtual bool UpdateWatermark(uint32_t, uint32_t, uint32_t) = 0
-    //  (7) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
-    //  (8) virtual bool DeleteWatermark(uint32_t) = 0
-    //  (9) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
-    //  (10) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
+    //  (7) virtual bool PersistLoadWatermark(uint32_t) = 0
+    //  (8) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
+    //  (9) virtual bool DeleteWatermark(uint32_t) = 0
+    //  (10) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
+    //  (11) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
     //
 
     static ProxyStub::MethodHandler ExchangeWatermarkStubMethods[] = {
@@ -168,7 +169,22 @@ namespace ProxyStubs {
             writer.Boolean(result);
         },
 
-        // (7) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
+        // (7) virtual bool PersistLoadWatermark(uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Exchange::IWatermark* implementation = reinterpret_cast<Exchange::IWatermark*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            uint32_t _id = reader.Number<uint32_t>();
+
+            bool result = implementation->PersistLoadWatermark(_id);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+        },
+
+        // (8) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Exchange::IWatermark* implementation = reinterpret_cast<Exchange::IWatermark*>(message->Parameters().Implementation());
@@ -184,7 +200,7 @@ namespace ProxyStubs {
             writer.Boolean(result);
         },
 
-        // (8) virtual bool DeleteWatermark(uint32_t) = 0
+        // (9) virtual bool DeleteWatermark(uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Exchange::IWatermark* implementation = reinterpret_cast<Exchange::IWatermark*>(message->Parameters().Implementation());
@@ -199,7 +215,7 @@ namespace ProxyStubs {
             writer.Boolean(result);
         },
 
-        // (9) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
+        // (10) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Exchange::IWatermark* implementation = reinterpret_cast<Exchange::IWatermark*>(message->Parameters().Implementation());
@@ -219,7 +235,7 @@ namespace ProxyStubs {
             writer.Text(result.clutType);
         },
 
-        // (10) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
+        // (11) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Exchange::IWatermark* implementation = reinterpret_cast<Exchange::IWatermark*>(message->Parameters().Implementation());
@@ -281,10 +297,11 @@ namespace ProxyStubs {
     //  (4) virtual bool ShowWatermark(const bool) = 0
     //  (5) virtual bool CreateWatermark(uint32_t, uint32_t) = 0
     //  (6) virtual bool UpdateWatermark(uint32_t, uint32_t, uint32_t) = 0
-    //  (7) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
-    //  (8) virtual bool DeleteWatermark(uint32_t) = 0
-    //  (9) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
-    //  (10) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
+    //  (7) virtual bool PersistLoadWatermark(uint32_t) = 0
+    //  (8) virtual bool AdjustWatermark(uint32_t, uint32_t) = 0
+    //  (9) virtual bool DeleteWatermark(uint32_t) = 0
+    //  (10) virtual Exchange::PalettedImageData GetPalettedWatermark(uint32_t) = 0
+    //  (11) virtual bool ModifyPalettedWatermark(uint32_t, Exchange::PalettedImageData) = 0
     //
 
     class ExchangeWatermarkProxy final : public ProxyStub::UnknownProxyType<Exchange::IWatermark> {
@@ -439,9 +456,29 @@ namespace ProxyStubs {
             return (result);
         }
 
-        bool AdjustWatermark(uint32_t _id, uint32_t _zorder) override
+        bool PersistLoadWatermark(uint32_t _id) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(7));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_id);
+
+            bool result{};
+
+            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        bool AdjustWatermark(uint32_t _id, uint32_t _zorder) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(8));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -462,7 +499,7 @@ namespace ProxyStubs {
 
         bool DeleteWatermark(uint32_t _id) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(8));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(9));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -482,7 +519,7 @@ namespace ProxyStubs {
 
         Exchange::PalettedImageData GetPalettedWatermark(uint32_t _id) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(9));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(10));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -507,7 +544,7 @@ namespace ProxyStubs {
 
         bool ModifyPalettedWatermark(uint32_t _id, Exchange::PalettedImageData _data) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(10));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(11));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);

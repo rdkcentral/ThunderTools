@@ -217,11 +217,11 @@ namespace ProxyStubs {
     // Exchange::IPower::INotification interface stub definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
+    //  (0) virtual void StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
     //
 
     static ProxyStub::MethodHandler ExchangePowerNotificationStubMethods[] = {
-        // (0) virtual Core::hresult StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
+        // (0) virtual void StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -241,18 +241,14 @@ namespace ProxyStubs {
                 if (reader.Length() < (Core::RealSize<Exchange::IPower::PCPhase>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 const Exchange::IPower::PCPhase _phase = reader.Number<Exchange::IPower::PCPhase>();
 
-                Core::hresult result = implementation->StateChange(_origin, _destination, _phase);
-
-                RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<Core::hresult>(result);
+                implementation->StateChange(_origin, _destination, _phase);
 
                 return (Core::ERROR_NONE);
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(hresult);
                 fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IPower::INotification::ID, 0, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         }
         , nullptr
@@ -456,7 +452,7 @@ namespace ProxyStubs {
     // Exchange::IPower::INotification interface proxy definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
+    //  (0) virtual void StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
     //
 
     class ExchangePowerNotificationProxy final : public ProxyStub::UnknownProxyType<Exchange::IPower::INotification> {
@@ -466,7 +462,7 @@ namespace ProxyStubs {
         {
         }
 
-        Core::hresult StateChange(const Exchange::IPower::PCState _origin, const Exchange::IPower::PCState _destination, const Exchange::IPower::PCPhase _phase) override
+        void StateChange(const Exchange::IPower::PCState _origin, const Exchange::IPower::PCState _destination, const Exchange::IPower::PCPhase _phase) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
 
@@ -478,11 +474,8 @@ namespace ProxyStubs {
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
-                    RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<Core::hresult>();
 
-                    return (hresult);
+                    return (Core::ERROR_NONE);
                 } ();
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -490,9 +483,8 @@ namespace ProxyStubs {
 
             if ((hresult & COM_ERROR) != 0) {
                 fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IPower::INotification::ID, 0, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
-
-            return (hresult);
         }
 
     }; // class ExchangePowerNotificationProxy

@@ -132,11 +132,11 @@ namespace ProxyStubs {
     // Exchange::IPower::INotification interface stub definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
+    //  (0) virtual void StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
     //
 
     static ProxyStub::MethodHandler ExchangePowerNotificationStubMethods[] = {
-        // (0) virtual Core::hresult StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
+        // (0) virtual void StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Exchange::IPower::INotification* implementation = reinterpret_cast<Exchange::IPower::INotification*>(message->Parameters().Implementation());
@@ -147,10 +147,7 @@ namespace ProxyStubs {
             const Exchange::IPower::PCState _destination = reader.Number<Exchange::IPower::PCState>();
             const Exchange::IPower::PCPhase _phase = reader.Number<Exchange::IPower::PCPhase>();
 
-            Core::hresult result = implementation->StateChange(_origin, _destination, _phase);
-
-            RPC::Data::Frame::Writer writer(message->Response().Writer());
-            writer.Number<Core::hresult>(result);
+            implementation->StateChange(_origin, _destination, _phase);
         }
         , nullptr
     }; // ExchangePowerNotificationStubMethods
@@ -284,7 +281,7 @@ namespace ProxyStubs {
     // Exchange::IPower::INotification interface proxy definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
+    //  (0) virtual void StateChange(const Exchange::IPower::PCState, const Exchange::IPower::PCState, const Exchange::IPower::PCPhase) = 0
     //
 
     class ExchangePowerNotificationProxy final : public ProxyStub::UnknownProxyType<Exchange::IPower::INotification> {
@@ -294,7 +291,7 @@ namespace ProxyStubs {
         {
         }
 
-        Core::hresult StateChange(const Exchange::IPower::PCState _origin, const Exchange::IPower::PCState _destination, const Exchange::IPower::PCPhase _phase) override
+        void StateChange(const Exchange::IPower::PCState _origin, const Exchange::IPower::PCState _destination, const Exchange::IPower::PCPhase _phase) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
 
@@ -303,15 +300,7 @@ namespace ProxyStubs {
             writer.Number<Exchange::IPower::PCState>(_destination);
             writer.Number<Exchange::IPower::PCPhase>(_phase);
 
-            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<Core::hresult>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
+            static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
         }
 
     }; // class ExchangePowerNotificationProxy
