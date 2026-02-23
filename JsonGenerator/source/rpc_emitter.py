@@ -1861,7 +1861,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             lambda_params.append("%s& %s" % (response.cpp_type, response.local_name))
 
         captures = []
-        captures.append("&%s" % names.impl)
+        captures.append(names.impl)
 
         if needs_module:
             captures.append("&" + names.module)
