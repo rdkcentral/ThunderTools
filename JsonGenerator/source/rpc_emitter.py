@@ -589,7 +589,8 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted):
         if data_emitted:
             emit.Line("#include \"%s_%s.h\"" % (config.DATA_NAMESPACE, header_file))
 
-        emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, source_file))
+        if source_file.endswith(".h"):
+            emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, source_file))
 
     emit.Line()
 
