@@ -1595,10 +1595,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         emit.Endif(invoke_restrictions)
 
-
-    if "info" in root.schema and "namespace" in root.schema["info"]:
-        emit.Indent()
-
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
 
     methods_and_properties = [x for x in root.properties if not isinstance(x, (JsonNotification))]
