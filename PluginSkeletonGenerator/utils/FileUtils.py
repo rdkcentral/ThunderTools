@@ -2,6 +2,11 @@ import re
 
 class FileUtils:
     @staticmethod
+    def _postProcess(code: str) -> str:
+        code = re.sub(r"\b(Metadata\s*<[^>]+>)\s*(?=[A-Za-z_])", r"\1 ", code)
+        return code
+
+    @staticmethod
     def replaceKeywords(template, keywords):
         lines = template.split('\n')
         result_lines = []
@@ -21,7 +26,7 @@ class FileUtils:
                 replaced_line = pattern.sub(lambda m: keywords[m.group(0)], line)
                 result_lines.append(replaced_line)
         
-        return '\n'.join(result_lines)
+        return FileUtils._postProcess('\n'.join(result_lines))
 
     @staticmethod
     def readFile(template_name):

@@ -49,5 +49,7 @@ string {{PLUGIN_NAME}}::Information() const {
 }
 
 {{SOURCE_METHOD_IMPL}}
+
+{{SOURCE_NOTIFY_IMPL}}
 } // Plugin
 } // Thunder

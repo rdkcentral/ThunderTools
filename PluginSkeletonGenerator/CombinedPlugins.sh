@@ -56,15 +56,16 @@ mkdir -p "$TARGET_DIR"
   for i in $(seq 1 "$COUNT"); do
     plugin="Plugin$i"
 
-    # Answers:
-    # 1) $plugin
-    # 2) N
-    # 3) N
-    # 4) $IFACE_ABS
-    # 5) <Enter>
-    # 6) N
-    # 7) <Enter>
-    printf '%s\nN\nN\n%s\n\nN\n\n' "$plugin" "$IFACE_ABS" | python3 "$START_DIR/PluginSkeletonGenerator.py"
+    # Answers (one per prompt):
+    # 1) plugin name
+    # 2) output directory (empty => current directory)
+    # 3) out of process (N)
+    # 4) custom config (N)
+    # 5) interface path
+    # 6) done adding interfaces (empty)
+    # 7) relies on subsystems (N)
+    # 8) include location for the interface (empty => default)
+    printf '%s\n\nN\nN\n%s\n\nN\n\n' "$plugin" "$IFACE_ABS" | python3 "$START_DIR/PluginSkeletonGenerator.py"
   done
 
   # Create CMakeLists.txt with one add_subdirectory line per plugin

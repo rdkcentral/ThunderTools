@@ -9,7 +9,8 @@ import core.GlobalVariables as GlobalVariables
 class PluginRepositoryGenerator:
     def __init__(self, blueprint) -> None:
         self.m_plugin_name = blueprint.name
-        self.m_directory = blueprint.name
+        root = getattr(blueprint, "output_dir", None) or os.getcwd()
+        self.m_directory = os.path.join(root, blueprint.name)
         os.makedirs(self.m_directory, exist_ok=False)
         self.m_indenter = Indenter()
 

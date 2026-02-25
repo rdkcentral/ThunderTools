@@ -10,6 +10,7 @@ class PluginBlueprint:
             self._jsonrpc_interfaces: List[str] = []
             self._notification_interfaces: List[str] = []
             self._notification_entries: List[Tuple[str, object]] = []
+            self._event_notification_entries: List[Tuple[str, object]] = []
 
             self.processInterfaces(parsed_data)
 
@@ -53,6 +54,9 @@ class PluginBlueprint:
                 if "Notification" in current.m_name:
                     fq = f"{exchange_ns}::{iface}::{current.m_name}"
                     self._notification_entries.append((fq, current))
+                    # Only mark the notification struct itself is tagged @event?
+                    if "event" in getattr(current, "m_tags", []):
+                        self._event_notification_entries.append((fq, current))
                 for child in current.m_children.values():
                     stack.append((child, iface))
 
@@ -79,6 +83,10 @@ class PluginBlueprint:
         def notification_entries(self) -> List[Tuple[str, object]]:
             return self._notification_entries
 
+        @property
+        def event_notification_entries(self) -> List[Tuple[str, object]]:
+            return self._event_notification_entries
+
     def __init__(self,
                  name,
                  out_of_process,
@@ -88,13 +96,15 @@ class PluginBlueprint:
                  locations,
                  preconditions=None,
                  terminations=None,
-                 controls=None):
+                 controls=None,
+                 output_dir=None):
         self._name = name
         self._out_of_process = out_of_process
         self._configuration = configuration
         self._parsed_data = parsed_data
         self._header_lookup = header_lookup
         self._locations = locations
+        self._output_dir = output_dir
 
         preconditions = preconditions or []
         terminations = terminations or []
@@ -111,6 +121,7 @@ class PluginBlueprint:
         self._notification_interfaces = parsed_info.notification_interfaces
         self._file_interface_map = parsed_info.file_interface_map
         self._notification_entries = parsed_info.collectNotificationEntries()
+        self._event_notification_entries = parsed_info.event_notification_entries
 
     @property
     def name(self) -> str:
@@ -157,6 +168,10 @@ class PluginBlueprint:
         return self._notification_entries
 
     @property
+    def event_notification_entries(self) -> List[Tuple[str, object]]:
+        return self._event_notification_entries
+
+    @property
     def preconditions(self) -> List[str]:
         return self._PRECONDITIONS
 
@@ -167,6 +182,10 @@ class PluginBlueprint:
     @property
     def controls(self) -> List[str]:
         return self._CONTROLS
+
+    @property
+    def output_dir(self) -> str:
+        return self._output_dir
 
     def isJsonRpcPlugin(self) -> bool:
         return any("json" in cls_data.m_tags for cls_data, _ in self._parsed_data.values())

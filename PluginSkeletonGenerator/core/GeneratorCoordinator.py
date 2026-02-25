@@ -12,7 +12,7 @@ class GenerationTask:
 
 class GeneratorCoordinator:
     def __init__(self, name, out_of_process, configuration, parsed_data, header_lookup, locations,
-                 preconditions=None, terminations=None, controls=None):
+                 preconditions=None, terminations=None, controls=None, output_dir=None):
         self.m_blueprint = PluginBlueprint(
             name=name,
             out_of_process=out_of_process,
@@ -23,6 +23,7 @@ class GeneratorCoordinator:
             preconditions=preconditions,
             terminations=terminations,
             controls=controls,
+            output_dir=output_dir,
         )
 
     def generateAll(self):

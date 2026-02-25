@@ -41,8 +41,12 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP({{PLUGIN_NAME}}Implementation)
         {{HEADER_INTERFACE_ENTRY}}
         END_INTERFACE_MAP
-    
+
+        {{HEADER_USING_EXTERNAL}}
+        
         {{HEADER_INHERITED_METHOD}}
+        
+        {{CONFIGURE_OOP}}
     private:
         {{HEADER_USING_CONTAINER}}
 
