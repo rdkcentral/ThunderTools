@@ -884,8 +884,6 @@ class JsonMethod(JsonObject):
         if not self.summary and "#" not in self.print_name:
             log.DocIssue("'%s': method is missing summary" % self.print_name)
 
-        self.endpoint_name = (config.IMPL_ENDPOINT_PREFIX + super().json_name)
-
         self._Check()
 
         if (self.rpc_format == config.RpcFormat.COMPLIANT) and not isinstance(self.params, (JsonObject, JsonNull)):
@@ -964,8 +962,6 @@ class JsonNotification(JsonMethod):
         self.sendif_deprecated = schema["id"].get("deprecated") if "id" in schema else False
         self.is_status_listener = schema.get("statuslistener")
 
-        self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
-
         for param in self.params.properties:
             if not isinstance(param,JsonNative) and param.do_create:
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
@@ -1007,9 +1003,6 @@ class JsonProperty(JsonMethod):
                 self.index[1] = self.index[0]
         else:
             self.index = None
-
-        self.endpoint_set_name = (config.IMPL_ENDPOINT_PREFIX + "set_" + self.json_name)
-        self.endpoint_get_name = (config.IMPL_ENDPOINT_PREFIX + "get_" + self.json_name)
 
 
 class JsonRpcSchema(JsonType):

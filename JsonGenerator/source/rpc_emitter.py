@@ -162,7 +162,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     return converted, error_condition_emitted
 
 
-def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False, has_extra_index=False, legacy_array=False, async_event=False):
+def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_index=False, legacy_array=False, async_event=False):
 
     def trim(identifier):
         return str(identifier).replace(ns + "::", "").replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
@@ -178,7 +178,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     names["index"] = "index_"
     names['designator_id'] = "designatorId_"
 
-    prefix = ("%s." % names.module) if not legacy else ""
+    prefix = ("%s." % names.module)
 
     params = event.params
 
@@ -189,19 +189,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     custom_lookup = event.schema["@lookup"] if "@lookup" in event.schema and event.schema["@lookup"]["id"] == "custom" else None
     lookup = auto_lookup if auto_lookup else custom_lookup
 
-    has_custom_lookup_params = False
-    if not params.is_void:
-        if params_type == "native":
-            if params.properties and params.do_create:
-                for p in params.properties:
-                    if p.schema.get("@lookup") == "custom":
-                        has_custom_lookup_params = True
-                        break
-            else:
-                if params.schema.get("@lookup") == "custom":
-                    has_custom_lookup_params = True
-
-    names['jsonrpc_type'] = "MODULE" if not legacy else "PluginHost::JSONRPC"
+    names['jsonrpc_type'] = "MODULE"
 
     if lookup:
         parameters.append("const %s* const %s" % (trim(lookup["fullname"]), "_obj"))
@@ -240,23 +228,19 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
            parameters.append("const %s& %s" % (params.cpp_type, params.local_name))
 
 
-    if not legacy:
-        parameters.insert(0, "const %s& %s" % (names.jsonrpc_type, names.module))
+    parameters.insert(0, "const %s& %s" % (names.jsonrpc_type, names.module))
 
-        if has_extra_index and params_type == "object":
-            parameters.append("const bool")
+    if has_extra_index and params_type == "object":
+        parameters.append("const bool")
 
-        if event.is_status_listener and has_client:
-            parameters.append("const string& %s" % (names.client))
+    if event.is_status_listener and has_client:
+        parameters.append("const string& %s" % (names.client))
 
-        if not has_client:
-            parameters.append("typename MODULE::SendIfMethod%s %s = nullptr" % (("Indexed" if (event.sendif_type and not event.sendif_deprecated) else ""), names.sendif))
+    if not has_client:
+        parameters.append("typename MODULE::SendIfMethod%s %s = nullptr" % (("Indexed" if (event.sendif_type and not event.sendif_deprecated) else ""), names.sendif))
 
     # Emit the prototype
-    if legacy:
-        line = "void %s::%s(%s)" % (root.cpp_name, event.endpoint_name, ", ".join(parameters))
-    else:
-        line = "static void %s(%s)" % (event.cpp_name, ", ".join(parameters))
+    line = "static void %s(%s)" % (event.cpp_name, ", ".join(parameters))
 
     if event.included_from:
         line += " /* %s */" % event.included_from
@@ -265,8 +249,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
     template_args = []
 
-    if not legacy:
-        template_args.append("typename MODULE")
+    template_args.append("typename MODULE")
 
     emit.Line("template<%s>" % ", ".join(template_args))
 
@@ -277,7 +260,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
     needs_legacy_array_as_string = False
 
     # Convert the parameters to JSON types
-    if params_type != "object" or legacy:
+    if params_type != "object":
 
         if not params.is_void:
             emit.Line("%s %s;" % (params.cpp_type, names.params))
@@ -431,11 +414,10 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
         parameters = [ ]
 
-        if not legacy:
-            parameters.append(names.module)
+        parameters.append(names.module)
 
-            if lookup:
-                parameters.append("_obj")
+        if lookup:
+            parameters.append("_obj")
 
         if event.sendif_type:
             if (((has_extra_index or not event.sendif_type.optional) or event.sendif_deprecated) or params_type != "native"):
@@ -447,19 +429,18 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
             parameters.append(names.params)
 
         # Emit the local call
-        if not legacy:
-            if has_extra_index:
-                parameters.append("true")
+        if has_extra_index:
+            parameters.append("true")
 
-            if event.is_status_listener and has_client:
-                parameters.append(names.client)
+        if event.is_status_listener and has_client:
+            parameters.append(names.client)
 
-            if not has_client:
-                parameters.append(names.sendif)
+        if not has_client:
+            parameters.append(names.sendif)
 
         emit.Line("%s(%s);" % (event.cpp_name, ", ".join(parameters)))
 
-    if params_type == "object" or legacy:
+    if params_type == "object":
         # Build parameters for the notification call
         parameters = [ ]
 
@@ -469,7 +450,7 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
             parameters.append(Tstring(event.json_name))
 
         if not params.is_void:
-            parameters.append(names.params if legacy else params.local_name)
+            parameters.append(params.local_name)
 
         if lookup:
             emit.Line("ASSERT(_obj != nullptr);")
@@ -535,15 +516,13 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
             emit.Unindent()
             emit.Line("});")
 
-
         # Handle index and/or statuslistener extra parameters
         if event.sendif_type or (event.is_status_listener and has_client):
-            if not legacy:
-                # If the event has an id specified (i.e. uses "send-if"), generate code for this too:
-                # only call if extracted  designator id smatches the index.
-                if not has_client and event.sendif_type:
-                    emit.Line("if (%s == nullptr) {" % names.sendif)
-                    emit.Indent()
+            # If the event has an id specified (i.e. uses "send-if"), generate code for this too:
+            # only call if extracted  designator id smatches the index.
+            if not has_client and event.sendif_type:
+                emit.Line("if (%s == nullptr) {" % names.sendif)
+                emit.Indent()
 
             if (event.is_status_listener and has_client) or event.sendif_type:
                 Emit(parameters)
@@ -551,24 +530,23 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 if event.alternative and config.LEGACY_ALT:
                     Emit([Tstring(event.alternative)] + parameters[1:])
 
-            if not legacy:
-                def Emit(parameters):
-                    emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + [names.sendif])))
+            def Emit(parameters):
+                emit.Line('%sNotify(%s);' % (prefix, ", ".join(parameters + [names.sendif])))
 
-                if not has_client and event.sendif_type:
-                    emit.Unindent()
-                    emit.Line("}")
-                    emit.Line("else {")
+            if not has_client and event.sendif_type:
+                emit.Unindent()
+                emit.Line("}")
+                emit.Line("else {")
 
-                    # Use supplied custom send-if function
-                    emit.Indent()
-                    Emit(parameters)
+                # Use supplied custom send-if function
+                emit.Indent()
+                Emit(parameters)
 
-                    if event.alternative and config.LEGACY_ALT:
-                        Emit([Tstring(event.alternative)] + parameters[1:])
+                if event.alternative and config.LEGACY_ALT:
+                    Emit([Tstring(event.alternative)] + parameters[1:])
 
-                    emit.Unindent()
-                    emit.Line("}")
+                emit.Unindent()
+                emit.Line("}")
         else:
             # No send-if
             def Emit(parameters):
@@ -589,39 +567,21 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
     if needs_legacy_array_as_string and not legacy_array and params_type == "native":
         emit.Line("// legacy array as string version")
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=has_extra_index, legacy_array=True, async_event=async_event)
+        EmitEvent(emit, ns, root, event, params_type, has_client=has_client, has_extra_index=has_extra_index, legacy_array=True, async_event=async_event)
 
     if event.is_status_listener and not has_client:
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, has_extra_index=has_extra_index, legacy_array=legacy_array, async_event=async_event)
+        EmitEvent(emit, ns, root, event, params_type, has_client=True, has_extra_index=has_extra_index, legacy_array=legacy_array, async_event=async_event)
 
     if event.sendif_type and event.sendif_type.optional and not event.sendif_deprecated and not has_extra_index and not has_client and params_type != "json":
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=True, legacy_array=legacy_array, async_event=async_event)
+        EmitEvent(emit, ns, root, event, params_type, has_client=has_client, has_extra_index=True, legacy_array=legacy_array, async_event=async_event)
 
 
 
-def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, prototypes = []):
-    is_json_source = source_file.endswith(".json")
-
+def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted):
     emit.Line()
     emit.Line("// Generated automatically from '%s'. DO NOT EDIT." % os.path.basename(source_file))
     emit.Line()
     emit.Line("#pragma once")
-
-    if is_json_source and prototypes:
-        emit.Line()
-        emit.Line("#if _IMPLEMENTATION_STUB")
-        emit.Line("// sample implementation class")
-        emit.Line("class JSONRPCImplementation {")
-        emit.Line("public:")
-        emit.Indent()
-
-        for p in prototypes:
-            emit.Line("%s { %s}" % (p[0], "return (%s); " % p[1] if p[1] else ""))
-
-        emit.Unindent()
-        emit.Line("}; // class JSONRPCImplementation")
-        emit.Line("#endif // _IMPLEMENTATION_STUB")
-        emit.Line()
 
     if not config.NO_INCLUDES:
         emit.Line("#include \"Module.h\"")
@@ -629,7 +589,7 @@ def _EmitRpcPrologue(root, emit, header_file, source_file, ns, data_emitted, pro
         if data_emitted:
             emit.Line("#include \"%s_%s.h\"" % (config.DATA_NAMESPACE, header_file))
 
-        if not is_json_source:
+        if source_file.endswith(".h"):
             emit.Line("#include <%s%s>" % (config.CPP_INTERFACE_PATH, source_file))
 
     emit.Line()
@@ -843,14 +803,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             for event in alt_events:
                 emit.Line("%s.PluginHost::JSONRPC::UnregisterEventAlias(%s, %s);" % (names.module, Tstring(event.alternative), Tstring(event.name)))
 
-    def _EmitEventStatusListenerRegistration(listener_events, lookup_events, legacy, prologue=True):
+    def _EmitEventStatusListenerRegistration(listener_events, lookup_events, prologue=True):
         if prologue:
             emit.Line("// Register event status listeners...")
             emit.Line()
 
             for event in listener_events:
                 lambda_params = []
-                lambda_params.append("%s%s" % ("&" if legacy else "", names.handler))
+                lambda_params.append(names.handler)
 
                 has_lookup = event in lookup_events
 
@@ -870,7 +830,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 if has_lookup:
                     lookup = event.schema.get("@lookup")
-                    emit.Line("[&%s,%s%s](%s) {" % (names.module, ("&" if legacy else ""), names.handler, ", ".join(params)))
+                    emit.Line("[&%s,%s](%s) {" % (names.module, names.handler, ", ".join(params)))
                     emit.Indent()
                     emit.Line("%s* _object__ = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(instanceId_, Core::JSONRPC::Context(channelId_));" % (trim(lookup["fullname"]), names.module, trim(lookup["fullname"])))
                     emit.Line("if (_object__ != nullptr) {")
@@ -890,7 +850,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("if (_errorCode__ == %s) {" % CoreError("none"))
                     emit.Indent()
 
-                emit.Line("%s%sOn%sEventRegistration(%s);" % (names.handler, ('.' if legacy else '->'), event.cpp_name, ", ".join(call_params)))
+                emit.Line("%s->On%sEventRegistration(%s);" % (names.handler, event.cpp_name, ", ".join(call_params)))
 
                 if event.sendif_type and not event.sendif_deprecated:
                     emit.Unindent()
@@ -905,8 +865,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("});")
                 emit.Unindent()
                 emit.Line()
-
-                prototypes.append(["void On%sEventRegistration(const string& client, const string& index, const %s::Status status)" % (event.cpp_name, names.jsonrpc_type), None])
         else:
             emit.Line()
             emit.Line("// Unregister event status listeners...")
@@ -1052,17 +1010,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         lookup_conditions = Restrictions(json=False)
 
-        if not is_json_source:
-            implementation = names.impl
-            interface = names.interface
+        implementation = names.impl
+        interface = names.interface
 
-            if lookup:
-                impl = ("_%s%s" % (lookup["object"], implementation)).lower()
-                interface = trim(lookup["fullname"])
-                emit.Line("%s%s* const %s = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(%s, %s);" % ("const " if const_cast else "", interface, implementation, names.module, interface, names.instance_id, names.context))
-                lookup_conditions.extend("%s != nullptr" % implementation)
+        if lookup:
+            impl = ("_%s%s" % (lookup["object"], implementation)).lower()
+            interface = trim(lookup["fullname"])
+            emit.Line("%s%s* const %s = %s.PluginHost::JSONRPCSupportsObjectLookup::template LookUp<%s>(%s, %s);" % ("const " if const_cast else "", interface, implementation, names.module, interface, names.instance_id, names.context))
+            lookup_conditions.extend("%s != nullptr" % implementation)
 
-            implementation_object = "(static_cast<const %s*>(%s))" % (interface, implementation) if const_cast and not auto_lookup else implementation
+        implementation_object = "(static_cast<const %s*>(%s))" % (interface, implementation) if const_cast and not auto_lookup else implementation
 
         emit.If(lookup_conditions)
 
@@ -1351,31 +1308,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         if param.optional:
                             emit.Line("%s = std::move(%s);" % (param.temp_name, vector))
 
-                elif is_json_source:
-                    response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
-                    initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
-
-                    if is_readable and is_writeable:
-                        emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
-
-                    emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type, param.temp_name, initializer))
                 else:
                     raise RPCEmitterError("arrays must be iterators: %s" % param.json_name)
 
 
             # All Other
             else:
-                if is_json_source:
-                    response_cpp_name = (response_parent + param.cpp_name) if response_parent else param.local_name
-                    initializer = ("(%s)" if isinstance(param, JsonObject) else "{%s}") % (response_cpp_name if is_writeable else cpp_name)
+                if param.schema.get("@construct_from_cstr"):
+                    cpp_name += ".Value().c_str()"
 
-                    if is_readable and is_writeable:
-                        emit.Line("%s = %s;" % (response_cpp_name, cpp_name))
-                else:
-                    if param.schema.get("@construct_from_cstr"):
-                        cpp_name += ".Value().c_str()"
-
-                    initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
+                initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
 
                 if param.optional and is_readable and ((param.default_value == None) or not parent):
                     emit.Line("%s %s{};" % (param.cpp_native_type_opt, param.temp_name))
@@ -1402,7 +1344,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     emit.Line("}")
                     emit.Line()
                 else:
-                    emit.Line("%s%s %s%s;" % (cv_qualifier, (param.cpp_type + "&") if is_json_source else param.cpp_native_type_opt, param.temp_name, initializer))
+                    emit.Line("%s%s %s%s;" % (cv_qualifier, param.cpp_native_type_opt, param.temp_name, initializer))
 
                     if param.convert and is_readable:
                         emit.Line((param.convert + ";") % (param.temp_name, cpp_name))
@@ -1416,93 +1358,66 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     call_conditions.extend("_real%s != nullptr" % param.temp_name)
 
         # Emit call to the implementation
-        if not is_json_source: # Full automatic mode
+        function_params = []
 
-            function_params = []
+        if context:
+            function_params.append(names.context)
 
-            if context:
-                function_params.append(names.context)
+        if index_name:
+            function_params.append(index_name)
 
-            if index_name:
-                function_params.append(index_name)
+        for _, [param, _, param_meta] in sorted_vars:
+            function_params.append("%s%s" % (param_meta.flags.prefix, (param_meta.flags.cast if param_meta.flags.cast else param.temp_name)))
 
-            for _, [param, _, param_meta] in sorted_vars:
-                function_params.append("%s%s" % (param_meta.flags.prefix, (param_meta.flags.cast if param_meta.flags.cast else param.temp_name)))
+        emit.Line()
 
+        if call_conditions.count():
+            emit.Line("if (%s) {" % call_conditions.join())
+            emit.Indent()
+
+        assert error_code.temp_name
+        assert method.function_name
+        emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, method.function_name, ", ".join(function_params)))
+
+        if auto_lookup or custom_lookup:
+            emit.Line("%s->Release();" % implementation)
+
+        if method.callback:
             emit.Line()
+            emit.Line("if (%s != Core::ERROR_NONE) {" % (error_code.temp_name))
+            emit.Indent()
+            emit.Line("%s.Unsubscribe(%s.ChannelId(), %s, %s, _T(\"\"));" % (names.module, names.context, Tstring(method.callback.notification.json_name), param.TempName("_asyncId")))
+            emit.Unindent()
+            emit.Line("}")
 
-            if call_conditions.count():
-                emit.Line("if (%s) {" % call_conditions.join())
+        if call_conditions.count():
+            emit.Unindent()
+            emit.Line("}")
+            emit.Line("else {")
+            emit.Indent()
+            emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
+            for c in cleanup:
+                emit.Line("if (%s != nullptr) {" % c)
                 emit.Indent()
-
-            assert error_code.temp_name
-            assert method.function_name
-            emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, method.function_name, ", ".join(function_params)))
-
-            if auto_lookup or custom_lookup:
-                emit.Line("%s->Release();" % implementation)
-
-            if method.callback:
-                emit.Line()
-                emit.Line("if (%s != Core::ERROR_NONE) {" % (error_code.temp_name))
-                emit.Indent()
-                emit.Line("%s.Unsubscribe(%s.ChannelId(), %s, %s, _T(\"\"));" % (names.module, names.context, Tstring(method.callback.notification.json_name), param.TempName("_asyncId")))
+                emit.Line("%s->Release();" % c)
                 emit.Unindent()
                 emit.Line("}")
+            emit.Unindent()
+            emit.Line("}")
 
-            if call_conditions.count():
-                emit.Unindent()
-                emit.Line("}")
-                emit.Line("else {")
-                emit.Indent()
-                emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
-                for c in cleanup:
-                    emit.Line("if (%s != nullptr) {" % c)
-                    emit.Indent()
-                    emit.Line("%s->Release();" % c)
-                    emit.Unindent()
-                    emit.Line("}")
-                emit.Unindent()
-                emit.Line("}")
-
-            if async_param:
-                emit.Line()
-                emit.Line("if (%s != nullptr) {" % async_param)
-                emit.Indent()
-                emit.Line("%s->Release();" % async_param)
-                emit.Unindent()
-                emit.Line("}")
-
-        # Semi-automatic mode
-        else:
-            parameters = []
-
-            if index_name:
-                parameters.append(index_name)
-
-            for _, [ param, _, _ ] in sorted_vars:
-                parameters.append("%s" % (param.temp_name))
-
-            if const_cast:
-                emit.Line("%s = (static_cast<const IMPLEMENTATION&>(%s)).%s(%s);" % (error_code.temp_name, names.impl, m.function_name, ", ".join(parameters)))
-            else:
-                emit.Line("%s = %s.%s(%s);" % (error_code.temp_name, names.impl, method.function_name, ", ".join(parameters)))
-
-            parameters = []
-
-            if index_name:
-                parameters.append("const %s& %s" % (any_index.cpp_native_type, index_name))
-
-            for _, [ param, type, _ ] in sorted_vars:
-                parameters.append("%s%s& %s" % ("const " if type == "r" else "", param.cpp_type, param.local_name))
-
-            prototypes.append(["uint32_t %s(%s)%s" % (method.function_name, ", ".join(parameters), (" const" if (const_cast or (isinstance(method, JsonProperty) and method.readonly)) else "")), CoreError("none")])
+        if async_param:
+            emit.Line()
+            emit.Line("if (%s != nullptr) {" % async_param)
+            emit.Indent()
+            emit.Line("%s->Release();" % async_param)
+            emit.Unindent()
+            emit.Line("}")
 
         emit.Line()
 
         # Emit result handling and serialization to JSON data
 
-        if response and not is_json_source:
+        if response:
             emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
             emit.Indent()
 
@@ -1681,17 +1596,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         emit.Endif(invoke_restrictions)
 
-    is_json_source = source_file.endswith(".json")
-
-    for i, ns_ in enumerate(ns.split("::")):
-        if ns_ and i >= 2:
-            emit.Indent()
-
-    if "info" in root.schema and "namespace" in root.schema["info"]:
-        emit.Indent()
-
-    emit.Indent()
-
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
 
     methods_and_properties = [x for x in root.properties if not isinstance(x, (JsonNotification))]
@@ -1712,7 +1616,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     names['module'] = "_module__"
     names['impl'] = "_implementation__"
-    names['handler'] = ("_handler_" if not is_json_source else names.impl)
+    names['handler'] = "_handler_"
     names['handler_interface'] = "IHandler"
     names['context'] = "context_"
     names['id'] = "id_"
@@ -1775,7 +1679,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         m.processed_vars = [params, response, normalized_params, normalized_response, sorted_vars, has_auto_lookup_params, has_custom_lookup_params, (m.callback != None)]
 
-    if listener_events and not is_json_source:
+    if listener_events:
         _EmitHandlerInterface(listener_events, auto_lookup_events + custom_lookup_events)
 
     if async_events:
@@ -1795,23 +1699,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     _EmitNoPushWarnings(prologue=True)
 
-    if is_json_source:
-        emit.Line("using JSONRPC = %s;" % names.jsonrpc_type)
-        emit.Line()
-
     impl_name = ((" " + names.impl) if impl_required else "")
 
     register_params = [ "MODULE& %s" % (names.module) ]
+    register_params.append("%s*%s" % (names.interface, impl_name))
 
-    if is_json_source:
-        register_params.append("IMPLEMENTATION&%s" % impl_name)
-        emit.Line("template<typename IMPLEMENTATION>")
-
-    else:
-        register_params.append("%s*%s" % (names.interface, impl_name))
-
-        if listener_events:
-            register_params.append("%s* %s" % (names.handler_interface, names.handler))
+    if listener_events:
+        register_params.append("%s* %s" % (names.handler_interface, names.handler))
 
     emit.Line("template<typename MODULE>")
     emit.Line("static void Register(%s)" % (", ".join(register_params)))
@@ -1819,69 +1713,68 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     emit.Line("{")
     emit.Indent()
 
-    if not is_json_source:
-        if methods_and_properties:
-            emit.Line("ASSERT(%s != nullptr);" % names.impl)
+    if methods_and_properties:
+        emit.Line("ASSERT(%s != nullptr);" % names.impl)
 
-        if listener_events:
-            emit.Line("ASSERT(%s != nullptr);" % names.handler)
+    if listener_events:
+        emit.Line("ASSERT(%s != nullptr);" % names.handler)
 
-        if methods_and_properties or listener_events:
-            emit.Line()
+    if methods_and_properties or listener_events:
+        emit.Line()
 
-        if custom_lookup_interfaces:
-            for i in custom_lookup_interfaces:
-                emit.Line("ASSERT(%s.template Exists<%s>() == true);" % (names.module, trim(i["fullname"])))
-            emit.Line()
+    if custom_lookup_interfaces:
+        for i in custom_lookup_interfaces:
+            emit.Line("ASSERT(%s.template Exists<%s>() == true);" % (names.module, trim(i["fullname"])))
+        emit.Line()
 
-        version_info = [ Tstring(names.namespace), "Version::Major", "Version::Minor", "Version::Patch" ]
+    version_info = [ Tstring(names.namespace), "Version::Major", "Version::Minor", "Version::Patch" ]
 
-        if config.STATS_FOR_NERDS:
-            method_count = len(methods) + len(alt_methods)
-            property_count = len(properties) + len(alt_properties)
-            event_count = len(events) + len(alt_events)
-            version_info.extend([str(method_count), str(property_count), str(event_count)])
+    if config.STATS_FOR_NERDS:
+        method_count = len(methods) + len(alt_methods)
+        property_count = len(properties) + len(alt_properties)
+        event_count = len(events) + len(alt_events)
+        version_info.extend([str(method_count), str(property_count), str(event_count)])
 
-        emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s);" % (names.module, ", ".join(version_info)))
+    emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s);" % (names.module, ", ".join(version_info)))
 
-        if auto_lookup_interfaces:
-            emit.Line()
-            emit.Line("// Install lookup handlers")
-            for i in auto_lookup_interfaces:
-                emit.Line("%s.PluginHost::JSONRPCSupportsAutoObjectLookup::template InstallHandler<%s>();" % (names.module, trim(i["fullname"])))
+    if auto_lookup_interfaces:
+        emit.Line()
+        emit.Line("// Install lookup handlers")
+        for i in auto_lookup_interfaces:
+            emit.Line("%s.PluginHost::JSONRPCSupportsAutoObjectLookup::template InstallHandler<%s>();" % (names.module, trim(i["fullname"])))
 
-        if auto_lookup_events:
-            emit.Line()
-            emit.Line("// Install subscription assessor")
-            emit.Line()
-            emit.Line("%s.SetSubscribeAssessor([&%s](const uint32_t channelId, const string& prefix, const string& instanceId, const string&, const string&) -> bool {" % (names.module, names.module))
-            emit.Indent()
-            emit.Indent()
-            emit.Line("bool result = true;")
-            emit.Line()
-            emit.Line("if (instanceId.empty() == false) {")
-            emit.Indent()
+    if auto_lookup_events:
+        emit.Line()
+        emit.Line("// Install subscription assessor")
+        emit.Line()
+        emit.Line("%s.SetSubscribeAssessor([&%s](const uint32_t channelId, const string& prefix, const string& instanceId, const string&, const string&) -> bool {" % (names.module, names.module))
+        emit.Indent()
+        emit.Indent()
+        emit.Line("bool result = true;")
+        emit.Line()
+        emit.Line("if (instanceId.empty() == false) {")
+        emit.Indent()
 
-            done = []
+        done = []
 
-            for i,ev in enumerate(auto_lookup_events):
-                if ev.schema["@lookup"]["fullprefix"] not in done:
-                    lookup = ev.schema["@lookup"]
-                    emit.Line("%sif (prefix == _T(\"%s\")) {" % ("else " if i != 0 else "", lookup["fullprefix"]))
-                    emit.Indent()
-                    emit.Line("result = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Check<%s>(instanceId, channelId);" % (names.module, trim(lookup["fullname"])))
-                    emit.Unindent()
-                    emit.Line("}")
-                    done.append(lookup["fullprefix"])
+        for i,ev in enumerate(auto_lookup_events):
+            if ev.schema["@lookup"]["fullprefix"] not in done:
+                lookup = ev.schema["@lookup"]
+                emit.Line("%sif (prefix == _T(\"%s\")) {" % ("else " if i != 0 else "", lookup["fullprefix"]))
+                emit.Indent()
+                emit.Line("result = %s.PluginHost::JSONRPCSupportsAutoObjectLookup::template Check<%s>(instanceId, channelId);" % (names.module, trim(lookup["fullname"])))
+                emit.Unindent()
+                emit.Line("}")
+                done.append(lookup["fullprefix"])
 
-            emit.Unindent()
-            emit.Line("}")
-            emit.Line()
-            emit.Line("return (result);")
-            emit.Unindent()
-            emit.Line("});")
-            emit.Unindent()
-            emit.Line()
+        emit.Unindent()
+        emit.Line("}")
+        emit.Line()
+        emit.Line("return (result);")
+        emit.Unindent()
+        emit.Line("});")
+        emit.Unindent()
+        emit.Line()
 
     if module_required:
         emit.Line()
@@ -1892,8 +1785,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     if methods_and_properties:
         emit.Line("// Register methods and properties...")
         emit.Line()
-
-    prototypes = []
 
     for m in methods_and_properties:
         is_property = isinstance(m, JsonProperty)
@@ -1967,7 +1858,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             lambda_params.append("%s& %s" % (response.cpp_type, response.local_name))
 
         captures = []
-        captures.append("%s%s" % ("&" if is_json_source else "", names.impl))
+        captures.append(names.impl)
 
         if needs_module:
             captures.append("&" + names.module)
@@ -2065,7 +1956,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     # Emit event status registrations
     if listener_events:
-        _EmitEventStatusListenerRegistration(listener_events, (auto_lookup_events + custom_lookup_events), is_json_source, prologue=True)
+        _EmitEventStatusListenerRegistration(listener_events, (auto_lookup_events + custom_lookup_events), prologue=True)
 
     emit.Unindent()
     emit.Line("}")
@@ -2095,7 +1986,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     # Emit event status listeners deregistrations
     if listener_events:
-        _EmitEventStatusListenerRegistration(listener_events, (auto_lookup_events + custom_lookup_events), is_json_source, prologue=False)
+        _EmitEventStatusListenerRegistration(listener_events, (auto_lookup_events + custom_lookup_events), prologue=False)
 
     if auto_lookup_events:
         emit.Line()
@@ -2113,24 +2004,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     # Restore warnings level
     _EmitNoPushWarnings(prologue=False)
 
-    # Return collected signatures, so the emited file can be prepended with
-    return prototypes
 
 def __Namespace(root):
     return (root.schema["namespace"] if "namespace" in root.schema else "::%s::Exchange" % config.FRAMEWORK_NAMESPACE)
 
 def EmitRpcCode(root, emit, header_file, source_file, data_emitted):
-    _namespace = __Namespace(root)
-    prototypes = _EmitRpcCode(root, emit, _namespace, header_file, source_file, data_emitted)
-
-    with emitter.Emitter(None, config.INDENT_SIZE) as prototypes_emitter:
-        _EmitRpcPrologue(root, prototypes_emitter, header_file, source_file, _namespace, data_emitted, prototypes)
-        emit.Prepend(prototypes_emitter)
-
-    _EmitRpcEpilogue(root, emit, _namespace)
+    namespace = __Namespace(root)
+    _EmitRpcPrologue(root, emit, header_file, source_file, namespace, data_emitted)
+    _EmitRpcCode(root, emit, namespace, header_file, source_file, data_emitted)
+    _EmitRpcEpilogue(root, emit, namespace)
 
 def EmitRpcVersionCode(root, emit, header_file, source_file, data_emitted):
-    _namespace = __Namespace(root)
-    _EmitRpcPrologue(root, emit, header_file, source_file, _namespace, data_emitted)
+    namespace = __Namespace(root)
+    _EmitRpcPrologue(root, emit, header_file, source_file, namespace, data_emitted)
     _EmitVersionCode(emit, rpc_version.GetVersion(root.schema["info"] if "info" in root.schema else dict()))
-    _EmitRpcEpilogue(root, emit, _namespace)
+    _EmitRpcEpilogue(root, emit, namespace)
