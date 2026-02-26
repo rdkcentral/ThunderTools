@@ -1,3 +1,22 @@
+'''
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
+
 from abc import ABC
 from enum import Enum
 from core.PluginBlueprint import PluginBlueprint
@@ -437,7 +456,8 @@ class HeaderData(FileData):
             result = []
             for fq_name, cls_data in self.m_blueprint.notification_entries:
                 for m in cls_data.m_methods:
-                    paramsNoNames, _ = self.commentParamnames(m.m_params)
+                    qualified_params = self._qualifyParamTypes(m.m_params, fq_name, cls_data, prefer_unqualified_owner=True)
+                    paramsNoNames, _ = self.commentParamnames(qualified_params)
                     result.append(f"void Notify{m.m_name}({paramsNoNames}) const;")
             return generateSimpleText(result)
     
@@ -502,7 +522,7 @@ class HeaderData(FileData):
         return "public:"
     
     def _generatePrivateMembersField(self):
-        if not self.m_out_of_process and not self.m_plugin_config:
+        if not self.m_out_of_process and not self.m_plugin_config and not self.m_notification_entries:
             return ""
         return "private:"
 
