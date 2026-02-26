@@ -50,37 +50,37 @@ jobs:
             # 4) custom config (Y/N)
             # 5) interface path(s) (first may be __INTERFACES_H__)
             # 6) blank line to finish interface list
-            # 7) (optional) if multiple root interfaces: pick indices or Enter for ALL
-            # 8) include location prompt: Enter for default 'interfaces'
-            # 9) preconditions (Y/N)
-            # 10+) (if preconditions=Y) additional preconditions answers...
+            # 7) subsystems (Y/N)
+            # 8) (optional) if multiple root interfaces: pick indices or Enter for ALL
+            # 9) include location prompt: Enter for default 'interfaces'
+            # 10+) (if subsystems=Y) subsystem entries: name/condition pairs and final blank line
 
             { "name": "InProcess", "header": "IMath.h",
-              "answers": ["InProcess", "", "N", "N", "__INTERFACES_H__", "", "", "", "N", ""] },
+              "answers": ["InProcess", "", "N", "N", "__INTERFACES_H__", "", "N", "", ""] },
 
             { "name": "OutOfProcess", "header": "IBrowser.h",
-              "answers": ["OutOfProcess", "", "Y", "N", "__INTERFACES_H__", "", "", "", "N", ""] },
+              "answers": ["OutOfProcess", "", "Y", "N", "__INTERFACES_H__", "", "N", "", ""] },
 
             { "name": "InProcessConfig", "header": "IPower.h",
-              "answers": ["InProcessConfig", "", "N", "Y", "__INTERFACES_H__", "", "", "", "N", ""] },
+              "answers": ["InProcessConfig", "", "N", "Y", "__INTERFACES_H__", "", "N", "", ""] },
 
             { "name": "OutOfProcessConfig", "header": "INetworkControl.h",
-              "answers": ["OutOfProcessConfig", "", "Y", "Y", "__INTERFACES_H__", "", "", "", "N", ""] },
+              "answers": ["OutOfProcessConfig", "", "Y", "Y", "__INTERFACES_H__", "", "N", "", ""] },
 
             { "name": "InProcessPreconditions", "header": "ITimeSync.h",
-              "answers": ["InProcessPreconditions", "", "N", "N", "__INTERFACES_H__", "", "", "", "Y",
+              "answers": ["InProcessPreconditions", "", "N", "N", "__INTERFACES_H__", "", "Y", "", "",
                           "GRAPHICS", "", "NOT_GRAPHICS", "", "TIME", "", ""] },
 
             { "name": "OutOfProcessPreconditions", "header": "IMessageControl.h",
-              "answers": ["OutOfProcessPreconditions", "", "Y", "N", "__INTERFACES_H__", "", "", "", "Y",
+              "answers": ["OutOfProcessPreconditions", "", "Y", "N", "__INTERFACES_H__", "", "Y", "", "",
                           "GRAPHICS", "", "NOT_GRAPHICS", "", "TIME", "", ""] },
 
             { "name": "InProcessConfigPreconditions", "header": "IDictionary.h",
-              "answers": ["InProcessConfigPreconditions", "", "N", "Y", "__INTERFACES_H__", "", "", "", "Y",
+              "answers": ["InProcessConfigPreconditions", "", "N", "Y", "__INTERFACES_H__", "", "Y", "", "",
                           "GRAPHICS", "", "NOT_GRAPHICS", "", "TIME", "", ""] },
 
             { "name": "OutOfProcessConfigPreconditions", "header": "IBluetooth.h",
-              "answers": ["OutOfProcessConfigPreconditions", "", "Y", "Y", "__INTERFACES_H__", "", "", "", "Y",
+              "answers": ["OutOfProcessConfigPreconditions", "", "Y", "Y", "__INTERFACES_H__", "", "Y", "", "",
                           "GRAPHICS", "", "NOT_GRAPHICS", "", "TIME", "", ""] }
           ]
 
