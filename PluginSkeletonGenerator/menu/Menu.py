@@ -44,7 +44,7 @@ def validatePaths(paths: List[str]) -> None:
     if files:
         print(f"[ERROR]: Following header paths do not exist: ")
         for missing in files:
-            print(f"-{missing}")
+            print(f"- {missing}")
         sys.exit(1)
 
 
