@@ -30,6 +30,9 @@ import re
 from utils.CodeGenUtils import convertToBaseName, convertToCOMRPC, convertToJSONRPC
 
 class FileData(ABC):
+    _BLOCK_COMMENT_RE = r"/\*.*?\*/"
+    _CONST_PREFIX = "const "
+
     def __init__(self, blueprint: PluginBlueprint) -> None:
         self.m_blueprint: PluginBlueprint = blueprint
         self.m_plugin_name: str = blueprint.name
@@ -49,6 +52,7 @@ class FileData(ABC):
         self.m_terminations = blueprint._TERMINATIONS
         self.m_controls = blueprint._CONTROLS
         self.m_event_notification_entries = getattr(blueprint, "event_notification_entries", [])
+        self.m_warnings: List[str] = []
 
     @staticmethod
     def _dedupe_preserve_order(items: List[str]) -> List[str]:
@@ -86,7 +90,7 @@ class FileData(ABC):
         names: List[str] = []
 
         for chunk in parts:
-            no_comments = re.sub(r"/\*.*?\*/", "", chunk)
+            no_comments = re.sub(FileData._BLOCK_COMMENT_RE, "", chunk)
             no_default = no_comments.split("=")[0].strip()
             # Examples of named params:
             #   `const string& msg`
@@ -212,7 +216,7 @@ class FileData(ABC):
         if "::" in param:
             return param
 
-        analysis = re.sub(r"/\*.*?\*/", "", param)
+        analysis = re.sub(FileData._BLOCK_COMMENT_RE, "", param)
         analysis = analysis.split("=")[0].strip()
         tokens = analysis.split()
         qualifiers = {"const", "volatile", "signed", "unsigned", "struct", "class", "enum"}
@@ -326,6 +330,34 @@ class FileData(ABC):
             return ["    return Core::ERROR_NONE;"]
 
         return [f"    return {rt}();"]
+
+    @staticmethod
+    def _first_param_is_const(params: str) -> bool:
+        if not params:
+            return False
+        p = re.sub(FileData._BLOCK_COMMENT_RE, "", params).strip()
+        first = p.split(",", 1)[0].strip()
+        return first.startswith(FileData._CONST_PREFIX)
+
+    def _notif_unregister_param_is_const(self, iface_short: str) -> bool:
+        full_name = self.resolveFullName(iface_short)
+        if not full_name:
+            return True
+        cls_data, _ = self.m_parsed.get(full_name, (None, None))
+        if not cls_data:
+            return True
+
+        for m in getattr(cls_data, "m_methods", []):
+            if getattr(m, "m_name", None) == "Unregister":
+                return self._first_param_is_const(getattr(m, "m_params", ""))
+        return True
+
+    def _maybe_warn_nonconst_unregister(self, iface_short: str) -> None:
+        if not self._notif_unregister_param_is_const(iface_short):
+            self.m_warnings.append(
+                f"[WARNING] {iface_short}::Unregister() does not take a const notification pointer. "
+                "Const should be enforced however the generator will const_cast where required to compile."
+            )
 
 class HeaderData(FileData):
     class HeaderType(Enum):
@@ -698,8 +730,12 @@ class HeaderData(FileData):
                                 "}"
                             ], remove_empty=False))
                         else:
+                            is_const = self._notif_unregister_param_is_const(short_name)
+                            if not is_const:
+                                self._maybe_warn_nonconst_unregister(short_name)
+                            const_kw = FileData._CONST_PREFIX if is_const else ""
                             lines.append(generateSimpleText([
-                                f"{m.m_return_type} Unregister(const {namespace}::{short_name}::INotification* notification) override {{",
+                                f"{m.m_return_type} Unregister({const_kw}{namespace}::{short_name}::INotification* notification) override {{",
                                 self.notification_unregisters(short_name),
                                 *return_stmt,
                                 "}"
@@ -916,18 +952,22 @@ class SourceData(FileData):
                 impl_map = {iface: f"_impl{convertToBaseName(iface)}" for iface in self.m_comrpc_interfaces}
 
                 for fq_name, _ in entries:
-                    # fq_name like Exchange::IBrowser::INotification
                     root_iface = fq_name.split("::")[-2]
                     unregister_impl = impl_map.get(root_iface)
                     if not unregister_impl:
-                        # Fallback to first interface if we can't resolve (should not happen for selected roots)
                         unregister_impl = impl_map.get(self.m_comrpc_interfaces[0])
+
+                    unreg_const = self._notif_unregister_param_is_const(root_iface)
+                    if not unreg_const:
+                        self._maybe_warn_nonconst_unregister(root_iface)
+
+                    cast_expr = "revokedInterface" if unreg_const else f"const_cast<{fq_name}*>(revokedInterface)"
 
                     dangling.append(
                         f"    if (interfaceId == {fq_name}::ID) {{\n"
                         f"        auto* revokedInterface = remote->QueryInterface<{fq_name}>();\n"
                         f"        if (revokedInterface) {{\n"
-                        f"            {unregister_impl}->Unregister(revokedInterface);\n"
+                        f"            {unregister_impl}->Unregister({cast_expr});\n"
                         f"            revokedInterface->Release();\n"
                         f"        }}\n"
                         f"    }}\n"
@@ -935,7 +975,9 @@ class SourceData(FileData):
 
                 dangling.append("}\n")
 
-            return "\n".join(method) + "\n".join(dangling)
+            out = "\n".join(method) + "\n".join(dangling)
+            self._emit_warning_report()
+            return out
 
         lines = []
 
@@ -961,8 +1003,12 @@ class SourceData(FileData):
                             "}"
                         ])
                     else:
+                        is_const = self._notif_unregister_param_is_const(iface)
+                        if not is_const:
+                            self._maybe_warn_nonconst_unregister(iface)
+                        const_kw = FileData._CONST_PREFIX if is_const else ""
                         lines.extend([
-                            f"{method.m_return_type} {self.m_plugin_name}::Unregister(const {namespace}::{iface}::INotification* notification) {{",
+                            f"{method.m_return_type} {self.m_plugin_name}::Unregister({const_kw}{namespace}::{iface}::INotification* notification) {{",
                             self.notification_unregisters(iface).strip(),
                             *return_stmt,
                             "}"
@@ -985,7 +1031,9 @@ class SourceData(FileData):
                     f"}}"
                 ])
 
-        return "\n".join(lines)
+        out = "\n".join(lines)
+        self._emit_warning_report()
+        return out
 
     def _generateSourceNotify(self) -> str:
         """Generate notification method implementations for in-process plugins"""
@@ -1235,6 +1283,14 @@ class SourceData(FileData):
         ])
 
         return generateSimpleText(lines, remove_empty=False)
+
+    def _emit_warning_report(self) -> None:
+        if not getattr(self, "m_warnings", None):
+            return
+        unique = FileData._dedupe_preserve_order(self.m_warnings)
+        if not unique:
+            return
+        print("\n".join(unique))
 
 class CMakeData(FileData):
     def static_keys(self) -> dict:
