@@ -409,14 +409,14 @@ class HeaderData(FileData):
         return f'void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);' if self.m_out_of_process and self.m_notification_entries else ''
     
     def _generateNotifClass(self):
-        entries = self.m_blueprint.notification_entries
+        entries = (self.m_event_notification_entries if self.m_jsonrpc else [])
         if not entries:
             return ": public RPC::IRemoteConnection::INotification"
         derived = [f"public {fq_name}" for fq_name, _ in entries]
         return generateSimpleText([": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"] + derived, sep=", ")
 
     def _generateNotifConstructor(self):
-        entries = self.m_blueprint.notification_entries
+        entries = (self.m_event_notification_entries if self.m_jsonrpc else [])
         lines = []
         if entries:
             lines.append(", PluginHost::IShell::ICOMLink::INotification()")
@@ -424,7 +424,7 @@ class HeaderData(FileData):
         return generateSimpleText(lines)
 
     def _generateNotifEntry(self):
-        entries = self.m_blueprint.notification_entries
+        entries = (self.m_event_notification_entries if self.m_jsonrpc else [])
         lines = []
         if entries:
             lines.append('INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)')
@@ -432,8 +432,7 @@ class HeaderData(FileData):
         return generateSimpleText(lines)
 
     def _generateNotifFunction(self):
-        all_entries = list(getattr(self.m_blueprint, "notification_entries", []))
-        event_entries = {fq: cls for fq, cls in (self.m_event_notification_entries if self.m_jsonrpc else [])}
+        all_entries = list(self.m_event_notification_entries if self.m_jsonrpc else [])
 
         result = []
 
@@ -454,20 +453,12 @@ class HeaderData(FileData):
                 param_str = ", ".join(param_names)
                 add_const = " const" if getattr(m, "m_is_const", False) else ""
 
-                if fq_name in event_entries:
-                    result.extend([
-                        f"void {m.m_name}({qualified_params}) override {{",
-                        f"    Exchange::{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};",
-                        "}",
-                        "",
-                    ])
-                else:
-                    result.extend([
-                        f"void {m.m_name}({qualified_params}) override {{",
-                        "    // Intentionally left blank (non-@event notification).",
-                        "}",
-                        "",
-                    ])
+                result.extend([
+                    f"void {m.m_name}({qualified_params}) override {{",
+                    f"    Exchange::{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};",
+                    "}",
+                    "",
+                ])
 
         return generateSimpleText(result, remove_empty=True, sep="\n")
 

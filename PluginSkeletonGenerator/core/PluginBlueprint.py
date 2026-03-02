@@ -44,10 +44,16 @@ class PluginBlueprint:
                     json_name = f"J{root_name[1:]}" if root_name.startswith("I") else f"J{root_name}"
                     self._jsonrpc_interfaces.append(json_name)
 
-                if self.hasNotification(cls_data):
-                    self._notification_interfaces.append(root_name)
-
                 self.gatherNotificationEntries(full_name, cls_data)
+
+            event_roots = []
+            seen = set()
+            for fq, _ in self._event_notification_entries:
+                root = fq.split("::")[-2]
+                if root not in seen:
+                    seen.add(root)
+                    event_roots.append(root)
+            self._notification_interfaces = event_roots
 
         @staticmethod
         def extractRootName(full_name: str) -> str:
