@@ -1,0 +1,31 @@
+{
+  "$schema": "plugin.schema.json",
+  "info": {
+    "title": "OutOfProcessConfig Plugin",
+    "callsign": "OutOfProcessConfig",
+    "locator": "libThunderOutOfProcessConfig.so",
+    "status": "development",
+    "description": [
+      ""
+    ],
+    "version": "1.0"
+  },
+  "configuration": {
+    "type": "object",
+    "properties": {
+      "configuration": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "example": {
+            "type": "string",
+            "description": "Note: This is an example!"
+          }
+        }
+      }
+    }
+  },
+  "interface": {
+    "$cppref": "{cppinterfacedir}/INetworkControl.h"
+  }
+}
