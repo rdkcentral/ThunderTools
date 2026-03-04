@@ -16,7 +16,8 @@ class TestEnums : public Testing::TestHarness<ITestEnums> {};
 TEST_F(TestEnums, ActiveColor_ReadWrite) {
     ASSERT_EQ(_proxy->ActiveColor(ITestEnums::BLUE), Core::ERROR_NONE);
     ITestEnums::Color color{};
-    ASSERT_EQ(_proxy->ActiveColor(color), Core::ERROR_NONE);
+    // static_cast<const ITestEnums*> required to disambiguate getter from setter overload
+    ASSERT_EQ(static_cast<const ITestEnums*>(_proxy)->ActiveColor(color), Core::ERROR_NONE);
     EXPECT_EQ(color, ITestEnums::BLUE);
 }
 
