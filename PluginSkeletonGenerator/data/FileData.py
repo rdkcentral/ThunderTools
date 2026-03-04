@@ -809,13 +809,13 @@ class HeaderData(FileData):
         return generateSimpleText(lines)
     
     def _patch_unqualified_ids(self, owner_full_name: str, alias_value: str) -> str:
-            patched = alias_value
-            if "ID_" not in patched or "::ID_" in patched:
-                return patched
-            owner_ns = self._extractStrippedNamespace(owner_full_name)
-            if not owner_ns:
-                return patched
-            return re.sub(r"\b(ID_[A-Z0-9_]+)\b", rf"{owner_ns}::\1", patched)
+        patched = alias_value
+        if "ID_" not in patched or "::ID_" in patched:
+            return patched
+        owner_ns = self._extractStrippedNamespace(owner_full_name)
+        if not owner_ns:
+            return patched
+        return re.sub(r"\b(ID_[A-Z0-9_]+)\b", rf"{owner_ns}::\1", patched)
     
     def _generateHeaderUsingExternal(self) -> str:
         if self.m_type != self.HeaderType.HEADER_IMPLEMENTATION:
