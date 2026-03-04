@@ -739,9 +739,21 @@ class HeaderData(FileData):
 
             for m in cls_data.m_methods:
                 add_const = " const" if getattr(m, "m_is_const", False) else ""
+
                 if is_header:
-                    paramsNoNames, _ = self.commentParamnames(m.m_params)
-                    lines.append(f"{m.m_return_type} {m.m_name}({paramsNoNames}){add_const} override;")
+                    if short_name in self.m_notification_interfaces and m.m_name in ("Register", "Unregister"):
+                        is_unreg = (m.m_name == "Unregister")
+                        is_const = self._notif_unregister_param_is_const(short_name) if is_unreg else False
+                        if is_unreg and not is_const:
+                            self._maybe_warn_nonconst_unregister(short_name)
+                        const_kw = FileData._CONST_PREFIX if (is_unreg and is_const) else ""
+                        lines.append(
+                            f"{m.m_return_type} {m.m_name}({const_kw}{namespace}::{short_name}::INotification* const /* sink */){add_const} override;"
+                        )
+                    else:
+                        paramsNoNames, _ = self.commentParamnames(m.m_params)
+                        lines.append(f"{m.m_return_type} {m.m_name}({paramsNoNames}){add_const} override;")
+
                 else:
                     paramsNoNames, _ = self.commentParamnames(m.m_params)
 
