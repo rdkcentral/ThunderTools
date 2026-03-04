@@ -46,14 +46,14 @@ class PluginBlueprint:
 
                 self.gatherNotificationEntries(full_name, cls_data)
 
-            event_roots = []
+            all_roots: List[str] = []
             seen = set()
-            for fq, _ in self._event_notification_entries:
+            for fq, _ in self._notification_entries:
                 root = fq.split("::")[-2]
                 if root not in seen:
                     seen.add(root)
-                    event_roots.append(root)
-            self._notification_interfaces = event_roots
+                    all_roots.append(root)
+            self._notification_interfaces = all_roots
 
         @staticmethod
         def extractRootName(full_name: str) -> str:

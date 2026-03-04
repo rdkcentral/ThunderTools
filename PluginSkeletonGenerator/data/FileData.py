@@ -474,23 +474,27 @@ class HeaderData(FileData):
     def _generateHeaderNotify(self) -> str:
         if not self.m_notification_interfaces:
             return ''
-    
+
+        event_entries = list(self.m_event_notification_entries if self.m_jsonrpc else [])
+        if not event_entries:
+            return ''
+
         if self.m_type == self.HeaderType.HEADER and not self.m_out_of_process:
             result = []
-            for fq_name, cls_data in self.m_blueprint.notification_entries:
+            for fq_name, cls_data in event_entries:
                 for m in cls_data.m_methods:
                     qualified_params = self._qualifyParamTypes(m.m_params, fq_name, cls_data, prefer_unqualified_owner=True)
                     paramsNoNames, _ = self.commentParamnames(qualified_params)
                     result.append(f"void Notify{m.m_name}({paramsNoNames}) const;")
             return generateSimpleText(result)
-    
+
         if self.m_type == self.HeaderType.HEADER_IMPLEMENTATION:
             result = []
-            for fq_name, cls_data in self.m_blueprint.notification_entries:
+            for fq_name, cls_data in event_entries:
                 iface = fq_name.split("::")[-2]
                 no_i = iface[1:] if iface.startswith("I") else iface
                 container = f"_{no_i.lower()}Notification"
-    
+
                 for m in cls_data.m_methods:
                     qualified_params = self._qualifyParamTypes(m.m_params, fq_name, cls_data, prefer_unqualified_owner=True)
                     _, param_names = self.commentParamnames(qualified_params)
@@ -1031,9 +1035,13 @@ class SourceData(FileData):
         if self.m_out_of_process or not self.m_notification_interfaces:
             return ''
             
+        event_entries = list(self.m_event_notification_entries if self.m_jsonrpc else [])
+        if not event_entries:
+            return ''
+
         all_methods = []
         
-        for fq_name, cls_data in self.m_blueprint.notification_entries:
+        for fq_name, cls_data in event_entries:
             iface = fq_name.split("::")[-2]
             no_i = iface[1:] if iface.startswith("I") else iface
             container = f"_{no_i.lower()}Notification"
