@@ -111,13 +111,13 @@ jobs:
                   pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
               ) },
 
-            { "name": "InProcessConfigPreconditions", "header": "IDictionary.h",
+            { "name": "InProcessConfigPreconditions", "header": "IVolumeControl.h",
               "answers": mk_answers(
                   "InProcessConfigPreconditions", "N", "Y",
                   pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
               ) },
 
-            { "name": "OutOfProcessConfigPreconditions", "header": "IBluetooth.h",
+            { "name": "OutOfProcessConfigPreconditions", "header": "IWifiControl.h",
               "answers": mk_answers(
                   "OutOfProcessConfigPreconditions", "Y", "Y",
                   pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}

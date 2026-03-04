@@ -75,7 +75,7 @@ def _prompt_yes_no(question: str, default: bool = False) -> bool:
 def _validate_plugin_name(name: str) -> str:
     name = name.strip()
     if not name:
-        print("[ERROR]: Plugin name can not be empty")
+        print("[ERROR]: Plugin name cannot be empty")
         sys.exit(1)
     # C++ identifier
     if not re.match(r"^[A-Za-z_][A-Za-z0-9_]*$", name):
