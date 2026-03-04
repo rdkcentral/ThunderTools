@@ -1,6 +1,6 @@
 uint32_t Configure(PluginHost::IShell* service) override {
     ASSERT(service != nullptr);
-    Config config;
+    PluginConfig config;
     config.FromString(service->ConfigLine());
     TRACE(Trace::Information, (_T("This is just an example: [%s]"), config.Example.Value().c_str()));
     return Core::ERROR_NONE;
