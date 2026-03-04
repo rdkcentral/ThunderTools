@@ -409,56 +409,88 @@ class HeaderData(FileData):
         return f'void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);' if self.m_out_of_process and self.m_notification_entries else ''
     
     def _generateNotifClass(self):
-        entries = (self.m_event_notification_entries if self.m_jsonrpc else [])
-        if not entries:
+        if not self.m_out_of_process:
             return ": public RPC::IRemoteConnection::INotification"
-        derived = [f"public {fq_name}" for fq_name, _ in entries]
-        return generateSimpleText([": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"] + derived, sep=", ")
+
+        notif_entries = list(getattr(self.m_blueprint, "notification_entries", []))
+        if not notif_entries:
+            return ": public RPC::IRemoteConnection::INotification"
+
+        derived = [f"public {fq_name}" for fq_name, _ in notif_entries]
+        return generateSimpleText(
+            [": public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification"]
+            + derived,
+            sep=", ")
 
     def _generateNotifConstructor(self):
-        entries = (self.m_event_notification_entries if self.m_jsonrpc else [])
-        lines = []
-        if entries:
+        if not self.m_out_of_process:
+            return ""
+
+        notif_entries = list(getattr(self.m_blueprint, "notification_entries", []))
+        lines: List[str] = []
+        if notif_entries:
             lines.append(", PluginHost::IShell::ICOMLink::INotification()")
-        lines.extend([f", {fq_name}()" for fq_name, _ in entries])
+        lines.extend([f", {fq_name}()" for fq_name, _ in notif_entries])
         return generateSimpleText(lines)
 
     def _generateNotifEntry(self):
-        entries = (self.m_event_notification_entries if self.m_jsonrpc else [])
-        lines = []
-        if entries:
+        if not self.m_out_of_process:
+            return ""
+
+        notif_entries = list(getattr(self.m_blueprint, "notification_entries", []))
+        lines: List[str] = []
+        if notif_entries:
             lines.append('INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)')
-        lines.extend([f"INTERFACE_ENTRY({fq_name})" for fq_name, _ in entries])
+        lines.extend([f"INTERFACE_ENTRY({fq_name})" for fq_name, _ in notif_entries])
         return generateSimpleText(lines)
 
     def _generateNotifFunction(self):
-        all_entries = list(self.m_event_notification_entries if self.m_jsonrpc else [])
+        if not self.m_out_of_process:
+            return ""
 
-        result = []
+        all_notif_entries = list(getattr(self.m_blueprint, "notification_entries", []))
+        event_map = {fq: cls for fq, cls in (self.m_event_notification_entries if self.m_jsonrpc else [])}
 
-        if all_entries:
+        result: List[str] = []
+
+        if all_notif_entries:
             result.append(
                 "void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {\n"
                 "    _parent.Dangling(remote, interfaceId);\n"
                 "}"
             )
+            result.append("")
 
-        for fq_name, cls_data in all_entries:
-            root_iface = fq_name.split("::")[-2]
-            jprefix = f"J{root_iface[1:]}" if root_iface.startswith("I") else f"J{root_iface}"
+        for fq_name, cls_data in all_notif_entries:
+            is_event = fq_name in event_map
 
-            for m in cls_data.m_methods:
-                qualified_params = self._qualifyParamTypes(m.m_params, fq_name, cls_data, prefer_unqualified_owner=False)
-                _, param_names = self.commentParamnames(qualified_params)
-                param_str = ", ".join(param_names)
-                add_const = " const" if getattr(m, "m_is_const", False) else ""
+            if is_event and self.m_jsonrpc:
+                root_iface = fq_name.split("::")[-2]
+                jprefix = f"J{root_iface[1:]}" if root_iface.startswith("I") else f"J{root_iface}"
 
-                result.extend([
-                    f"void {m.m_name}({qualified_params}) override {{",
-                    f"    Exchange::{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};",
-                    "}",
-                    "",
-                ])
+                for m in cls_data.m_methods:
+                    qualified_params = self._qualifyParamTypes(m.m_params, fq_name, cls_data, prefer_unqualified_owner=False)
+                    _, param_names = self.commentParamnames(qualified_params)
+                    param_str = ", ".join(param_names)
+                    add_const = " const" if getattr(m, "m_is_const", False) else ""
+
+                    result.extend([
+                        f"void {m.m_name}({qualified_params}) override {{",
+                        f"    Exchange::{jprefix}::Event::{m.m_name}(_parent{', ' + param_str if param_str else ''}){add_const};",
+                        "}",
+                        "",
+                    ])
+            else:
+                for m in cls_data.m_methods:
+                    qualified_params = self._qualifyParamTypes(m.m_params, fq_name, cls_data, prefer_unqualified_owner=False)
+                    params_no_names, _ = self.commentParamnames(qualified_params)
+                    add_const = " const" if getattr(m, "m_is_const", False) else ""
+
+                    result.extend([
+                        f"void {m.m_name}({params_no_names}){add_const} override {{",
+                        "}",
+                        "",
+                    ])
 
         return generateSimpleText(result, remove_empty=True, sep="\n")
 
@@ -622,8 +654,6 @@ class HeaderData(FileData):
                     location = self.m_locations.get(iface, "interfaces")
                     includes.append(f'#include <{location}/{filename}>')
 
-        # JSON includes in the *header* are only needed for JSONRPC event dispatch methods
-        # that are emitted into Notification (OOP). So only include J-headers for @event notifications.
         if self.m_type == self.HeaderType.HEADER and self.m_out_of_process and self.m_jsonrpc:
             needed_roots: List[str] = []
             seen = set()
