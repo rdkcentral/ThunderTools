@@ -808,12 +808,20 @@ class HeaderData(FileData):
 
         return generateSimpleText(lines)
     
+    def _patch_unqualified_ids(self, owner_full_name: str, alias_value: str) -> str:
+            patched = alias_value
+            if "ID_" not in patched or "::ID_" in patched:
+                return patched
+            owner_ns = self._extractStrippedNamespace(owner_full_name)
+            if not owner_ns:
+                return patched
+            return re.sub(r"\b(ID_[A-Z0-9_]+)\b", rf"{owner_ns}::\1", patched)
+    
     def _generateHeaderUsingExternal(self) -> str:
         if self.m_type != self.HeaderType.HEADER_IMPLEMENTATION:
             return ""
 
         usings: Dict[str, str] = {}
-
         for full_name, (cls_data, _) in self.m_parsed.items():
             for name, value in getattr(cls_data, "m_usings", {}).items():
                 if name in usings and usings[name] != value:
@@ -822,7 +830,8 @@ class HeaderData(FileData):
                         "Keeping the first definition."
                     )
                     continue
-                usings.setdefault(name, value)
+
+                usings.setdefault(name, self._patch_unqualified_ids(full_name, value))
 
         if not usings:
             return ""
