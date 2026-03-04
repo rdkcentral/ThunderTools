@@ -27,8 +27,6 @@ TYPE_PREFIX = "Core::JSON"
 OBJECT_SUFFIX = "Data"
 COMMON_OBJECT_SUFFIX = "Info"
 ENUM_SUFFIX = "Type"
-IMPL_ENDPOINT_PREFIX = "endpoint_"
-IMPL_EVENT_PREFIX = "event_"
 
 # Configurables
 CLASSNAME_FROM_REF = True
@@ -104,7 +102,7 @@ def Parse(cmdline):
     global STATS_FOR_NERDS
 
     argparser = argparse.ArgumentParser(
-        description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
+        description='Generate JSON C++ classes, JSON-RPC glue code and API documentation from JSON definition files and C++ header files',
         epilog="For information about custom tags supprted in C++ code please see StubGenerator help (--help-tags).",
         formatter_class=argparse.RawTextHelpFormatter)
 
@@ -123,12 +121,6 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help="generate C++ code building JSON classes and complete JSON-RPC functionality (the latter only if applicable)")
-    argparser.add_argument("-s",
-            "--stubs",
-            dest="stubs",
-            action="store_true",
-            default=False,
-            help="generate C++ stub code for JSON-RPC (i.e. J*.j header file to fill in manually)")
     argparser.add_argument("-o",
             "--output",
             dest="output_dir",

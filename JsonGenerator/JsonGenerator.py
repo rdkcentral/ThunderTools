@@ -48,7 +48,7 @@ if __name__ == "__main__":
 
     temp_files = [] # Track temporary files the procedure may create
 
-    if not args.path or (not args.code and not args.stubs and not args.docs):
+    if not args.path or (not args.code and not args.docs):
         argparser.print_help()
     else:
         files = []
@@ -100,8 +100,8 @@ if __name__ == "__main__":
                         else:
                             cpp_output_path = output_path
 
-                        if args.code or args.stubs:
-                            headers = code_generator.Create(log, schema, path, [output_path, cpp_output_path], additional_includes, args.code, args.stubs, args.code)
+                        if args.code:
+                            headers = code_generator.Create(log, schema, path, output_path, cpp_output_path, additional_includes, args.code, args.code)
 
                             name = os.path.basename(path).replace(".h", "").replace(".json", "")
 
