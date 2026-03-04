@@ -1165,7 +1165,7 @@ class SourceData(FileData):
         if not self.m_plugin_config:
             return ''
         return (
-            "Config config;\n"
+            "PluginConfig config;\n"
             "config.FromString(service->ConfigLine());\n"
             "TRACE(Trace::Information, (_T(\"This is just an example: [%s]\"), config.Example.Value().c_str()));")
 
