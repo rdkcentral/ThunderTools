@@ -68,23 +68,23 @@ namespace FunctionalTest {
         // @param dividend  Numerator.
         // @param divisor   Denominator; must not be zero.
         // @param quotient  Receives dividend / divisor.
-        // @param remainder Optional out; when set on return it receives dividend % divisor.
+        // @param remainder Optional inout; when set on return it receives dividend % divisor.
         // @retval ERROR_BAD_REQUEST divisor is zero.
         virtual Core::hresult Divide(
             const uint32_t dividend /* @in */,
             const uint32_t divisor /* @in */,
             uint32_t& quotient /* @out */,
-            Core::OptionalType<uint32_t>& remainder /* @out */) = 0;
+            Core::OptionalType<uint32_t>& remainder /* @inout */) = 0;
 
         // @brief Parse a decimal integer string.
         //        Pass an unset success to ignore the parse-success flag.
         // @param text    String to parse (e.g. "-42").
         // @param value   Receives the parsed integer; undefined when parsing fails.
-        // @param success Optional out; when set on return it receives true if parsing succeeded.
+        // @param success Optional inout; when set on return it receives true if parsing succeeded.
         virtual Core::hresult ParseInt(
             const string& text /* @in */,
             int32_t& value /* @out */,
-            Core::OptionalType<bool>& success /* @out */) = 0;
+            Core::OptionalType<bool>& success /* @inout */) = 0;
 
         // ===== Multiple optional parameters =====
 
