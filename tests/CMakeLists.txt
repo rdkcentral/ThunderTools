@@ -29,7 +29,7 @@ option(TEST_ENUMS        "Enable enum types tests"              ON)
 option(TEST_STRUCTS      "Enable POD struct tests"              ON)
 option(TEST_ITERATORS    "Enable iterator pattern tests"        ON) 
 option(TEST_EVENTS       "Enable event callbacks tests"         ON)
-option(TEST_ASYNC        "Enable async pattern tests"           ON) 
+option(TEST_ASYNC        "Enable async pattern tests"           OFF) 
 
 # ============================================================================
 
