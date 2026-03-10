@@ -502,6 +502,14 @@ jobs:
           Path("diffs/combined_ai.diff").write_text(text, encoding="utf-8")
           PY
 
+      - name: Upload combined diff artifact
+        if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-plugin-diff
+          path: diffs/combined.diff
+          retention-days: 14
+
       - name: AI summary (GitHub Models)
         if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
         id: ai
