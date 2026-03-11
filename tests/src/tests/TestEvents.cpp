@@ -26,13 +26,13 @@ public:
         Reset();
     }
 
-    uint32_t AddRef() const
+    uint32_t AddRef() const override
     {
         Core::InterlockedIncrement(_refCount);
         return Core::ERROR_NONE;
     }
 
-    uint32_t Release() const
+    uint32_t Release() const override
     {
         uint32_t result = Core::ERROR_NONE;
         if (Core::InterlockedDecrement(_refCount) == 0) {
