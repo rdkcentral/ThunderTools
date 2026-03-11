@@ -102,8 +102,8 @@ TEST_F(TestPrimitives, EchoUInt32_Boundaries) {
 
 TEST_F(TestPrimitives, EchoUInt64_Boundaries) {
     uint64_t out{};
-    EXPECT_EQ(_proxy->EchoUInt64(0ull, out), Core::ERROR_NONE);
-    EXPECT_EQ(out, 0ull);
+    EXPECT_EQ(_proxy->EchoUInt64(UINT64_C(0), out), Core::ERROR_NONE);
+    EXPECT_EQ(out, UINT64_C(0));
     EXPECT_EQ(_proxy->EchoUInt64(UINT64_MAX, out), Core::ERROR_NONE);
     EXPECT_EQ(out, UINT64_MAX);
 }
@@ -154,8 +154,8 @@ TEST_F(TestPrimitives, EchoInstanceId) {
     Core::instance_id out{};
     EXPECT_EQ(_proxy->EchoInstanceId(0, out), Core::ERROR_NONE);
     EXPECT_EQ(out, Core::instance_id(0));
-    EXPECT_EQ(_proxy->EchoInstanceId(UINT64_MAX, out), Core::ERROR_NONE);
-    EXPECT_EQ(out, Core::instance_id(UINT64_MAX));
+    EXPECT_EQ(_proxy->EchoInstanceId(std::numeric_limits<Core::instance_id>::max(), out), Core::ERROR_NONE);
+    EXPECT_EQ(out, Core::instance_id(std::numeric_limits<Core::instance_id>::max()));
 }
 
 TEST_F(TestPrimitives, EchoTime) {
