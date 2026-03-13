@@ -897,7 +897,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.length = _FindLength(self.identifier.meta.length, (name[1:] + "_Len"))
                 self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "_MaxLen"))
                 self.is_buffer = ((self.length or self.max_length) and is_buffer and not self.is_array)
-                self.is_fixed_buffer = False
+                self.is_fixed_buffer = self.is_buffer and ((self.length and self.length.value != None) or (not self.length and (self.max_length and self.max_length.value != None)))
 
                 if ((self.length or self.max_length) and is_array_pointer and not is_buffer):
                     raise TypenameError(self.identifier, "'%s': variable-length arrays are not supported (use std::vector instead)" % self.trace_proto)
