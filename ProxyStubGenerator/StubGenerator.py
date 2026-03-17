@@ -314,6 +314,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 value = 0
                 expr = "".join(length)
+
                 try:
                     value = eval(expr)
                     if value > 0xFF:
@@ -776,9 +777,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             matches = [v for v in self.identifier.parent.vars if v.name == length_name[2]]
 
                             if matches:
-                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % (length_type, variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
                             else:
-                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % (length_type, variable_name)).split(), ["".join(length_name)]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["".join(length_name)]), variable_name)
 
                         matches = [v for v in self.identifier.parent.vars if v.name == "".join(length_name)]
 
@@ -889,8 +890,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 self.interface_id = _FindLength(self.identifier.meta.interface, (name[1:] + "IntefaceId"))
 
-                # Is it a buffer?
-
                 is_array_pointer = (self.type.IsPointer() and not is_interface and not self.interface_id)
                 is_buffer = is_array_pointer and isinstance(self.identifier_kind, CppParser.Integer) and (self.identifier_kind.size == "char")
                 self.is_array = (self.identifier.array != None)
@@ -898,14 +897,13 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "_MaxLen"))
                 self.is_buffer = ((self.length or self.max_length) and is_buffer and not self.is_array)
 
-                try:
-                    self.length_numeric_value = eval(self.length.value) if self.length else None
-                    self.maxlength_numeric_value = eval(self.maxlength.value) if self.maxlength else None
-                except:
-                    self.length_numeric_value = None
-                    self.maxlength_numeric_value = None
+                self.length_numeric_value = self.length.value if self.length and isinstance(self.length.value, int) else None
+                self.max_length_numeric_value = self.max_length.value if self.max_length and isinstance(self.max_length.value, int) else None
 
-                self.is_fixed_buffer = self.is_buffer and ((self.length_numeric_value != None) or (not self.length and (self.length_numeric_value!= None)))
+                numeric_length = (self.length_numeric_value and (not self.max_length or self.max_length_numeric_value)) \
+                                    or (self.max_length_numeric_value and (self.length or self.length_numeric_value))
+
+                self.is_fixed_buffer = self.is_buffer and numeric_length
 
                 if ((self.length or self.max_length) and is_array_pointer and not is_buffer):
                     raise TypenameError(self.identifier, "'%s': variable-length arrays are not supported (use std::vector instead)" % self.trace_proto)
