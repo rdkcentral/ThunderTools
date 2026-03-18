@@ -880,7 +880,7 @@ class Identifier():
 
     def Signature(self, override=None):
         if self.array:
-            return ("%s %s[%s]" % (self.type.Proto(), override if override != None else self.name, self.array))
+            return ("%s %s[%s]" % (self.type.Proto("noref|noptr"), override if override != None else self.name, self.array))
         else:
             return (self.Proto() + " " + (override if override != None else self.name))
 
@@ -1448,6 +1448,7 @@ class Temporary(Identifier, Name):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value) if value else None
+
         if meta:
             self.meta = meta
 
