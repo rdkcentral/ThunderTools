@@ -54,6 +54,8 @@ jobs:
           # ----- Paths to the generated files -----
           PATHS_TO_HARVEST=(
             "ThunderInterfaces/interfaces/generated"
+            "ThunderInterfaces/qa_interfaces/qa_generated"
+            "ThunderInterfaces/example_interfaces/example_generated"
             "Thunder/Source/com/generated"
             "Thunder/Source/plugins/generated"
           )
