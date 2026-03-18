@@ -1275,11 +1275,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Copy(6, %s)" % self.as_lvalue
 
                 # The integral types
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.BuiltinInteger, CppParser.Enum)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger, CppParser.Enum)):
                     return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
-                elif isinstance(self.kind, CppParser.Time):
+                elif isinstance(self.kind, (CppParser.Time, CppParser.Int24)):
                     return "Number<%s>()" % self.target_type_name
 
                 # Floating point types
@@ -1321,8 +1321,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Copy(6, %s)" % self.as_lvalue
 
                 # The integral types
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                elif isinstance(self.kind, (CppParser.Int24)):
+                    return "Number<%s>(%s)" % (self.target_type_name, self.as_rvalue)
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
                 elif isinstance(self.kind, CppParser.Time):

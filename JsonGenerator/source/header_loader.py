@@ -544,7 +544,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 # C-style buffers converted to JSON arrays (no encode tag)
                 elif isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and not var.array:
                     props = {}
-                    props["items"] = ConvertParameter(var, is_member=True, quiet=quiet, no_array=True)
+                    props["items"] = ConvertParameter(var, quiet=quiet, no_array=True)
                     props["@length"] = " ".join(meta.length)
                     props["@proto"] = var.ProtoFmt()
 
@@ -562,7 +562,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         log.WarnLine(var, "%s: large array size (%s elements)" % (var.name, var.array))
 
                     props = {}
-                    props["items"] = ConvertParameter(var, quiet=quiet, is_member=True, no_array=True)
+                    props["items"] = ConvertParameter(var, quiet=quiet, no_array=True)
                     props["@arraysize"] = var.array
                     props["@proto"] = var.ProtoFmt()
                     props["range"] = [var.array, var.array]
