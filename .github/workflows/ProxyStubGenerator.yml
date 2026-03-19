@@ -98,7 +98,13 @@ jobs:
               echo "  -> Copying to: $SUB_DEST"
 
               mkdir -p "$SUB_DEST"
-              cp -r "$SRC"/* "$SUB_DEST/"
+
+              if [ -z "$(ls -A "$SRC")" ]; then
+                echo "::warning::Path '$SRC' is empty, skipping."
+                continue
+              fi
+
+              cp -r "$SRC"/. "$SUB_DEST/"
             done
           done
 
