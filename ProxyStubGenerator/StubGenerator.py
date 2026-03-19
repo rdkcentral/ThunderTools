@@ -314,6 +314,7 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 value = 0
                 expr = "".join(length)
+
                 try:
                     value = eval(expr)
                     if value > 0xFF:
@@ -413,8 +414,14 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                                 length_value = parsed[1]
 
                         if isinstance(p, CppParser.Integer) and p.size == "char":
-                            # char[] is sent as a buffer
-                            lua_type.append_type(("BUFFER" + parsed[0]), param, paramtype)
+                            if length_value:
+                                element = Convert(paramtype, None, None, allow_ptr=False)
+                                lua_type.append_type("ARRAY", param, paramtype)
+                                lua_type.append("element", "{ %s }" % element.join())
+                                lua_type.append("count", length_value)
+                            else:
+                                # char[] is sent as a buffer
+                                lua_type.append_type(("BUFFER" + parsed[0]), param, paramtype)
                         else:
                             element = Convert(paramtype, None, None, allow_ptr=False)
 
@@ -770,9 +777,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             matches = [v for v in self.identifier.parent.vars if v.name == length_name[2]]
 
                             if matches:
-                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % (length_type, variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
                             else:
-                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % (length_type, variable_name)).split(), ["".join(length_name)]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["".join(length_name)]), variable_name)
 
                         matches = [v for v in self.identifier.parent.vars if v.name == "".join(length_name)]
 
@@ -883,14 +890,20 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 self.interface_id = _FindLength(self.identifier.meta.interface, (name[1:] + "IntefaceId"))
 
-                # Is it a buffer?
-
                 is_array_pointer = (self.type.IsPointer() and not is_interface and not self.interface_id)
                 is_buffer = is_array_pointer and isinstance(self.identifier_kind, CppParser.Integer) and (self.identifier_kind.size == "char")
                 self.is_array = (self.identifier.array != None)
                 self.length = _FindLength(self.identifier.meta.length, (name[1:] + "_Len"))
                 self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "_MaxLen"))
                 self.is_buffer = ((self.length or self.max_length) and is_buffer and not self.is_array)
+
+                self.length_numeric_value = self.length.value if self.length and isinstance(self.length.value, int) else None
+                self.max_length_numeric_value = self.max_length.value if self.max_length and isinstance(self.max_length.value, int) else None
+
+                numeric_length = (self.length_numeric_value and (not self.max_length or self.max_length_numeric_value)) \
+                                    or (self.max_length_numeric_value and (self.length or self.length_numeric_value))
+
+                self.is_fixed_buffer = self.is_buffer and numeric_length
 
                 if ((self.length or self.max_length) and is_array_pointer and not is_buffer):
                     raise TypenameError(self.identifier, "'%s': variable-length arrays are not supported (use std::vector instead)" % self.trace_proto)
@@ -915,6 +928,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         # array of bytes, let's make it a buffer then
                         self.is_array = False
                         self.is_buffer = True
+                        self.is_fixed_buffer = True
 
                     self.max_length = self.length
 
@@ -1034,11 +1048,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
 
                 if (not self.is_buffer and not self.is_array) and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
-                    if not self.kind.IsFixed():
+                    if not self.kind.fixed and not self.kind.char:
                         log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
 
                 if isinstance(self.kind, CppParser.Enum):
-                    if not self.kind.type.Type().IsFixed():
+                    if not self.kind.type.Type().fixed:
                         log.WarnLine(self.identifier, "'%s': underlying type of enumeration is not fixed-width integer, use a stdint type" % self.trace_proto)
 
                 # Lastly handle restrict
@@ -1242,12 +1256,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Raw buffers
                 elif self.is_buffer:
                     assert self.length or self.max_length, "Invalid type for buffer"
-                    if self.max_length:
-                        return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_lvalue)
-                    elif self.length:
-                        return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_lvalue)
+                    if self.is_fixed_buffer:
+                        return "Copy(%s, %s)" % (self.length.as_rvalue, self.as_lvalue)
                     else:
-                        Unreachable()
+                        if self.max_length:
+                            return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_lvalue)
+                        elif self.length:
+                            return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_lvalue)
+                        else:
+                            Unreachable()
 
                 # Strings
                 elif self.is_string:
@@ -1255,14 +1272,14 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 # MacAddress
                 elif isinstance(self.kind, CppParser.MacAddress):
-                    return "Buffer<uint8_t>(6, %s)" % self.as_lvalue
+                    return "Copy(6, %s)" % self.as_lvalue
 
                 # The integral types
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.BuiltinInteger, CppParser.Enum)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger, CppParser.Enum)):
                     return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
-                elif isinstance(self.kind, CppParser.Time):
+                elif isinstance(self.kind, (CppParser.Time, CppParser.Int24)):
                     return "Number<%s>()" % self.target_type_name
 
                 # Floating point types
@@ -1290,7 +1307,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Raw buffers
                 elif self.is_buffer:
                     assert self.max_length, "Invalid type for buffer " + self.name
-                    return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_rvalue)
+                    if self.is_fixed_buffer:
+                        return "Copy(%s, %s)" % (self.length.as_rvalue, self.as_rvalue)
+                    else:
+                        return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_rvalue)
 
                 # Strings
                 elif self.is_string:
@@ -1298,11 +1318,13 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 # MacAddress
                 elif isinstance(self.kind, CppParser.MacAddress):
-                    return "Buffer<uint8_t>(6, %s)" % self.as_lvalue
+                    return "Copy(6, %s)" % self.as_lvalue
 
                 # The integral types
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.Enum, CppParser.BuiltinInteger)):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                elif isinstance(self.kind, (CppParser.Int24)):
+                    return "Number<%s>(%s)" % (self.target_type_name, self.as_rvalue)
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
                 elif isinstance(self.kind, CppParser.Time):
@@ -1659,24 +1681,39 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     _name = p.as_rvalue
 
                     buffer_param = "const_cast<const %s*&>(%s)" % (p.type_name, _name) if not p.identifier_type.IsPointerToConst() else _name
-                    emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.temporary, vars["reader"], p.length.type_name, buffer_param))
-                    emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
+
+                    if not p.suppress_type:
+                        # we may reuse the wire buffer to skip a copy
+                        if p.is_fixed_buffer:
+                            assert p.length.value
+                            emit.Line("%s = %s.LockFixedBuffer(%s, %s);" % (p.length.temporary, vars["reader"], buffer_param, p.length.value))
+                            emit.Line("ASSERT(%s == %s);" % (p.length.name, p.length.value))
+                        else:
+                            emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.temporary, vars["reader"], p.length.type_name, buffer_param))
+
+                        emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
+                    else:
+                        # inside a struct, have to copy :(
+                        emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
 
                     if p.is_array:
                         emit.Line("ASSERT(%s == (%s * sizeof(%s)));" % (p.length.name, p.identifier.array, p.type_name))
 
                 elif isinstance(p.kind, CppParser.MacAddress):
 
+                    length = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.VALUE | CppParser.Ref.CONST, (p.name[1:] + "Length"))
+                    buffer = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.POINTER | CppParser.Ref.POINTER_TO_CONST, (p.name[1:] + "Buffer"))
+                    emit.Line("%s{};" % buffer.temporary)
+
+                    # construct the mac directly from the wire buffer
+                    emit.Line("%s = %s.LockFixedBuffer(%s, 6);" % (length.temporary, vars["reader"], buffer.name))
+                    emit.Line("ASSERT(%s == 6);" % (length.name))
+                    emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], length.name))
+
                     if not p.suppress_type:
-                        length = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.VALUE | CppParser.Ref.CONST, (p.name[1:] + "Length"))
-                        buffer = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.POINTER | CppParser.Ref.POINTER_TO_CONST, (p.name[1:] + "Buffer"))
-                        emit.Line("%s{};" % buffer.temporary)
-
-                        emit.Line("%s = %s.LockBuffer<uint8_t>(%s);" % (length.temporary, vars["reader"], buffer.name))
-                        emit.Line("ASSERT(%s == 6);" % (length.name))
-                        emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], length.name))
-
                         emit.Line("%s{%s};" % (p.temporary_no_cv, buffer.as_rvalue))
+                    else:
+                        emit.Line("%s = Core::MACAddress(%s);" % (p.name, buffer.as_rvalue))
 
                 else:
                     _EmitAssignment(p)
@@ -2507,7 +2544,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 EmitProxyMethodImplementation(index, method, interface_name, interface, retval, params, \
                                                 input_params, output_params, proxy_params, return_proxy_params)
             else:
-                EmitProxyMethodStubbed(index, methods, interface_name, retval)
+                EmitProxyMethodStubbed(index, method, interface_name, retval)
 
             emit.IndentDec()
             emit.Line("}")
@@ -2579,10 +2616,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line("{")
             emit.IndentInc()
 
-            if EMIT_TRACES:
-                emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
-
             if announce_list:
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
+
                 security_options = []
                 security_var = ""
 
