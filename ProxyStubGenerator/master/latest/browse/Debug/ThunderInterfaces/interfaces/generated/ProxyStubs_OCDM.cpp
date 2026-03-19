@@ -581,7 +581,7 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
-            writer.Buffer<uint8_t>(16, _secureStopId);
+            writer.Copy(16, _secureStopId);
         },
 
         // (6) virtual Exchange::OCDM_RESULT SelectKeyId(const uint8_t, const uint8_t*) = 0
@@ -1640,7 +1640,7 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint8_t>(16, _secureStopId);
+                reader.Copy(16, _secureStopId);
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }

@@ -1075,7 +1075,7 @@ namespace ProxyStubs {
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<Exchange::OCDM_RESULT>(result);
-                writer.Buffer<uint8_t>(16, _secureStopId);
+                writer.Copy(16, _secureStopId);
 
                 return (Core::ERROR_NONE);
             } ();
@@ -2898,7 +2898,7 @@ namespace ProxyStubs {
                     if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                     const uint8_t _secureStopIdPeekedLen__ = reader.PeekNumber<uint8_t>();
                     if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint8_t>()) + _secureStopIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    reader.Buffer<uint8_t>(16, _secureStopId);
+                    reader.Copy(16, _secureStopId);
 
                     return (Core::ERROR_NONE);
                 } ();
