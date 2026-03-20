@@ -1,3 +1,22 @@
+'''
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
+
 from core.PluginBlueprint import PluginBlueprint
 from data.FileData import HeaderData, SourceData, CMakeData, JSONData, ConfData
 from generators.PluginRepositoryGenerator import PluginRepositoryGenerator
@@ -12,7 +31,7 @@ class GenerationTask:
 
 class GeneratorCoordinator:
     def __init__(self, name, out_of_process, configuration, parsed_data, header_lookup, locations,
-                 preconditions=None, terminations=None, controls=None):
+                 preconditions=None, terminations=None, controls=None, output_dir=None):
         self.m_blueprint = PluginBlueprint(
             name=name,
             out_of_process=out_of_process,
@@ -23,6 +42,7 @@ class GeneratorCoordinator:
             preconditions=preconditions,
             terminations=terminations,
             controls=controls,
+            output_dir=output_dir,
         )
 
     def generateAll(self):

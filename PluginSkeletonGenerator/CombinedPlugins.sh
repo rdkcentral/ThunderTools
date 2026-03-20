@@ -48,6 +48,22 @@ fi
 TARGET_DIR="$TARGET_ROOT_ABS/CombinedPlugins"
 mkdir -p "$TARGET_DIR"
 
+# Optional subsystem lists can be provided via environment variables:
+#   PSG_PRECONDITIONS (newline-separated)
+#   PSG_TERMINATIONS (newline-separated)
+#   PSG_CONTROLS (newline-separated)
+# If any of these are set (non-empty), the script answers 'Y' to the subsystems prompt and
+# feeds the lists (each terminated by a blank line). Otherwise it answers 'N'.
+_psg_emit_list() {
+  local content="$1"
+  if [ -n "$content" ]; then
+    # Print as-is, ensure it ends with a newline
+    printf '%s\n' "$content"
+  fi
+  # terminating blank line
+  printf '\n'
+}
+
 # Work inside CombinedPlugins in a subshell so the parent shell CWD is unchanged
 (
   cd "$TARGET_DIR"
@@ -56,15 +72,25 @@ mkdir -p "$TARGET_DIR"
   for i in $(seq 1 "$COUNT"); do
     plugin="Plugin$i"
 
-    # Answers:
-    # 1) $plugin
-    # 2) N
-    # 3) N
-    # 4) $IFACE_ABS
-    # 5) <Enter>
-    # 6) N
-    # 7) <Enter>
-    printf '%s\nN\nN\n%s\n\nN\n\n' "$plugin" "$IFACE_ABS" | python3 "$START_DIR/PluginSkeletonGenerator.py"
+    if [ -n "${PSG_PRECONDITIONS:-}" ] || [ -n "${PSG_TERMINATIONS:-}" ] || [ -n "${PSG_CONTROLS:-}" ]; then
+      # Subsystems enabled
+      {
+        printf '%s\n' "$plugin"   # name
+        printf '\n'               # output dir (default)
+        printf 'N\n'              # out-of-process
+        printf 'N\n'              # custom config
+        printf '%s\n' "$IFACE_ABS"# interface path
+        printf '\n'               # finish interface list
+        printf 'Y\n'              # subsystems enabled
+        _psg_emit_list "${PSG_PRECONDITIONS:-}"  # Preconditions
+        _psg_emit_list "${PSG_TERMINATIONS:-}"   # Terminations
+        _psg_emit_list "${PSG_CONTROLS:-}"       # Controls
+        printf '\n'               # include location (default)
+      } | python3 "$START_DIR/PluginSkeletonGenerator.py"
+    else
+      # No subsystems
+      printf '%s\n\nN\nN\n%s\n\nN\n\n' "$plugin" "$IFACE_ABS" | python3 "$START_DIR/PluginSkeletonGenerator.py"
+    fi
   done
 
   # Create CMakeLists.txt with one add_subdirectory line per plugin

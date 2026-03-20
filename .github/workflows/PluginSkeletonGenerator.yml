@@ -39,17 +39,89 @@ jobs:
         id: set-matrix
         shell: python
         run: |
-          import json, os
+          import json
+          import os
+
+          def mk_answers(plugin_name, oop, custom_cfg, pre=None):
+            """
+            Prompt order (interactive mode):
+              1) plugin name
+              2) output dir (Enter = current directory)
+              3) out-of-process (Y/N)
+              4) custom config (Y/N)
+              5+) interface path(s) ... then blank line
+              next) subsystems (Y/N)
+              if subsystems=Y:
+                    Preconditions list entries ... blank
+                    Terminations list entries ... blank
+                    Controls list entries ... blank
+              next) (optional, per header with >1 root) pick indices or Enter for ALL
+              next) include location per header (Enter for default)
+            """
+            if pre is None:
+              pre = {"pre": [], "term": [], "ctrl": []}
+
+            answers = [
+              plugin_name,
+              "",                 # output dir: Enter => current directory
+              oop,
+              custom_cfg,
+              "__INTERFACES_H__",  # interface path injected later
+              "",                 # finish interface list
+              ("Y" if (pre["pre"] or pre["term"] or pre["ctrl"]) else "N"),
+            ]
+
+            if answers[-1] == "Y":
+              # Preconditions list + terminator
+              answers += list(pre["pre"]) + [""]
+              # Terminations list + terminator
+              answers += list(pre["term"]) + [""]
+              # Controls list + terminator
+              answers += list(pre["ctrl"]) + [""]
+
+            # After subsystems collection, generator may ask:
+            # - (optional) interface selection (Enter=ALL) for multi-root headers
+            # - include location (Enter=default 'interfaces')
+            answers += ["", ""]
+
+            return answers
 
           variants = [
-            { "name": "InProcess", "header": "IMath.h", "answers": ["InProcess", "N", "N", "__INTERFACES_H__", "", "N", ""] },
-            { "name": "OutOfProcess", "header": "IBrowser.h", "answers": ["OutOfProcess", "Y", "N", "__INTERFACES_H__", "", "", "N", ""] },
-            { "name": "InProcessConfig", "header": "IPower.h", "answers": ["InProcessConfig", "N", "Y", "__INTERFACES_H__", "", "N", ""] },
-            { "name": "OutOfProcessConfig", "header": "INetworkControl.h", "answers": ["OutOfProcessConfig", "Y", "Y", "__INTERFACES_H__", "", "N", ""] },
-            { "name": "InProcessPreconditions", "header": "ITimeSync.h", "answers": ["InProcessPreconditions", "N", "N", "__INTERFACES_H__", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""] },
-            { "name": "OutOfProcessPreconditions", "header": "IMessageControl.h", "answers": ["OutOfProcessPreconditions", "Y", "N", "__INTERFACES_H__", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""] },
-            { "name": "InProcessConfigPreconditions", "header": "IDictionary.h", "answers": ["InProcessConfigPreconditions", "N", "Y", "__INTERFACES_H__", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""] },
-            { "name": "OutOfProcessConfigPreconditions", "header": "IBluetooth.h", "answers": ["OutOfProcessConfigPreconditions", "Y", "Y", "__INTERFACES_H__", "", "", "Y", "GRAPHICS", "", "NOT_GRAPHICS" , "", "TIME", "", ""] }
+            { "name": "InProcess", "header": "IMath.h",
+              "answers": mk_answers("InProcess", "N", "N") },
+
+            { "name": "OutOfProcess", "header": "IBrowser.h",
+              "answers": mk_answers("OutOfProcess", "Y", "N") },
+
+            { "name": "InProcessConfig", "header": "IPower.h",
+              "answers": mk_answers("InProcessConfig", "N", "Y") },
+
+            { "name": "OutOfProcessConfig", "header": "INetworkControl.h",
+              "answers": mk_answers("OutOfProcessConfig", "Y", "Y") },
+
+            { "name": "InProcessPreconditions", "header": "ITimeSync.h",
+              "answers": mk_answers(
+                  "InProcessPreconditions", "N", "N",
+                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+              ) },
+
+            { "name": "OutOfProcessPreconditions", "header": "IMessageControl.h",
+              "answers": mk_answers(
+                  "OutOfProcessPreconditions", "Y", "N",
+                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+              ) },
+
+            { "name": "InProcessConfigPreconditions", "header": "IVolumeControl.h",
+              "answers": mk_answers(
+                  "InProcessConfigPreconditions", "N", "Y",
+                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+              ) },
+
+            { "name": "OutOfProcessConfigPreconditions", "header": "IWifiControl.h",
+              "answers": mk_answers(
+                  "OutOfProcessConfigPreconditions", "Y", "Y",
+                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+              ) },
           ]
 
           include = []
@@ -429,6 +501,14 @@ jobs:
           text = text.replace("artifacts/PluginSkeleton-", "generated/")
           Path("diffs/combined_ai.diff").write_text(text, encoding="utf-8")
           PY
+
+      - name: Upload combined diff artifact
+        if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-plugin-diff
+          path: diffs/combined.diff
+          retention-days: 14
 
       - name: AI summary (GitHub Models)
         if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'
