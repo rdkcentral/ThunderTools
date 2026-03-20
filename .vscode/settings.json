@@ -1,0 +1,8 @@
+{
+    "cmake.configureOnOpen": false,
+    "cmake.configureSettings": {
+        "CMAKE_BUILD_TYPE" : "Release" ,
+        "CMAKE_MESSAGE_LOG_LEVEL" : "VERBOSE" ,
+        "CMAKE_VERBOSE_MAKEFILE" : "ON"
+    }
+}

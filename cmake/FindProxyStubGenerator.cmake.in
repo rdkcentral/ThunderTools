@@ -19,7 +19,9 @@ if(NOT PYTHON_EXECUTABLE)
     find_package(Python3 3.5 REQUIRED QUIET)
 endif()
 
-set(PROXYSTUB_GENERATOR "${CMAKE_CURRENT_LIST_DIR}/../ProxyStubGenerator/StubGenerator.py")
+if(NOT PROXYSTUB_GENERATOR)
+    set(PROXYSTUB_GENERATOR "${CMAKE_CURRENT_LIST_DIR}/../ProxyStubGenerator/StubGenerator.py")
+endif()
 
 function(ProxyStubGenerator)
     if (NOT PROXYSTUB_GENERATOR)
