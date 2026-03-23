@@ -144,12 +144,9 @@ class Restrictions:
                     if range[1]:
                         tests.append("%s.Value() %s %s" % (name, self.__comp[1], range[1]))
 
-                elif isinstance(relay, (JsonString, JsonMacAddress)):
-                    if ("@arraysize" not in relay.schema and not isinstance(relay, JsonMacAddress)) or self.__json:
-                        if isinstance(relay, JsonMacAddress):
-                            encode = "mac"
-                        else:
-                            encode = relay.schema.get("encode")
+                elif isinstance(relay, (JsonString)):
+                    if ("@arraysize" not in relay.schema) or self.__json:
+                        encode = relay.schema.get("encode")
 
                         if self.__adjust and encode:
                             adjusted = copy.copy(range)

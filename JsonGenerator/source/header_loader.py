@@ -623,21 +623,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     result = [ "integer", { "size": size, "signed": cppType.signed } ]
 
-                # Int24
-                elif isinstance(cppType, CppParser.Int24):
-                    result = [ "integer", { "size": 24, "signed": cppType.signed } ]
-
                 # Instance ID
                 elif isinstance(cppType, CppParser.InstanceId):
                     result = [ "instanceid", {} ]
-
-                # Time
-                elif isinstance(cppType, CppParser.Time):
-                    result = [ "string", { "time": "iso8601" } ]
-
-                # MACAddress
-                elif isinstance(cppType, CppParser.MacAddress):
-                    result = [ "string", { "@macaddress": True, "@construct_from_cstr": True, "range": [6,6] } ]
 
                 # Float
                 elif isinstance(cppType, CppParser.Float):
@@ -939,7 +927,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             required.append(var_name)
 
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
-                                and not "enum" in converted and not "time" in converted:
+                                and not "enum" in converted:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
                         if converted.get("@optionaltype") and not var.type.IsReference():
