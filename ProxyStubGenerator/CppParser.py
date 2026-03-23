@@ -201,14 +201,6 @@ class CCString(Intrinsic):
         Intrinsic.__init__(self, "ccstring")
 
 
-class Time(Intrinsic):
-    def __init__(self):
-        Intrinsic.__init__(self, "Core::Time::microsecondsfromepoch")
-
-class MacAddress(Intrinsic):
-    def __init__(self):
-        Intrinsic.__init__(self, "Core::MACAddress")
-
 
 class Optional(Intrinsic):
     def __init__(self, subtype):
@@ -790,10 +782,6 @@ class Identifier():
                 elif type in ["int", "char", "wchar_t", "char16_t", "char32_t", "short", "long", "signed", "unsigned",
                               "int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]:
                     self.type[i] = Type(Integer(self.type[i]))
-                elif type == "__stubgen_int24":
-                    self.type[i] = Type(Int24(signed=True))
-                elif type == "__stubgen_uint24":
-                    self.type[i] = Type(Int24())
                 elif type == "bool":
                     self.type[i] = Type(Bool())
                 elif type == "void":
@@ -810,10 +798,6 @@ class Identifier():
                     self.type[i] = Type(BuiltinInteger(False))
                 elif type == "__stubgen_instance_id":
                     self.type[i] = Type(InstanceId())
-                elif type == "__stubgen_time":
-                    self.type[i] = Type(Time())
-                elif type == "__stubgen_macaddress":
-                    self.type[i] = Type(MacAddress())
                 elif is_valid_scoped(type):
                     found = LookupIdentifier(type, scope=parent)
                     if found:
