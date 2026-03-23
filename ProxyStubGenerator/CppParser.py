@@ -232,7 +232,7 @@ class Bool(Fundamental):
 
 class Int24(Fundamental):
     def __init__(self, signed=False):
-        Fundamental.__init__(self, "Core::Int24" if signed else "Core::UInt24")
+        Fundamental.__init__(self, "Core::Frame::Int24" if signed else "Core::Frame::UInt24")
         self.signed = signed
         self.fixed = False
         self.min = -2**23 if signed else 0

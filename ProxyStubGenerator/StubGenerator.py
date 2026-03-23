@@ -43,7 +43,7 @@ FORCE = False
 # static configuration
 EMIT_COMMENT_WITH_PROTOTYPE = True
 EMIT_COMMENT_WITH_STUB_ORDER = True
-FRAMEWORK_NAMESPACE = "Thunder"
+FRAMEWORK_NAMESPACE = "WPEFramework"
 STUB_NAMESPACE = "::%s::ProxyStubs" % FRAMEWORK_NAMESPACE
 INTERFACE_NAMESPACES = ["::%s" % FRAMEWORK_NAMESPACE]
 CLASS_IUNKNOWN = "::%s::Core::IUnknown" % FRAMEWORK_NAMESPACE
@@ -1115,7 +1115,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         if self.restrict_range.max >= (16*1024*1024):
                             aux_size = "uint32_t"
                         elif self.restrict_range.max >= (64*1024):
-                            aux_size = "Core::UInt24"
+                            aux_size = "Core::Frame::UInt24"
                         elif self.restrict_range.max < 256:
                             aux_size = "uint8_t"
 
@@ -1140,10 +1140,10 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             if self.restrict_range.has_min and self.restrict_range.has_max:
                                 if ((self.restrict_range.min < (-32*1024)) and (self.restrict_range.min >= (-8*1024*1024))) or \
                                     ((self.restrict_range.max >= (32*1024)) and (self.restrict_range.max < (8*1024*1024))):
-                                    self.type_name = "Core::SInt24"
+                                    self.type_name = "Core::Frame::SInt24"
                         else:
                             if (self.restrict_range.has_max and ((self.restrict_range.max >= (64*1024)) and (self.restrict_range.max < (16*1024*1024)))):
-                                self.type_name = "Core::UInt24"
+                                self.type_name = "Core::Frame::UInt24"
 
                 if isinstance(self.kind, CppParser.Optional):
                     #if self.kind.optional.type.IsPointer() and not isinstance(self.kind.optional.type.Resolve().type, CppParser.Class) and not:
@@ -1606,7 +1606,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.IndentDec()
                         emit.Line("}")
 
-                        impl = "::Thunder::RPC::IteratorType<%s>" % iterator.kind.type
+                        impl = "::WPEFramework::RPC::IteratorType<%s>" % iterator.kind.type
                         emit.Line("%s = Core::ServiceType<%s>::Create<%s>(std::move(%s));" % (p.as_lvalue, impl, iterator.kind.type, internal))
                         emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue))
 
@@ -2165,11 +2165,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line()
 
             if ENABLE_INSTANCE_VERIFICATION:
-                emit.Line("if (RPC::Administrator::Instance().IsValid(static_cast<const ProxyStub::UnknownProxy&>(*this).Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
+                emit.Line("if (RPC::Administrator::Instance().IsValid(Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
                             % (vars["implementation"]))
                 emit.Line()
 
-            emit.Line("result = static_cast<const ProxyStub::UnknownProxy&>(*this).Complete(%s, id, how);" % vars["implementation"])
+            emit.Line("result = UnknownProxyType::Complete(%s, id, how);" % vars["implementation"])
             emit.Line("if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }")
             emit.IndentDec()
             emit.Line("}")
@@ -2292,7 +2292,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             emit.IndentDec()
                             emit.Line("}")
 
-                            impl = "::Thunder::RPC::IteratorType<%s>" % iterator.kind.type
+                            impl = "::WPEFramework::RPC::IteratorType<%s>" % iterator.kind.type
                             emit.Line("%s = Core::ServiceType<%s>::Create<%s>(std::move(%s));" % (p.as_lvalue, impl, iterator.kind.type, internal))
                             emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue))
 
@@ -2304,7 +2304,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             emit.IndentDec()
                             emit.Line("}")
                         else:
-                            emit.Line("%s = reinterpret_cast<%s>(static_cast<const ProxyStub::UnknownProxy&>(*this).Interface(%s.%s, %s));" % \
+                            emit.Line("%s = reinterpret_cast<%s>(UnknownProxyType::Interface(%s.%s, %s));" % \
                                 (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
 
                     elif p.is_array and not no_array:
@@ -2362,7 +2362,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                     elif p.return_proxy:
-                        emit.Line("%s = reinterpret_cast<%s>(static_cast<const ProxyStub::UnknownProxy&>(*this).Interface(%s.%s, %s));" % \
+                        emit.Line("%s = reinterpret_cast<%s>(UnknownProxyType::Interface(%s.%s, %s));" % \
                                 (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
 
                     else:
@@ -2391,7 +2391,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             hresult = AuxIdentifier(CppParser.Integer(HRESULT), (CppParser.Ref.VALUE), vars["hresult"])
 
-            emit.Line("IPCMessage %s(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(%s));" % (vars["message"], index))
+            emit.Line("IPCMessage %s(UnknownProxyType::Message(%s));" % (vars["message"], index))
             emit.Line()
 
             if input_params:
@@ -2413,7 +2413,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 instances.append("{ 0, 0 }")
 
                 emit.Line("const RPC::InstanceRecord passedInstances[] = { %s };" % ", ".join(instances))
-                emit.Line("static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(passedInstances);")
+                emit.Line("static_cast<Channel()->CustomData(passedInstances);")
                 emit.Line()
 
             reuse_hresult = (retval and retval.is_hresult)
@@ -2428,7 +2428,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             _const_hresult = (not reuse_hresult and not ENABLE_SECURE)
             lhs = ("%s%s = " % (("const " if _const_hresult else ""), hresult.temporary_no_cv)) if check_invoke else ""
 
-            emit.Line("%sstatic_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(%s);" % (lhs, vars["message"]))
+            emit.Line("%sUnknownProxyType::Invoke(%s);" % (lhs, vars["message"]))
 
             if check_invoke:
                 emit.Line("if (%s == Core::ERROR_NONE) {" % hresult.as_rvalue)
@@ -2503,7 +2503,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if ENABLE_INSTANCE_VERIFICATION and proxy_params:
                 emit.Line()
-                emit.Line("static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(nullptr);")
+                emit.Line("Channel()->CustomData(nullptr);")
 
             if EMIT_TRACES:
                 emit.Line()
