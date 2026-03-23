@@ -87,6 +87,25 @@ class ObjectTracker:
                     if rhs["signed"] != False:
                         return False
 
+                if "range" in lhs:
+                    if "range" in rhs:
+                        if lhs["range"] != rhs["range"]:
+                            return False
+                    else:
+                        return False
+                elif "range" in rhs:
+                    if rhs["range"] != [0,0]:
+                        return False
+
+                if "encode" in lhs:
+                    if "encode" in rhs:
+                        if lhs["encode"] != rhs["encode"]:
+                            return False
+                    else:
+                        return False
+                elif "encode" in rhs:
+                        return False
+
                 if "enum" in lhs:
                     if "enum" in rhs:
                         if lhs["enum"] != rhs["enum"]:
@@ -132,6 +151,15 @@ class ObjectTracker:
                 elif "enum" in rhs:
                     return False
 
+                if "@optionaltype" in lhs:
+                    if "@optionaltype" in rhs:
+                        if lhs["@optionaltype"] != rhs["@optionaltype"]:
+                            return False
+                    else:
+                        return False
+                elif "@optionaltype" in rhs:
+                    return False
+
                 if "items" in lhs:
                     if "items" in rhs:
                         if not _CompareType(lhs["items"], rhs["items"]):
@@ -150,7 +178,6 @@ class ObjectTracker:
 
                 return True
 
-            # NOTE: Two objects are considered identical if they have the same property names and types only!
             for name, prop in lhs.items():
                 if name not in rhs:
                     return False

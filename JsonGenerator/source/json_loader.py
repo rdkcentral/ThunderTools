@@ -35,6 +35,8 @@ import header_loader
 import trackers
 
 
+RESERVED_NAMES = ["exists", "versions", "register", "unregister"]
+
 log = None
 def SetLogger(logger):
     global log
@@ -59,7 +61,7 @@ def Scoped(root, obj, full = True):
         # Prepend with the outer namespace
         if o.parent and o.parent.included_from:
             scope = "%s::" % o.parent.included_from + scope
-        else:
+        elif root:
             scope = "%s::" % root.cpp_class + scope
 
         if full:
@@ -74,6 +76,9 @@ class JsonParseError(RuntimeError):
 
 def CoreJson(type):
     return (config.TYPE_PREFIX + "::" + type)
+
+def CoreError(error):
+    return ("Core::ERROR_" + error.upper())
 
 def MakeObject(type):
     return (type + config.OBJECT_SUFFIX)
@@ -95,6 +100,9 @@ class JsonType():
         if is_generated:
             name = name.replace("@_generated_", "")
 
+        if not is_generated:
+            is_generated = "@generated" in schema
+
         self.new_name = None
         self.is_renamed = False
         self.schema = schema
@@ -103,6 +111,8 @@ class JsonType():
         self.original_name = schema.get("@originalname")
         self.description = schema.get("description")
         self.grand_parent = None
+        self.optional = schema.get("@optionaltype")
+        self.omit = schema.get("omit")
 
         if not isinstance(self, JsonRpcSchema):
             self.grand_parent = self
@@ -110,40 +120,35 @@ class JsonType():
             while self.grand_parent and not isinstance(self.grand_parent, JsonMethod):
                 self.grand_parent = self.grand_parent.parent
 
-        if self.grand_parent:
+            if self.grand_parent == self:
+                self.grand_parent = None
+
+        if self.grand_parent and self.root:
             if not self.description and \
                     (((self.root.rpc_format == config.RpcFormat.COMPLIANT) and (self.grand_parent == parent.parent)) \
                         or (((self.root.rpc_format != config.RpcFormat.COMPLIANT) and (self.grand_parent == parent)))):
                 self.description = self.grand_parent.summary
 
-        self.iterator = schema.get("iterator")
-        self.original_type = schema.get("original_type")
+        self.iterator = schema.get("@iterator")
+        self.original_type = schema.get("@originaltype")
         self.do_create = (self.original_type == None)
         self.included_from = included
         self.is_duplicate = False
 
         # Do some sanity check on the type name
-        if parent and not isinstance(parent, JsonArray):
-            if not is_generated and not self.original_name:
+        if parent and not isinstance(parent, JsonArray) and not is_generated:
+            if not self.original_name:
+                # Identifier from .json, still verify name casing
+
                 if not self.name.replace("_", "").isalnum():
                     raise JsonParseError("Invalid characters in identifier name: '%s'" % self.print_name)
 
                 if self.name[0] == "_":
                     raise JsonParseError("Identifiers must not start with an underscore (reserved by the generator): '%s'" % self.print_name)
 
-                if not self.grand_parent or not self.grand_parent.parent.legacy:
-                    if not self.name.islower():
-                        log.Warn("'%s': mixedCase identifiers are supported, however all-lowercase names are recommended" % self.print_name)
-                    elif "_" in self.name:
-                        log.Warn("'%s': snake_case identifiers are supported, however flatcase names are recommended" % self.print_name)
-
-            if self.original_name: # identifier comming from the C++ world
-                if self.original_name[0] == "_":
+            else: # identifier comming from the C++ world
+                if self.original_name[0] == "_" and not self.original_name.startswith("__anonymous_"):
                     raise JsonParseError("'%s': identifiers must not start with an underscore (reserved by the generator)" % self.original_name)
-
-                if not self.grand_parent or not self.grand_parent.parent.legacy:
-                    if "_" in self.original_name:
-                        log.Warn("'%s': snake_case identifiers are supported, however PascalCase names are recommended " % self.original_name)
 
         # Do some sanity check on the description text
         if self.description and not isinstance(self, JsonMethod):
@@ -154,9 +159,16 @@ class JsonType():
                 log.DocIssue("'%s': sentence-case capitalization is recommended for parameter descriptions ('%s')"
                     % (self.print_name ,log.Ellipsis(self.description)))
 
-    def TempName(self, postfix = ""):
-        name = self.local_name.strip("_")
-        return ("_" + name[0].lower() + name[1:] + (postfix[0].upper() + postfix[1:] if postfix else ""))
+    @property
+    def temp_name(self):
+        name = self.local_name.lstrip('_')
+        return ("_" + name[0].lower() + name[1:] + "_")
+
+    def TempName(self, postfix=None):
+        if postfix:
+            return (self.temp_name.rstrip('_') + postfix[0].upper() + postfix[1:] + '_')
+        else:
+            return self.temp_name
 
     def Rename(self, new_name):
         self.new_name = new_name.lower()
@@ -172,7 +184,7 @@ class JsonType():
 
     @property
     def print_name(self):
-        return (self.parent.print_name + "/" + self.name)
+        return (self.parent.print_name + "/" + self.name) if self.parent else self.name
 
     @property
     def json_name(self):
@@ -205,6 +217,14 @@ class JsonType():
             return self.name
 
     @property
+    def convert_rhs(self):
+        return ""
+
+    @property
+    def convert(self):
+        return ""
+
+    @property
     def cpp_name(self): # C++ name of the object
         if self.new_name:
             _name = self.new_name
@@ -232,26 +252,82 @@ class JsonType():
         assert False, "cpp_native_type accessed on JsonType"
 
     @property
+    def cpp_native_type_cv(self):
+        if self.schema.get("@cv"):
+            return self.schema.get("@cv") + " " + self.cpp_native_type
+
+    @property
+    def cpp_native_type_opt(self):
+        if self.optional:
+            return ("Core::OptionalType<%s>" % self.cpp_native_type)
+        else:
+            return self.cpp_native_type
+
+    @property
+    def original_type_opt(self):
+        if self.optional:
+            return ("Core::OptionalType<%s>" % self.original_type)
+        else:
+            return self.original_type
+
+    @property
+    def cpp_native_type_opt_cv(self):
+        if self.optional:
+            cv = ""
+            if self.schema.get("@cv"):
+                cv = self.schema.get("@cv") + " "
+            return ("%sCore::OptionalType<%s>" % (cv, self.cpp_native_type))
+        else:
+            return self.cpp_native_type_cv
+
+    @property
+    def cpp_native_type_proto(self):
+        assert self.schema.get("@proto")
+        return self.schema.get("@proto")
+
+    def cpp_native_type_opt_v(self, toggle=False):
+        if self.optional and toggle:
+            return ("Core::OptionalType<%s>" % self.cpp_native_type)
+        else:
+            return self.cpp_native_type
+
+    @property
+    def local_proto(self):
+        assert self.schema.get("@proto")
+        return self.cpp_native_type_proto.replace('@', self.local_name)
+
+    @property
+    def cpp_concrete_type(self):
+        return self.cpp_native_type
+
+    @property
+    def cpp_native_as_input_param(self):
+        return ("const " + self.cpp_native_type_opt + ("&" if (not isinstance(self, JsonFundamental) or self.optional) else ""))
+
+    @property
     def is_void(self):
         return (self.cpp_type == "void")
 
     @property
-    def cpp_def_value(self): # Value to initialize with in C++
-        return ""
+    def default_value(self): # Value to initialize with in C++
+        return self.schema.get("@default")
 
     @property
     def root(self):
-        return self.parent.root
+        return self.parent.root if self.parent else None
 
     # Whether a copy constructor would be needed if this type is a member of a class
     @property
     def is_copy_ctor_needed(self):
         return False
 
+class JsonFundamental:
+    pass
+
 class JsonNative:
     pass
 
-class JsonNull(JsonNative, JsonType):
+class JsonNull(JsonNative, JsonFundamental, JsonType):
     @property
     def cpp_type(self):
         return self.cpp_native_type
@@ -260,7 +336,7 @@ class JsonNull(JsonNative, JsonType):
     def cpp_native_type(self):
         return "void"
 
-class JsonBoolean(JsonNative, JsonType):
+class JsonBoolean(JsonNative, JsonFundamental, JsonType):
     @property
     def cpp_class(self):
         return CoreJson("Boolean")
@@ -270,17 +346,21 @@ class JsonBoolean(JsonNative, JsonType):
         return "bool"
 
 
-class JsonInteger(JsonNative, JsonType):
+class JsonInteger(JsonNative, JsonFundamental, JsonType):
     def __init__(self, name, parent, schema, size = config.DEFAULT_INT_SIZE, signed = False):
         JsonType.__init__(self, name, parent, schema)
         self.size = schema["size"] if "size" in schema else size
 
-        if self.size != 8 and self.size != 16 and self.size != 32 and self.size != 64:
+        if self.size != 8 and self.size != 16 and self.size != 24 and self.size != 32 and self.size != 64:
             raise JsonParseError("Invalid integer number size: '%s'" % self.print_name)
 
         self.signed = schema["signed"] if "signed" in schema else signed
-        self.__cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size))
-        self.__cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
+        self.__cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size if self.size != 24 else 32))
+
+        if self.size == 24:
+            self.__cpp_native_type = "Core::Int24" if self.signed else "Core::UInt24"
+        else:
+            self.__cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
 
     @property
     def cpp_class(self):
@@ -305,7 +385,7 @@ class AuxJsonAuto(JsonInteger):
         return "auto"
 
 
-class JsonNumber(JsonNative, JsonType):
+class JsonNumber(JsonNative, JsonFundamental, JsonType):
     def __init__(self, name, parent, schema):
         JsonType.__init__(self, name, parent, schema)
         self.size = schema["size"] if "size" in schema else 32
@@ -337,14 +417,18 @@ class JsonString(JsonNative, JsonType):
     def cpp_native_type(self):
         return "string"
 
-class JsonInstanceId(JsonNative, JsonType):
+    @property
+    def cpp_concrete_type(self):
+        return "string"
+
+class JsonInstanceId(JsonNative, JsonFundamental, JsonType):
     @property
     def cpp_class(self):
         return CoreJson("InstanceId")
 
     @property
     def cpp_native_type(self):
-        return "Core::instnance_id"
+        return "Core::instance_id"
 
 
 class JsonRefCounted():
@@ -360,7 +444,51 @@ class JsonRefCounted():
         return len(self.refs)
 
 
-class JsonEnum(JsonRefCounted, JsonType):
+class JsonTime(JsonNative, JsonType):
+    def __init__(self, name, parent, schema, time_type):
+        JsonType.__init__(self, name, parent, schema)
+        self.time_type = time_type
+
+    @property
+    def cpp_class(self):
+        return CoreJson("String")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::Time"
+
+    @property
+    def convert(self):
+        if self.time_type == "iso8601":
+            return "%s.FromISO8601(%s)"
+        else:
+            raise JsonParseError("Time format %s is not supported" % self.time_type)
+
+    @property
+    def convert_rhs(self):
+        if self.time_type == "iso8601":
+            return ".ToISO8601()"
+        else:
+            raise JsonParseError("Time format %s is not supported" % self.time_type)
+
+class JsonMacAddress(JsonNative, JsonType):
+    def __init__(self, name, parent, schema):
+        JsonType.__init__(self, name, parent, schema)
+
+    @property
+    def cpp_class(self):
+        return CoreJson("String")
+
+    @property
+    def cpp_native_type(self):
+        return "Core::MACAddress"
+
+    @property
+    def convert_rhs(self):
+        return ".ToString()"
+
+
+class JsonEnum(JsonRefCounted, JsonFundamental, JsonType):
     def __init__(self, name, parent, schema, enum_type, included = None):
         JsonRefCounted.__init__(self)
         JsonType.__init__(self, name, parent, schema, included)
@@ -369,7 +497,7 @@ class JsonEnum(JsonRefCounted, JsonType):
             raise JsonParseError("Only strings are supported in enums: '%s'" % self.print_name)
 
         self.type = enum_type
-        self.bitmask = schema.get("bitmask")
+        self.bitmask = schema.get("@bitmask")
         self.enumerators = schema.get("enum")
         self.cpp_enumerator_values = schema.get("values")
 
@@ -413,15 +541,21 @@ class JsonEnum(JsonRefCounted, JsonType):
             is_bitmap = True
             biggest = 0
 
+            try:
+                endmarker = self.cpp_enumerators.index(self.schema.get('@endmarker'))
+            except:
+                endmarker = None
+
             for idx, e in enumerate(self.cpp_enumerator_values):
-                if (e & (e-1) != 0) and (e != 0):
-                    is_bitmap = False
+                if isinstance(e, int):
+                    if (e & (e-1) != 0) and (e != 0) and endmarker != idx:
+                        is_bitmap = False
 
-                if idx != e:
-                    same = False
+                    if idx != e:
+                        same = False
 
-                if e > biggest:
-                    biggest = e
+                    if e > biggest:
+                        biggest = e
 
             if same:
                 if not self.original_type:
@@ -494,7 +628,7 @@ class JsonObject(JsonRefCounted, JsonType):
         if "properties" in schema:
             obj = trackers.object_tracker.Add(self)
             if obj:
-                if "original_type" in self.schema and "original_type" not in obj.schema:
+                if "@originaltype" in self.schema and "@originaltype" not in obj.schema:
                     # Very unlucky scenario when duplicate class carries more information than the original.
                     # Swap the classes in duplicate lists so we take the better one for generating code.
                     trackers.object_tracker.Remove(obj)
@@ -519,8 +653,8 @@ class JsonObject(JsonRefCounted, JsonType):
 
                 # Use the declared parameter position only if the interface comes from a C++ header,
                 # otherwise order parameters as seen in the JSON meta file.
-                if ("@generated" not in self.root.schema) or ("position" not in new_obj.schema):
-                    new_obj.schema["position"] = idx
+                if self.root and (("@generated" not in self.root.schema) or ("@position" not in new_obj.schema)):
+                    new_obj.schema["@position"] = idx
 
                 idx += 1
                 self._properties.append(new_obj)
@@ -549,6 +683,9 @@ class JsonObject(JsonRefCounted, JsonType):
 
         if not self.properties:
             log.Error("No properties in object %s" % self.print_name)
+
+    def finalize(self):
+        pass
 
     @property
     def cpp_name(self):
@@ -589,9 +726,9 @@ class JsonObject(JsonRefCounted, JsonType):
                         classname = MakeObject(self.properties[0].cpp_name)
                     elif isinstance(self.parent, JsonProperty):
                         classname = MakeObject(self.parent.cpp_name)
-                    elif self.root.rpc_format != config.RpcFormat.COMPLIANT and isinstance(self.parent, JsonArray) and isinstance(self.parent.parent, JsonProperty):
+                    elif self.root and (self.root.rpc_format != config.RpcFormat.COMPLIANT and isinstance(self.parent, JsonArray) and isinstance(self.parent.parent, JsonProperty)):
                         classname = MakeObject(self.parent.parent.cpp_name)
-                    elif self.root.rpc_format == config.RpcFormat.COMPLIANT and isinstance(self.parent, JsonArray):
+                    elif (not self.root or (self.root.rpc_format == config.RpcFormat.COMPLIANT)) and isinstance(self.parent, JsonArray):
                         classname = (MakeObject(self.parent.cpp_name) + "Elem")
                     else:
                         classname = MakeObject(self.cpp_name)
@@ -628,7 +765,7 @@ class JsonObject(JsonRefCounted, JsonType):
 
     @property
     def is_copy_ctor_needed(self):
-        if config.ALWAYS_EMIT_COPY_CTOR or self.parent.is_copy_ctor_needed:
+        if config.ALWAYS_EMIT_COPY_CTOR or (self.parent and self.parent.is_copy_ctor_needed):
             return True
 
         # Check if a copy constructor is needed by scanning all duplicate classes
@@ -683,7 +820,14 @@ class JsonArray(JsonType):
 
     @property
     def cpp_native_type(self):
-        return "std::list<%s>" % self._items.cpp_native_type
+        if self.iterator:
+            return "%s*" % self.iterator
+        elif "@container" in self.schema:
+            return "std::%s<%s>" % (self.schema["@container"], self._items.cpp_native_type)
+        elif "@arraysize" in self.schema:
+            return "%s @[%s]" % (self._items.cpp_native_type, self.schema["@arraysize"])
+        else:
+            return "std::list<%s>" % self._items.cpp_native_type
 
     @property
     def cpp_class(self):
@@ -718,9 +862,18 @@ class JsonMethod(JsonObject):
         if "@originalname" in schema:
             method_schema["@originalname"] = schema["@originalname"]
 
+        if "@originaltype" in schema:
+            method_schema["@originaltype"] = schema["@originaltype"]
+
+        if "@lookup" in schema:
+            method_schema["@lookup"] = schema["@lookup"]
+
         if "hint" in schema:
             method_schema["hint"] = schema["hint"]
 
+        self.context = schema.get("context")
+
+        self.callback = None
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
@@ -733,6 +886,8 @@ class JsonMethod(JsonObject):
 
         self.endpoint_name = (config.IMPL_ENDPOINT_PREFIX + super().json_name)
 
+        self._Check()
+
         if (self.rpc_format == config.RpcFormat.COMPLIANT) and not isinstance(self.params, (JsonObject, JsonNull)):
             raise JsonParseError("With 'compliant' format parameters to a method or event need to be an object: '%s'" % self.print_name)
         elif (self.rpc_format == config.RpcFormat.EXTENDED) and not property and not isinstance(self.params, (JsonObject, JsonArray, JsonNull)):
@@ -742,18 +897,26 @@ class JsonMethod(JsonObject):
 
         if "alt" in schema:
             self.alternative = schema.get("alt")
-
-            if not self.grand_parent and self.grand_parent.parent.legacy:
-                if not self.alternative.islower() and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                    log.Warn("'%s' (alternative): mixedCase identifiers are supported, however all-lowercase names are recommended" % self.alternative)
-                elif "_" in self.alternative and not (schema.get("altisdeprecated") or schema.get("altisobsolete")):
-                    log.Warn("'%s' (alternative): snake_case identifiers are supported, however flatcase names are recommended" % self.alternative)
         else:
             self.alternative = None
 
+        if not property:
+            if isinstance(self.properties[0], JsonObject):
+                for prop in self.properties[0].properties:
+                    if "@async" in prop.schema:
+                        if self.callback:
+                            assert False, "repeated async callback"
+
+                        event = JsonNotification(self.json_name, self.parent, prop.schema["@async"], included)
+                        self.callback = JsonCallback(self.json_name, self.parent, event, prop.schema["@async"], included)
+
+    def _Check(self):
+        if self.name.lower() in RESERVED_NAMES:
+            raise JsonParseError("Method/property name '%s' is reserved and cannot be used in a JSON-RPC interface" % self.name)
+
     @property
     def rpc_format(self):
-        return self.root.rpc_format
+        return self.root.rpc_format if self.root else config.RpcFormat.COMPLIANT
 
     @property
     def params(self):
@@ -798,6 +961,7 @@ class JsonNotification(JsonMethod):
             schema["id"]["type"] = "string"
 
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
+        self.sendif_deprecated = schema["id"].get("deprecated") if "id" in schema else False
         self.is_status_listener = schema.get("statuslistener")
 
         self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
@@ -807,6 +971,15 @@ class JsonNotification(JsonMethod):
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
 
+    def _Check(self):
+        pass
+
+class JsonCallback(JsonMethod):
+    def __init__(self, name, parent, notification, schema, included=None):
+        JsonMethod.__init__(self, name, parent, schema, included)
+        self.notification = notification
+        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
+        self.notification.sendif_deprecated = False
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
@@ -816,11 +989,24 @@ class JsonProperty(JsonMethod):
         if ("params" not in schema) and ("result" not in schema):
             raise JsonParseError("No parameters defined for property: '%s'" % self.print_name)
 
-        if ("index" in schema) and ("type" not in schema["index"]):
+        if ("index" in schema) and ("type" not in schema["index"]) and not isinstance(schema["index"], list):
             schema["index"]["type"] = "string"
 
         JsonMethod.__init__(self, name, parent, schema, included, property=True)
-        self.index = JsonItem("index", self, schema["index"]) if "index" in schema else None
+
+        if "index" in schema:
+            self.index = [None, None, True]
+            if isinstance(schema["index"], list):
+                assert(len(schema["index"]) == 2)
+                self.index[0] = JsonItem("index", self, schema["index"][0]) if schema["index"][0] else None
+                self.index[1] = JsonItem("index", self, schema["index"][1]) if schema["index"][1] else None
+                self.index[2] = schema["index"][0] == schema["index"][1]
+            else:
+                # legacy metafile with one "index" entry
+                self.index[0] = JsonItem("index", self, schema["index"])
+                self.index[1] = self.index[0]
+        else:
+            self.index = None
 
         self.endpoint_set_name = (config.IMPL_ENDPOINT_PREFIX + "set_" + self.json_name)
         self.endpoint_get_name = (config.IMPL_ENDPOINT_PREFIX + "get_" + self.json_name)
@@ -892,7 +1078,7 @@ class JsonRpcSchema(JsonType):
         _AddMethods("events", schema, lambda name, obj, method: JsonNotification(name, obj, method))
 
         if not self.methods:
-            raise JsonParseError("no methods, properties or events defined in %s" % self.print_name)
+            raise JsonParseError("no methods, properties or events defined in %s" % self.schema["@fullname"] if "@fullname" in self.schema else self.name)
 
     @property
     def root(self):
@@ -929,8 +1115,12 @@ def JsonItem(name, parent, schema, included=None):
             return JsonNull(name, parent, schema)
         elif schema["type"] == "boolean":
             return JsonBoolean(name, parent, schema)
-        elif "enum" in schema:
+        elif (schema["type"] == "string") and ("enum" in schema):
             return JsonEnum(name, parent, schema, schema["type"], included)
+        elif (schema["type"] == "string") and ("time" in schema):
+            return JsonTime(name, parent, schema, schema["time"])
+        elif (schema["type"] == "string") and ("@macaddress" in schema):
+            return JsonMacAddress(name, parent, schema)
         elif schema["type"] == "instanceid":
             return JsonInstanceId(name, parent, schema)
         elif schema["type"] == "string":
@@ -1014,8 +1204,8 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
         def _FindCpp(element, schema):
             if isinstance(schema, dict):
-                if "original_type" in schema:
-                    if schema["original_type"] == element:
+                if "@originaltype" in schema:
+                    if schema["@originaltype"] == element:
                         return schema
 
                 for _, item in schema.items():
@@ -1127,8 +1317,6 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                 # Need to prepend with 'file:' for jsonref to load an external file..
                                 ref = v.split("#") if "#" in v else [v,""]
 
-                                assert(include_paths)
-
                                 ref_file = None
 
                                 if "{interfacedir}" in ref[0]:
@@ -1166,8 +1354,6 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                             elif v.endswith(".h") or v.endswith(".h#"):
                                 ref = v.replace("#", "").replace("{cppinterfacedir}", "{interfacedir}")
 
-                                assert(cpp_include_paths)
-
                                 ref_file = None
 
                                 if "{interfacedir}" in ref:
@@ -1178,10 +1364,20 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
                                             ref_file = rf
                                             break
                                         else:
-                                            log.Info("failed to include '%s', file not found" %rf);
+                                            log.Info("failed to include '%s', file not found" %rf)
+
+                                if not ref_file and "{currentdir}" in ref:
+                                    rf = ref.replace("{currentdir}", os.path.dirname(file))
+                                    if os.path.exists(rf):
+                                        ref_file = rf
+
+                                if not ref_file:
+                                    rf = os.path.dirname(file) + os.sep + ref
+                                    if os.path.exists(rf):
+                                        ref_file = rf
 
                                 if ref_file:
-                                    log.Info("including C++ header '%s'..." % rf);
+                                    log.Info("including C++ header '%s'..." % ref_file)
                                     cppif, _ = header_loader.LoadInterface(ref_file, log, True, header_include_paths)
 
                                     if cppif:
@@ -1218,9 +1414,6 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
 def Load(log, path, if_dirs = [], cpp_if_dirs = [], include_paths = []):
     temp_files = []
-
-    if_dirs.append(os.path.dirname(path))
-    cpp_if_dirs.append(os.path.dirname(path))
 
     if path.endswith(".h"):
         schemas, additional_includes = header_loader.LoadInterface(path, log, False, include_paths)

@@ -35,8 +35,8 @@ CLASSNAME_FROM_REF = True
 DEFAULT_INT_SIZE = 32
 DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
-FRAMEWORK_NAMESPACE = "WPEFramework"
-INTERFACE_NAMESPACES = ["::WPEFramework::Exchange"]
+FRAMEWORK_NAMESPACE = "Thunder"
+INTERFACE_NAMESPACES = ["::%s::Exchange::JSONRPC" % FRAMEWORK_NAMESPACE, "::%s::Exchange" % FRAMEWORK_NAMESPACE]
 INTERFACES_SECTION = True
 INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
@@ -61,11 +61,21 @@ class RpcFormat(Enum):
     EXTENDED = "uncompliant-extended"
     COLLAPSED = "uncompliant-collapsed"
 
+class CaseConvention(Enum):
+    STANDARD = "standard"
+    LEGACY = "legacy"
+    KEEP = "keep"
+    CUSTOM = "custom"
+
+DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
+IGNORE_SOURCE_CASE_CONVENTION = False
+
 RPC_FORMAT = RpcFormat.COMPLIANT
 RPC_FORMAT_FORCED = False
 
 
 def Parse(cmdline):
+    global FRAMEWORK_NAMESPACE
     global DEFAULT_DEFINITIONS_FILE
     global INTERFACE_NAMESPACES
     global JSON_INTERFACE_PATH
@@ -89,6 +99,9 @@ def Parse(cmdline):
     global CLASSNAME_FROM_REF
     global LEGACY_ALT
     global AUTO_PREFIX
+    global DEFAULT_CASE_CONVENTION
+    global IGNORE_SOURCE_CASE_CONVENTION
+    global STATS_FOR_NERDS
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -142,6 +155,12 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "disable all warnings (default: warnings enabled)")
+    argparser.add_argument(
+            "--stats",
+            dest="stats",
+            action="store_true",
+            default=False,
+            help= "regiter version with extra stats (default: stats enabled)")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -194,9 +213,21 @@ def Parse(cmdline):
             dest="format",
             type=str,
             action="store",
-            default="flexible",
+            default="default-compliant",
             choices=["default-compliant", "force-compliant", "default-uncompliant-extended", "force-uncompliant-extended", "default-uncompliant-collapsed", "force-uncompliant-collapsed"],
             help="select JSON-RPC data format (default: default-compliant)")
+    cpp_group.add_argument("--case-convention",
+            dest="case_convention",
+            type=str,
+            metavar="CONVENTION",
+            action="store",
+            default=DEFAULT_CASE_CONVENTION.value,
+            help="select JSON-RPC case convention (default: %s)" % DEFAULT_CASE_CONVENTION.value)
+    cpp_group.add_argument("--ignore-source-case-convention",
+            dest="ignore_source_case_convention",
+            action="store_true",
+            default=False,
+            help="ignore case convention specified by source header file (default: don't ignore)")
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
     data_group.add_argument(
@@ -263,6 +294,13 @@ def Parse(cmdline):
             action="store",
             default=INDENT_SIZE,
             help="code indentation in spaces (default: %i)" % INDENT_SIZE)
+    data_group.add_argument("--framework-namespace",
+            dest="framework_namespace",
+            metavar="NS",
+            type=str,
+            action="store",
+            default=FRAMEWORK_NAMESPACE,
+            help="set framework namespace")
 
     doc_group = argparser.add_argument_group("Documentation output arguments (optional)")
     doc_group.add_argument("--no-style-warnings",
@@ -325,6 +363,21 @@ def Parse(cmdline):
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
+    IGNORE_SOURCE_CASE_CONVENTION = args.ignore_source_case_convention
+
+    if args.case_convention == "standard":
+        DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
+    elif args.case_convention == "legacy" or args.case_convention == "legacy_lowercase":
+        DEFAULT_CASE_CONVENTION = CaseConvention.LEGACY
+    elif args.case_convention == "keep":
+        DEFAULT_CASE_CONVENTION = CaseConvention.KEEP
+    else:
+        print("Invalid case convention")
+        exit(1)
+
+    if args.framework_namespace:
+        FRAMEWORK_NAMESPACE = args.framework_namespace
+        INTERFACE_NAMESPACES = ["::%s::Exchange::JSONRPC" % FRAMEWORK_NAMESPACE, "::%s::Exchange" % FRAMEWORK_NAMESPACE]
 
     if args.if_namespaces:
         INTERFACE_NAMESPACES = args.if_namespaces
@@ -342,6 +395,8 @@ def Parse(cmdline):
 
     if "force" in args.format:
         RPC_FORMAT_FORCED = True
+
+    STATS_FOR_NERDS = args.stats
 
     NO_INCLUDES = args.no_includes
     NO_VERSIONING = args.no_versioning

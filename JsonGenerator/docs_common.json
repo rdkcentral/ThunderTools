@@ -1,6 +1,6 @@
 {
   "standards": {
-    "date": "Date time formats between the systems shall be in UTC time and W3C ([ISO-8601] profile) formatting [ISO-8601], e.g.: 2004-11-05T13:15:30Z. This way time discontinuities can be avoided due to daylight savings. Note that all interfacing systems must decode/encode the date time to the correct local time. Languages used in the WPEFramework will be conformant to [ISO-639-2] using two letter language codes. If WPEFramework encounters a language code it does not recognize, it will use *xx* instead. For a list of available two letter ISO language codes refer to [ISO-639-2]."
+    "date": "Date time formats between the systems shall be in UTC time and W3C ([ISO-8601] profile) formatting [ISO-8601], e.g.: 2004-11-05T13:15:30Z. This way time discontinuities can be avoided due to daylight savings. Note that all interfacing systems must decode/encode the date time to the correct local time. Languages used in the Thunder will be conformant to [ISO-639-2] using two letter language codes. If Thunder encounters a language code it does not recognize, it will use *xx* instead. For a list of available two letter ISO language codes refer to [ISO-639-2]."
   },
   "acronyms": {
     "utc": {
