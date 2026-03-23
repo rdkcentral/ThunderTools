@@ -737,11 +737,6 @@ class Identifier():
                     if isinstance(type, Type):
                         type = type.type
 
-                if isinstance(type, Class) and "interface-iterator" in self.meta.decorators:
-                    # the iterator is used at some point as forced interface,
-                    # so mark it that requires a proxystub even if collatted iterators are enabled
-                    type.is_force_interface = True
-
     def ResolveIdentifiers(self, parent):
         if isinstance(parent, Method):
             parent = parent.parent
@@ -1148,7 +1143,6 @@ class Typedef(Identifier, Name):
         self.parent.typedefs.append(self)
         self.is_event = False
         self.is_iterator = self.parent.is_iterator if isinstance(self.parent, (Class, Typedef)) else False
-        self.is_force_interface = self.parent.is_force_interface if isinstance(self.parent, (Class, Typedef)) else False
 
     def Resolve(self, ref = 0):
         if isinstance(self.type, Typedef):
@@ -1204,7 +1198,6 @@ class Class(Identifier, Block):
         self.is_collapsed = False
         self.is_compliant = False
         self.is_iterator = False
-        self.is_force_interface = False
         self.sourcelocation = None
         self.type_name = name
 
@@ -1696,7 +1689,7 @@ class InstantiatedTemplateClass(Class):
         _str = "class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
         _str += " [with %s]" % (", ".join(s))
         if self.is_iterator:
-            _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
+            _str += " [[iterator]]"
         return _str
 
     def __repr__(self):
@@ -1761,7 +1754,6 @@ class TemplateClass(Class):
         instance.is_compliant = self.is_compliant
         instance.is_event = self.is_event
         instance.is_iterator = self.is_iterator
-        instance.is_force_interface = self.is_force_interface
         instance.meta = self.meta
 
         if ((self.parent.name == "Core") and (self.name == "OptionalType")):
@@ -1830,7 +1822,7 @@ class TemplateClass(Class):
     def __str__(self):
         _str = "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.paramList]))
         if self.is_iterator:
-            _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
+            _str += " [[iterator]]"
         return _str
 
     def __repr__(self):

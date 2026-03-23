@@ -54,7 +54,6 @@ ENABLE_SECURE = False
 ENABLE_INSTANCE_VERIFICATION = ENABLE_SECURE
 ENABLE_RANGE_VERIFICATION = ENABLE_SECURE
 ENABLE_INTEGRITY_VERIFICATION = ENABLE_SECURE
-ENABLE_ITERATOR_OPTIMIZATION = False
 
 PARAMETER_SIZE_WARNING_THRESHOLD = 4*1024*1024-1
 
@@ -142,29 +141,26 @@ def FindInterfaceClasses(tree, namespace):
 
                 if not isinstance(c, CppParser.TemplateClass):
                     if (c.full_name.startswith(interface_namespace + "::")):
-                        if (c.is_iterator and ENABLE_ITERATOR_OPTIMIZATION) and not c.is_force_interface:
-                            log.Info("Skipping iterator %s" % c.name, source_file)
-                        else:
-                            inherits_iunknown = False
-                            for a in c.ancestors:
-                                if CLASS_IUNKNOWN in str(a[0]):
-                                    inherits_iunknown = True
-                                    break
+                        inherits_iunknown = False
+                        for a in c.ancestors:
+                            if CLASS_IUNKNOWN in str(a[0]):
+                                inherits_iunknown = True
+                                break
 
-                            if inherits_iunknown:
-                                has_id = False
+                        if inherits_iunknown:
+                            has_id = False
 
-                                for e in c.enums:
-                                    if not e.scoped:
-                                        for item in e.items:
-                                            if item.name == "ID":
-                                                if item.value != 0:
-                                                    faces.append(Interface(c, item.value, source_file))
-                                                has_id = True
-                                                break
+                            for e in c.enums:
+                                if not e.scoped:
+                                    for item in e.items:
+                                        if item.name == "ID":
+                                            if item.value != 0:
+                                                faces.append(Interface(c, item.value, source_file))
+                                            has_id = True
+                                            break
 
-                                if not has_id and not c.omit:
-                                    log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
+                            if not has_id and not c.omit:
+                                log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
                 __Traverse(c, interface_namespace, faces)
 
@@ -240,9 +236,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
         emit.Line()
         emit.Line("GENERATOR_VERSION = 2")
         emit.Line("FRAMEWORK_NAMESPACE = \"%s\"" % FRAMEWORK_NAMESPACE)
-
-        if ENABLE_ITERATOR_OPTIMIZATION:
-            emit.Line("COLLATED_ITERATORS = true")
 
         emit.Line()
         emit.Line("INTERFACES, METHODS, ENUMS, Type = ...")
@@ -368,37 +361,22 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     return optional_type
 
                 if param.IsPointer() and isinstance(p, CppParser.Class):
-                    iterator_optimization = p.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not p.is_force_interface
+                    index = 0
 
-                    if iterator_optimization:
-                        size = "16"
-                        if meta.range.has_max:
-                            # todo: missing int24 optimization opportunity
-                            if meta.range.max < 256:
-                                size = "8"
-                            elif meta.range.max > 65535:
-                                size = "32"
+                    if meta.interface:
+                        counter = 0
+                        for v in vars:
+                            if v.meta.input or not v.meta.output:
+                                counter += 1
 
-                        lua_type.append_type(("VECTOR" + size), param, paramtype)
-                        lua_type.append("element", Convert(p.resolvedArgs[0], None, None))
-                        lua_type.append("optimized_iterator", "true")
-                    else:
-                        index = 0
+                            if meta.interface[0] == v.name:
+                                index = counter
+                                break
 
-                        if meta.interface:
-                            counter = 0
-                            for v in vars:
-                                if v.meta.input or not v.meta.output:
-                                    counter += 1
+                    lua_type.append_type("OBJECT", param)
 
-                                if meta.interface[0] == v.name:
-                                    index = counter
-                                    break
-
-                        lua_type.append_type("OBJECT", param)
-
-                        if index:
-                            lua_type.append("interface_param", index)
+                    if index:
+                        lua_type.append("interface_param", index)
 
                 elif param.IsPointer() and allow_ptr:
                     if paramtype.array or meta.length or meta.maxlength:
@@ -975,9 +953,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 self.name = name
 
-                self.iterator_optimization = self.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not self.kind.is_force_interface
-
-                if has_proxy and not self.iterator_optimization:
+                if has_proxy:
                     # Have to use instance_id instead of the class name
                     self.proto_weak = (("const " if self.is_const else "") + INSTANCE_ID).strip()
                     self.proto_weak_no_cv = INSTANCE_ID
@@ -987,7 +963,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     self.proto_weak = self.proto
                     self.proto_weak_no_cv = self.proto_no_cv
 
-                if has_output_proxy and not self.iterator_optimization:
+                if has_output_proxy:
                     self.return_proxy = True
 
                 if has_output_proxy or has_proxy:
@@ -1580,40 +1556,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 if p.is_iterator:
                     iterator = p.optional if p.optional else p
-                    if iterator.iterator_optimization:
-                        name = Normalize(iterator.name)
-                        count = name + "Count"
-                        type = iterator.kind.resolvedArgs[0]
-                        internal = name + "List"
-
-                        if not p.optional:
-                            emit.Line("%s{};" % p.temporary_no_cv)
-
-                        length = EmitLength(interface, iterator.length, count, restrict_range=p.restrict_range)
-                        element = EmitParam(interface, iterator.element, Normalize(name + "Item"), parent=iterator)
-                        ReadParameter(length)
-
-                        emit.Line("if ((%s != 0) || (%s.Boolean() == true)) {" % (count, vars["reader"]))
-                        emit.IndentInc()
-
-                        emit.Line("std::list<%s> %s;" % (type, internal))
-                        # emit.Line("%s.reserve(%s);" % (internal, length.as_rvalue))
-
-                        emit.Line("while (%s-- != 0) {" % count)
-                        emit.IndentInc()
-                        ReadParameter(element)
-                        emit.Line("%s.push_back(std::move(%s));" % (internal, element.as_rvalue))
-                        emit.IndentDec()
-                        emit.Line("}")
-
-                        impl = "::WPEFramework::RPC::IteratorType<%s>" % iterator.kind.type
-                        emit.Line("%s = Core::ServiceType<%s>::Create<%s>(std::move(%s));" % (p.as_lvalue, impl, iterator.kind.type, internal))
-                        emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue))
-
-                        emit.IndentDec()
-                        emit.Line("}")
-                    else:
-                        _EmitAssignment(p)
+                    _EmitAssignment(p)
 
                 # Fixed array
                 elif p.is_array and not no_array:
@@ -1840,39 +1783,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                     if p.is_iterator:
                         iterator = p.optional if p.optional else p
-                        if iterator.iterator_optimization:
-                            length = EmitLength(interface, iterator.length, p.as_rvalue + "->Count()", restrict_range=p.restrict_range)
-                            element = EmitParam(interface, iterator.element, Normalize(iterator.name + "Item"), parent=iterator)
-                            emit.Line("if (%s != nullptr) {" % p.as_rvalue)
-                            emit.IndentInc()
-                            WriteParameter(length)
-                            emit.Line("if (%s == 0) {" % length.name)
-                            emit.IndentInc()
-                            emit.Line("%s.Boolean(true);" % vars["writer"])
-                            emit.IndentDec()
-                            emit.Line("}")
-                            emit.Line("else {")
-                            emit.IndentInc()
-                            emit.Line("%s{};" % element.temporary_no_cv)
-                            emit.Line("%s->Reset(0);" % p.as_rvalue)
-                            emit.Line("while(%s->Next(%s) == true) {" % (p.as_rvalue, element.name))
-                            emit.IndentInc()
-                            WriteParameter(element)
-                            emit.IndentDec()
-                            emit.Line("}")
-                            emit.IndentDec()
-                            emit.Line("}")
-                            emit.Line("%s->Release();" % p.as_rvalue)
-                            emit.IndentDec()
-                            emit.Line("}")
-                            emit.Line("else {")
-                            emit.IndentInc()
-                            WriteParameter(EmitLength(interface, iterator.length, "0"))
-                            emit.Line("%s.Boolean(false);" % vars["writer"])
-                            emit.IndentDec()
-                            emit.Line("}")
-                        else:
-                            emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
+                        emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
 
                     elif p.is_array and not no_array:
                         index = chr(ord('i') + p.name.count('['))
@@ -2193,37 +2104,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 if p.is_iterator:
                     iterator = p.optional if p.optional else p
-                    if iterator.iterator_optimization:
-                        emit.Line("if (%s != nullptr) {" % p.as_rvalue)
-                        emit.IndentInc()
-                        length = EmitLength(interface, iterator.length, p.as_rvalue + "->Count()")
-                        element = EmitParam(interface, iterator.element, "element", parent=iterator)
-                        WriteParameter(length)
-                        emit.Line("if (%s == 0) {" % length.name)
-                        emit.IndentInc()
-                        emit.Line("%s.Boolean(true);" % vars["writer"])
-                        emit.IndentDec()
-                        emit.Line("}")
-                        emit.Line("else {")
-                        emit.IndentInc()
-                        emit.Line("%s{};" % element.temporary_no_cv)
-                        emit.Line("%s->Reset(0);" % p.as_rvalue)
-                        emit.Line("while(%s->Next(%s) == true) {" % (p.as_rvalue, element.name))
-                        emit.IndentInc()
-                        WriteParameter(element)
-                        emit.IndentDec()
-                        emit.Line("}")
-                        emit.IndentDec()
-                        emit.Line("}")
-                        emit.IndentDec()
-                        emit.Line("} else {")
-                        emit.IndentInc()
-                        WriteParameter(EmitLength(interface, iterator.length, "0"))
-                        emit.Line("%s.Boolean(false);" % vars["writer"])
-                        emit.IndentDec()
-                        emit.Line("}")
-                    else:
-                        emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
+                    emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
 
                 elif p.is_array and not no_array:
                     index = chr(ord('i') + p.name.count('['))
@@ -2267,45 +2148,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                     if p.is_iterator:
                         iterator = p.optional if p.optional else p
-                        if iterator.iterator_optimization:
-                            name = Normalize(iterator.name)
-                            count = name + "Count"
-                            type = iterator.kind.resolvedArgs[0]
-                            internal = name + "List"
-
-                            length = EmitLength(interface, iterator.length, count, restrict_range=p.restrict_range)
-                            element = EmitParam(interface, iterator.element, Normalize(name + "Item"), parent=iterator)
-                            emit.Line("%s;" % length.temporary_no_cv)
-                            ReadParameter(length)
-
-                            emit.Line("if ((%s != 0) || (%s.Boolean() == true)) {" % (count, vars["reader"]))
-                            emit.IndentInc()
-
-                            emit.Line("std::list<%s> %s;" % (type, internal))
-                            # emit.Line("%s.reserve(%s);" % (internal, length.as_rvalue))
-
-                            emit.Line("while (%s-- != 0) {" % count)
-                            emit.IndentInc()
-                            emit.Line("%s{};" % element.temporary_no_cv)
-                            ReadParameter(element)
-                            emit.Line("%s.push_back(std::move(%s));" % (internal, element.as_rvalue))
-                            emit.IndentDec()
-                            emit.Line("}")
-
-                            impl = "::WPEFramework::RPC::IteratorType<%s>" % iterator.kind.type
-                            emit.Line("%s = Core::ServiceType<%s>::Create<%s>(std::move(%s));" % (p.as_lvalue, impl, iterator.kind.type, internal))
-                            emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue))
-
-                            emit.IndentDec()
-                            emit.Line("}")
-                            emit.Line("else {")
-                            emit.IndentInc()
-                            emit.Line("%s = nullptr;" % p.as_lvalue)
-                            emit.IndentDec()
-                            emit.Line("}")
-                        else:
-                            emit.Line("%s = reinterpret_cast<%s>(UnknownProxyType::Interface(%s.%s, %s));" % \
-                                (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
+                        emit.Line("%s = reinterpret_cast<%s>(UnknownProxyType::Interface(%s.%s, %s));" % \
+                            (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
 
                     elif p.is_array and not no_array:
                         index = chr(ord('i') + p.name.count('['))
@@ -2823,11 +2667,6 @@ if __name__ == "__main__":
                            action="store_true",
                            default=FORCE,
                            help="force stub generation even if destination file is up-to-date (default: force disabled)")
-    argparser.add_argument("--collated-iterators",
-                           dest="collated_iterators",
-                           action="store_true",
-                           default=ENABLE_ITERATOR_OPTIMIZATION,
-                           help="pass collated iterator data in one go (default: pass interface)")
     argparser.add_argument("-i",
                            dest="extra_includes",
                            metavar="FILE",
@@ -2846,7 +2685,6 @@ if __name__ == "__main__":
     ENABLE_RANGE_VERIFICATION = args.secure
     ENABLE_INTEGRITY_VERIFICATION = args.integrity
     ENABLE_SECURE = ENABLE_INSTANCE_VERIFICATION or ENABLE_RANGE_VERIFICATION or ENABLE_INTEGRITY_VERIFICATION
-    ENABLE_ITERATOR_OPTIMIZATION = args.collated_iterators
     log.show_infos = BE_VERBOSE
     log.show_warnings = SHOW_WARNINGS
     OUTDIR = args.outdir
