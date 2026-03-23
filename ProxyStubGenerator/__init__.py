@@ -17,3 +17,4 @@
 
 from . import CppParser
 from . import Interface
+from . import Log

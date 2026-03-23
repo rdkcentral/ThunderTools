@@ -48,6 +48,12 @@ def is_valid(token):
         validChars = re.match(r'^[a-zA-Z0-9_~]+$', token)
         return token and validChars and not token[0].isdigit()
 
+def is_valid_scoped(token):
+    if "operator" in token:
+        return re.match(r'^[-\+~<>=!%&^*/\|\[\]]+$', token[8:])
+    else:
+        validChars = re.match(r'^[a-zA-Z0-9_~]+$', token.replace("::",""))
+        return token and validChars and not token[0].isdigit()
 
 def ASSERT_ISVALID(token):
     if not is_valid(token):
@@ -89,22 +95,22 @@ class Metadata:
         self.post = ""
         self.input = False
         self.output = False
+        self.length = None
+        self.maxlength = None
+        self.interface = None
+        self.default = None
+        self.alt = None
+        self.text = None
+        self.range = Range(None, None)
+        self.decorators = []
+        self.param = OrderedDict()
+        self.retval = OrderedDict()
         self.is_property = False
         self.is_deprecated = False
         self.is_obsolete = False
         self.is_index = False
-        self.is_listener = False
-        self.decorators = []
-        self.length = None
-        self.maxlength = None
-        self.interface = None
-        self.alt = None
         self.alt_is_deprecated = None
         self.alt_is_obsolete = None
-        self.text = None
-        self.range = []
-        self.param = OrderedDict()
-        self.retval = OrderedDict()
 
     @property
     def is_input(self):
@@ -119,7 +125,7 @@ class BaseType:
         self.type = type
 
     def Proto(self):
-        return self.type
+        return TypeStr(self.type)
 
     def __str__(self):
         return self.Proto()
@@ -131,16 +137,21 @@ class Undefined(BaseType):
         self.comment = comment
 
     def Proto(self):
-        proto = self.comment
         if isinstance(self.type, list):
+            proto = ""
+
             for e in self.type:
-                proto += " " + (e if isinstance(e, str) else str(e))
+                proto += " " + (e.strip() if isinstance(e, str) else str(e))
+
             proto = proto.replace(" < ", "<").replace(" :: ", "::").replace(" >", ">")
             proto = proto.replace(" *", "*").replace(" &", "&").replace(" &&", "&&").replace(" ,",",").strip()
         else:
-            proto += str(self.type)
+            proto = str(self.type)
 
-        return proto
+        return ((self.comment + " " if self.comment else "") + proto)
+
+    def __str__(self):
+        return self.Proto()
 
     def __repr__(self):
         return "undefined %s" % self.Proto()
@@ -163,19 +174,21 @@ class Intrinsic(BaseType):
 
 
 class BuiltinInteger(Intrinsic):
-    def __init__(self, fixed_size = False):
-        Intrinsic.__init__(self, "builtin_integer")
+    def __init__(self, fixed_size=False, name="builtin_integer"):
+        Intrinsic.__init__(self, name)
         self.fixed = fixed_size
 
     def IsFixed(self):
         return self.fixed
 
+
 class InstanceId(BuiltinInteger):
     def __init__(self):
-        BuiltinInteger.__init__(self, "instance_id")
+        BuiltinInteger.__init__(self, fixed_size=True, name="Core::instance_id")
 
     def IsFixed(self):
         return self.fixed
+
 
 class String(Intrinsic):
     def __init__(self, std=False, cc=False):
@@ -186,6 +199,21 @@ class String(Intrinsic):
 class CCString(Intrinsic):
     def __init__(self, std=False):
         Intrinsic.__init__(self, "ccstring")
+
+
+class Time(Intrinsic):
+    def __init__(self):
+        Intrinsic.__init__(self, "Core::Time::microsecondsfromepoch")
+
+class MacAddress(Intrinsic):
+    def __init__(self):
+        Intrinsic.__init__(self, "Core::MACAddress")
+
+
+class Optional(Intrinsic):
+    def __init__(self, subtype):
+        Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.Proto())
+        self.optional = subtype
 
 
 class Nullptr_t(Fundamental):
@@ -202,6 +230,14 @@ class Bool(Fundamental):
     def __init__(self):
         Fundamental.__init__(self, "bool")
 
+class Int24(Fundamental):
+    def __init__(self, signed=False):
+        Fundamental.__init__(self, "Core::Int24" if signed else "Core::UInt24")
+        self.signed = signed
+        self.fixed = False
+        self.min = -2**23 if signed else 0
+        self.max = 2**23-1 if signed else 2**24-1
+        self.size = "int24"
 
 class Integer(Fundamental):
     def __init__(self, string):
@@ -257,6 +293,120 @@ class Float(Fundamental):
     def __init__(self, string):
         Fundamental.__init__(self, string)
 
+class Range():
+    def __init__(self, lowest, highest):
+        self.min = lowest
+        self.max = highest
+
+        if self.min and self.max and self.min > self.max:
+            raise ParserError("'%s': min > max in restrict range" % (self))
+
+    @property
+    def is_set(self):
+        return self.min != None or self.max != None
+
+    @property
+    def has_min(self):
+        return self.min != None
+
+    @property
+    def has_max(self):
+        return self.max != None
+
+    @property
+    def as_list(self):
+        return [self.min, self.max]
+
+    def __str__(self):
+        return "%s..%s" % ((self.min if self.min else "min"), (self.max if self.max else "max"))
+
+    def __repr__(self):
+        return "range[%s]" % str(self)
+
+
+def LookupIdentifier(identifier, scope=None):
+    def __Search(tree, found, T):
+        var_match = [v for v in tree.vars if v.full_name.endswith(T)]
+        enum_match = [e for e in tree.enums if e.full_name.endswith(T)]
+
+        enumerator_match = []
+        for e in tree.enums:
+            enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
+
+            # non-scoped enums can also be called with scope
+            if not e.scoped:
+                enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
+
+        template_arg_match = []
+        template_param_match = []
+
+        if (isinstance(tree, TemplateClass)):
+            template_arg_match += [t for t in tree.arguments if t.full_name.endswith(T)]
+            template_param_match += [t for t in tree.parameters if t.full_name.endswith(T)]
+
+        typedef_match = [td for td in tree.typedefs if td.full_name.endswith(T)]
+        class_match = [cl for cl in tree.classes if cl.full_name.endswith(T)]
+
+        for m in var_match:
+            if m not in found:
+                found.append(m)
+
+        for m in enum_match:
+            if m not in found:
+                found.append(m)
+
+        for m in enumerator_match:
+            if m not in found:
+                found.append(m)
+
+        for m in template_arg_match:
+            if m not in found:
+                found.append(m)
+
+        for m in template_param_match:
+            if m not in found:
+                found.append(m)
+
+        for m in class_match:
+            if m not in found:
+                found.append(m)
+
+        for m in typedef_match:
+            if m not in found:
+                found.append(m)
+
+        if isinstance(tree, (Namespace, Class)):
+            for c in tree.classes:
+                __Search(c, found, T)
+
+        if isinstance(tree, Namespace):
+            for n in tree.namespaces:
+                __Search(n, found, T)
+
+    selected = None
+
+    found = []
+    __Search(global_namespace, found, "::" + identifier)
+
+    if scope:
+        current = scope.full_name
+        while not selected:
+            for f in found:
+                if f.full_name.endswith(current + "::" +identifier):
+                    selected = f
+                    break
+                elif isinstance(f, Enumerator) and not f.parent.scoped and f.full_name_scoped.endswith(current+ "::" +identifier):
+                    selected = f
+                    break
+            if not current:
+                break
+            current = "::".join(current.split('::')[0:-1])
+    elif found:
+        assert len(found) == 1, "Too many references found, need scope for %s" % identifier
+        selected = found[-1]
+
+    return selected
+
 
 # Holds identifier type
 class Identifier():
@@ -266,13 +416,16 @@ class Identifier():
         if parent:
             parent.specifiers = []
         self.name = ""
+        self.array = None
+        self.value = []
+
         type = ["?"] # indexing safety
         type_found = False
         nest1 = 0
         nest2 = 0
         array = False
+        array_size = None
         skip = 0
-        self.value = []
 
         if string.count("*") > 2:
             raise ParserError("multi-dimensional pointers to pointers are not supported: '%s'" % (" ".join(["".join(x) for x in string])))
@@ -309,8 +462,11 @@ class Identifier():
                     type_found = True
                 nest2 -= 1
             elif token == "<":
-                type.append("<")
-                type_found = False
+                if not nest2:
+                    type.append("<")
+                    type_found = False
+                else:
+                    type[-1] += " <"
                 nest2 += 1
             elif token == ">":
                 type[-1] += " >"
@@ -322,112 +478,140 @@ class Identifier():
                 if token == "::" or type[-1].endswith("::"):
                     type[-1] += token
                 else:
-                    type[-1] += " " + token
+                    type[-1] += " " + (" ".join(token) if isinstance(token,list) else token)
 
             # handle pointer/reference markers
             elif token[0] == "@":
-                if token[1:] == "IN":
+                tag = token[1:]
+                if tag == "IN":
                     if tags_allowed:
                         self.meta.input = True
                     else:
                         raise ParserError("in/out tags not allowed here")
-                elif token[1:] == "OUT":
+                elif tag == "OUT":
                     if tags_allowed:
                         self.meta.output = True
                     else:
                         raise ParserError("in/out tags not allowed here")
-                elif token[1:] == "INDEX":
+                elif tag == "ASINTERFACE":
+                    self.meta.decorators.append("interface-iterator")
+                elif tag == "INDEX" or tag == "INDEX-DEPRECATED":
                     if tags_allowed:
                         self.meta.is_index = True
+                        if tag == "INDEX-DEPRECATED":
+                            self.meta.decorators.append("index-deprecated")
                     else:
                         raise ParserError("@index tag not allowed here")
-                elif token[1:] == "LENGTH":
+                elif tag == "LENGTH":
                     self.meta.length = string[i + 1]
                     skip = 1
-                elif token[1:] == "MAXLENGTH":
+                elif tag == "MAXLENGTH":
                     if tags_allowed:
                         self.meta.maxlength = string[i + 1]
                     else:
                         raise ParserError("@maxlength tag not allowed here")
                     skip = 1
-                elif token[1:] == "RESTRICT":
-                    self.meta.range = []
-                    for s in "".join(string[i + 1]).split(".."):
-                        try:
-                            if '.' not in s:
-                                v = int(eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024")))
-                            else:
-                                v = eval(s)
-                            self.meta.range.append(v)
-                        except:
-                            raise ParserError("failed to evaluate range in @restrict: '%s'" % s)
-                    if len(self.meta.range) == 2:
-                        if self.meta.range[0] > self.meta.range[1]:
-                            raise ParserError("invalid range in @restrict: %s > %s" % (self.meta.range[0], self.meta.range[1]))
-                    elif len(self.meta.range) == 1:
-                        self.meta.range.append(self.meta.range[0])
-                        self.meta.range[0] = 0
+                elif tag == "NONEMPTY":
+                    if not self.meta.range.is_set:
+                        self.meta.range = Range(1,None)
                     else:
-                        raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
+                        raise ParserError("@restrict and @restrict:nonempty must not be used together")
+                elif tag == "RESTRICT":
+                    if not self.meta.range.is_set:
+                        range = []
+
+                        for s in "".join(string[i + 1]).split(".."):
+                            try:
+                                if '.' not in s:
+                                    v = int(eval(s.lower().replace("k","*1024").replace("m","*1024*1024").replace("g","*1024*1024*1024")))
+                                else:
+                                    v = eval(s)
+                                range.append(v)
+                            except:
+                                raise ParserError("failed to evaluate value in @restrict: '%s'" % s)
+
+                        if len(range) == 1:
+                            range.append(range[0])
+                            range[0] = 0
+                        elif len(range) != 2:
+                            raise ParserError("failed to parse range in @restrict: '%s'" % "".join(string[i + 1]))
+
+                        self.meta.range = Range(range[0], range[1])
+                    else:
+                        raise ParserError("@restrict and @restrict:nonempty must not be used together")
+
                     skip = 1
-                elif token[1:] == "INTERFACE":
+                elif tag == "INTERFACE":
                     self.meta.interface = string[i + 1]
                     skip = 1
-                elif token[1:] == "OPAQUE":
+                elif tag == "DEFAULT":
+                    self.meta.default = string[i + 1]
+                    skip = 1
+                elif tag == "OPAQUE":
                     self.meta.decorators.append("opaque")
-                elif token[1:] == "OPTIONAL":
+                elif tag == "ENCODEBASE64":
+                    self.meta.decorators.append("encode:base64")
+                elif tag == "ENCODEHEX":
+                    self.meta.decorators.append("encode:hex")
+                elif tag == "ENCODEIP":
+                    self.meta.decorators.append("encode:ip")
+                elif tag == "ENCODEMAC":
+                    self.meta.decorators.append("encode:mac")
+                elif tag == "OPTIONAL":
                     self.meta.decorators.append("optional")
-                elif token[1:] == "EXTRACT":
+                elif tag == "EXTRACT":
                     self.meta.decorators.append("extract")
-                elif token[1:] == "END":
+                elif tag == "END":
                     self.meta.decorators.append("endmarker")
-                elif token[1:] == "PROPERTY":
+                elif tag == "PROPERTY":
                     self.meta.is_property = True
-                elif token[1:] == "BRIEF":
+                elif tag == "ASYNC":
+                    self.meta.decorators.append("async")
+                elif tag == "BRIEF":
                     self.meta.brief = string[i + 1]
                     skip = 1
-                elif token[1:] == "DETAILS":
+                elif tag == "DETAILS":
                     self.meta.details = string[i + 1]
                     skip = 1
-                elif token[1:] == "PRE":
+                elif tag == "PRE":
                     self.meta.pre = string[i + 1]
-                    print(self.meta.pre)
                     skip = 1
-                elif token[1:] == "POST":
+                elif tag == "POST":
                     self.meta.post = string[i + 1]
-                    print(self.meta.post)
                     skip = 1
-                elif token[1:] == "PARAM":
+                elif tag == "PARAM":
                     par = string[i + 1]
                     if par.endswith(":"):
                         par = par[:-1]
                     self.meta.param[par] = string[i + 2]
                     skip = 2
-                elif token[1:] == "RETVAL":
+                elif tag == "RETVAL":
                     par = string[i + 1]
                     if par.endswith(":"):
                         par = par[:-1]
                     self.meta.retval[par] = string[i + 2]
                     skip = 2
-                elif token[1:] == "STATUSLISTENER":
+                elif tag == "WRAPPED":
+                    self.meta.decorators.append("wrapped")
+                elif tag == "STATUSLISTENER":
                     self.meta.decorators.append("statuslistener")
-                elif token[1:] == "DEPRECATED":
+                elif tag == "DEPRECATED":
                     self.meta.is_deprecated = True
-                elif token[1:] == "OBSOLETE":
+                elif tag == "OBSOLETE":
                     self.meta.is_obsolete = True
-                elif token[1:] == "BITMASK":
+                elif tag == "BITMASK":
                     self.meta.decorators.append("bitmask")
-                elif token[1:] == "TEXT":
+                elif tag == "TEXT":
                     self.meta.text = "".join(string[i + 1])
                     skip = 1
-                elif token[1:] == "ALT":
+                elif tag == "ALT":
                     self.meta.alt = "".join(string[i + 1])
                     skip = 1
-                elif token[1:] == "ALT:OBSOLETE" or token[1:] == "ALT-OBSOLETE":
+                elif tag == "ALT:OBSOLETE" or tag == "ALT-OBSOLETE":
                     self.meta.alt = "".join(string[i + 1])
                     self.meta.alt_is_obsolete = True
                     skip = 1
-                elif token[1:] == "ALT:DEPRECATED" or token[1:] == "ALT-DEPRECATED":
+                elif tag == "ALT:DEPRECATED" or tag == "ALT-DEPRECATED":
                     self.meta.alt = "".join(string[i + 1])
                     self.meta.alt_is_deprecated = True
                     skip = 1
@@ -440,7 +624,7 @@ class Identifier():
             elif token in ["export"]: # skip
                 continue
             # keep identifers with scope operator together
-            elif token == "::":
+            elif token == "::" and not array:
                 if len(type) > 1:
                     type[-1] += "::"
                 type_found = False
@@ -452,6 +636,15 @@ class Identifier():
             elif token == "]":
                 array = False
                 type.append("*")
+
+                if array_size:
+                    array_size_value = Evaluate([array_size], scope=parent_block)
+
+                    if not isinstance(array_size_value, int):
+                        raise ParserError("unable to determine size of array: %s" % array_size)
+
+                    self.array = array_size_value
+                    array_size = None
 
             elif token in ["*", "&"]:
                 type.append(token)
@@ -499,12 +692,16 @@ class Identifier():
             elif type_found:
                 if not array:
                     self.name = token
+                else:
+                    if array_size:
+                        array_size += token
+                    else:
+                        array_size = token
 
         if array:
             raise ParserError("unmatched bracket '['")
 
         type = type[1:]
-        self.type = type
 
         # Normalize fundamental types
         if type and isinstance(type[-1], str):
@@ -526,49 +723,41 @@ class Identifier():
                 elif "int" in t or "signed" in t or "unsigned" in t:
                     type[-1] = "unsigned int" if "unsigned" in t else "signed int"
 
-        # Try to match the type to an already defined class...
-        self.ResolveIdentifiers(parent_block)
+        self.type = type
+
+        if self.type:
+            # Try to match the type to an already defined class...
+            self.ResolveIdentifiers(parent_block)
+
+            if isinstance(self.type, Type):
+                type = self.type.type
+
+                if isinstance(type, Typedef):
+                    type = type.DataType()
+                    if isinstance(type, Type):
+                        type = type.type
+
+                if isinstance(type, Class) and "interface-iterator" in self.meta.decorators:
+                    # the iterator is used at some point as forced interface,
+                    # so mark it that requires a proxystub even if collatted iterators are enabled
+                    type.is_force_interface = True
 
     def ResolveIdentifiers(self, parent):
         if isinstance(parent, Method):
             parent = parent.parent
 
         if self.type:
-
-            def __Search(tree, found, T):
-                qualifiedT = "::" + T
-
-                # need full qualification if the class is a subclass
-                if parent and tree.full_name.startswith(parent.full_name + "::"):
-                    if T.count("::") != tree.full_name.replace(parent.full_name, "").count("::"):
-                        return
-
-                enum_match = [e for e in tree.enums if e.full_name.endswith(qualifiedT)]
-                typedef_match = [td for td in tree.typedefs if td.full_name.endswith(qualifiedT)]
-                class_match = [cl for cl in tree.classes if cl.full_name.endswith(qualifiedT)]
-
-                enumval_match = []
-                for en in tree.enums:
-                    enumval_match += ([e for e in en.items if e.full_name.endswith(qualifiedT)])
-
-                template_match = []
-                if isinstance(tree, TemplateClass):
-                    template_match = [t for t in tree.parameters if t.full_name.endswith(qualifiedT)]
-
-                found += enum_match + typedef_match + class_match + template_match + enumval_match
-
-                if isinstance(tree, (Namespace, Class)):
-                    for c in tree.classes:
-                        __Search(c, found, T)
-
-                if isinstance(tree, Namespace):
-                    for n in tree.namespaces:
-                        __Search(n, found, T)
-
             # find the type to scan for...
             typeIdx = len(self.type) - 1
             cnt = 0
             ref = 0
+
+            if isinstance(self.type[typeIdx], str):
+                if self.type[typeIdx].startswith('['):
+                    ref |= Ref.POINTER
+                    typeIdx -=1
+                    cnt += 1
+
             while self.type[typeIdx] in ["*", "&", "&&", "const", "volatile"]:
                 if self.type[typeIdx] == "*":
                     if ref & Ref.POINTER:
@@ -587,8 +776,10 @@ class Identifier():
                     ref |= Ref.CONST
                 elif self.type[typeIdx] == "volatile":
                     ref |= Ref.VOLATILE
+
                 typeIdx -= 1
                 cnt += 1
+
 
             # Skip template parsing here
             if isinstance(self.type[typeIdx], str):
@@ -598,11 +789,16 @@ class Identifier():
             if isinstance(self.type[typeIdx], str):
                 i = typeIdx
                 type = self.type[i].split()[-1]
+
                 if type in ["float", "double"]:
                     self.type[i] = Type(Float(self.type[i]))
                 elif type in ["int", "char", "wchar_t", "char16_t", "char32_t", "short", "long", "signed", "unsigned",
                               "int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]:
                     self.type[i] = Type(Integer(self.type[i]))
+                elif type == "__stubgen_int24":
+                    self.type[i] = Type(Int24(signed=True))
+                elif type == "__stubgen_uint24":
+                    self.type[i] = Type(Int24())
                 elif type == "bool":
                     self.type[i] = Type(Bool())
                 elif type == "void":
@@ -612,19 +808,21 @@ class Identifier():
                 elif type == "ccstring":
                     self.type[i] = Type(String(cc=True))
                 elif type == "std::string":
-                    self.type[i] = Type(String(True))
+                    self.type[i] = Type(String(std=True))
                 elif type == "__stubgen_integer":
                     self.type[i] = Type(BuiltinInteger(True))
                 elif type == "__stubgen_undetermined_integer":
                     self.type[i] = Type(BuiltinInteger(False))
                 elif type == "__stubgen_instance_id":
                     self.type[i] = Type(InstanceId())
-                else:
-                    found = []
-                    __Search(global_namespace, found, self.type[i])
+                elif type == "__stubgen_time":
+                    self.type[i] = Type(Time())
+                elif type == "__stubgen_macaddress":
+                    self.type[i] = Type(MacAddress())
+                elif is_valid_scoped(type):
+                    found = LookupIdentifier(type, scope=parent)
                     if found:
                         # take closest match
-                        found = found[-1]
                         if isinstance(found, TemplateClass):
                             # if we're pointing to a class template, then let's instantiate it!
                             self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
@@ -660,15 +858,37 @@ class Identifier():
         return self.type
 
     def Proto(self):
-        return str(self.Type())
+        return TypeStr(self.type)
 
-    def Signature(self):
-        return (self.Proto() + " " + self.name)
+    def TypeStrong(self):
+        if self.array:
+            return ("%s[%s]" % (self.type.Proto("noref|noptr"), self.array))
+        else:
+            return self.Proto()
+
+    def TypeStrongNoCV(self):
+        if self.array:
+            return ("%s[%s]" % (self.type.Proto("noref|noptr|nocv|nopcv"), self.array))
+        else:
+            return self.type.Proto("nocv|nopcv")
+
+    def ProtoFmt(self):
+        if self.array:
+            return ("%s @[%s]" % (self.type.Proto("noref|noptr"), self.array))
+        else:
+            return "%s @" % self.Proto()
+
+    def Signature(self, override=None):
+        if self.array:
+            return ("%s %s[%s]" % (self.type.Proto("noref|noptr"), override if override != None else self.name, self.array))
+        else:
+            return (self.Proto() + " " + (override if override != None else self.name))
 
 
-def Evaluate(identifiers_):
-    # Ensure scoped identifiers are kpt together
+def Evaluate(identifiers_, as_identifier=False, scope=None):
+    # Ensure scoped identifiers are kept together
     identifiers = ["?"]
+
     for i, id in enumerate(identifiers_):
         if id == "::" or identifiers[-1].endswith("::"):
             identifiers[-1] += id
@@ -677,69 +897,44 @@ def Evaluate(identifiers_):
     del identifiers[0]
 
     val = []
-    if identifiers:
-        for identifier in identifiers:
-            try:
-                identifier = identifier
-            except:
-                pass
-            try:
-                val.append(str(int(identifier, 16 if identifier[:2] == "0x" else 10)))
-            except:
 
-                def __Search(tree, found, T):
-                    var_match = [v for v in tree.vars if v.full_name.endswith(T)]
+    for identifier in identifiers:
+        try:
+            val.append(str(int(identifier, 16 if identifier[:2] == "0x" else 10)))
+        except:
+            selected = LookupIdentifier(identifier, scope) if is_valid_scoped(identifier) else None
 
-                    enumerator_match = []
-                    for e in tree.enums:
-                        enumerator_match += [item for item in e.items if item.full_name.endswith(T)]
-
-                        # non-scoped enums can also be called with scope
-                        if not e.scoped:
-                            enumerator_match += [item for item in e.items if item.full_name_scoped.endswith(T)]
-
-
-                    template_match = []
-                    if (isinstance(tree, TemplateClass)):
-                        template_match = [t for t in tree.arguments if t.full_name.endswith(T)]
-
-                    found += var_match + enumerator_match + template_match
-
-                    if isinstance(tree, (Namespace, Class)):
-                        for c in tree.classes:
-                            __Search(c, found, T)
-
-                    if isinstance(tree, Namespace):
-                        for n in tree.namespaces:
-                            __Search(n, found, T)
-
-                found = []
-                __Search(global_namespace, found, "::" + identifier)
-                if found:
-                    val.append(found[-1])
-                else:
-                    val.append(str(identifier))
+            if selected:
+                val.append(selected)
+            else:
+                val.append(str(identifier))
 
     if not val:
         val = identifiers
 
     value = None
 
-    # attempt to parse the arithmetics...
-    try:
-        x = [str(v.value) if (isinstance(v, (Variable, Enumerator)) and v.value != None) else str(v) for v in val]
-        value = eval("".join(x))
-    except:
+    if len(val) == 1 and as_identifier:
+        value = val[0].full_name
+    else:
+
+        # attempt to parse the arithmetics...
         try:
-            value = eval("".join(val))
+            x = [str(v.value) if (isinstance(v, (Variable, Enumerator)) and v.value != None) else str(v) for v in val]
+            value = eval("".join(x))
         except:
             try:
-                value = " ".join(val)
+                value = eval("".join(val))
             except:
-                value = val
+                try:
+                    value = " ".join(val)
+                except:
+                    value = val
 
     return value
 
+
+ANONYMOUS_PREFIX = "__anonymous"
 
 # Holds a name
 class Name:
@@ -748,7 +943,7 @@ class Name:
             ASSERT_ISVALID(name)
         self.parent = parent_block
         # come up with an unique name if none given
-        uniqueId = "__unnamed_" + self.__class__.__name__.lower() + "_" + uuid.uuid4().hex[:8]
+        uniqueId = '_'.join([ANONYMOUS_PREFIX, self.__class__.__name__.lower(), uuid.uuid4().hex[:8]])
         parentName = "" if self.parent == None else self.parent.full_name
         self.name = uniqueId if (not name and self.parent != None) else name
         self.full_name = parentName + ("" if not self.name else "::" + self.name)
@@ -797,6 +992,7 @@ class Namespace(Block):
         self.namespaces = []
         self.methods = []
         self.omit = False
+        self.omit_mode = False
         self.stub = -False
         if self.parent != None:                                                                 # case for global namespace
             if isinstance(self.parent, Namespace):
@@ -894,6 +1090,8 @@ class Type:
             ref |= Ref.POINTER_TO_POINTER
         if isinstance(self.type, Typedef):
             type = self.type.Resolve(self.ref | ref)
+            if isinstance(type, Type):
+                type = type.Resolve()
         else:
             type = copy.deepcopy(self)
             type.ref |= ref
@@ -917,8 +1115,7 @@ class Type:
         return _str
 
     def Proto(self, mask=""):
-        _str = ""
-        _str += self.CVString(mask)
+        _str = self.CVString(mask)
         _str += " " if _str else ""
         _str += self.TypeName()
         if "noptr" not in mask:
@@ -935,7 +1132,7 @@ class Type:
 
 
 def TypeStr(s):
-    return str(Undefined(s, "/* undefined type  */")) if not isinstance(s, Type) else str(s)
+    return str(Undefined(s, "/* undefined type */")) if isinstance(s, list) else str(s)
 
 
 def ValueStr(s):
@@ -951,6 +1148,7 @@ class Typedef(Identifier, Name):
         self.parent.typedefs.append(self)
         self.is_event = False
         self.is_iterator = self.parent.is_iterator if isinstance(self.parent, (Class, Typedef)) else False
+        self.is_force_interface = self.parent.is_force_interface if isinstance(self.parent, (Class, Typedef)) else False
 
     def Resolve(self, ref = 0):
         if isinstance(self.type, Typedef):
@@ -961,6 +1159,16 @@ class Typedef(Identifier, Name):
             else:
                 type = copy.deepcopy(self.type)
                 type.ref |= ref
+        return type
+
+    def DataType(self):
+        if isinstance(self.type, Typedef):
+            type = self.type.DataType()
+        else:
+            if isinstance(self.type, list):
+                type = self.type[0]
+            else:
+                type = self.type
         return type
 
     def Proto(self):
@@ -975,7 +1183,7 @@ class Typedef(Identifier, Name):
 # Holds structs and classes
 class Class(Identifier, Block):
     def __init__(self, parent_block, name):
-        Identifier.__init__(self, parent_block, self, [name], [])
+        Identifier.__init__(self, parent_block, self, [], [])
         Block.__init__(self, parent_block, name)
         self.type = self.full_name
         self.specifiers = []
@@ -984,8 +1192,11 @@ class Class(Identifier, Block):
         self.ancestors = [] # parent classes
         self._current_access = "public"
         self.omit = False
+        self.omit_mode = False
         self.stub = False
         self.is_json = False
+        self.is_custom_lookup = False
+        self.is_auto_lookup = False
         self.json_version = ""
         self.json_prefix = ""
         self.is_event = False
@@ -993,9 +1204,15 @@ class Class(Identifier, Block):
         self.is_collapsed = False
         self.is_compliant = False
         self.is_iterator = False
+        self.is_force_interface = False
         self.sourcelocation = None
         self.type_name = name
-        self.parent.classes.append(self)
+
+        if sum([1 for x in self.parent.classes if x.name == name]) == 0:
+            self.parent.classes.append(self)
+
+    def IsPOD(self):
+        return (not self.methods and self.vars)
 
     def IsAbstract(self):
         return any([m.IsPureVirtual() for m in self.methods])
@@ -1025,7 +1242,7 @@ class Class(Identifier, Block):
             for v in array:
                 if v.access == "public":
                     found = list(filter(lambda x: x.name == v.name, vars))
-                    assert(len(found)<=1)
+                    assert len(found)<=1
 
                     if not found:
                         vars.append(v)
@@ -1042,7 +1259,7 @@ class Class(Identifier, Block):
 
     def Merge(self, do_methods=False):
         new_class = Class(self.parent, self.name)
-        result = self._Merge(new_class.vars, new_class.methods, do_methods)
+        self._Merge(new_class.vars, new_class.methods, do_methods)
         return new_class
 
     def __str__(self):
@@ -1055,15 +1272,92 @@ class Class(Identifier, Block):
         return "class %s%s" % (self.full_name, astr)
 
 
+def CheckRange(self):
+
+    def Find(this):
+        # Find the concrete type
+        while True:
+            if isinstance(this, Optional):
+                this = this.optional.type.type
+            elif isinstance(this, Typedef):
+                this = this.Resolve().type
+            else:
+                break
+
+        return this
+
+    try:
+        this = Find(self.type.type)
+    except:
+        return
+
+    if isinstance(this, Vector) and not self.meta.range.max:
+        raise ParserError("'%s': std::vector requires @restrict range with max set" % self)
+
+    # Sanity checks for restrict range
+    if self.meta.range.is_set:
+
+        def Test(this):
+
+            if not self.meta.range.has_max and not isinstance(this, (String, CCString)):
+                raise ParserError("'%s': @restrict:nonempty not allowed for this type (use @restrict range instead)" % (self))
+
+            # Integers must have ranges within their respective limits
+            if isinstance(this, Float):
+                if self.meta.range.has_max and not self.meta.range.has_min:
+                    raise ParserError("'%s': @restrict range for floating point must have the min limit set" % self)
+
+                if self.meta.range.has_min:
+                    self.meta.range.min *= 1.0
+
+                if self.meta.range.has_max:
+                    self.meta.range.max *= 1.0
+
+            elif isinstance(this, Integer):
+                if self.meta.range.has_max and not self.meta.range.has_min:
+                    if this.signed:
+                        raise ParserError("'%s': @restrict range for signed integers must have the min limit set" % self)
+
+                if self.meta.range.has_min:
+                    if self.meta.range.min < this.min or self.meta.range.min > this.max:
+                        raise ParserError("'%s': invalid min limit in @restrict range [%s]" % (self, self.meta.range.min))
+
+                if self.meta.range.has_max:
+                    if self.meta.range.max < this.min or self.meta.range.max > this.max:
+                        raise ParserError("'%s': invalid max limit in @restrict range [%s]" % (self, self.meta.range.max))
+
+            # Strings, arrays, vectors and iterators must not have negative limits
+            elif (isinstance(this, (Class, TemplateClass, InstantiatedTemplateClass)) and this.is_iterator) or (isinstance(this, (DynamicArray, String, CCString)) and not self.array):
+                if self.meta.range.has_min:
+                    if self.meta.range.min < 0:
+                        raise ParserError("'%s': invalid min limit in @restrict range [%s]" % (self, self.meta.range.min))
+
+                if self.meta.range.has_max:
+                    if self.meta.range.max <= 0:
+                        raise ParserError("'%s': invalid max limit in @restrict range [%s]" % (self, self.meta.range.max))
+
+            elif self.array:
+                if self.meta.range.is_set:
+                    raise ParserError("'%s': automatic @restrict is applied for C-style arrays" % self)
+
+                self.meta.range.max = int(self.array)
+
+            else:
+                raise ParserError("'%s': @restrict is invalid for this type" % self)
+
+        Test(this)
+
+
 # Holds unions
 class Union(Identifier, Block):
     def __init__(self, parent_block, name):
-        Identifier.__init__(self, parent_block, self, [name], [])
+        Identifier.__init__(self, parent_block, self, [], [])
         Block.__init__(self, parent_block, name)
         self.methods = []
         self.classes = []
         self._current_access = "public"
         self.omit = False
+        self.omit_mode = False
         self.stub = False
         self.parent.unions.append(self)
 
@@ -1091,7 +1385,7 @@ class Enum(Identifier, Block):
 
     def __str__(self):
         _str = ("enum " if not self.scoped else "enum class ")
-        _str += "%s : %s" % (self.Proto(), TypeStr(self.type))
+        _str += "%s : %s" % (self.Proto(), TypeStr(self.type.type))
         return _str
 
     def __repr__(self):
@@ -1109,13 +1403,21 @@ class Enum(Identifier, Block):
                 return item
         return None
 
+
+class ReturnValue(Identifier):
+    def __init__(self, parent_block, parent, string, valid_specifiers, tags_allowed=True):
+        Identifier.__init__(self, parent_block, parent, string, valid_specifiers, tags_allowed)
+        self.parser_file = CurrentFile()
+        self.parser_line = CurrentLine()
+
+
 # Holds functions
 class Function(Block, Name):
     def __init__(self, parent_block, name, ret_type, valid_specifiers=["static", "extern", "inline"]):
         self.specifiers = []
         Block.__init__(self, parent_block, name if name else self.name)
         Name.__init__(self, parent_block, self.name)
-        self.retval = Identifier(self, self, ret_type, valid_specifiers, False)
+        self.retval = ReturnValue(self, self, ret_type, valid_specifiers, False)
         self.omit = False
         self.stub = False
         self.is_excluded = False
@@ -1142,13 +1444,13 @@ class Function(Block, Name):
 
 # Holds variables and constants
 class Temporary(Identifier, Name):
-    def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"], meta=None):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value) if value else None
 
-    def Proto(self):
-        return TypeStr(self.type)
+        if meta:
+            self.meta = meta
 
     def __str__(self):
         return self.Proto()
@@ -1158,16 +1460,35 @@ class Temporary(Identifier, Name):
         return "variable %s %s '%s'%s" % (str(self.specifiers), TypeStr(self.type), str(self.name),
                                           (" = " + value) if value else "")
 
+class DynamicArray(Intrinsic):
+    def __init__(self, container, subtype):
+        Intrinsic.__init__(self, "%s<%s>" % (container, subtype.Proto()))
+        self.element = subtype
+
+class Vector(DynamicArray):
+    def __init__(self, subtype):
+        DynamicArray.__init__(self, "std::vector", subtype)
+
+class VectorElement(Temporary):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=[], meta=None):
+        Temporary.__init__(self, parent_block, string, value, valid_specifiers, meta)
+        CheckRange(self)
+
+class OptionalElement(Temporary):
+    def __init__(self, parent_block, string, value=[], valid_specifiers=[], meta=None):
+        Temporary.__init__(self, parent_block, string, value, valid_specifiers, meta)
+
+
 class Variable(Identifier, Name):
     def __init__(self, parent_block, string, value=[], valid_specifiers=["static", "extern", "register"]):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
-        self.value = Evaluate(value) if value else None
+        self.value = Evaluate(value, scope=parent_block) if value else None
+
         if self.parent:
             self.parent.vars.append(self)
 
-    def Proto(self):
-        return TypeStr(self.type)
+        CheckRange(self)
 
     def __str__(self):
         return self.Proto()
@@ -1181,15 +1502,19 @@ class Variable(Identifier, Name):
 class Parameter(Variable):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[]):
         Variable.__init__(self, parent_block, string, None, valid_specifiers)
-        self.def_value = Evaluate(value) if value else None
+        self.def_value = Evaluate(value, scope=parent_block.parent) if value else None
+
+        if self.name.startswith(ANONYMOUS_PREFIX):
+            # Correct the random number, for parameter
+            split = self.name.split('_')
+            split[-1] = str(len(self.parent.vars))
+            self.name = "_".join(split)
+
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
 
-    def Proto(self):
-        return TypeStr(self.type)
-
     def __str__(self):
-        return "%s %s" % (self.Proto(), self.name)
+        return self.ProtoFmt().replace('@', self.name)
 
     def __repr__(self):
         value = ValueStr(self.def_value) if self.def_value else None
@@ -1230,7 +1555,7 @@ class Method(Function):
         _str += "static " if self.IsStatic() else ""
         _str += TypeStr(self.retval.type) if self.retval.type else ""
         _str += (" " if str(self.retval) else "") + self.name
-        _str += "(%s)" % (", ".join([v.Proto() for v in self.vars]))
+        _str += "(%s)" % (", ".join([v.TypeStrong() for v in self.vars]))
         _str += " " + self.CVString() if self.CVString() else ""
         _str += " = 0" if self.IsPureVirtual() else ""
         return _str
@@ -1248,8 +1573,7 @@ class Method(Function):
 
     def __repr__(self):
         cv = " " + self.CVString() if self.CVString() else ""
-        return "method %s %s '%s' (%s)%s %s" % (self.access, TypeStr(self.type), self.name, ", ".join(
-            [str(v) for v in self.vars]), cv, str(self.specifiers))
+        return "method %s %s '%s' (%s)%s %s" % (self.access, TypeStr(self.retval.type), self.name, ", ".join([str(v) for v in self.vars]), cv, str(self.specifiers))
 
 
 class Destructor(Method):
@@ -1282,11 +1606,11 @@ class Attribute(Variable):
         return str
 
     def Proto(self):
-        return "%s %s" % (TypeStr(self.type), str(self.name))
+        return "%s" % (TypeStr(self.type))
 
     def __str__(self):
         value = ValueStr(self.value) if self.value else None
-        return "%s %s" % (self.Proto(), (" = " + value) if value else "")
+        return "%s %s %s" % (self.Proto(), self.name, (" = " + value) if value else "")
 
     def __repr__(self):
         value = ValueStr(self.value) if self.value else None
@@ -1301,7 +1625,7 @@ class Enumerator(Identifier, Name):
         Identifier.__init__(self, parent_enum, self, [type] + name, [])
         Name.__init__(self, parent_enum, self.name)
         self.parent = parent_block
-        self.value = parent_block.GetValue() if value == None else Evaluate(value)
+        self.value = parent_block.GetValue() if value == None else Evaluate(value, scope=parent_block)
         self.auto_value = (value == None)
         if isinstance(self.value, (int)):
             self.parent.SetValue(self.value)
@@ -1321,9 +1645,12 @@ class Enumerator(Identifier, Name):
 class TemplateNonTypeParameter(Variable):
     def __init__(self, parent_block, string, index, value=[]):
         Variable.__init__(self, parent_block, string, [])
-        self.value = Evaluate(value) if value else None
+        self.value = Evaluate(value, scope=parent_block) if value else None
         self.parent.arguments.append(self)
         self.index = index
+
+    def __str__(self):
+        return self.Signature()
 
     def __repr__(self):
         return "non-type parameter %s '%s' [= %s]" % (TypeStr(self.type), self.name, str(self.value))
@@ -1347,7 +1674,7 @@ class TemplateTypeParameter(Name):
 
 class InstantiatedTemplateClass(Class):
     def __init__(self, parent_block, name, params, args):
-        hash = hashlib.sha1("_".join(args+[str(random.random())]).encode('utf-8')).hexdigest()[:8].upper()
+        hash = "_" + hashlib.sha1("_".join(args).encode('utf-8')).hexdigest()[:16]
         Class.__init__(self, parent_block, name + "Instance" + hash)
         self.baseName = Name(parent_block, name)
         self.params = params
@@ -1356,7 +1683,7 @@ class InstantiatedTemplateClass(Class):
         self.type = self.TypeName()
 
     def TypeName(self):
-        return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join(p.type) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
+        return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join([str(x) for x in p.type]) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
 
     def Proto(self):
         return self.TypeName()
@@ -1368,6 +1695,8 @@ class InstantiatedTemplateClass(Class):
             s.append(self.params[i].name + " = " + rhs)
         _str = "class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
         _str += " [with %s]" % (", ".join(s))
+        if self.is_iterator:
+            _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
         return _str
 
     def __repr__(self):
@@ -1379,12 +1708,13 @@ class InstantiatedTemplateClass(Class):
 
 class TemplateClass(Class):
     def ParseArguments(self, string):
-        groups = re.findall(r'<(?:[^<>]*|<[^<>]*>)*>', string)
-        if groups:
-            stringParams = [s.strip() for s in re.split(r',\s*(?![^<>]*\))', groups[0][1:-1].strip())]
-            return stringParams
-        else:
-            return []
+        # This is greatly simplified!!!
+        # Templates with multiple arguments that itself are template with multiple arguments will not work!!!
+        if string.count('<') != string.count('>') and string.count('<') > 0:
+            raise ParserError("unbalanced template angle brackets in <%s>" % string)
+        params = [x.strip() for x in string[string.find('<')+1:string.rfind('>')-1].strip().split(',')]
+        return params
+
 
     def __init__(self, parent_block, name, params):
         Class.__init__(self, parent_block, name)
@@ -1412,7 +1742,7 @@ class TemplateClass(Class):
                 for i, v in enumerate(identifier.value):
                     if isinstance(v, TemplateNonTypeParameter):
                         identifier.value[i] = strArgs[argDict[v.name].index]
-                        identifier.value = Evaluate(identifier.value)
+                        identifier.value = Evaluate(identifier.value, scope=parent)
                         break
 
         strArgs = self.ParseArguments(arguments)
@@ -1422,6 +1752,8 @@ class TemplateClass(Class):
         instance.ancestors = self.ancestors
         instance.specifiers = self.specifiers
         instance.is_json = self.is_json
+        instance.is_custom_lookup = self.is_custom_lookup
+        instance.is_auto_lookup = self.is_auto_lookup
         instance.json_version = self.json_version
         instance.json_prefix = self.json_prefix
         instance.is_extended = self.is_extended
@@ -1429,55 +1761,77 @@ class TemplateClass(Class):
         instance.is_compliant = self.is_compliant
         instance.is_event = self.is_event
         instance.is_iterator = self.is_iterator
+        instance.is_force_interface = self.is_force_interface
+        instance.meta = self.meta
 
-        for t in self.typedefs:
-            newTypedef = copy.copy(t)
-            newTypedef.parent = instance
-            newTypedef.type = copy.copy(t.type)
-            _Substitute(newTypedef)
-            instance.typedefs.append(newTypedef)
+        if ((self.parent.name == "Core") and (self.name == "OptionalType")):
+            # take over as Optional if this is OptionalType instance
+            if len(instance.args) == 1:
+                instance = Optional(OptionalElement(parent, instance.args[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("Invalid template arguments to %s" % instance)
 
-        for v in self.vars:
-            newAttr = copy.copy(v)
-            newAttr.parent = instance
-            newAttr.type = copy.copy(v.type)
-            newAttr.value = copy.copy(v.value)
-            _Substitute(newAttr)
-            instance.typedefs.append(newAttr)
+        elif ((self.parent.name == "std") and (self.name == "vector")):
+            if len(instance.args) == 1:
+                instance = Vector(VectorElement(parent, instance.args[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("Invalid template arguments to %s" % instance)
 
-        for e in self.enums:
-            newEnum = copy.copy(e)
-            newEnum.items = []
-            newEnum.parent = instance
-            _Substitute(newEnum)
-            for i in e.items:
-                newItem = copy.copy(i)
-                newItem.type = copy.copy(i.type)
-                newItem.value = copy.copy(i.value)
-                _Substitute(newItem)
-                newEnum.items.append(newItem)
-            instance.enums.append(newEnum)
+        else:
 
-        for m in self.methods:
-            newMethod = copy.copy(m)
-            newMethod.vars = []
-            newMethod.parent = instance
-            if not isinstance(m, Destructor):
-                newMethod.retval = copy.copy(m.retval)
-                newMethod.retval.type = copy.copy(m.retval.type)
-                _Substitute(newMethod.retval)
-                for p in m.vars:
-                    newVar = copy.copy(p)
-                    newVar.type = copy.copy(p.type)
-                    newVar.value = copy.copy(p.value)
-                    _Substitute(newVar)
-                    newMethod.vars.append(newVar)
-            instance.methods.append(newMethod)
+            for t in self.typedefs:
+                newTypedef = copy.copy(t)
+                newTypedef.parent = instance
+                newTypedef.type = copy.copy(t.type)
+                _Substitute(newTypedef)
+                instance.typedefs.append(newTypedef)
+
+            for v in self.vars:
+                newAttr = copy.copy(v)
+                newAttr.parent = instance
+                newAttr.type = copy.copy(v.type)
+                newAttr.value = copy.copy(v.value)
+                _Substitute(newAttr)
+                instance.vars.append(newAttr)
+
+            for e in self.enums:
+                newEnum = copy.copy(e)
+                newEnum.items = []
+                newEnum.parent = instance
+                _Substitute(newEnum)
+                for i in e.items:
+                    newItem = copy.copy(i)
+                    newItem.type = copy.copy(i.type)
+                    newItem.value = copy.copy(i.value)
+                    _Substitute(newItem)
+                    newEnum.items.append(newItem)
+                instance.enums.append(newEnum)
+
+            for m in self.methods:
+                newMethod = copy.copy(m)
+                newMethod.vars = []
+                newMethod.parent = instance
+                if not isinstance(m, Destructor):
+                    newMethod.retval = copy.copy(m.retval)
+                    newMethod.retval.type = copy.copy(m.retval.type)
+                    _Substitute(newMethod.retval)
+                    for p in m.vars:
+                        newVar = copy.copy(p)
+                        newVar.type = copy.copy(p.type)
+                        newVar.value = copy.copy(p.value)
+                        _Substitute(newVar)
+                        newMethod.vars.append(newVar)
+                instance.methods.append(newMethod)
 
         return instance
 
     def __str__(self):
-        return "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.paramList]))
+        _str = "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.paramList]))
+        if self.is_iterator:
+            _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
+        return _str
 
     def __repr__(self):
         return "template %s<%s>" % (Class.__repr__(self), ", ".join([repr(p) for p in self.paramList]))
@@ -1495,24 +1849,27 @@ def __Tokenize(contents,log = None):
 
     defines = []
 
-    tokens = [s.strip() for s in re.split(r"([\r\n])", contents, flags=re.MULTILINE) if s]
+    tokens = contents.splitlines()
     eoltokens = []
     line = 1
     inComment = 0
     for token in tokens:
         if token.startswith("// @_file:"):
             line = 1
-        if token == '':
+            eoltokens.append(token)
+        else:
             if not inComment:
                 eoltokens.append("// @_line:" + str(line) + " ")
-            line = line + 1
-        elif (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
-            del eoltokens[-1]
-            eoltokens[-1] = eoltokens[-1][:-1] + token
-        else:
-            eoltokens.append(token)
 
-        inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
+            if (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
+                del eoltokens[-1]
+                eoltokens[-1] = eoltokens[-1][:-1] + token
+            else:
+                eoltokens.append(token)
+
+            line += 1
+
+            inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
     contents = "\n".join(eoltokens)
 
@@ -1564,7 +1921,7 @@ def __Tokenize(contents,log = None):
                            r"|(\'[^\']+\')"
                            r"|(\*/)|(::)|(==)|(!=)|(>=)|(<=)|(&&)|(\|\|)"
                            r"|(\+\+)|(--)|(\+=)|(-=)|(/=)|(\*=)|(%=)|(^=)|(&=)|(\|=)|(~=)"
-                           r"|([,:;~?=^/*%-\+&<>\{\}\(\)\[\]])"
+                           r"|([:;~?^/*%-\+&<>\{\}\(\)\[\]])"
                            r"|([\r\n\t ])")
 
                 if append:
@@ -1605,7 +1962,7 @@ def __Tokenize(contents,log = None):
                         raise ParserError("unmatched parenthesis in %s expression" % tag)
 
                 if mandatory and not tokens:
-                    raise ParserError("Missing parameter to " + tag)
+                    raise ParserError("missing parameter to " + tag)
 
                 return tokens
 
@@ -1613,6 +1970,7 @@ def __Tokenize(contents,log = None):
                 raise ParserError("multi-line comment not closed")
 
             if ((token[:2] == "/*") or (token[:2] == "//")):
+
                 def _find(word, string):
                     return re.compile(r"[ \r\n/\*]({0})([-: \r\n\*]|$)".format(word)).search(string) != None
 
@@ -1637,6 +1995,7 @@ def __Tokenize(contents,log = None):
                         tagtokens.append("@OMITSTART")
                     omit_depth += 1
                 if _find("@_omit_end", token):
+                    assert omit_depth > 0
                     omit_depth -= 1
                     if omit_depth == 0:
                         tagtokens.append("@OMITEND")
@@ -1649,10 +2008,14 @@ def __Tokenize(contents,log = None):
                 if _find("@inout", token):
                     tagtokens.append("@IN")
                     tagtokens.append("@OUT")
-                if _find("@index", token):
+                if _find("@index:deprecated", token):
+                    tagtokens.append("@INDEX-DEPRECATED")
+                elif _find("@index", token):
                     tagtokens.append("@INDEX")
                 if _find("@property", token):
                     tagtokens.append("@PROPERTY")
+                if _find("@async", token):
+                    tagtokens.append("@ASYNC")
                 if _find("@deprecated", token):
                     tagtokens.append("@DEPRECATED")
                 if _find("@obsolete", token):
@@ -1663,8 +2026,16 @@ def __Tokenize(contents,log = None):
                     tagtokens.append(__ParseParameterValue(token, "@json", False))
                 if _find("@event", token):
                     tagtokens.append("@EVENT")
+                if _find("@encode:lookup", token):
+                    tagtokens.append("@ENCODE-LOOKUP")
+                if _find("@encode:autolookup", token):
+                    tagtokens.append("@ENCODE-AUTOLOOKUP")
+                if _find("@encode:text", token):
+                    tagtokens.append("@ENCODE-TEXT")
                 if _find("@statuslistener", token):
                     tagtokens.append("@STATUSLISTENER")
+                if _find("@wrapped", token):
+                    tagtokens.append("@WRAPPED")
                 if _find("@prefix", token):
                     tagtokens.append(__ParseParameterValue(token, "@prefix", False))
                 if _find("@extended", token):
@@ -1685,7 +2056,7 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@COMPLIANT")
                 if _find("@iterator", token):
                     tagtokens.append("@ITERATOR")
-                if _find("@bitmask", token):
+                if _find("@encode:bitmask", token) or _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
                 if _find("@end", token):
                     tagtokens.append("@END")
@@ -1693,32 +2064,50 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@OPAQUE")
                 if _find("@optional", token):
                     tagtokens.append("@OPTIONAL")
+                if _find("@default", token):
+                    tagtokens.append(__ParseParameterValue(token, "@default"))
                 if _find("@extract", token):
                     tagtokens.append("@EXTRACT")
                 if _find("@sourcelocation", token):
                     tagtokens.append(__ParseParameterValue(token, "@sourcelocation"))
-                if _find("@alt", token):
-                    tagtokens.append(__ParseParameterValue(token, "@alt"))
                 if _find("@alt:deprecated", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt:deprecated"))
-                if _find("@alt-deprecated", token):
-                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
-                if _find("@alt:obsolete", token):
+                elif _find("@alt:obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt:obsolete"))
-                if _find("@alt-obsolete", token):
+                elif _find("@alt-deprecated", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt-deprecated"))
+                elif _find("@alt-obsolete", token):
                     tagtokens.append(__ParseParameterValue(token, "@alt-obsolete"))
-                if _find("@text:keep", token):
-                    tagtokens.append(__ParseParameterValue(token, "@text", True, True, "@text-global"))
-                elif _find("@text", token):
+                elif _find("@alt", token):
+                    tagtokens.append(__ParseParameterValue(token, "@alt"))
+
+                if _find("@text", token):
                     tagtokens.append(__ParseParameterValue(token, "@text"))
+
+                if _find("@encode:base64", token):
+                    tagtokens.append("@ENCODEBASE64")
+                elif _find("@encode:hex", token):
+                    tagtokens.append("@ENCODEHEX")
+                elif _find("@encode:ip", token):
+                    tagtokens.append("@ENCODEIP")
+                elif _find("@encode:mac", token):
+                    tagtokens.append("@ENCODEMAC")
+
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
                 if _find("@maxlength", token):
                     tagtokens.append(__ParseParameterValue(token, "@maxlength"))
-                if _find("@restrict", token):
+                if _find("@restrict:nonempty", token):
+                    tagtokens.append("@NONEMPTY")
+                elif _find("@restrict", token):
                     tagtokens.append(__ParseParameterValue(token, "@restrict"))
                 if _find("@interface", token):
-                    tagtokens.append(__ParseParameterValue(token, "@interface"))
+                    p = __ParseParameterValue(token, "@interface", False, False)
+                    if p:
+                        tagtokens.append("@INTERFACE")
+                        tagtokens.append(p)
+                    else:
+                        tagtokens.append("@ASINTERFACE")
                 if _find("@define", token):
                     defines.append(__ParseParameterValue(token, "@define", False, False))
 
@@ -1737,13 +2126,18 @@ def __Tokenize(contents,log = None):
                     start = string.find(tag)
                     if (start != -1):
                         start += len(tag) + 1
-                        end = EndOfTag(token, start)
+                        end = EndOfTag(string, start)
                         desc = string[start:end].strip(" *\n")
                         if desc:
                             tagtokens.append(tag.upper())
                             if hasParam:
-                                tagtokens.append(desc.split(" ",1)[0])
-                                tagtokens.append(desc.split(" ",1)[1])
+                                splitted = desc.split(" ", 1)
+                                if len(splitted) > 1:
+                                    tagtokens.append(splitted[0])
+                                    tagtokens.append(splitted[1])
+                                else:
+                                    raise ParserError("not enough parameters to %s tag" % tag)
+
                             else:
                                 tagtokens.append(desc)
                             if end != None:
@@ -1844,6 +2238,7 @@ def Parse(contents,log = None):
             line_numbers.append(current_line)
             files.append(current_file)
 
+
     global_namespace = Namespace(None)
 
     current_block = [global_namespace]
@@ -1853,6 +2248,8 @@ def Parse(contents,log = None):
     omit_mode = False
     omit_next = False
     stub_next = False
+    object_next = False
+    autoobject_next = False
     json_next = False
     json_version = ""
     prefix_next = False
@@ -1866,7 +2263,6 @@ def Parse(contents,log = None):
     sourcelocation_next = False
     text_next = None
     in_typedef = False
-
 
     # Main loop.
     while i < len(tokens):
@@ -1897,6 +2293,21 @@ def Parse(contents,log = None):
             tokens[i] = ";"
             tokens[i+1] = ";"
             i += 2
+        elif tokens[i] == "@ENCODE-LOOKUP":
+            object_next = True
+            tokens[i] = ';'
+            i += 1
+        elif tokens[i] == "@ENCODE-AUTOLOOKUP":
+            autoobject_next = True
+            tokens[i] = ';'
+            i += 1
+        elif tokens[i] == "@ENCODE-TEXT":
+            encode_enum_next = True
+            tokens[i] = ';'
+            i += 1
+        elif tokens[i] == "@WRAPPED":
+            wrap_next = True
+            i += 1
         elif tokens[i] == "@PREFIX":
             prefix_next = True
             prefix_string = " ".join(tokens[i+1])
@@ -1910,13 +2321,12 @@ def Parse(contents,log = None):
             i += 1
         elif tokens[i] == "@EVENT":
             event_next = True
-            json_next = False
             tokens[i] = ";"
             i += 1
-        elif tokens[i] == "@TEXT-GLOBAL":
+        elif tokens[i] == "@TEXT":
             text_next = tokens[i + 1][0]
-            tokens[i] = ";"
-            tokens[i+1] = ";"
+            #tokens[i] = ";"
+            #tokens[i+1] = ";"
             i += 2
         elif tokens[i] == "@EXTENDED":
             extended_next = True
@@ -1948,6 +2358,10 @@ def Parse(contents,log = None):
             omit_next = False
             stub_next = False
             json_next = False
+            object_next = False
+            autoobject_next = False
+            encode_enum_next = False
+            wrap_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -1991,7 +2405,7 @@ def Parse(contents,log = None):
         # Parse type alias...
         elif isinstance(current_block[-1], (Namespace, Class)) and tokens[i] == "typedef":
             if json_next or event_next or omit_next or stub_next or exclude_next:
-                raise ParserError("@json, @event and @stubgen tags are invalid here")
+                raise ParserError("@json, @event and @stubgen tags invalid here")
 
             j = i + 1
             while tokens[j] != ";":
@@ -2021,7 +2435,7 @@ def Parse(contents,log = None):
                 while tokens[j] != ";":
                     j += 1
                 # reuse typedef class but correct name accordingly
-                if not current_block[-1].omit:
+                if not current_block[-1].omit or current_block[-1].omit_mode:
                     typedef = Typedef(current_block[-1], tokens[i + 1:j])
                     if event_next:
                         typedef.is_event = True
@@ -2067,19 +2481,31 @@ def Parse(contents,log = None):
 
             if omit_mode:
                 new_class.omit = True
+                new_class.omit_mode = True
             if omit_next:
                 new_class.omit = True
                 omit_next = False
             elif stub_next:
                 new_class.stub = True
                 stub_next = False
+            if wrap_next:
+                new_class.meta.decorators.append("wrapped")
+                wrap_next = True
             if event_next or json_next:
                 new_class.is_collapsed = collapsed_next
                 new_class.is_extended = extended_next
                 new_class.is_compliant = compliant_next
             if json_next:
+                if object_next:
+                    new_class.is_custom_lookup = True
+                    object_next = False
+                if autoobject_next:
+                    new_class.is_auto_lookup = True
+                    autoobject_next = False
                 new_class.is_json = True
                 new_class.json_version = json_version
+                if event_next:
+                    raise ParserError("@json iterface cannot also be @event")
             if prefix_next:
                 new_class.json_prefix = prefix_string
             if event_next:
@@ -2108,6 +2534,10 @@ def Parse(contents,log = None):
                 text_next = None
 
             json_next = False
+            object_next = False
+            autoobject_next = False
+            encode_enum_next = False
+            wrap_next = False
             json_version = ""
             prefix_next = False
             prefix_string = ""
@@ -2120,6 +2550,9 @@ def Parse(contents,log = None):
             if new_class.parent.omit:
                 # Inherit omiting...
                 new_class.omit = True
+
+            if new_class.parent.omit_mode:
+                new_class.omit_mode = True
 
             if last_template_def:
                 new_class.specifiers.append(" ".join(last_template_def))
@@ -2191,6 +2624,10 @@ def Parse(contents,log = None):
             else:
                 i += 1
 
+            if encode_enum_next:
+                new_enum.meta.decorators.append("encode:text")
+                encode_enum_next = False
+
         # Parse class access specifier...
         elif isinstance(current_block[-1], Class) and tokens[i] == ':':
             current_block[-1]._current_access = tokens[i - 1]
@@ -2203,6 +2640,10 @@ def Parse(contents,log = None):
                 raise ParserError("@event tag is invalid here")
 
             json_next = False
+            object_next = False
+            autoobject_next = False
+            encode_enum_next = False
+            text_next = None
 
             # concatenate tokens to handle operators and destructors
             j = i - 1
@@ -2270,10 +2711,14 @@ def Parse(contents,log = None):
                         nest -= 1
                         if nest == 0 and nest2 == 0:
                             break
+                        elif nest < 0:
+                            raise ParserError("Closing parenthesis ) before opening (")
                     if tokens[j] == '<':
                         nest2 += 1
                     elif tokens[j] == '>':
                         nest2 -= 1
+                        if nest2 < 0:
+                            raise ParserError("Closing parenthesis > before opening <")
                     elif tokens[j] == ',' and nest == 1 and nest2 == 0:
                         break
 
@@ -2331,13 +2776,19 @@ def Parse(contents,log = None):
 
         # Handle closing a compound block/composite type
         elif tokens[i] == '}':
-            if isinstance(current_block[-1], Class) and (tokens[i + 1] != ';'):
-                raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" %
-                                  current_block[-1].full_name)
+            if isinstance(current_block[-1], Class):
+                if (tokens[i + 1] != ';'):
+                    raise ParserError("missing semicolon after a class definition; variable definitions following a class are not supported (%s)" % current_block[-1].full_name)
+
+                if current_block[-1].omit_mode and current_block[-1].IsPOD():
+                    # it was POD after all, don't remove it from import
+                    current_block[-1].omit = False
+
             if len(current_block) > 1:
                 current_block.pop()
             else:
                 raise ParserError("unmatched brace '{'")
+
             i += 1
             next_block = Block(current_block[-1]) # new anonymous scope
 
@@ -2349,12 +2800,15 @@ def Parse(contents,log = None):
             j = i - 1
             while j >= min_index and tokens[j] not in ['{', '}', ';', ":"]:
                 j -= 1
+
             identifier = tokens[j + 1:i]
-            if len(identifier) != 0 and not current_block[-1].omit:
+
+            if identifier:
                 if isinstance(current_block[-1], Class):
                     Attribute(current_block[-1], identifier)
                 else:
                     Variable(current_block[-1], identifier)
+
             i += 1
 
         # Parse constants and member constants
@@ -2364,13 +2818,17 @@ def Parse(contents,log = None):
 
             j = i - 1
             k = i + 1
+
             while tokens[j] not in ['{', '}', ';', ":"]:
                 j -= 1
+
             while tokens[k] != ';':
                 k += 1
+
             identifier = tokens[j + 1:i]
             value = tokens[i + 1:k]
-            if len(identifier) != 0 and not current_block[-1].omit:
+
+            if len(identifier) != 0:
                 if isinstance(current_block[-1], Class):
                     Attribute(current_block[-1], identifier, value)
                 else:
@@ -2407,6 +2865,7 @@ def Parse(contents,log = None):
                     else:
                         j = i + 1
                 i += 1
+
             if in_typedef:
                 current_block[-2].typedefs[-1].type = Type(enum)
                 in_typedef = False
@@ -2420,62 +2879,96 @@ def Parse(contents,log = None):
 
 
 def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
-    contents = initial
+    contents = ""
     global current_file
-    try:
-        with open(source_file) as file:
-            file_content = file.read()
-            pos = 0
-            while True:
-                idx = file_content.find("@stubgen:include", pos)
-                if idx == -1:
-                    idx = file_content.find("@insert", pos)
-                if idx != -1:
-                    pos = idx + 1
-                    line = file_content[idx:].split("\n", 1)[0]
-                    match = re.search(r' \"(.+?)\"', line)
-                    if match:
-                        if match.group(1) != os.path.basename(os.path.realpath(source_file)):
-                            tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
-                            if os.path.isfile(tryPath):
-                                prev = current_file
-                                current_file = source_file
-                                contents += ReadFile(tryPath, includePaths, False, contents, True)
-                                current_file = prev
-                            else:
-                                raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
-                        else:
-                            raise LoaderError(source_file, "can't recursively include self")
-                    else:
-                        match = re.search(r' <(.+?)>', line)
+    abs_source_file = os.path.abspath(source_file)
+
+    if abs_source_file not in initial:
+        try:
+            with open(source_file) as file:
+                file_content = file.read()
+                pos = 0
+                while True:
+                    idx = file_content.find("@stubgen:include", pos)
+                    if idx == -1:
+                        idx = file_content.find("@insert", pos)
+
+                    if idx != -1:
+                        pos = idx + 1
+                        line = file_content[idx:].split("\n", 1)[0]
+                        match = re.search(r' \"(.+?)\"', line)
+
                         if match:
-                            found = False
-                            for ipath in includePaths:
-                                tryPath = os.path.join(ipath, match.group(1))
+                            if match.group(1) != os.path.basename(os.path.realpath(source_file)):
+                                tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
+
                                 if os.path.isfile(tryPath):
                                     prev = current_file
                                     current_file = source_file
-                                    contents += ReadFile(tryPath, includePaths, True, contents, True)
+                                    contents += ReadFile(tryPath, includePaths, False, contents, True)
                                     current_file = prev
-                                    found = True
-                            if not found:
-                                raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
+                                else:
+                                    raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
+                            else:
+                                raise LoaderError(source_file, "can't recursively include self")
                         else:
-                            raise LoaderError(source_file, "syntax error at '%s'" % source_file)
-                else:
-                    break
+                            match = re.search(r' <(.+?)>', line)
 
-            contents += "// @_file:%s\n" % source_file
-            if omit:
-                contents += "// @_omit_start\n"
-            contents += file_content
-            if omit:
-                contents += "// @_omit_end\n"
-            return contents
-    except FileNotFoundError:
-        if not quiet:
-            raise LoaderError(source_file, "failed to open file")
-        return ""
+                            if match:
+                                found = False
+                                for ipath in includePaths:
+                                    tryPath = os.path.join(ipath, match.group(1))
+
+                                    if os.path.isfile(tryPath):
+                                        prev = current_file
+                                        current_file = source_file
+                                        contents += ReadFile(tryPath, includePaths, True, contents, True)
+                                        current_file = prev
+                                        found = True
+                                if not found:
+                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
+                            else:
+                                raise LoaderError(source_file, "syntax error at '%s'" % source_file)
+                    else:
+                        break
+
+                contents += "// @_file:%s\n" % abs_source_file
+
+                if omit:
+                    contents += "// @_omit_start\n"
+                    contents += file_content
+                    contents += "// @_omit_end\n"
+                else:
+                    contents += file_content
+
+                return contents
+
+        except FileNotFoundError:
+            if not quiet:
+                raise LoaderError(source_file, "failed to open file")
+
+    return ""
+
+
+def Locate(block_name, tree=None):
+    if not tree:
+        tree = global_namespace
+
+    if block_name in tree.full_name:
+        return tree
+
+    if isinstance(tree, (Namespace, Class)):
+        for n in tree.namespaces:
+            found = Locate(block_name, n)
+            if found:
+                return found
+
+        for n in tree.namespaces:
+            found = Locate(block_name, n)
+            if found:
+                return found
+
+    return None
 
 
 def ParseFile(source_file, includePaths = []):
@@ -2483,14 +2976,15 @@ def ParseFile(source_file, includePaths = []):
     return Parse(contents)
 
 
-def ParseFiles(source_files, includePaths = [], log = None):
+def ParseFiles(source_files, framework_namespace, includePaths = [], log = None):
     contents = ""
     for source_file in source_files:
         if source_file:
             quiet = (source_file[0] == "@")
             contents += ReadFile((source_file[1:] if quiet else source_file), includePaths, quiet, "")
+            contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
-    return Parse(contents,log)
+    return Parse(contents, log)
 
 
 # -------------------------------------------------------------------------
@@ -2530,7 +3024,7 @@ def DumpTree(tree, ind=0):
 # entry point
 
 if __name__ == "__main__":
-    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], sys.argv[2:], Log.Log("debug", True, True))
+    tree = ParseFiles([os.path.join(os.path.dirname(__file__), "default.h"), sys.argv[1]], "Thunder", sys.argv[2:], Log.Log("debug", True, True))
     if isinstance(tree, Namespace):
         DumpTree(tree)
     else:

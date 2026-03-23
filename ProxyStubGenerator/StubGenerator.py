@@ -18,7 +18,7 @@
 # limitations under the License.
 
 #
-# WPE Framework proxy stub code generator
+# Thunder proxy stub code generator
 #
 
 import re
@@ -27,9 +27,9 @@ import os
 import argparse
 import copy
 import glob
-import CppParser
 from collections import OrderedDict
 import Log
+import CppParser
 
 NAME = "ProxyStubGenerator"
 
@@ -43,9 +43,10 @@ FORCE = False
 # static configuration
 EMIT_COMMENT_WITH_PROTOTYPE = True
 EMIT_COMMENT_WITH_STUB_ORDER = True
-STUB_NAMESPACE = "::WPEFramework::ProxyStubs"
-INTERFACE_NAMESPACES = ["::WPEFramework"]
-CLASS_IUNKNOWN = "::WPEFramework::Core::IUnknown"
+FRAMEWORK_NAMESPACE = "Thunder"
+STUB_NAMESPACE = "::%s::ProxyStubs" % FRAMEWORK_NAMESPACE
+INTERFACE_NAMESPACES = ["::%s" % FRAMEWORK_NAMESPACE]
+CLASS_IUNKNOWN = "::%s::Core::IUnknown" % FRAMEWORK_NAMESPACE
 PROXYSTUB_CPP_NAME = "ProxyStubs_%s.cpp"
 
 ENABLE_CUSTOM_ALLOCATOR = False
@@ -53,6 +54,7 @@ ENABLE_SECURE = False
 ENABLE_INSTANCE_VERIFICATION = ENABLE_SECURE
 ENABLE_RANGE_VERIFICATION = ENABLE_SECURE
 ENABLE_INTEGRITY_VERIFICATION = ENABLE_SECURE
+ENABLE_ITERATOR_OPTIMIZATION = False
 
 PARAMETER_SIZE_WARNING_THRESHOLD = 4*1024*1024-1
 
@@ -60,7 +62,7 @@ INSTANCE_ID = "Core::instance_id"
 HRESULT = "Core::hresult"
 
 DEFAULT_DEFINITIONS_FILE = "default.h"
-IDS_DEFINITIONS_FILE = "Ids.h"
+MODULE_FILE = "Module.h"
 
 log = Log.Log(NAME, BE_VERBOSE, SHOW_WARNINGS)
 
@@ -95,6 +97,8 @@ def Unreachable():
 def CreateName(ns):
     return ns.replace("::I", "").replace("::", "")[1 if ns[0] == "I" else 0:]
 
+def Normalize(n):
+    return n.replace('.', '_').replace('[','_').replace(']','_').replace("()",'_').replace('(','_').replace(')','_')
 
 class Emitter:
     def __init__(self, file, size=2):
@@ -131,31 +135,36 @@ def FindInterfaceClasses(tree, namespace):
         nonlocal omit_interface_used
 
         if isinstance(tree, CppParser.Namespace) or isinstance(tree, CppParser.Class):
+
             for c in tree.classes:
                 if c.omit:
                     omit_interface_used = True
 
                 if not isinstance(c, CppParser.TemplateClass):
                     if (c.full_name.startswith(interface_namespace + "::")):
-                        inherits_iunknown = False
-                        for a in c.ancestors:
-                            if CLASS_IUNKNOWN in str(a[0]):
-                                inherits_iunknown = True
-                                break
+                        if (c.is_iterator and ENABLE_ITERATOR_OPTIMIZATION) and not c.is_force_interface:
+                            log.Info("Skipping iterator %s" % c.name, source_file)
+                        else:
+                            inherits_iunknown = False
+                            for a in c.ancestors:
+                                if CLASS_IUNKNOWN in str(a[0]):
+                                    inherits_iunknown = True
+                                    break
 
-                        if inherits_iunknown:
-                            has_id = False
+                            if inherits_iunknown:
+                                has_id = False
 
-                            for e in c.enums:
-                                if not e.scoped:
-                                    for item in e.items:
-                                        if item.name == "ID":
-                                            faces.append(Interface(c, item.value, source_file))
-                                            has_id = True
-                                            break
+                                for e in c.enums:
+                                    if not e.scoped:
+                                        for item in e.items:
+                                            if item.name == "ID":
+                                                if item.value != 0:
+                                                    faces.append(Interface(c, item.value, source_file))
+                                                has_id = True
+                                                break
 
-                            if not has_id and not c.omit:
-                                log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
+                                if not has_id and not c.omit:
+                                    log.Warn("class %s does not have an ID enumerator" % c.full_name, source_file)
 
                 __Traverse(c, interface_namespace, faces)
 
@@ -170,7 +179,10 @@ def FindInterfaceClasses(tree, namespace):
 
 # Cut out scope resolution operators from all identifiers found in a string
 def Flatten(identifier, scope):
-    assert scope.startswith("::")
+
+    if not scope.startswith("::"):
+        scope = "::" + scope
+
     split = scope.replace(" ", "").split("::")
     split[0] = ("::" + split[1])
     identifier = identifier.strip()
@@ -196,8 +208,8 @@ def Flatten(identifier, scope):
 def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=None, ns=None):
 
     if not source_file:
-        assert(tree==None)
-        assert(ns==None)
+        assert tree==None
+        assert ns==None
 
         emit.Line("-- enums")
 
@@ -226,13 +238,19 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
         emit.Line("-- Interfaces definition data file")
         emit.Line("-- Generated automatically. DO NOT EDIT")
         emit.Line()
+        emit.Line("GENERATOR_VERSION = 2")
+        emit.Line("FRAMEWORK_NAMESPACE = \"%s\"" % FRAMEWORK_NAMESPACE)
+
+        if ENABLE_ITERATOR_OPTIMIZATION:
+            emit.Line("COLLATED_ITERATORS = true")
+
+        emit.Line()
         emit.Line("INTERFACES, METHODS, ENUMS, Type = ...")
         emit.Line()
 
     emit.Line("--  %s" % os.path.basename(source_file))
 
     iface_namespace_l = ns.split("::")
-    iface_namespace = iface_namespace_l[-1]
 
     for iface in interfaces:
         iface_name = Flatten(iface.obj.type, ns)
@@ -257,6 +275,8 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
         id_value = id_enumerator.value
 
+        assert isinstance(id_value, int), "Failed to determine interface ID for %s" % iface_name
+
         if id_value in interfaces_list:
             log.Info("Skipping duplicate interface definition %s (%s)" % (iface_name, id_value))
             continue
@@ -270,9 +290,6 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
         for idx, m in enumerate(emit_methods):
             name = "name = \"%s\"" % m.name
-            params = []
-            retval = []
-            items = [ name ]
 
             def ParseLength(param, length, retval, vars):
                 def _Convert(size):
@@ -283,9 +300,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     else:
                         return "16"
 
-                if len(length) == 1:
+                if isinstance(length, list) and len(length) == 1:
                     if length[0] == "void":
-                        return [_Convert(param.Type().size), None]
+                        return ['8', 1]
                     elif length[0] == "return":
                         return [_Convert(retval.type.Type().size), "return"]
 
@@ -295,7 +312,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
 
                 size = "8"
 
+                value = 0
                 expr = "".join(length)
+
                 try:
                     value = eval(expr)
                     if value > 0xFF:
@@ -305,10 +324,35 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                 except:
                     pass
 
-                return [size, None]
+                return [size, value]
 
+            class LuaObject:
+                def __init__(self):
+                    self._store = OrderedDict()
+                def append(self, tag, value, quoted=False, front=False):
+                    self._store[tag] = ('"%s"' % str(value) if quoted else value)
+                    if front:
+                        self._store.move_to_end(tag, False)
+                def join(self):
+                    return ", ".join(('%s = %s' % (x, self._store[x])) for x in self._store)
+                def empty(self):
+                    return (len(self._store) == 0)
+                def __str__(self):
+                    return "{ %s }" % self.join()
 
-            def Convert(paramtype, retval, vars, hresult=False):
+            class LuaTypeObject(LuaObject):
+                def append_type(self, lua_type, param, param_type=None):
+                    self.append("type", ("Type." + lua_type))
+                    class_name = None
+                    if param:
+                        class_name = Flatten(param.TypeName(), ns)
+                        self.append("class", class_name, quoted=True)
+                    if param_type:
+                        proto = Flatten(param_type.TypeStrongNoCV(), ns)
+                        if class_name != proto:
+                            self.append("proto", proto, quoted=True)
+
+            def Convert(paramtype, retval, vars, hresult=False, allow_ptr = True):
                 if isinstance(paramtype.type, list):
                     return
 
@@ -316,33 +360,128 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                 meta = paramtype.meta
                 p = param.Type()
 
-                if isinstance(p, CppParser.Integer):
-                    length_param = None
+                lua_type = LuaTypeObject()
 
-                    if param.IsPointer():
-                        parsed = ParseLength(param, meta.length if meta.length else meta.maxlength, retval, vars)
+                if isinstance(p, CppParser.Optional):
+                    optional_type = Convert(p.optional, retval, vars, hresult)
+                    optional_type.append("optional", "true")
+                    return optional_type
+
+                if param.IsPointer() and isinstance(p, CppParser.Class):
+                    iterator_optimization = p.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not p.is_force_interface
+
+                    if iterator_optimization:
+                        size = "16"
+                        if meta.range.has_max:
+                            # todo: missing int24 optimization opportunity
+                            if meta.range.max < 256:
+                                size = "8"
+                            elif meta.range.max > 65535:
+                                size = "32"
+
+                        lua_type.append_type(("VECTOR" + size), param, paramtype)
+                        lua_type.append("element", Convert(p.resolvedArgs[0], None, None))
+                        lua_type.append("optimized_iterator", "true")
+                    else:
+                        index = 0
+
+                        if meta.interface:
+                            counter = 0
+                            for v in vars:
+                                if v.meta.input or not v.meta.output:
+                                    counter += 1
+
+                                if meta.interface[0] == v.name:
+                                    index = counter
+                                    break
+
+                        lua_type.append_type("OBJECT", param)
+
+                        if index:
+                            lua_type.append("interface_param", index)
+
+                elif param.IsPointer() and allow_ptr:
+                    if paramtype.array or meta.length or meta.maxlength:
+                        parsed = ParseLength(param, [str(paramtype.array)] if paramtype.array else meta.length if meta.length else meta.maxlength, retval, vars)
+
+                        length_param = None
+                        length_value = None
 
                         if parsed[1]:
-                            length_param = parsed[1]
+                            if (isinstance(parsed[1], str)):
+                                length_param = parsed[1]
+                            elif (isinstance(parsed[1], int)):
+                                length_value = parsed[1]
 
-                        value = "BUFFER" + parsed[0]
-                    else:
-                        if paramtype.type.TypeName().endswith(HRESULT):
-                            value = "HRESULT"
-                        elif p.size == "char" and "signed" not in p.type and "unsigned" not in p.type and "_t" not in p.type:
-                            value = "CHAR"
+                        if isinstance(p, CppParser.Integer) and p.size == "char":
+                            if length_value:
+                                element = Convert(paramtype, None, None, allow_ptr=False)
+                                lua_type.append_type("ARRAY", param, paramtype)
+                                lua_type.append("element", "{ %s }" % element.join())
+                                lua_type.append("count", length_value)
+                            else:
+                                # char[] is sent as a buffer
+                                lua_type.append_type(("BUFFER" + parsed[0]), param, paramtype)
                         else:
-                            if p.size == "char":
-                                value = "INT8"
-                            elif p.size == "short":
-                                value = "INT16"
-                            elif p.size == "long":
-                                value = "INT32"
-                            elif p.size == "long long":
-                                value = "INT64"
+                            element = Convert(paramtype, None, None, allow_ptr=False)
 
-                            if not p.signed:
-                                value = "U" + value
+                            # "ARRAY" for fixed array, "ARRAYn" for variable array
+                            lua_type.append_type("ARRAY" + (parsed[0] if length_param else ""), param, paramtype)
+                            lua_type.append("element", "{ %s }" % element.join())
+
+                            if length_value:
+                                lua_type.append("count", length_value)
+
+                    elif meta.interface:
+                        index = 0
+
+                        counter = 0
+                        for v in vars:
+                            if v.meta.input or not v.meta.output:
+                                counter += 1
+
+                            if meta.interface[0] == v.name:
+                                index = counter
+                                break
+
+                        lua_type.append_type("OBJECT", param)
+
+                        if index:
+                            lua_type.append("interface_param", index)
+
+                    else:
+                        raise TypenameError(paramtype, "%s: unable to determine array/buffer size" % paramtype.name)
+
+                elif isinstance(p, (CppParser.Integer, CppParser.Int24)):
+                    if paramtype.type.TypeName().endswith(HRESULT):
+                        value = "HRESULT"
+                    elif p.size == "char" and "signed" not in p.type and "unsigned" not in p.type and "_t" not in p.type:
+                        value = "CHAR"
+                    else:
+                        if p.size == "char":
+                            value = "INT8"
+                        elif p.size == "short":
+                            value = "INT16"
+                        elif p.size == "int24":
+                            value = "INT24"
+                        elif p.size == "long":
+                            value = "INT32"
+                        elif p.size == "long long":
+                            value = "INT64"
+
+                        if value == "INT32":
+                            # optimization opportunity for long int
+                            if p.signed:
+                                if meta.range.has_min and  meta.range.has_max:
+                                    if ((meta.range.min < (-32*1024)) and (meta.range.min >= (-8*1024*1024))) or \
+                                        ((meta.range.max >= (32*1024)) and (meta.range.max < (8*1024*1024))):
+                                            value = "INT24"
+                            else:
+                                if (meta.range.has_max and ((meta.range.max >= (64*1024)) and (meta.range.max < (16*1024*1024)))):
+                                    value = "INT24"
+
+                        if not p.signed:
+                            value = "U" + value
 
                     if value == "UINT32":
                         if hresult:
@@ -350,54 +489,33 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                         else:
                             if retval and retval.meta.interface and retval.meta.interface[0] == paramtype.name:
                                 value = "INTERFACE"
-                            else:
+                            elif vars:
                                 for v in vars:
                                     if v.meta.interface and v.meta.interface[0] == paramtype.name:
                                         value = "INTERFACE"
                                         break
 
-                    rvalue = ["type = Type." + value]
-
-                    if length_param:
-                        rvalue.append("length_param = \"%s\"" % length_param)
-
-                    return rvalue
+                    lua_type.append_type(value, param, paramtype)
 
                 elif isinstance(p, CppParser.String):
-                    return ["type = Type.STRING"]
+                    size = "16"
+                    if meta.range.has_max:
+                        if meta.range.max >= (16*1024*1024):
+                            size = "32"
+                        elif meta.range.max >= (64*1024):
+                            size = "24"
+                        elif meta.range.max < 256:
+                            size = "8"
+                    elif p.is_cc:
+                        size = "32"
+
+                    lua_type.append_type(("STRING" + size), param)
 
                 elif isinstance(p, CppParser.Bool):
-                    return ["type = Type.BOOL"]
+                    lua_type.append_type("BOOL", param)
 
                 elif isinstance(p, CppParser.Float):
-                    if p.type == "float":
-                        return ["type = Type.FLOAT32"]
-                    elif p.type == "double":
-                        return ["type = Type.FLOAT64"]
-
-                elif isinstance(p, CppParser.Class):
-                    if param.IsPointer():
-                        return ["type = Type.OBJECT", "class = \"%s\"" % Flatten(param.TypeName(), ns)]
-                    else:
-                        value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name, ns)]
-                        pod_params = []
-
-                        kind = p.Merge()
-
-                        for v in kind.vars:
-                            param_info = Convert(v, None, kind.vars)
-                            text = []
-                            text.append("name = " + v.name)
-
-                            if param_info:
-                                text.extend(param_info)
-
-                            pod_params.append("{ %s }" % ", ".join(text))
-
-                        if pod_params:
-                            value.append("pod = { %s }" % ", ".join(pod_params))
-
-                        return value
+                    lua_type.append_type(("FLOAT32" if p.type == "float" else "FLOAT64"), param)
 
                 elif isinstance(p, CppParser.Enum):
                     value = "32"
@@ -416,108 +534,131 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     if name not in enums_list:
                         data = dict()
                         for e in p.items:
-                            data[e.value] = e.name
+                            if (isinstance(e.value, int)):
+                                data[e.value] = e.name
+                            else:
+                                log.Warn("unable to evaluate the numeric value of enumerator '%s'" % "".join([str(x) for x in e.value]))
+
                         enums_list[name] = data
 
-                    value =  ["type = Type.ENUM" + signed + value, "enum = \"%s\"" % name]
+                    lua_type.append_type(("ENUM" + signed + value), param)
 
                     if "bitmask" in meta.decorators or "bitmask" in paramtype.meta.decorators:
-                        value.append("bitmask = true")
+                        lua_type.append("bitmask", "true")
 
-                    return value
+                elif isinstance(p, CppParser.Time):
+                    lua_type.append_type("TIME", param)
+
+                elif isinstance(p, CppParser.MacAddress):
+                    lua_type.append_type("MAC", param)
 
                 elif isinstance(p, CppParser.BuiltinInteger) and paramtype.type.TypeName().endswith(INSTANCE_ID):
-                    return ["type = Type.OBJECT" ] # but without a class
+                    lua_type.append_type("OBJECT", None) # without class!
 
                 elif isinstance(p, CppParser.Void):
-                    if param.IsPointer():
-                        index = 0
+                    pass # nothing to do!
 
-                        if meta.interface:
-                            counter = 0
-                            for v in vars:
-                                if v.meta.input or not v.meta.output:
-                                    counter += 1
+                elif isinstance(p, CppParser.Class):
+                    value = ["type = Type.POD", "class = \"%s\"" % Flatten(param.type.full_name, ns)]
+                    lua_type.append_type("POD", param)
+                    pod_params = []
 
-                                if meta.interface[0] == v.name:
-                                    index = counter
-                                    break
+                    kind = p.Merge()
 
-                        value = ["type = Type.OBJECT"]
+                    for v in kind.vars:
+                        param_info = Convert(v, None, kind.vars)
+                        param_info.append("name", v.name, quoted=True, front=True)
+                        pod_params.append(param_info)
 
-                        if index:
-                            value.append("interface_param = %s" % index)
+                    if pod_params:
+                        lua_type.append("element", ("{ %s }" % ", ".join([str(x) for x in pod_params])))
 
-                        return value
-                    else:
-                        return None
+                elif isinstance(p, CppParser.Vector):
+                    size = "16"
+                    if meta.range.has_max:
+                        # todo: missing int24 optimization opportunity
+                        if meta.range.max < 256:
+                            size = "8"
+                        elif meta.range.max > 65535:
+                            size = "32"
 
-                return ["type = nil"]
+                    lua_type.append_type(("VECTOR" + size), param, paramtype)
+                    lua_type.append("element", Convert(p.element, None, None))
+                else:
+                    assert False, "Unimplemented type in lua generator: %s" % p
 
-            rv = Convert(m.retval, m.retval, m.vars, assume_hresult)
-            if rv:
-                text = []
+                # Pass restrict range along
+                if meta.range.has_min and meta.range.has_max:
+                    lua_type.append("restrict", "{ min = %s, max = %s }" % (meta.range.min, meta.range.max))
+                elif meta.range.has_max:
+                    lua_type.append("restrict", "{ max = %s }" % meta.range.max)
+                elif meta.range.has_min:
+                    lua_type.append("restrict", "{ min = %s }" % meta.range.min)
 
-                if m.retval.name and "__unnamed" not in m.retval.name:
-                    text.append("name = \"%s\"" % m.retval.name)
+                return lua_type
 
-                text.extend(rv)
+            skip_retval = any((v.meta.length and (v.meta.length[0] == "return")) for v in m.vars)
 
-                skip = False
+            lua_method = LuaObject()
+            lua_retvals = []
+            lua_params = []
 
-                for v in m.vars:
-                    if (v.meta.length and (v.meta.length[0] == "return")):
-                        skip = True
-                        break
+            if not skip_retval:
+                rv = Convert(m.retval, m.retval, m.vars, assume_hresult)
 
-                if not skip:
-                    retval.append(" { %s }" % ", ".join(text))
+                if rv and not rv.empty():
+                    if m.retval.name and "__anonymous" not in m.retval.name:
+                        rv.append("name", m.retval.name, quoted=True, front=True)
+
+                    lua_retvals.append(rv)
 
             for p in m.vars:
                 param = Convert(p, m.retval, m.vars)
 
-                if param:
-                    text = []
-
-                    if p.name and "__unnamed" not in p.name:
-                        text.append("name = \"%s\"" % p.name)
-
-                    text.extend(param)
+                if param and not param.empty():
+                    if p.name and "__anonymous" not in p.name:
+                        param.append("name", p.name, quoted=True, front=True)
 
                     skip = False
                     skip2 = False
 
                     for v in m.vars:
                         if (v.meta.length and (v.meta.length[0] == p.name)):
-                            # Will not be on the wire on inbound!
+                            # Will not be on the wire on call!
                             skip = True
 
                             if (not v.meta.output or v.meta.input):
-                                # Will not be on the wire on inbound and outbound!
+                                # Will not be on the wire on call and returns!
                                 skip2 = True
 
                     if not skip2:
                         if p.meta.input or not p.meta.output:
-                            params.append(" { %s }" % ", ".join(text))
+                            lua_params.append(param)
 
                     if not skip:
                         if p.meta.output:
-                            retval.append(" { %s }" % ", ".join(text))
+                            lua_retvals.append(param)
 
-            if retval:
-                items.append("retvals = { %s }" % ", ".join(retval))
+            lua_method.append("name", m.name, quoted=True)
+            lua_method.append("signature", Flatten(m.Proto(),ns), quoted=True)
 
-            if params:
-                items.append("params = { %s }" % ", ".join(params))
+            if lua_retvals:
+                lua_method.append("retvals", "{ %s }" % ", ".join([str(x) for x in lua_retvals]))
 
-            # emit.Line("-- %s" % m.Proto())
-            emit.Line("[%s] = { %s }%s " % (idx + 3, ", ".join(items), "," if idx != len(emit_methods) - 1 else ""))
+            if lua_params:
+                lua_method.append("params", "{ %s }" % ", ".join([str(x) for x in lua_params]))
+
+            emit.Line("[%s] = { %s }%s " % (idx + 3, lua_method.join(), ("," if idx != len(emit_methods) - 1 else "")))
 
         emit.IndentDec()
         emit.Line("}")
         emit.Line()
 
-def Parse(source_file, includePaths = [], defaults = "", extra_includes = []):
+def RangeStr(range):
+    assert len(range) == 2
+    return "%s..%s" % (range[0] if range[0] else "min", range[1] if range[1] else "max")
+
+def Parse(source_file, framework_namespace, includePaths = [], defaults = "", extra_includes = []):
 
     log.Info("Parsing %s..." % source_file)
 
@@ -529,7 +670,7 @@ def Parse(source_file, includePaths = [], defaults = "", extra_includes = []):
     files.extend(extra_includes)
     files.append(source_file)
 
-    tree = CppParser.ParseFiles(files, includePaths, log)
+    tree = CppParser.ParseFiles(files, framework_namespace, includePaths, log)
     if not isinstance(tree, CppParser.Namespace):
         raise SkipFileError(source_file)
 
@@ -555,71 +696,36 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
     with open(output_file, "w") as file:
         emit = Emitter(file, INDENT_SIZE)
 
-        emit.Line("//")
-        emit.Line("// generated automatically from \"%s\"" % interface_header_name)
-        emit.Line("//")
-        emit.Line("// implements COM-RPC proxy stubs for:")
-
-        for face in interfaces:
-            if not face.obj.omit:
-                emit.Line("//   - %s" % Flatten(str(face.obj), ns))
-
-        emit.Line("//")
-
-        if ENABLE_SECURE:
-            emit.Line("// secure code enabled:")
-            if ENABLE_INSTANCE_VERIFICATION:
-                emit.Line("//   - instance verification enabled")
-            if ENABLE_RANGE_VERIFICATION:
-                emit.Line("//   - range verification enabled")
-            if ENABLE_INTEGRITY_VERIFICATION:
-                emit.Line("//   - frame coherency verification enabled")
-            emit.Line("//")
-
-        emit.Line
-        emit.Line()
-
-        if os.path.isfile(os.path.join(os.path.dirname(source_file), "Module.h")):
-            emit.Line('#include "Module.h"')
-
-        if os.path.isfile(os.path.join(os.path.dirname(source_file), interface_header_name)):
-            emit.Line('#include "%s"' % interface_header_name)
-
-        emit.Line()
-
-        emit.Line('#include <com/com.h>')
-        emit.Line()
-
-        emit.Line("namespace %s {" % STUB_NAMESPACE.split("::")[-2])
-        emit.Line()
-        emit.Line("namespace %s {" % STUB_NAMESPACE.split("::")[-1])
-        emit.Line()
-        emit.IndentInc()
-
-        if (interface_namespace != STUB_NAMESPACE.split("::")[-2]):
-            emit.Line("using namespace %s;" % interface_namespace)
-            emit.Line()
-
         announce_list = OrderedDict()
+
+        vars = { "reader": "reader",
+                 "writer": "writer",
+                 "channel": "channel",
+                 "message": "message",
+                 "input": "input",
+                 "implementation": "implementation",
+                 "result": "result",
+                 "interface": "interface",
+                 "hresult": "hresult",
+                 "tempbuffer": "tempBuffer"
+                }
 
         class AuxIdentifier():
             def __init__(self, type, qualifiers, name, value=None):
+                name = Normalize(name)
                 self.type = CppParser.Type(type)
                 self.kind = self.type.Type()
                 self.type.ref = qualifiers
                 self.name = name
                 self.type_name = self.type.TypeName()
-                self.proto_no_cv = self.type.Proto("nocv|noref")
-                self.proto = self.type.Proto("noref")
+                self.proto_no_cv = Flatten(self.type.Proto("nocv|noref"), FRAMEWORK_NAMESPACE)
+                self.proto = Flatten(self.type.Proto("noref"), FRAMEWORK_NAMESPACE)
+                self.proto_weak = self.proto
+                self.proto_weak_no_cv = self.proto_no_cv
                 self.value = value
-
-            @property
-            def as_temporary(self):
-                return (self.type.Proto() + " " + self.name)
-
-            @property
-            def as_temporary_no_cv(self):
-                return (self.type.Proto("nocv") + " " + self.name)
+                self.proxy = None
+                self.proxy_instance = None
+                self.return_proxy = False
 
             @property
             def as_lvalue(self):
@@ -627,7 +733,19 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             @property
             def as_rvalue(self):
-                return self.value if self.value else self.name
+                return (self.value if self.value else self.name)
+
+            @property
+            def as_pure_rvalue(self):
+                return self.as_rvalue
+
+            @property
+            def temporary(self):
+                return (self.type.Proto() + " " + self.name)
+
+            @property
+            def temporary_no_cv(self):
+                return (self.type.Proto("nocv") + " " + self.name)
 
             @property
             def storage_size(self):
@@ -637,13 +755,14 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     Unreachable()
 
         class EmitIdentifier():
-            def __init__(self, index, interface, identifier, override_name=None, suppress_type=False):
+            def __init__(self, interface, identifier, override_name=None, suppress_type=False, prefix="_", suffix="", parent=None):
 
                 def _FindLength(length_name, variable_name):
+                    variable_name = Normalize(variable_name)
+
                     if length_name:
                         if length_name[0] == "void":
-                            return EmitIdentifier(-2, interface, \
-                                CppParser.Temporary(self.identifier.parent, ["static constexpr uint8_t", variable_name], ["sizeof(%s)" % self.kind], []), variable_name)
+                            return EmitLength(interface, CppParser.Temporary(self.identifier.parent, ["uint8_t", variable_name], ["sizeof(%s)" % self.kind], []), variable_name)
 
                         elif length_name[0] == "return":
                             result = "result"
@@ -652,18 +771,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                                 if self.identifier.parent.retval.type.Type().signed:
                                     result = "(result > 0? result : 0)"
 
-                            return EmitIdentifier(-3, interface, \
-                                CppParser.Temporary(self.identifier.parent, [self.identifier.parent.retval.type, "result"], [result], []), "result")
+                            return EmitRetVal(interface, CppParser.Temporary(self.identifier.parent, [self.identifier.parent.retval.type, "result"], [result], []), "result")
 
                         elif length_name[0] == "sizeof" and len(length_name) == 4:
                             matches = [v for v in self.identifier.parent.vars if v.name == length_name[2]]
 
                             if matches:
-                                return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
                             else:
-                                return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), ["".join(length_name)]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["".join(length_name)]), variable_name)
 
                         matches = [v for v in self.identifier.parent.vars if v.name == "".join(length_name)]
 
@@ -680,38 +796,39 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                                 else:
                                     length_type = "uint8_t"
 
-                                return EmitIdentifier(-2, interface, \
-                                    CppParser.Temporary(self.identifier.parent, ("static constexpr %s %s" % (length_type, variable_name)).split(), [str(value)]), variable_name)
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % (length_type, variable_name)).split(), [str(value)]), variable_name)
 
                             except (SyntaxError, NameError):
                                 raise TypenameError(self.identifier, "'%s': unable to parse this length expression ('%s')" % (self.trace_proto, "".join(length_name)))
                         else:
-                            return EmitIdentifier(-1, interface, matches[0])
+                            return EmitIdentifier(interface, matches[0])
 
                     return None
 
                 if not isinstance(identifier.type, CppParser.Type):
                     undefined = CppParser.Type(CppParser.Undefined(identifier.type))
-                    if not identifier.parent.stub and not identifier.parent.omit:
+                    if identifier.parent and (not identifier.parent.stub and not identifier.parent.omit):
                         raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type)), ns))
                     else:
                         type_ = undefined
                 else:
                     type_ = copy.deepcopy(identifier.type)
 
-                is_const_length_of = (index == -2)
-                is_variable_length_of = (index == -1)
-                no_length_warnings = is_variable_length_of
-                is_return_value = (override_name == "result")
+                no_length_warnings = isinstance(self, EmitLength)
+                is_return_value = isinstance(self, EmitRetVal) or (parent and parent.is_return_value)
+                in_pod = '.' in override_name if override_name else False
 
                 self.is_on_wire = True
+                self.suffix = suffix
                 self.identifier = identifier
                 self.identifier_type = type_
                 self.identifier_kind = self.identifier_type.Type()
                 self.is_output = (identifier.meta.output or is_return_value)
                 self.is_input = ((identifier.meta.input or not self.is_output) and not is_return_value)
                 self.is_input_only = not identifier.meta.output
-                self.is_output_only = (identifier.meta.output and not identifier.meta.input)
+                self.is_output_only = ((identifier.meta.output and not identifier.meta.input) or is_return_value)
+                self.is_return_value = is_return_value
+                self.interface = interface
 
                 # Declare input parameters 'const' even if 'const' is not on the original signature
                 self.is_const = not identifier.meta.output
@@ -719,7 +836,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Yields identifier name as in the soruce code, meaningful for a human
                 self.trace_proto = Flatten(self.identifier.Signature(), ns)
 
-                if not self.identifier.name.startswith("__unnamed") and \
+                if not self.identifier.name.startswith("__anonymous") and \
                         (self.identifier.name.startswith("_") or self.identifier.name.endswith("_")):
                     raise TypenameError(self.identifier, "%s: identifier names starting or ending with an underscore are reserved by the generator" % \
                                             self.trace_proto)
@@ -727,13 +844,28 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Always resovlve the type in typedefs...
                 additional_ref = (CppParser.Ref.CONST if self.is_const else 0)
                 self.type = self.identifier_type.Resolve(additional_ref)
+                if not isinstance(self.type, CppParser.Type) and (not identifier.parent or not identifier.parent.omit):
+                    raise TypenameError(identifier, "'%s': undefined type (resolving alias %s)" % (str(self.type), Flatten(str(self.identifier_type.TypeName()), ns)))
+
                 self.kind = self.type.Type()
 
                 is_class = isinstance(self.kind, CppParser.Class)
+                is_struct = is_class and self.kind.vars
+                is_interface = is_class and (self.kind.Inherits(CLASS_IUNKNOWN) or not is_struct)
+
+                self.is_iterator = is_class and self.kind.is_iterator
 
                 # Length variables are actually not put on wire
                 self.length_of = None
                 self.max_length_of = None
+                self.length = None
+                self.max_length = None
+                self.is_buffer = False
+                self.is_array = False
+
+                self.is_dynamic_array = False
+                self.item = None
+                self.element = None
 
                 # Is this a length or max-length of a buffer?
                 if self.identifier.parent:
@@ -748,47 +880,73 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         if v.meta.maxlength and ("".join(v.meta.maxlength) == self.identifier.name):
                             self.max_length_of = v
 
-                if not override_name and self.length_of and not self.max_length_of:
-                    override_name = (self.length_of.name + "Len")
-
-                name = (override_name or ("_" + self.identifier.name).replace("__unnamed_", ""))
+                name = (override_name or (prefix + self.identifier.name).replace("__anonymous_", ""))
                 self.value = self.identifier.value
 
-                self.is_integer = isinstance(self.kind, CppParser.Integer)
+                self.is_integer = isinstance(self.kind, CppParser.Integer) # not CppParser.Int24!
+                self.is_integer_ext = isinstance(self.kind, (CppParser.Integer, CppParser.Int24))
                 self.is_string = isinstance(self.kind, CppParser.String)
                 self.is_ccstring = (isinstance(self.kind, CppParser.String) and self.kind.is_cc)
 
                 self.interface_id = _FindLength(self.identifier.meta.interface, (name[1:] + "IntefaceId"))
 
-                # Is it  a buffer?
-                is_buffer = (self.type.IsPointer() and not is_class and not self.interface_id)
-                self.length = _FindLength(self.identifier.meta.length, (name[1:] + "Len"))
-                self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "Len"))
+                is_array_pointer = (self.type.IsPointer() and not is_interface and not self.interface_id)
+                is_buffer = is_array_pointer and isinstance(self.identifier_kind, CppParser.Integer) and (self.identifier_kind.size == "char")
+                self.is_array = (self.identifier.array != None)
+                self.length = _FindLength(self.identifier.meta.length, (name[1:] + "_Len"))
+                self.max_length = _FindLength(self.identifier.meta.maxlength, (name[1:] + "_MaxLen"))
+                self.is_buffer = ((self.length or self.max_length) and is_buffer and not self.is_array)
 
-                if (is_buffer and not self.length and self.is_input):
-                    raise TypenameError(self.identifier, "'%s': an outbound buffer requires a @length tag" % self.trace_proto)
+                self.length_numeric_value = self.length.value if self.length and isinstance(self.length.value, int) else None
+                self.max_length_numeric_value = self.max_length.value if self.max_length and isinstance(self.max_length.value, int) else None
 
-                if (is_buffer and (not self.length and not self.max_length) and self.is_output):
-                    raise TypenameError(self.identifier, "'%s': an inbound-only buffer requires a @maxlength tag" % self.trace_proto)
+                numeric_length = (self.length_numeric_value and (not self.max_length or self.max_length_numeric_value)) \
+                                    or (self.max_length_numeric_value and (self.length or self.length_numeric_value))
 
-                self.is_buffer = ((self.length or self.max_length) and is_buffer)
+                self.is_fixed_buffer = self.is_buffer and numeric_length
+
+                if ((self.length or self.max_length) and is_array_pointer and not is_buffer):
+                    raise TypenameError(self.identifier, "'%s': variable-length arrays are not supported (use std::vector instead)" % self.trace_proto)
+
+                if not self.is_array:
+                    if (is_array_pointer and not self.length and self.is_input):
+                        raise TypenameError(self.identifier, "'%s': an outbound buffer requires a @length tag" % self.trace_proto)
+
+                    if (is_array_pointer and (not self.length and not self.max_length) and self.is_output):
+                        raise TypenameError(self.identifier, "'%s': an inbound-only buffer requires a @maxlength tag" % self.trace_proto)
+
+                if self.length and not self.is_buffer:
+                    raise TypenameError(self.identifier, "'%s': @length tag only allowed for raw buffers" % self.trace_proto)
+
+                if self.max_length and not self.is_buffer:
+                    raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers" % self.trace_proto)
+
+                if self.is_array and not self.length:
+                    self.length = _FindLength([str(self.identifier.array)], (name[1:] + "FixedLen"))
+
+                    if is_buffer:
+                        # array of bytes, let's make it a buffer then
+                        self.is_array = False
+                        self.is_buffer = True
+                        self.is_fixed_buffer = True
+
+                    self.max_length = self.length
 
                 # If have a input length, assume it's a max-length parameter even if not stated explicitly
-                if (self.is_buffer and not self.max_length and self.length.is_input):
+                if ((self.is_buffer or self.is_array) and not self.max_length and self.length.is_input):
                     self.max_length = self.length
 
                     if self.is_input and self.is_output:
-                        log.WarnLine(self.identifier, \
-                            "'%s': maximum length of this inbound/outbound buffer is assumed to be same as @length, use @maxlength to disambiguate" % \
-                                (self.trace_proto))
+                        log.WarnLine(self.identifier, "'%s': maximum length of this inbound/outbound buffer is assumed to be same as @length, use @maxlength to disambiguate" % self.trace_proto)
                     elif self.is_output_only:
                         log.InfoLine(self.identifier, "'%s': @maxlength not specified for this inbound buffer, assuming same as @length" % self.trace_proto)
 
-                if (self.is_buffer and self.is_output and not self.max_length):
+                if ((self.is_buffer or self.is_array) and self.is_output and not self.max_length):
                     raise TypenameError(self.identifier, "'%s': can't deduce maximum length of this inbound buffer, use @maxlength" % self.trace_proto)
 
-                if (self.is_buffer and self.is_output and self.max_length and not self.length):
-                    log.WarnLine(self.identifier, "'%s': length of this inbound buffer is not specified; using @maxlength, but this may be inefficient" % self.trace_proto)
+                if ((self.is_buffer or self.is_array) and self.is_output and self.max_length and not self.length):
+                    if self.is_input:
+                        log.WarnLine(self.identifier, "'%s': length of this inbound buffer is not specified; using @maxlength, but this may be inefficient" % self.trace_proto)
                     self.length = self.max_length
 
                 # Is it a hresult?
@@ -800,66 +958,57 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 self.is_compound = (is_class and not self.kind.IsVirtual() and (len(self.kind.vars) > 0))
 
                 # Is it an interface instance?
-                is_iunknown_descendant = is_class #and self.kind.Inherits(CLASS_IUNKNOWN)
                 is_unspecified_interface_instance = (isinstance(self.kind, CppParser.Void) and self.identifier.meta.interface)
-                has_proxy = not self.is_compound and (is_class and is_iunknown_descendant and self.type.IsPointer()) and self.is_input
+                has_proxy = not self.is_compound and (is_interface and self.type.IsPointer()) and self.is_input
                 has_output_proxy = not self.is_compound and \
-                    (self.is_output and self.type.IsPointer() and (is_iunknown_descendant or is_unspecified_interface_instance))
+                    (self.is_output and self.type.IsPointer() and (is_interface or is_unspecified_interface_instance))
 
                 self.proxy = None
                 self.return_proxy = False
                 self.proxy_instance = None
 
-                if has_proxy:
+                self.type_name = Flatten(self.identifier_type.TypeName(), ns)
+                self.target_type_name = Flatten(self.type.TypeName(), ns)
+                self.proto = Flatten(self.identifier_type.Proto("noref"), ns)
+                self.proto_no_cv = Flatten(self.identifier_type.Proto("nocv|noref"), ns)
+                self.peek_length = None
+
+                self.name = name
+
+                self.iterator_optimization = self.is_iterator and ENABLE_ITERATOR_OPTIMIZATION and not self.kind.is_force_interface
+
+                if has_proxy and not self.iterator_optimization:
                     # Have to use instance_id instead of the class name
-                    self.type_name = Flatten(self.identifier_type.TypeName(), ns)
-                    self.proto = (("const " if self.is_const else "") + INSTANCE_ID).strip()
-                    self.proto_no_cv = INSTANCE_ID
+                    self.proto_weak = (("const " if self.is_const else "") + INSTANCE_ID).strip()
+                    self.proto_weak_no_cv = INSTANCE_ID
+                    self.proxy = AuxIdentifier(CppParser.Class(CppParser.Locate("ProxyStub"), "UnknownProxy"), CppParser.Ref.POINTER, ("%sProxy__" % name))
+                    self.proxy_instance = AuxIdentifier(CppParser.InstanceId(), CppParser.Ref.VALUE, ("%sInstanceId__" % name))
                 else:
-                    self.type_name = Flatten(self.identifier_type.TypeName(), ns)
-                    self.proto = Flatten(self.identifier_type.Proto("noref"), ns)
-                    self.proto_no_cv = Flatten(self.identifier_type.Proto("nocv|noref"), ns)
+                    self.proto_weak = self.proto
+                    self.proto_weak_no_cv = self.proto_no_cv
 
-                if has_proxy:
-                    self.name = ("%sImplementation" % name[1:])
-                    self.proxy = ("%sProxy" % name[1:])
-                    self.proxy_instance = name
-                else:
-                    self.name = name
-
-                if has_output_proxy:
+                if has_output_proxy and not self.iterator_optimization:
                     self.return_proxy = True
+
+                if has_output_proxy or has_proxy:
                     if not self.interface_id:
                         # Pick up interface ID from the type itself
-                        self.interface_id = AuxIdentifier(CppParser.Integer("uint32_t"), \
-                                (CppParser.Ref.VALUE | CppParser.Ref.CONST), "id", (self.type_name + "::ID"))
+                        _ref = (CppParser.Ref.VALUE | CppParser.Ref.CONST)
+                        self.interface_id = AuxIdentifier(CppParser.Integer("uint32_t"), _ref, "id", (self.type_name + "::ID"))
 
                 # Used with PODs
                 self.suppress_type = suppress_type
 
                 # Now do some more sanity checking on what we've got!...
-                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference()):
+                if not is_return_value and (self.is_output and self.return_proxy and not self.type.IsReference() and not parent):
                     raise TypenameError(self.identifier, "'%s': output interface must be a reference to a pointer" % self.trace_proto)
 
-                if self.is_compound and self.type.IsPointer():
-                    raise TypenameError(self.identifier, "'%s': C-style POD array is not supported, use an iterator" % self.trace_proto)
-
-                if self.length:
-                    if not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': @length tag only allowed for raw buffers" % self.trace_proto)
-
-                if self.max_length:
-                    if not self.is_buffer:
-                        raise TypenameError(self.identifier, "'%s': @maxlength tag only allowed for raw buffers" % self.trace_proto)
-
                 if self.length_of and not no_length_warnings:
-                    if not self.is_input:
-                        raise TypenameError(self.identifier, "'%s': a length parameter must not be write-only" % self.trace_proto)
-                    elif not isinstance(self.kind, CppParser.Integer) or self.is_buffer:
+                    if not isinstance(self.kind, CppParser.Integer) or (self.is_buffer or self.is_array):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer length carrying parameter" % self.trace_proto)
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer length carrying parameter is not supported" % self.trace_proto)
-                    elif self.kind.size == "long" and not self.identifier.meta.range:
+                    elif self.kind.size == "long" and not self.identifier.meta.range.is_set:
                         log.WarnLine(self.identifier, "'%s': long int buffer length is supported, but buffers up to %s bytes are recommended" \
                                         % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                     if not self.kind.fixed:
@@ -867,14 +1016,14 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if self.kind.signed:
                         log.WarnLine(self.identifier, "'%s': buffer length is a signed integer" % self.trace_proto)
 
-                if self.max_length_of and (self.max_length != self.length) and not no_length_warnings:
+                if self.max_length_of and (not self.length or (self.max_length.as_rvalue != self.length.as_rvalue)) and not no_length_warnings:
                     if not self.is_input:
                         raise TypenameError(self.identifier, "'%s': a max-length parameter must not be write-only" % self.trace_proto)
-                    elif not isinstance(self.kind, CppParser.Integer) or self.is_buffer:
+                    elif not isinstance(self.kind, CppParser.Integer) or (self.is_buffer or self.is_array):
                         raise TypenameError(self.identifier, "'%s': this type cannot be a buffer max-length carrying parameter" % self.trace_proto)
                     if self.kind.size == "long long":
                         raise TypenameError(self.identifier, "'%s': 64-bit buffer max-length carrying parameter is not supported" % self.trace_proto)
-                    elif self.kind.size == "long" and not self.identifier.meta.range:
+                    elif self.kind.size == "long" and not self.identifier.meta.range.is_set:
                         log.WarnLine(self.identifier, "'%s': long int buffer max-length is supported, but buffers up to %s bytes are recommended" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                     if not self.kind.fixed:
@@ -890,7 +1039,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if not self.identifier_type.IsConst() and self.is_input_only:
                         log.WarnLine(identifier, "'%s': read-only parameter is missing a const qualifier" % self.trace_proto)
 
-                if self.is_buffer:
+                if ((self.is_buffer or self.is_array) and not in_pod):
                     if not self.identifier_type.IsPointerToConst() and not self.identifier.meta.input and not self.identifier.meta.output:
                         raise TypenameError(self.identifier, "'%s': pointer to non-const data requires an @in or @out tag" % self.trace_proto)
                     elif not self.identifier_type.IsPointerToConst() and self.is_input_only:
@@ -898,17 +1047,18 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif self.identifier_type.IsPointerToConst() and self.is_output:
                         raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
 
-                if not self.is_buffer and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
-                    if not self.kind.IsFixed():
+                if (not self.is_buffer and not self.is_array) and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
+                    if not self.kind.fixed and not self.kind.char:
                         log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
 
                 if isinstance(self.kind, CppParser.Enum):
-                    if not self.kind.type.Type().IsFixed():
+                    if not self.kind.type.Type().fixed:
                         log.WarnLine(self.identifier, "'%s': underlying type of enumeration is not fixed-width integer, use a stdint type" % self.trace_proto)
 
                 # Lastly handle restrict
                 self.restrict_range = identifier.meta.range
-                if not self.restrict_range:
+
+                if not self.restrict_range.is_set:
                     if self.length and self.length.identifier.meta.range:
                         self.restrict_range = self.length.identifier.meta.range
                     elif self.max_length and self.max_length.identifier.meta.range:
@@ -918,120 +1068,219 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif self.max_length_of and self.max_length_of.meta.range:
                         self.restrict_range = self.max_length_of.meta.range
 
-                if self.restrict_range:
-                    if self.is_integer and not self.is_buffer:
-                        if (self.restrict_range[1] > self.kind.max) or (self.restrict_range[0] < self.kind.min):
-                            raise TypenameError(self.identifier, "'%s': restrict range (%s..%s) is invalid for this length integer limits (%s..%s)" % \
-                                                    (self.trace_proto, self.restrict_range[0], self.restrict_range[1], self.kind.min, self.kind.max))
-                        if not no_length_warnings and (((self.restrict_range[1] < 256) and (self.kind.max > 256)) \
-                                or ((self.restrict_range[1] < (64*1024)) and (self.kind.max > (64*1024))) \
-                                or ((self.restrict_range[1] < (4*1024*1024*1024)) and (self.kind.max > (4*1024*1024*1024)))):
-                            log.WarnLine(identifier, "'%s': inefficient use of type (%s) based on restrict range (%s..%s)" % \
-                                            (self.trace_proto, self.proto_no_cv, self.restrict_range[0], self.restrict_range[1]))
+                if self.restrict_range.is_set:
+                    if self.is_integer_ext and not self.is_buffer:
+                        if not no_length_warnings and self.restrict_range.has_max:
+                            # Check if int size is chosen efficiently based on restrict, but do not suggest using int24 if restrict < 16M!
+                            if (((self.restrict_range.max < 256) and (self.kind.max > 256)) \
+                                    or ((self.restrict_range.max < (64*1024)) and (self.kind.max > (64*1024))) \
+                                    or ((self.restrict_range.max < (4*1024*1024*1024)) and (self.kind.max > (4*1024*1024*1024)))):
+                                log.WarnLine(identifier, "'%s': inefficient use of type (%s) as value restricted to range (%s)" % (self.trace_proto, self.proto_no_cv, self.restrict_range))
 
                     elif (self.is_buffer or self.is_string or (self.is_integer and self.kind.min == 0)):
-                        if self.restrict_range[0] < 0:
-                            raise TypenameError(self.identifier, "'%s': negative restrict range (%s..%s) is invalid for this type" % \
-                                                    (self.trace_proto, self.restrict_range[0], self.restrict_range[1]))
+                        if self.restrict_range.has_max and self.restrict_range.max > (PARAMETER_SIZE_WARNING_THRESHOLD):
+                            log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s)" \
+                                            % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range))
 
-                        elif self.restrict_range[1] > (PARAMETER_SIZE_WARNING_THRESHOLD):
-                            log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC, see range (%s..%s)" \
-                                            % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD, self.restrict_range[0], self.restrict_range[1]))
-
-                if self.is_string or self.is_buffer:
-                    aux_name = (self.name.replace(".", "_").strip("_") + "PeekedLen")
+                if isinstance(self.kind, CppParser.DynamicArray):
                     aux_size = "uint16_t"
-                    if self.restrict_range:
-                        if self.restrict_range[1] >= (16*1024*1024):
+                    if self.restrict_range.has_max:
+                        if self.restrict_range.max < 256:
+                            aux_size = "uint8_t"
+                        elif self.restrict_range.max > 65535:
                             aux_size = "uint32_t"
-                        elif self.restrict_range[1] >= (64*1024):
-                            aux_size = "Core::Frame::UInt24"
-                        elif self.restrict_range[1] < 256:
+
+                    self.length = CppParser.Temporary(self.kind.element.parent, [aux_size])
+                    self.length.type_name = aux_size
+                    self.element = self.kind.element
+                    self.is_dynamic_array = True
+
+                if self.is_iterator:
+                    aux_size = "uint16_t"
+                    if self.restrict_range.has_max:
+                        if self.restrict_range.max < 256:
+                            aux_size = "uint8_t"
+                        elif self.restrict_range.max > 65535:
+                            aux_size = "uint32_t"
+
+                    self.length = CppParser.Temporary(self.kind, [aux_size])
+                    self.length.type_name = aux_size
+                    self.element = self.kind.resolvedArgs[0]
+
+                if self.is_string or self.is_buffer or self.is_array or self.is_dynamic_array:
+                    aux_name = Normalize(self.name + "PeekedLen__")
+                    aux_size = "uint16_t"
+
+                    if self.restrict_range.has_max:
+                        if self.restrict_range.max >= (16*1024*1024):
+                            aux_size = "uint32_t"
+                        elif self.restrict_range.max >= (64*1024):
+                            aux_size = "Core::UInt24"
+                        elif self.restrict_range.max < 256:
                             aux_size = "uint8_t"
 
                     if self.is_string:
-                        if self.is_ccstring and not self.restrict_range:
+                        if self.is_ccstring and not self.restrict_range.is_set:
                             log.WarnLine(identifier, "'%s': parameters up to %s bytes are recommended for COM-RPC" \
                                             % (self.trace_proto, PARAMETER_SIZE_WARNING_THRESHOLD))
                             aux_size = "uint32_t"
 
                         self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
-                    elif self.is_buffer:
-                        if not self.restrict_range:
+
+                    elif self.is_buffer or self.is_array or self.is_dynamic_array:
+                        if not self.restrict_range.is_set:
                             aux_size = (self.length.type_name if self.length else self.max_length.type_name)
 
                         self.peek_length = AuxIdentifier(CppParser.Integer(aux_size), (CppParser.Ref.VALUE | CppParser.Ref.CONST), aux_name)
 
                 elif self.is_integer:
-                    if self.restrict_range and self.kind.size == "long":
+                    # Opportunity to shrink DWORD to 24-bit if restrict range fits
+                    if self.kind.size == "long":
                         if self.kind.signed:
-                            if (((self.restrict_range[0] < (-32*1024)) and (self.restrict_range[0] >= (-8*1024*1024))) or \
-                                  ((self.restrict_range[1] >= (32*1024)) and (self.restrict_range[1] < (8*1024*1024)))):
-                                self.type_name = "Core::Frame::SInt24"
+                            if self.restrict_range.has_min and self.restrict_range.has_max:
+                                if ((self.restrict_range.min < (-32*1024)) and (self.restrict_range.min >= (-8*1024*1024))) or \
+                                    ((self.restrict_range.max >= (32*1024)) and (self.restrict_range.max < (8*1024*1024))):
+                                    self.type_name = "Core::SInt24"
                         else:
-                            if ((self.restrict_range[1] >= (64*1024)) and (self.restrict_range[1] < (16*1024*1024))):
-                                self.type_name = "Core::Frame::UInt24"
+                            if (self.restrict_range.has_max and ((self.restrict_range.max >= (64*1024)) and (self.restrict_range.max < (16*1024*1024)))):
+                                self.type_name = "Core::UInt24"
 
-                if isinstance(self.kind, CppParser.Fundamental) and self.type.IsReference() and self.is_input_only:
+                if isinstance(self.kind, CppParser.Optional):
+                    #if self.kind.optional.type.IsPointer() and not isinstance(self.kind.optional.type.Resolve().type, CppParser.Class) and not:
+                    #    raise TypenameError(identifier, "'%s': raw buffer must not be OptionalType" % self.trace_proto)
+
+                    self.kind.optional.meta = identifier.meta
+
+                    #if not self.is_array:
+                    #    self.kind.optional.type.ref |= identifier.type.ref
+
+                    self.optional = EmitOptional(self.interface, self.kind.optional, self.name, parent=self)
+                    self.is_compound = self.optional.is_compound
+                    self.is_dynamic_array = self.optional.is_dynamic_array
+                    self.is_buffer = self.optional.is_buffer
+                    self.is_string = self.optional.is_string
+                    self.is_iterator = self.optional.is_iterator
+                    self.optional.suppress_type = self.suppress_type
+
+                    if not self.length:
+                        self.length = self.optional.length
+                    if not self.max_length:
+                        self.max_length = self.optional.max_length
+                    if not self.peek_length:
+                        self.peek_length = self.optional.peek_length
+                    if not self.item:
+                        self.item = self.optional.item
+                    if not self.element:
+                        self.element = self.optional.element
+
+                    if self.is_compound:
+                        if isinstance(self.optional.kind, CppParser.Optional):
+                             raise TypenameError(identifier, "'%s': OptionalType of OptionalType is not supported" % self.trace_proto)
+
+                        self.compound_merged = self.optional.kind.Merge()
+
+                    if self.optional.proxy or self.optional.return_proxy:
+                        self.name = self.optional.name
+                        self.proxy = self.optional.proxy
+                        self.proxy_instance = self.optional.proxy_instance
+                        self.interface_id = self.optional.interface_id
+                        self.return_proxy = self.optional.return_proxy
+                        self.proto_weak = self.optional.proto_weak
+                        self.proto_weak_no_cv = self.optional.proto_weak_no_cv
+
+                else:
+                    self.optional = None
+
+                    if self.is_compound:
+                        self.compound_merged = self.kind.Merge()
+
+                if isinstance(self.kind, CppParser.Fundamental) and self.type.IsReference() and self.is_input_only and not isinstance(self, EmitOptional):
                     log.WarnLine(self.identifier, "%s: input-only fundamental type passed by reference" % self.trace_proto)
+
+                if not is_return_value and ((self.is_dynamic_array or self.is_compound or self.optional) and not self.is_array) \
+                        and not self.type.IsReference() and (not parent or not isinstance(parent.kind, (CppParser.DynamicArray, CppParser.Optional, CppParser.Class))):
+                    log.WarnLine(self.identifier, "%s: object passed by value" % self.trace_proto)
+
+            def __maybe_const_cast(self, expr):
+                if not self.value and self.type.IsReference():
+                    if (self.proxy or self.is_iterator) and self.type.IsConstPointer():
+                        return "static_cast<%s%s* const&>(%s)" % (("const " if self.type.IsPointerToConst() else ""), self.type_name, expr)
+                    elif self.identifier_type.IsConst():
+                        return "static_cast<const %s&>(%s)" % (self.type_name, expr)
+                return expr
 
             @property
             def as_rvalue(self):
-                def maybe_cast(expr):
-                    if not self.value and self.type.IsReference():
-                        if self.proxy and self.type.IsConstPointer():
-                            return "static_cast<%s%s* const&>(%s)" % (("const " if self.type.IsPointerToConst() else ""), self.type_name, expr)
-                        elif self.identifier_type.IsConst():
-                            return "static_cast<const %s&>(%s)" % (self.type_name, expr)
-                    return expr
-
-                return maybe_cast(self.value if self.value else self.as_in_prototype)
+                if self.optional:
+                    return self.optional.as_rvalue
+                else:
+                    return (self.value if self.value else (self.name + self.suffix))
 
             @property
-            def as_in_prototype(self):
-                return self.proxy_instance if self.proxy_instance else self.name
+            def as_pure_rvalue(self):
+                return (self.value if self.value else self.__maybe_const_cast(self.name))
 
             @property
             def as_lvalue(self):
-                return self.name
+                return (self.proxy_instance.as_lvalue if self.proxy_instance else self.name)
 
             @property
-            def as_temporary(self):
-                return self.name if self.suppress_type else (self.proto + " " + self.name)
+            def pure_proto(self):
+                return (self.proto_no_cv if not self.optional else self.optional.proto_no_cv)
 
             @property
-            def as_temporary_no_cv(self):
-                return self.name if self.suppress_type else (self.proto_no_cv + " " + self.name)
+            def temporary(self):
+                if self.is_array:
+                    assert self.length
+                    return ("%s%s%s" % (((self.type_name + " ") if not self.suppress_type else ""), self.name, ("[" + str(self.length.as_rvalue) + "]") if not self.suppress_type else ""))
+                else:
+                    return ("%s%s" % (((self.proxy_instance.proto if self.proxy_instance else self.proto) + " ") if not self.suppress_type else "", self.as_lvalue))
+
+            @property
+            def temporary_no_cv(self):
+                if self.is_array:
+                    assert self.length
+                    return ("%s%s%s" % (((self.type_name + " ") if not self.suppress_type else ""), self.name, ("[" + str(self.length.as_rvalue) + "]") if not self.suppress_type else ""))
+                else:
+                    return ("%s%s" % (((self.proxy_instance.proto_no_cv if self.proxy_instance else self.proto_no_cv) + " ") if not self.suppress_type else "", self.as_lvalue))
 
             @property
             def read_rpc_type(self):
+                if isinstance(self.kind, CppParser.Optional):
+                    return self.optional.read_rpc_type
+
                 # Interfaces
-                if self.proxy_instance or self.return_proxy:
+                elif self.proxy_instance or self.return_proxy:
                     return "Number<%s>()" % INSTANCE_ID
 
                 # Raw buffers
                 elif self.is_buffer:
                     assert self.length or self.max_length, "Invalid type for buffer"
-                    if self.max_length:
-                        return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_lvalue)
-                    elif self.length:
-                        return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_lvalue)
+                    if self.is_fixed_buffer:
+                        return "Copy(%s, %s)" % (self.length.as_rvalue, self.as_lvalue)
                     else:
-                        Unreachable()
+                        if self.max_length:
+                            return "Buffer<%s>(%s, %s)" % (self.max_length.type_name, self.max_length.as_rvalue, self.as_lvalue)
+                        elif self.length:
+                            return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_lvalue)
+                        else:
+                            Unreachable()
 
                 # Strings
                 elif self.is_string:
                     return ("Text<%s>()" % self.peek_length.proto_no_cv) if self.peek_length.proto_no_cv != "uint16_t" else "Text()"
 
+                # MacAddress
+                elif isinstance(self.kind, CppParser.MacAddress):
+                    return "Copy(6, %s)" % self.as_lvalue
+
                 # The integral types
-                elif isinstance(self.kind, CppParser.Integer):
-                    return "Number<%s>()" % self.type_name
-                elif isinstance(self.kind, CppParser.BuiltinInteger):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger, CppParser.Enum)):
                     return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
-                elif isinstance(self.kind, CppParser.Enum):
-                    return "Number<%s>()" % self.type_name
+                elif isinstance(self.kind, (CppParser.Time, CppParser.Int24)):
+                    return "Number<%s>()" % self.target_type_name
 
                 # Floating point types
                 elif isinstance(self.kind, CppParser.Float):
@@ -1039,33 +1288,47 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         return "Number<%s>()" % self.type_name
                     else:
                         raise TypenameError(self.identifier, "long double type is not supported (see '%s')" % (self.trace_proto))
+
+                elif isinstance(self.kind, CppParser.DynamicArray):
+                    return self.item.read_rpc_type
+
                 else:
                     raise TypenameError(self.identifier, "%s: unable to deserialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def write_rpc_type(self):
+                if self.optional:
+                    return self.optional.write_rpc_type
+
                 # Interfaces
-                if self.proxy_instance or self.return_proxy:
+                elif self.proxy_instance or self.return_proxy:
                     return "Number<%s>(RPC::instance_cast(%s))" % (INSTANCE_ID, self.as_rvalue)
 
                 # Raw buffers
                 elif self.is_buffer:
                     assert self.max_length, "Invalid type for buffer " + self.name
-                    return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_rvalue)
+                    if self.is_fixed_buffer:
+                        return "Copy(%s, %s)" % (self.length.as_rvalue, self.as_rvalue)
+                    else:
+                        return "Buffer<%s>(%s, %s)" % (self.length.type_name, self.length.as_rvalue, self.as_rvalue)
 
                 # Strings
                 elif self.is_string:
                     return ("Text<%s>(%s)" % (self.peek_length.proto_no_cv, self.as_rvalue)) if self.peek_length.proto_no_cv != "uint16_t" else ("Text(%s)" % (self.as_rvalue))
 
+                # MacAddress
+                elif isinstance(self.kind, CppParser.MacAddress):
+                    return "Copy(6, %s)" % self.as_lvalue
+
                 # The integral types
-                elif isinstance(self.kind, CppParser.Integer):
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Enum, CppParser.BuiltinInteger)):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                elif isinstance(self.kind, (CppParser.Int24)):
+                    return "Number<%s>(%s)" % (self.target_type_name, self.as_rvalue)
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
-                elif isinstance(self.kind, CppParser.Enum):
-                    return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
-                elif isinstance(self.kind, CppParser.BuiltinInteger):
-                    return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
+                elif isinstance(self.kind, CppParser.Time):
+                    return "Number<%s>(%s.Ticks())" % (self.target_type_name, self.as_rvalue)
 
                 # Floating point types
                 elif isinstance(self.kind, CppParser.Float):
@@ -1074,24 +1337,36 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     else:
                         raise TypenameError(self.identifier, "long double is not supported (see '%s')" % (self.trace_proto))
 
+                elif isinstance(self.kind, CppParser.DynamicArray):
+                    return self.item.write_rpc_type
+
                 else:
                     raise TypenameError(self.identifier, "%s: sorry, unable to serialise this type (see '%s')" % (self.type_name, self.trace_proto))
 
             @property
             def storage_size(self):
-                if self.proxy_instance or self.return_proxy:
+                if isinstance(self.kind, CppParser.Optional):
+                    assert self.optional
+                    return "1"
+                elif self.proxy_instance or self.return_proxy:
                     return "sizeof(%s)" % INSTANCE_ID
                 elif self.is_buffer:
-                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::RealSize<%s>()" % self.peek_length.type_name
                 elif self.is_string:
                     if self.is_ccstring:
                         return "(sizeof(uint32_t))"
                     else:
-                        return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
-                elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
-                    return "Core::Frame::RealSize<%s>()" % self.type_name
+                        return "Core::RealSize<%s>()" % self.peek_length.type_name
+                elif isinstance(self.kind, (CppParser.Integer, CppParser.Int24, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
+                    return "Core::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
-                    return 1 # always one byte
+                    return "1" # always one byte
+                elif isinstance(self.kind, CppParser.MacAddress):
+                    return "6" # always six bytes
+                elif isinstance(self.kind, CppParser.DynamicArray):
+                    return "Core::RealSize<%s>()" % self.peek_length.type_name
+                elif isinstance(self.kind, CppParser.Time):
+                    return "sizeof(%s)" % self.target_type_name
                 else:
                     Unreachable()
 
@@ -1102,12 +1377,23 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 return str(self.type)
 
         class EmitParam(EmitIdentifier):
-            def __init__(self, interface, identifier, name=None, suppress_type=False, index=-1):
-                EmitIdentifier.__init__(self, index, interface, identifier, name, suppress_type)
+            def __init__(self, interface, identifier, name=None, suppress_type=False, suffix="", parent=None):
+                EmitIdentifier.__init__(self, interface, identifier, name, suppress_type, "_", suffix, parent)
 
         class EmitRetVal(EmitIdentifier):
             def __init__(self, interface, identifier, name="_result", suppress_type=False):
                 EmitParam.__init__(self, interface, identifier, name, suppress_type)
+
+        class EmitLength(EmitIdentifier):
+            def __init__(self, interface, identifier, name=None, suppress_type=False, suffix="", restrict_range=None):
+                EmitIdentifier.__init__(self, interface, identifier, name, suppress_type, "", suffix)
+                if restrict_range:
+                    self.restrict_range = restrict_range
+
+        class EmitOptional(EmitIdentifier):
+            def __init__(self, interface, identifier, name=None, suppress_type=False, parent=None):
+                EmitIdentifier.__init__(self, interface, identifier, name, suppress_type, "_", ".Value()", parent)
+
 
         def EmitFunctionOrder(methods):
             if methods:
@@ -1118,18 +1404,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 emit.Line("//")
 
-        vars = { "reader": "reader",
-                 "writer": "writer",
-                 "channel": "channel",
-                 "message": "message",
-                 "input": "input",
-                 "implementation": "implementation",
-                 "result": "result",
-                 "interface": "interface",
-                 "hresult": "hresult",
-                 "tempbuffer": "tempBuffer"
-                }
-
         def PrepareParams(method, interface):
             input_params = []
             proxy_params = []
@@ -1139,11 +1413,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             params = []
 
             if method.retval:
-                if isinstance(method.retval, list) or not method.retval.type.IsVoid():
+                if isinstance(method.retval, list) or isinstance(method.retval.type, list) or not method.retval.type.IsVoid():
                     retval = EmitRetVal(interface, method.retval, vars["result"])
 
             for index, var in enumerate(method.vars):
-                params.append(EmitParam(interface, var, index = index))
+                params.append(EmitParam(interface, var))
                 if var.meta.length and var.meta.length[0] == "return":
                     retval.is_on_wire = False
 
@@ -1158,19 +1432,78 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # Length parameters are never sent in, max-length only if a buffer is output only
                 if ((p.is_input or not p.is_output) and (not p.length_of or (p.max_length_of and not p.max_length_of.meta.input))):
                     input_params.append(p)
-                    if p.proxy:
+                    if p.proxy or (p.optional and p.optional.proxy):
                         proxy_params.append(p)
 
                 # Length and max-length variables are never sent back
                 if (p.is_output and (not p.length_of and not p.max_length_of)):
                     output_params.append(p)
-                    if p.return_proxy:
+                    if p.return_proxy or (p.optional and p.optional.return_proxy):
                         return_proxy_params.append(p)
 
-            log.Info("  %s, input = (%s), output = (%s)" % (method.name, ", ".join([p.as_in_prototype for p in input_params]), \
-                        ", ".join([p.as_in_prototype if p else "void" for p in output_params])))
+            def _PrepareDebug(params, output):
+                for p in params:
+                    if p:
+                        ch = []
+                        if p.optional:
+                            ch.append("opt")
+                        if p.is_iterator:
+                            ch.append("iter")
+                        if p.proxy:
+                            ch.append("proxy")
+                        elif p.return_proxy:
+                            ch.append("retproxy")
+                        elif p.is_compound:
+                            ch.append("pod")
+
+                        if p.restrict_range.is_set:
+                            ch.append("(%s)" % str(p.restrict_range))
+
+                        chs = " [" + ", ".join(ch) + "]" if ch else ""
+
+                        output.append(p.name + chs)
+                    else:
+                        output.append("void")
+
+            _debug_input_params = []
+            _debug_output_params = []
+
+            _PrepareDebug(input_params, _debug_input_params)
+            _PrepareDebug(output_params, _debug_output_params)
+
+            log.Info("  %s, input = (%s), output = (%s)" % (method.name, ", ".join(_debug_input_params), ", ".join(_debug_output_params)))
 
             return retval, params, input_params, output_params, proxy_params, return_proxy_params
+
+        def CheckFrame(p, by_parameter=False):
+            if ENABLE_INTEGRITY_VERIFICATION:
+                emit.Line("if (%s.Length() < (%s)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % \
+                            (vars["reader"], (p.as_rvalue if by_parameter else p.storage_size)))
+
+        def CheckRange(p, val):
+            if p.restrict_range.is_set:
+                cmp = val if isinstance(val, str) else val.as_pure_rvalue
+
+                restrictions = []
+
+                if p.restrict_range.has_min:
+                    restrictions.append("(%s >= %s)" % (cmp, p.restrict_range.min))
+                if p.restrict_range.has_max:
+                    restrictions.append("(%s <= %s)" % (cmp, p.restrict_range.max))
+
+                emit.Line("ASSERT(%s);" % " && ".join(restrictions))
+
+                if ENABLE_RANGE_VERIFICATION:
+                    emit.Line("if (!(%s)) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }" % " && ".join(restrictions))
+
+        def CheckSize(p):
+            if ENABLE_INTEGRITY_VERIFICATION:
+                emit.Line("%s = %s.PeekNumber<%s>();" % (p.peek_length.temporary, vars["reader"], p.peek_length.type_name))
+                CheckRange(p, p.peek_length)
+                emit.Line("if (%s.Length() < (static_cast<uint32_t>(%s) + %s)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % \
+                            (vars["reader"], p.storage_size, p.peek_length.as_rvalue))
+            else:
+                CheckRange(p, "%s.PeekNumber<%s>()" % (vars["reader"], p.peek_length.type_name))
 
         # Build the announce list upfront
         for interface in interfaces:
@@ -1193,7 +1526,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     log.Info("omitting method %s::%s()" % (interface_name, method.name))
 
                 if not emit_methods:
-                    log.Warn("no virtual methods in class %s" % interface_name)
+                    log.Info("no virtual methods in class %s" % interface_name)
                 else:
                     stub_methods_name = CreateName(interface_name) + "StubMethods"
                     proxy_name = CreateName(interface_name) + "Proxy"
@@ -1201,102 +1534,215 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     prepared_params = [PrepareParams(method, interface) for method in emit_methods]
                     announce_list[interface_name] = [emit_methods, stub_methods_name, stub_name, proxy_name, interface, prepared_params]
 
-        emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
-        emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
-        emit.Line()
-
-        def CheckFrame(p, by_parameter=False):
-            if ENABLE_INTEGRITY_VERIFICATION:
-                emit.Line()
-                emit.Line("if (%s.Length() < (%s)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % \
-                            (vars["reader"], (p.as_rvalue if by_parameter else p.storage_size)))
-
-        def CheckRange(p, val):
-            if p.restrict_range and not p.proxy:
-                cmp = val if isinstance(val, str) else val.as_rvalue
-
-                emit.Line("ASSERT((%s >= %s) && (%s <= %s));"% \
-                                (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
-
-                if ENABLE_RANGE_VERIFICATION:
-                    emit.Line("if (!((%s >= %s) && (%s <= %s))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }" % \
-                                (cmp, p.restrict_range[0], cmp, p.restrict_range[1]))
-
-        def CheckSize(p):
-            if ENABLE_INTEGRITY_VERIFICATION:
-                emit.Line("%s = %s.PeekNumber<%s>();" % (p.peek_length.as_temporary, vars["reader"], p.peek_length.type_name))
-                CheckRange(p, p.peek_length)
-                emit.Line("if (%s.Length() < (%s + %s)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % \
-                            (vars["reader"], p.storage_size, p.peek_length.as_rvalue))
-            else:
-                CheckRange(p, "%s.PeekNumber<%s>()" % (vars["reader"], p.peek_length.type_name))
-
         #
         # EMIT STUB CODE
         #
-        emit.Line("// -----------------------------------------------------------------")
-        emit.Line("// STUBS")
-        emit.Line("// -----------------------------------------------------------------\n")
-
         def EmitStubMethodImplementation(index, method, interface_name, interface, retval, params, \
                                         input_params, output_params, proxy_params, return_proxy_params):
 
             hresult = AuxIdentifier(CppParser.Integer(HRESULT), CppParser.Ref.VALUE, vars["hresult"])
 
-            has_restricted_parameters = any([v.restrict_range for v in input_params])
+            has_restricted_parameters = any([v.restrict_range.is_set for v in input_params])
 
             output_buffers = []
             custom_buffers = []
             has_hresult = retval and retval.is_hresult
 
-            def ReadParameter(p):
-                assert(p)
-                assert(p.is_on_wire)
-                if p.is_compound:
-                    kind = p.kind.Merge()
-                    if not p.suppress_type:
-                        emit.Line("%s{};" % p.as_temporary_no_cv)
+            # For stubs
+            def ReadParameter(p, no_array=False):
+                assert p.is_on_wire
 
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
+                def _EmitAssignment(p):
+                    param_ = "%s = %s.%s;" % (p.as_lvalue if p.optional else p.temporary, vars["reader"], p.read_rpc_type)
+
+                    if p.is_string:
+                        CheckFrame(p)
+                        CheckSize(p)
+                        emit.Line(param_)
+                    elif p.is_iterator:
+                        CheckFrame(p)
+                        emit.Line(param_)
+                    else:
+                        CheckFrame(p)
+                        emit.Line(param_)
+                        CheckRange(p, p)
+
+                if p.optional and (not p.is_array or no_array):
+                    if not p.suppress_type:
+                        emit.Line("%s{};" % p.temporary_no_cv)
+
+                    CheckFrame(p)
+                    emit.Line("if (%s.Boolean() == true) {" % vars["reader"])
+                    emit.IndentInc()
+                else:
+                    if not p.suppress_type and (p.is_compound or p.is_array) and not no_array:
+                        emit.Line("%s{};" % p.temporary_no_cv)
+
+                if p.is_iterator:
+                    iterator = p.optional if p.optional else p
+                    if iterator.iterator_optimization:
+                        name = Normalize(iterator.name)
+                        count = name + "Count"
+                        type = iterator.kind.resolvedArgs[0]
+                        internal = name + "List"
+
+                        if not p.optional:
+                            emit.Line("%s{};" % p.temporary_no_cv)
+
+                        length = EmitLength(interface, iterator.length, count, restrict_range=p.restrict_range)
+                        element = EmitParam(interface, iterator.element, Normalize(name + "Item"), parent=iterator)
+                        ReadParameter(length)
+
+                        emit.Line("if ((%s != 0) || (%s.Boolean() == true)) {" % (count, vars["reader"]))
+                        emit.IndentInc()
+
+                        emit.Line("std::list<%s> %s;" % (type, internal))
+                        # emit.Line("%s.reserve(%s);" % (internal, length.as_rvalue))
+
+                        emit.Line("while (%s-- != 0) {" % count)
+                        emit.IndentInc()
+                        ReadParameter(element)
+                        emit.Line("%s.push_back(std::move(%s));" % (internal, element.as_rvalue))
+                        emit.IndentDec()
+                        emit.Line("}")
+
+                        impl = "::Thunder::RPC::IteratorType<%s>" % iterator.kind.type
+                        emit.Line("%s = Core::ServiceType<%s>::Create<%s>(std::move(%s));" % (p.as_lvalue, impl, iterator.kind.type, internal))
+                        emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue))
+
+                        emit.IndentDec()
+                        emit.Line("}")
+                    else:
+                        _EmitAssignment(p)
+
+                # Fixed array
+                elif p.is_array and not no_array:
+                    index = chr(ord('i') + p.name.count('['))
+                    element = EmitParam(interface, p.identifier, "%s[%s]" % (p.name, index), suppress_type=True)
+                    emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (index, index, p.length.as_rvalue, index))
+                    emit.IndentInc()
+                    ReadParameter(element, no_array=True)
+                    emit.IndentDec()
+                    emit.Line("}")
+
+                # Vector
+                elif p.is_dynamic_array:
+                    obj_name = p.name
+
+                    if not p.suppress_type:
+                        if p.optional:
+                            obj_name = Normalize(obj_name + "Object__")
+                            emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
+                        else:
+                            emit.Line("%s %s{};" % (p.type_name, obj_name))
+
+                    length = EmitParam(interface, p.length, Normalize("%sSize" % obj_name))
+                    ReadParameter(length)
+                    CheckRange(p, ("%s" % length.as_rvalue))
+                    emit.Line("%s.reserve(%s);" % (p.as_rvalue, length.as_rvalue))
+
+                    index = chr(ord('i') + p.name.count('Item'))
+                    element = EmitParam(interface, p.element, Normalize(obj_name + "Item"), parent=p)
+                    emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
+                    emit.IndentInc()
+                    ReadParameter(element)
+                    emit.Line("%s.push_back(std::move(%s));" % (p.as_rvalue, element.as_rvalue))
+                    emit.IndentDec()
+                    emit.Line("}")
+
+                    if p.optional:
+                        emit.Line("%s = std::move(%s);" % (p.name, obj_name))
+
+                # POD
+                elif p.is_compound:
+                    obj_name = p.name
+
+                    if p.optional:
+                        obj_name = Normalize(p.name + "Object__")
+                        emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
+
+                    params = [EmitParam(interface, v, (obj_name + "." + v.name), suppress_type=True, parent=p) for v in p.compound_merged.vars]
 
                     for pp in params:
                         ReadParameter(pp)
+                        if pp.proxy:
+                            proxy_params.append(pp)
+
+                    if p.optional:
+                        emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                 elif p.is_buffer:
                     CheckFrame(p)
                     CheckSize(p)
-                    emit.Line("%s{};" % p.as_temporary_no_cv)
-                    buffer_param = "const_cast<const %s*&>(%s)" % (p.type_name, p.as_rvalue) if not p.identifier_type.IsPointerToConst() else p.as_rvalue
-                    emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.as_temporary, vars["reader"], p.length.type_name, buffer_param))
-                    emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
 
-                elif p.is_string:
-                    CheckFrame(p)
-                    CheckSize(p)
-                    emit.Line("%s = %s.%s;" % (p.as_temporary, vars["reader"], p.read_rpc_type))
+                    if not p.suppress_type:
+                        emit.Line("%s{};" % p.temporary_no_cv)
+
+                    _name = p.as_rvalue
+
+                    buffer_param = "const_cast<const %s*&>(%s)" % (p.type_name, _name) if not p.identifier_type.IsPointerToConst() else _name
+
+                    if not p.suppress_type:
+                        # we may reuse the wire buffer to skip a copy
+                        if p.is_fixed_buffer:
+                            assert p.length.value
+                            emit.Line("%s = %s.LockFixedBuffer(%s, %s);" % (p.length.temporary, vars["reader"], buffer_param, p.length.value))
+                            emit.Line("ASSERT(%s == %s);" % (p.length.name, p.length.value))
+                        else:
+                            emit.Line("%s = %s.LockBuffer<%s>(%s);" % (p.length.temporary, vars["reader"], p.length.type_name, buffer_param))
+
+                        emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], p.length.name))
+                    else:
+                        # inside a struct, have to copy :(
+                        emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
+
+                    if p.is_array:
+                        emit.Line("ASSERT(%s == (%s * sizeof(%s)));" % (p.length.name, p.identifier.array, p.type_name))
+
+                elif isinstance(p.kind, CppParser.MacAddress):
+
+                    length = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.VALUE | CppParser.Ref.CONST, (p.name[1:] + "Length"))
+                    buffer = AuxIdentifier(CppParser.Integer("uint8_t"), CppParser.Ref.POINTER | CppParser.Ref.POINTER_TO_CONST, (p.name[1:] + "Buffer"))
+                    emit.Line("%s{};" % buffer.temporary)
+
+                    # construct the mac directly from the wire buffer
+                    emit.Line("%s = %s.LockFixedBuffer(%s, 6);" % (length.temporary, vars["reader"], buffer.name))
+                    emit.Line("ASSERT(%s == 6);" % (length.name))
+                    emit.Line("%s.UnlockBuffer(%s);" % (vars["reader"], length.name))
+
+                    if not p.suppress_type:
+                        emit.Line("%s{%s};" % (p.temporary_no_cv, buffer.as_rvalue))
+                    else:
+                        emit.Line("%s = Core::MACAddress(%s);" % (p.name, buffer.as_rvalue))
 
                 else:
-                    CheckFrame(p)
-                    emit.Line("%s = %s.%s;" % (p.as_temporary, vars["reader"], p.read_rpc_type))
-                    CheckRange(p, p)
+                    _EmitAssignment(p)
+
+                if p.optional and (not p.is_array or no_array):
+                    emit.IndentDec()
+                    emit.Line("}")
 
             def TemporaryParameter(p):
-                assert(p)
+                assert p
+
                 if p.is_buffer:
+                    assert p.length
                     output_buffers.append(p)
+                    if p.length.is_output_only and not p.length.is_return_value:
+                        emit.Line("%s{};" % p.length.temporary_no_cv)
 
                 if (p.is_output and not p.is_input):
-                    emit.Line("%s{};" % p.as_temporary_no_cv)
+                    emit.Line("%s{};" % p.temporary_no_cv)
                     return 1
 
                 return 0
 
-            def AllocateBuffer(p):
-                assert(p)
+            def AllocateBuffer(p, no_check=False):
+                assert p
                 assert p.is_buffer
                 assert p.max_length
 
-                has_same_buffer = (p.is_input and p.max_length and p.length and (p.max_length == p.length))
+                has_same_buffer = (p.is_input and p.max_length and p.length and (p.max_length.as_rvalue == p.length.as_rvalue)) and not no_check
 
                 if has_same_buffer:
                     return
@@ -1304,14 +1750,15 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 # May need to allocate custom memory to pass large buffer
                 has_large_buffer_size = (p.max_length and (p.max_length.type.Type().size == "long"))
                 has_large_buffer = (has_large_buffer_size and ENABLE_CUSTOM_ALLOCATOR)
-                has_buffer_reuse = (p.is_input and p.max_length and p.length and (p.max_length != p.length))
+                has_buffer_reuse = (p.is_input and p.max_length and p.length and (p.max_length.as_rvalue != p.length.as_rvalue))
 
                 if has_large_buffer:
                     large_buffer = AuxIdentifier(CppParser.Void(), CppParser.Ref.POINTER, (p.name[1:] + "Custom"))
-                    emit.Line("%s{};" % large_buffer.as_temporary_no_cv)
+                    emit.Line("%s{};" % large_buffer.temporary_no_cv)
 
-                emit.Line("if (%s != 0) {" % p.max_length.as_rvalue)
-                emit.IndentInc()
+                if not p.max_length.value:
+                    emit.Line("if (%s != 0) {" % p.max_length.as_rvalue)
+                    emit.IndentInc()
 
                 if has_buffer_reuse:
                     temp_buffer = AuxIdentifier(CppParser.Void(), CppParser.Ref.POINTER, vars["tempbuffer"])
@@ -1320,7 +1767,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.Line("if (%s > %s) {" % (p.max_length.as_rvalue, p.length.as_rvalue))
                         emit.IndentInc()
 
-                    emit.Line("%s{};" % temp_buffer.as_temporary_no_cv)
+                    emit.Line("%s{};" % temp_buffer.temporary_no_cv)
                     emit.Line()
 
                 if has_large_buffer:
@@ -1340,8 +1787,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 if EMIT_TRACES:
                     emit.Line('fprintf(stderr, "*** Allocating %%u bytes on stack for a temporary buffer\\n", %s);' % p.max_length.as_rvalue)
 
-                emit.Line("%s = static_cast<%s>(ALLOCA(%s));" % \
-                    ((p.as_rvalue if not has_buffer_reuse else temp_buffer.as_rvalue), p.proto, p.max_length.as_rvalue))
+                emit.Line("%s = static_cast<%s>(ALLOCA(%s * sizeof(%s)));" % \
+                    ((p.as_rvalue if not has_buffer_reuse else temp_buffer.as_rvalue), p.proto, p.max_length.as_rvalue, p.type_name))
+                emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue if not has_buffer_reuse else temp_buffer.as_rvalue))
 
                 if has_large_buffer:
                     emit.IndentDec()
@@ -1354,15 +1802,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.Line("%s = %s;" % (p.as_rvalue if not has_buffer_reuse else temp_buffer.as_rvalue, large_buffer.as_rvalue))
                     emit.IndentDec()
                     emit.Line("}")
-                    emit.Line()
 
                 if has_buffer_reuse:
-                    if not has_large_buffer:
-                        emit.Line()
-
+                    emit.Line()
                     emit.Line("if (%s != nullptr) {" % temp_buffer.as_rvalue)
                     emit.IndentInc()
-
                     emit.Line("::memcpy(%s, %s, %s);" % (temp_buffer.as_rvalue, p.as_rvalue, p.length.as_rvalue))
                     emit.IndentDec()
                     emit.Line("}")
@@ -1373,85 +1817,166 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.IndentDec()
                         emit.Line("}")
 
-                    emit.Line()
-
-                    emit.Line()
-                    emit.Line("ASSERT(%s != nullptr);" % p.as_rvalue)
-
                 if ENABLE_INSTANCE_VERIFICATION:
                     emit.Line("if (%s == nullptr) { return (Core::ERROR_GENERAL); }" % p.as_rvalue)
 
-                emit.IndentDec()
-                emit.Line("}")
+                if not p.max_length.value:
+                    emit.IndentDec()
+                    emit.Line("}")
 
             def ReleaseBuffer(p, large_buffer):
-                assert(p)
                 assert p.is_buffer
                 if (p.max_length and (p.length.type.Type().size == "long")):
                     emit.Line("RPC::Administrator::Instance().Free(%s);" % large_buffer.as_rvalue)
 
-            def WriteParameter(p):
-                assert(p)
+            def WriteParameter(p, no_array=False):
+                assert p
+
                 if p.is_on_wire:
-                    if p.is_compound:
-                        kind = p.kind.Merge()
-                        params = [EmitParam(interface, v, (p.name + "." + v.name)) for v in kind.vars]
+                    if p.optional and (not p.is_array or no_array):
+                        emit.Line("%s.Boolean(%s.IsSet());" % ( vars["writer"], p.name))
+                        emit.Line("if (%s.IsSet() == true) {" % p.name)
+                        emit.IndentInc()
+
+                    if p.is_iterator:
+                        iterator = p.optional if p.optional else p
+                        if iterator.iterator_optimization:
+                            length = EmitLength(interface, iterator.length, p.as_rvalue + "->Count()", restrict_range=p.restrict_range)
+                            element = EmitParam(interface, iterator.element, Normalize(iterator.name + "Item"), parent=iterator)
+                            emit.Line("if (%s != nullptr) {" % p.as_rvalue)
+                            emit.IndentInc()
+                            WriteParameter(length)
+                            emit.Line("if (%s == 0) {" % length.name)
+                            emit.IndentInc()
+                            emit.Line("%s.Boolean(true);" % vars["writer"])
+                            emit.IndentDec()
+                            emit.Line("}")
+                            emit.Line("else {")
+                            emit.IndentInc()
+                            emit.Line("%s{};" % element.temporary_no_cv)
+                            emit.Line("%s->Reset(0);" % p.as_rvalue)
+                            emit.Line("while(%s->Next(%s) == true) {" % (p.as_rvalue, element.name))
+                            emit.IndentInc()
+                            WriteParameter(element)
+                            emit.IndentDec()
+                            emit.Line("}")
+                            emit.IndentDec()
+                            emit.Line("}")
+                            emit.Line("%s->Release();" % p.as_rvalue)
+                            emit.IndentDec()
+                            emit.Line("}")
+                            emit.Line("else {")
+                            emit.IndentInc()
+                            WriteParameter(EmitLength(interface, iterator.length, "0"))
+                            emit.Line("%s.Boolean(false);" % vars["writer"])
+                            emit.IndentDec()
+                            emit.Line("}")
+                        else:
+                            emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
+
+                    elif p.is_array and not no_array:
+                        index = chr(ord('i') + p.name.count('['))
+                        element = EmitParam(interface, p.identifier, "%s[%s]" % (p.name, index), suppress_type=True)
+                        emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (index, index, p.length.as_rvalue, index))
+                        emit.IndentInc()
+                        WriteParameter(element, no_array=True)
+                        emit.IndentDec()
+                        emit.Line("}")
+
+                    elif p.is_dynamic_array:
+                        index = chr(ord('i') + p.name.count('['))
+                        length = EmitLength(interface, p.length, (p.as_rvalue + ".size()"))
+                        element = EmitParam(interface, p.element, "%s[%s]" % (p.as_rvalue, index), suppress_type=True, parent=p)
+                        WriteParameter(length)
+                        emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
+                        emit.IndentInc()
+                        WriteParameter(element)
+                        emit.IndentDec()
+                        emit.Line("}")
+
+                    elif p.is_compound:
+                        params = [EmitParam(interface, v, (p.as_rvalue + "." + v.name), suppress_type=True, parent=p) for v in p.compound_merged.vars]
+
                         for pp in params:
                             WriteParameter(pp)
+
+                            if pp.return_proxy or pp.proxy:
+                                return_proxy_params.append(pp)
+
                     elif p.is_buffer:
                         if p.length.name == p.max_length.name and p.max_length and p.max_length.is_output:
                             emit.Line("%s.Buffer<%s>((%s == nullptr? 0 : %s), %s);" % (vars["writer"], p.max_length.type_name, p.as_rvalue, p.max_length.as_rvalue, p.as_rvalue))
                             WriteParameter(p.max_length)
                         else:
                             emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
+
                     else:
                         emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
 
+                    if p.optional and (not p.is_array or no_array):
+                        emit.IndentDec()
+                        emit.Line("}")
+
             def AcquireInterface(p):
-                assert(p)
                 assert p.proxy
                 assert p.proxy_instance
-                emit.Line("%s* %s = nullptr;" %(p.type_name, p.proxy_instance))
-                emit.Line("ProxyStub::UnknownProxy* %s = nullptr;" % p.proxy)
-                emit.Line("if (%s != 0) {" % p.name)
-                emit.IndentInc()
-                emit.Line("%s = RPC::Administrator::Instance().ProxyInstance(%s, %s, false, %s);" % \
-                            (p.proxy, vars["channel"], p.name, p.proxy_instance))
 
-                emit.Line()
-                emit.Line("ASSERT((%s != nullptr) && (%s != nullptr));" % (p.proxy_instance, p.proxy))
+                _name = Normalize(p.name)
+                _name_maybe_opt = ((_name + "Object__") if p.optional else p.name)
+
+                emit.Line("%s %s{};" % (p.proto_no_cv, _name))
+                emit.Line("%s %s = nullptr;" % (p.proxy.proto_no_cv, p.proxy.name))
+                emit.Line("if (%s != 0) {" % p.proxy_instance.as_rvalue)
+                emit.IndentInc()
+
+                if p.optional:
+                    emit.Line("%s %s = nullptr;" % (p.optional.proto_no_cv, _name_maybe_opt))
+
+                emit.Line("%s = RPC::Administrator::Instance().ProxyInstance(%s, %s, false, %s);" % (p.proxy.as_lvalue, vars["channel"], p.proxy_instance.as_lvalue, _name_maybe_opt))
+                emit.Line("ASSERT((%s != nullptr) && (%s != nullptr));" % (_name_maybe_opt, p.proxy.as_rvalue))
 
                 if ENABLE_INSTANCE_VERIFICATION:
-                    emit.Line("if ((%s == nullptr) || (%s == nullptr)) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" % (p.proxy_instance, p.proxy))
+                    emit.Line("if ((%s == nullptr) || (%s == nullptr)) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" % (_name_maybe_opt, p.proxy.as_rvalue))
+
+                if p.optional:
+                    emit.Line("%s = %s;" % (p.name, _name_maybe_opt))
 
                 emit.IndentDec()
                 emit.Line("}")
 
             def ReleaseProxy(p):
-                assert(p)
                 assert p.proxy
-                emit.Line("if (%s != nullptr) {" % p.proxy)
+
+                emit.Line("if (%s != nullptr) {" % p.proxy.as_rvalue)
                 emit.IndentInc()
-                emit.Line("RPC::Administrator::Instance().Release(%s, %s->Response());" % (p.proxy, vars["message"]))
+                emit.Line("RPC::Administrator::Instance().Release(%s, %s->Response());" % (p.proxy.as_rvalue, vars["message"]))
                 emit.IndentDec()
                 emit.Line("}")
 
             def RegisterInterface(p):
-                assert(p)
                 assert p.interface_id
+
+                if p.optional:
+                    emit.Line("if (%s.IsSet() == true) {" % p.as_lvalue)
+                    emit.IndentInc()
+
                 if not isinstance(p.interface_id, AuxIdentifier):
                     # Interface ID comes from a parameter
                     emit.Line("RPC::Administrator::Instance().RegisterInterface(%s, %s, %s);" % (vars["channel"], p.name, p.interface_id.as_rvalue))
                 else:
                     emit.Line("RPC::Administrator::Instance().RegisterInterface(%s, %s);" % (vars["channel"], p.as_rvalue))
 
+                if p.optional:
+                    emit.IndentDec()
+                    emit.Line("}")
+
             def CallImplementation(retval, params):
-                parameters = ", ".join([p.as_rvalue for p in params])
-                lhs = (((retval.as_temporary if not retval.return_proxy else retval.as_temporary_no_cv) + " = ") if retval else "")
+                parameters = ", ".join([p.as_pure_rvalue for p in params])
+                lhs = (((retval.temporary if not retval.return_proxy else retval.temporary_no_cv) + " = ") if retval else "")
                 emit.Line("%s%s->%s(%s);" % (lhs, vars["implementation"], method.name, parameters))
 
             if ENABLE_SECURE:
-                emit.Line("%s = Core::ERROR_NONE;" % hresult.as_temporary)
+                emit.Line("%s = Core::ERROR_NONE;" % hresult.temporary)
                 emit.Line()
 
                 emit.Line("%s = [&]() -> %s {" % (hresult.as_lvalue, hresult.proto_no_cv))
@@ -1465,7 +1990,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 face_name = Flatten(interface.obj.type, ns)
 
             if ENABLE_INTEGRITY_VERIFICATION:
-                emit.Line("if (%s->Parameters().Length() < (sizeof(%s) + sizeof(uint32_t) + 1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % (vars["message"], INSTANCE_ID))
+                emit.Line("if (%s->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }" % (vars["message"]))
                 emit.Line()
 
             implementation_type = (method.CVString() + " " + face_name).strip()
@@ -1483,6 +2008,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if input_params:
                 emit.Line("RPC::Data::Frame::Reader %s(%s->Parameters().Reader());" % (vars["reader"], vars["message"]))
+
                 for p in input_params:
                     ReadParameter(p)
 
@@ -1598,7 +2124,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             EmitFunctionOrder(methods)
             emit.Line()
 
-            emit.Line("ProxyStub::MethodHandler %s[] = {" % stub_methods_name)
+            emit.Line("static ProxyStub::MethodHandler %s[] = {" % stub_methods_name)
             emit.IndentInc()
 
             for index, method in enumerate(methods):
@@ -1613,20 +2139,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line("}; // %s" % stub_methods_name)
             emit.Line()
 
-        for name, element in announce_list.items():
-            EmitStub(name, element[0], element[1], element[4], element[5])
-
-
         #
         # EMIT PROXY CODE
         #
 
-        emit.Line("// -----------------------------------------------------------------")
-        emit.Line("// PROXIES")
-        emit.Line("// -----------------------------------------------------------------\n")
-
         def EmitCompleteMethod():
-            emit.Line("uint32_t Complete(RPC::Data::Frame::Reader& %s)" %  vars["reader"])
+            emit.Line("uint32_t _Complete(RPC::Data::Frame::Reader& %s) const" %  vars["reader"])
             emit.Line("{")
             emit.IndentInc()
             emit.Line("uint32_t result = Core::ERROR_NONE;")
@@ -1647,11 +2165,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line()
 
             if ENABLE_INSTANCE_VERIFICATION:
-                emit.Line("if (RPC::Administrator::Instance().IsValid(Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
+                emit.Line("if (RPC::Administrator::Instance().IsValid(static_cast<const ProxyStub::UnknownProxy&>(*this).Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
                             % (vars["implementation"]))
                 emit.Line()
 
-            emit.Line("result = UnknownProxyType::Complete(%s, id, how);" % vars["implementation"])
+            emit.Line("result = static_cast<const ProxyStub::UnknownProxy&>(*this).Complete(%s, id, how);" % vars["implementation"])
             emit.Line("if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }")
             emit.IndentDec()
             emit.Line("}")
@@ -1662,47 +2180,162 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line()
 
         def EmitProxyMethodImplementation(index, method, interface_name, interface, retval, params,
-                input_params, output_params, proxy_params, return_proxy_paramse):
+                input_params, output_params, proxy_params, return_proxy_params):
 
-            if EMIT_TRACES:
-                emit.Line('fprintf(stderr, "*** [%s proxy] ENTER: %s()\\n");' % (interface_name, method.name))
-                emit.Line()
+            # For proxy
+            def WriteParameter(p, no_array=False):
+                assert p.is_on_wire
 
-            hresult = AuxIdentifier(CppParser.Integer(HRESULT), (CppParser.Ref.VALUE), vars["hresult"])
+                if p.optional and (not p.is_array or no_array):
+                    emit.Line("%s.Boolean(%s.IsSet());" % (vars["writer"], p.name))
+                    emit.Line("if (%s.IsSet() == true) {" % p.name)
+                    emit.IndentInc()
 
-            emit.Line("IPCMessage %s(BaseClass::Message(%s));" % (vars["message"], index))
-            emit.Line()
+                if p.is_iterator:
+                    iterator = p.optional if p.optional else p
+                    if iterator.iterator_optimization:
+                        emit.Line("if (%s != nullptr) {" % p.as_rvalue)
+                        emit.IndentInc()
+                        length = EmitLength(interface, iterator.length, p.as_rvalue + "->Count()")
+                        element = EmitParam(interface, iterator.element, "element", parent=iterator)
+                        WriteParameter(length)
+                        emit.Line("if (%s == 0) {" % length.name)
+                        emit.IndentInc()
+                        emit.Line("%s.Boolean(true);" % vars["writer"])
+                        emit.IndentDec()
+                        emit.Line("}")
+                        emit.Line("else {")
+                        emit.IndentInc()
+                        emit.Line("%s{};" % element.temporary_no_cv)
+                        emit.Line("%s->Reset(0);" % p.as_rvalue)
+                        emit.Line("while(%s->Next(%s) == true) {" % (p.as_rvalue, element.name))
+                        emit.IndentInc()
+                        WriteParameter(element)
+                        emit.IndentDec()
+                        emit.Line("}")
+                        emit.IndentDec()
+                        emit.Line("}")
+                        emit.IndentDec()
+                        emit.Line("} else {")
+                        emit.IndentInc()
+                        WriteParameter(EmitLength(interface, iterator.length, "0"))
+                        emit.Line("%s.Boolean(false);" % vars["writer"])
+                        emit.IndentDec()
+                        emit.Line("}")
+                    else:
+                        emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
 
-            def WriteParameter(p):
-                assert(p)
-                assert(p.is_on_wire)
-                if p.is_compound:
-                    kind = p.kind.Merge()
-                    params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
+                elif p.is_array and not no_array:
+                    index = chr(ord('i') + p.name.count('['))
+                    element = EmitParam(interface, p.identifier, "%s[%s]" % (p.name, index), suppress_type=True)
+                    emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (index, index, p.length.as_rvalue, index))
+                    emit.IndentInc()
+                    WriteParameter(element, no_array=True)
+                    emit.IndentDec()
+                    emit.Line("}")
+
+                elif p.is_dynamic_array:
+                    index = chr(ord('i') + p.name.count('['))
+                    length = EmitLength(interface, p.length, (p.as_rvalue + ".size()"))
+                    element = EmitParam(interface, p.element, "%s[%s]" % (p.as_rvalue, index), suppress_type=True, parent=p)
+                    WriteParameter(length)
+                    emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
+                    emit.IndentInc()
+                    WriteParameter(element)
+                    emit.IndentDec()
+                    emit.Line("}")
+
+                elif p.is_compound:
+                    params = [EmitParam(interface, v, (p.as_rvalue + "." + v.name), suppress_type=True, parent=p) for v in p.compound_merged.vars]
 
                     for pp in params:
                         WriteParameter(pp)
                 else:
-                    emit.Line("writer.%s;" % p.write_rpc_type)
+                    emit.Line("%s.%s;" % (vars["writer"], p.write_rpc_type))
 
-            def ReadParameter(p):
-                assert(p)
+                if p.optional and (not p.is_array or no_array):
+                    emit.IndentDec()
+                    emit.Line("}")
+
+            # For proxy
+            def ReadParameter(p, no_array=False, suppress_type=True):
                 if p.is_on_wire:
-                    if p.is_compound:
-                        kind = p.kind.Merge()
-                        params = [EmitParam(interface, v, (p.name + "." + v.name), True) for v in kind.vars]
-                        for pp in params:
-                            ReadParameter(pp)
+                    if p.optional and (not p.is_array or no_array):
+                        CheckFrame(p)
+                        emit.Line("if (%s.Boolean() == true) {" % vars["reader"])
+                        emit.IndentInc()
 
-                    elif p.return_proxy:
-                        emit.Line("%s = reinterpret_cast<%s>(Interface(%s.%s, %s));" % \
-                                (p.as_lvalue, p.proto_no_cv, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
+                    if p.is_iterator:
+                        iterator = p.optional if p.optional else p
+                        if iterator.iterator_optimization:
+                            name = Normalize(iterator.name)
+                            count = name + "Count"
+                            type = iterator.kind.resolvedArgs[0]
+                            internal = name + "List"
+
+                            length = EmitLength(interface, iterator.length, count, restrict_range=p.restrict_range)
+                            element = EmitParam(interface, iterator.element, Normalize(name + "Item"), parent=iterator)
+                            emit.Line("%s;" % length.temporary_no_cv)
+                            ReadParameter(length)
+
+                            emit.Line("if ((%s != 0) || (%s.Boolean() == true)) {" % (count, vars["reader"]))
+                            emit.IndentInc()
+
+                            emit.Line("std::list<%s> %s;" % (type, internal))
+                            # emit.Line("%s.reserve(%s);" % (internal, length.as_rvalue))
+
+                            emit.Line("while (%s-- != 0) {" % count)
+                            emit.IndentInc()
+                            emit.Line("%s{};" % element.temporary_no_cv)
+                            ReadParameter(element)
+                            emit.Line("%s.push_back(std::move(%s));" % (internal, element.as_rvalue))
+                            emit.IndentDec()
+                            emit.Line("}")
+
+                            impl = "::Thunder::RPC::IteratorType<%s>" % iterator.kind.type
+                            emit.Line("%s = Core::ServiceType<%s>::Create<%s>(std::move(%s));" % (p.as_lvalue, impl, iterator.kind.type, internal))
+                            emit.Line("ASSERT(%s != nullptr);" % (p.as_rvalue))
+
+                            emit.IndentDec()
+                            emit.Line("}")
+                            emit.Line("else {")
+                            emit.IndentInc()
+                            emit.Line("%s = nullptr;" % p.as_lvalue)
+                            emit.IndentDec()
+                            emit.Line("}")
+                        else:
+                            emit.Line("%s = reinterpret_cast<%s>(static_cast<const ProxyStub::UnknownProxy&>(*this).Interface(%s.%s, %s));" % \
+                                (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
+
+                    elif p.is_array and not no_array:
+                        index = chr(ord('i') + p.name.count('['))
+                        element = EmitParam(interface, p.identifier, "%s[%s]" % (p.name, index), suppress_type=True)
+                        emit.Line("for (uint16_t %s = 0; %s < %s; %s++) {" % (index, index, p.length.as_rvalue, index))
+                        emit.IndentInc()
+                        ReadParameter(element, no_array=True)
+                        emit.IndentDec()
+                        emit.Line("}")
+
+                    elif p.is_dynamic_array:
+                        length = EmitLength(interface, p.length, Normalize(p.name + "Size"))
+                        element = EmitParam(interface, p.element, Normalize(p.name + "Item"), parent=p)
+                        emit.Line("%s{};" % (length.temporary_no_cv))
+                        ReadParameter(length)
+                        emit.Line("%s.reserve(%s);" % (p.as_rvalue, length.as_rvalue))
+                        index = chr(ord('i') + p.name.count('Item'))
+                        emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
+                        emit.IndentInc()
+                        emit.Line("%s{};" % (element.temporary_no_cv))
+                        ReadParameter(element)
+                        emit.Line("%s.push_back(std::move(%s));" % (p.as_rvalue, element.as_rvalue))
+                        emit.IndentDec()
+                        emit.Line("}")
 
                     elif p.is_buffer:
                         CheckFrame(p)
                         CheckSize(p)
 
-                        if p.length and p.length.is_output and p.length.name != p.max_length.name:
+                        if p.length and p.length.is_output and (p.length.name != p.max_length.name):
                             emit.Line("%s = %s.%s;" % (p.length.as_lvalue, vars["reader"], p.read_rpc_type))
                         else:
                             emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
@@ -1710,15 +2343,56 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         if p.max_length and p.max_length.is_output:
                             ReadParameter(p.max_length)
 
-                    elif p.is_string:
-                        CheckFrame(p)
-                        CheckSize(p)
-                        emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
+                    elif isinstance(p.kind, CppParser.MacAddress):
+                        emit.Line("%s.%s;" % (vars["reader"], p.read_rpc_type))
+
+                    elif p.is_compound:
+                        if p.optional:
+                            obj_name = Normalize(p.name + "Object__");
+                            emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
+                        else:
+                            obj_name = p.name
+
+                        params = [EmitParam(interface, v, (obj_name + "." + v.name), suppress_type=True, parent=p) for v in p.compound_merged.vars]
+
+                        for pp in params:
+                            ReadParameter(pp)
+
+                        if p.optional:
+                            emit.Line("%s = std::move(%s);" % (p.name, obj_name))
+
+                    elif p.return_proxy:
+                        emit.Line("%s = reinterpret_cast<%s>(static_cast<const ProxyStub::UnknownProxy&>(*this).Interface(%s.%s, %s));" % \
+                                (p.name, p.pure_proto, vars["reader"], p.read_rpc_type, p.interface_id.as_rvalue))
 
                     else:
-                        CheckFrame(p)
-                        emit.Line("%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type))
-                        CheckRange(p, p)
+                        param_ = "%s = %s.%s;" % (p.as_lvalue, vars["reader"], p.read_rpc_type)
+
+                        def _EmitAssignment(p):
+                            if p.is_string:
+                                CheckFrame(p)
+                                CheckSize(p)
+                                emit.Line(param_)
+
+                            else:
+                                CheckFrame(p)
+                                emit.Line(param_)
+                                CheckRange(p, p)
+
+                        _EmitAssignment(p.optional if p.optional else p)
+
+                    if p.optional and (not p.is_array or no_array):
+                        emit.IndentDec()
+                        emit.Line("}")
+
+            if EMIT_TRACES:
+                emit.Line('fprintf(stderr, "*** [%s proxy] ENTER: %s()\\n");' % (interface_name, method.name))
+                emit.Line()
+
+            hresult = AuxIdentifier(CppParser.Integer(HRESULT), (CppParser.Ref.VALUE), vars["hresult"])
+
+            emit.Line("IPCMessage %s(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(%s));" % (vars["message"], index))
+            emit.Line()
 
             if input_params:
                 emit.Line("RPC::Data::Frame::Writer %s(%s->Parameters().Writer());" % (vars["writer"], vars["message"]))
@@ -1729,25 +2403,32 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if ENABLE_INSTANCE_VERIFICATION and proxy_params:
                 instances = []
+
                 for proxy in proxy_params:
-                    instances.append("{ RPC::instance_cast(%s), %s::ID }" % (proxy.as_rvalue, proxy.type_name))
+                    if proxy.optional:
+                        instances.append("{ (%s.IsSet() == true? RPC::instance_cast(%s) : 0), %s::ID }" % (proxy.name, proxy.as_rvalue, proxy.optional.type_name))
+                    else:
+                        instances.append("{ RPC::instance_cast(%s), %s::ID }" % (proxy.as_rvalue, proxy.type_name))
 
                 instances.append("{ 0, 0 }")
 
                 emit.Line("const RPC::InstanceRecord passedInstances[] = { %s };" % ", ".join(instances))
-                emit.Line("Channel()->CustomData(passedInstances);")
+                emit.Line("static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(passedInstances);")
                 emit.Line()
 
             reuse_hresult = (retval and retval.is_hresult)
             needs_reader = (((len(output_params) > 1) or output_params[0]) or proxy_params)
-            check_invoke = ((needs_reader and reuse_hresult) or ENABLE_SECURE)
+            check_invoke = ((needs_reader) or ENABLE_SECURE)
+            _first_param = (1 if reuse_hresult else 0)
 
             if not reuse_hresult and retval:
-                emit.Line("%s{};" % retval.as_temporary_no_cv)
+                emit.Line("%s{};" % retval.temporary_no_cv)
                 emit.Line()
 
-            lhs = (("const " if (not reuse_hresult and not ENABLE_SECURE) else "") + hresult.as_temporary_no_cv + " = ") if check_invoke else ""
-            emit.Line("%sUnknownProxyType::Invoke(%s);" % (lhs, vars["message"]))
+            _const_hresult = (not reuse_hresult and not ENABLE_SECURE)
+            lhs = ("%s%s = " % (("const " if _const_hresult else ""), hresult.temporary_no_cv)) if check_invoke else ""
+
+            emit.Line("%sstatic_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(%s);" % (lhs, vars["message"]))
 
             if check_invoke:
                 emit.Line("if (%s == Core::ERROR_NONE) {" % hresult.as_rvalue)
@@ -1760,48 +2441,50 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             if needs_reader:
                 emit.Line("RPC::Data::Frame::Reader %s(%s->Response().Reader());" % (vars["reader"], vars["message"]))
 
-            if retval:
-                if reuse_hresult:
-                    CheckFrame(retval)
-                    emit.Line("%s = %s.%s;" % (hresult.as_lvalue, vars["reader"], retval.read_rpc_type))
-                    CheckRange(retval, retval)
+                if retval:
+                    if reuse_hresult:
+                        CheckFrame(retval)
+                        emit.Line("%s = %s.%s;" % (hresult.as_lvalue, vars["reader"], retval.read_rpc_type))
+                        CheckRange(retval, retval)
 
-                    if len(output_params) > 1:
-                        emit.Line("if ((%s & COM_ERROR) == 0) {" % hresult.as_rvalue)
-                        emit.IndentInc()
-                else:
-                    ReadParameter(retval)
+                if ENABLE_SECURE and (reuse_hresult and (len(output_params) > _first_param)):
+                    emit.Line("if ((%s & COM_ERROR) == 0) {" % hresult.as_rvalue)
+                    emit.IndentInc()
 
-            if len(output_params) > 1:
-                for p in output_params[1:]:
-                    ReadParameter(p)
+                if len(output_params) > _first_param:
+                    for p in output_params[_first_param:]:
+                        if p:
+                            ReadParameter(p)
 
-            if reuse_hresult and (len(output_params) > 1):
-                emit.IndentDec()
-                emit.Line("}")
+                if ENABLE_SECURE and (reuse_hresult and (len(output_params) > _first_param)):
+                    emit.IndentDec()
+                    emit.Line("}")
 
             if proxy_params:
                 emit.Line()
+
                 if ENABLE_SECURE:
-                    emit.Line("const uint32_t completeResult = Complete(%s);" % vars["reader"])
-                    emit.Line("if (completeResult != Core::ERROR_NONE) { return (completeResult); }")
+                    emit.Line("const uint32_t completeResult__ = _Complete(%s);" % vars["reader"])
+                    emit.Line("if (completeResult__ != Core::ERROR_NONE) { return (completeResult__); }")
                 else:
-                    emit.Line("Complete(%s);" % vars["reader"])
+                    emit.Line("_Complete(%s);" % vars["reader"])
 
             if check_invoke:
                 if ENABLE_SECURE:
                     emit.Line()
+
                     if reuse_hresult:
                         emit.Line("return (%s);" % hresult.as_rvalue)
                     else:
                         emit.Line("return (Core::ERROR_NONE);")
+
                     emit.IndentDec()
                     emit.Line("} ();")
 
                 emit.IndentDec()
                 emit.Line("} else {")
                 emit.IndentInc()
-                emit.Line("%s |= COM_ERROR;" % hresult.as_rvalue)
+                emit.Line("ASSERT((%s & COM_ERROR) != 0);" % hresult.as_rvalue)
                 emit.IndentDec()
                 emit.Line("}")
 
@@ -1820,7 +2503,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if ENABLE_INSTANCE_VERIFICATION and proxy_params:
                 emit.Line()
-                emit.Line("Channel()->CustomData(nullptr);")
+                emit.Line("static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(nullptr);")
 
             if EMIT_TRACES:
                 emit.Line()
@@ -1830,13 +2513,29 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 emit.Line()
                 emit.Line("return (%s);" % (hresult.name if reuse_hresult else retval.name))
 
+        def EmitProxyMethodStubbed(index, method, interface_name, retval):
+            if EMIT_TRACES:
+                emit.Line('fprintf(stderr, "*** [%s proxy] STUBBED METHOD: %s() [index %i]\\n");' % (interface_name, method.name, index))
+                emit.Line()
+
+            emit.Line("// stubbed method, no implementation")
+
+            if retval:
+                emit.Line()
+
+                if retval.is_hresult:
+                    emit.Line("return (%s{COM_ERROR | Core::ERROR_UNAVAILABLE});" % retval.type_name)
+                else:
+                    emit.Line("return {};")
+
 
         def EmitProxyMethod(index, method, interface_name, interface, prepared_params):
             retval, params, input_params, output_params, proxy_params, return_proxy_params = prepared_params
 
             method_type = ((Flatten(retval.identifier.Proto(), ns) + " ") if retval else "void ")
             method_qualifiers = ((" const" if "const" in method.qualifiers else "") + " override")
-            params_list = [(Flatten(p.identifier.Proto(), ns) + ((" " + p.as_in_prototype) if not method.stub else "")) for p in params]
+            params_list = [(Flatten(p.identifier.Signature((p.name if not method.stub else "")), ns)) for p in params]
+
             emit.Line("%s%s(%s)%s" % (method_type, method.name, ", ".join(params_list), method_qualifiers))
             emit.Line("{")
             emit.IndentInc()
@@ -1844,23 +2543,14 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             if not method.stub:
                 EmitProxyMethodImplementation(index, method, interface_name, interface, retval, params, \
                                                 input_params, output_params, proxy_params, return_proxy_params)
-
-            if method.stub:
-                if EMIT_TRACES:
-                    emit.Line('fprintf(stderr, "*** [%s proxy] STUBBED METHOD: %s()\\n");' % (interface_name, method.name))
-                    emit.Line()
-
-                emit.Line("// stubbed method, no implementation")
-                if retval:
-                    emit.Line()
-                    if retval.is_hresult:
-                        emit.Line("return (%s{COM_ERROR | Core::ERROR_UNAVAILABLE});" % retval.type_name)
-                    else:
-                        emit.Line("return {};")
+            else:
+                EmitProxyMethodStubbed(index, method, interface_name, retval)
 
             emit.IndentDec()
             emit.Line("}")
             emit.Line()
+
+            return ((proxy_params != []) and not method.stub)
 
         def EmitProxy(interface_name, methods, proxy_name, interface, prepared_params):
             if BE_VERBOSE:
@@ -1885,129 +2575,176 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line("}")
             emit.Line()
 
-            EmitCompleteMethod()
+            have_proxy = False
 
             for index, method in enumerate(methods):
-                EmitProxyMethod(index, method, interface_name, interface, prepared_params[index])
+                has_proxy = EmitProxyMethod(index, method, interface_name, interface, prepared_params[index])
+                if has_proxy:
+                    have_proxy = True
 
             emit.IndentDec()
+
+            if have_proxy:
+                emit.Line("private:")
+                emit.IndentInc()
+                EmitCompleteMethod()
+                emit.IndentDec()
+
             emit.Line("}; // class %s" % proxy_name)
             emit.Line()
 
-        for name, element in announce_list.items():
-            EmitProxy(name, element[0], element[3], element[4], element[5])
-
-        if BE_VERBOSE:
-            log.Print("Emitting stub registration code...")
-
-
-        emit.Line("POP_WARNING()")
-        emit.Line("POP_WARNING()")
-        emit.Line()
 
         #
         # EMIT REGISTRATION CODE
         #
+        def EmitRegistration(announce_list):
+            if BE_VERBOSE:
+                log.Print("Emitting stub registration code...")
+
+            emit.Line("namespace {")
+            emit.IndentInc()
+            emit.Line()
+
+            for _, [_, methods, stub, _, interface, _ ] in announce_list.items():
+                emit.Line("typedef ProxyStub::UnknownStubType<%s, %s> %s;" % (Flatten(interface.obj.type, ns), methods, stub))
+
+            emit.Line()
+            emit.Line("static class Instantiation {")
+            emit.Line("public:")
+            emit.IndentInc()
+            emit.Line("Instantiation()")
+            emit.Line("{")
+            emit.IndentInc()
+
+            if announce_list:
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
+
+                security_options = []
+                security_var = ""
+
+                # These should always go together...
+                assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
+
+                if ENABLE_INSTANCE_VERIFICATION:
+                    security_options.append("static_cast<std::underlying_type<RPC::SecureProxyStubType>::type>(RPC::SecureProxyStubType::PROXYSTUBS_SECURITY_SECURE)")
+                if ENABLE_INTEGRITY_VERIFICATION:
+                    security_options.append("static_cast<std::underlying_type<RPC::SecureProxyStubType>::type>(RPC::SecureProxyStubType::PROXYSTUBS_SECURITY_COHERENT)")
+
+                if security_options:
+                    security_var = "security"
+                    emit.Line("const RPC::SecureProxyStubType %s = static_cast<RPC::SecureProxyStubType>(%s);"  % (security_var, " | ".join(security_options)))
+                    emit.Line()
+
+                for _, [_, _, stub, proxy, interface, _ ]  in announce_list.items():
+                    emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>(%s);" % (Flatten(interface.obj.type, ns), proxy, stub, security_var))
+
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
+
+            emit.IndentDec()
+            emit.Line("}")
+            emit.Line("~Instantiation()")
+            emit.Line("{")
+            emit.IndentInc()
+
+            if announce_list:
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Recalling %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
+
+                for _, [_, _, _, _, interface, _ ]  in announce_list.items():
+                    emit.Line("RPC::Administrator::Instance().Recall<%s>();" % (Flatten(interface.obj.type, ns)))
+
+                if EMIT_TRACES:
+                    emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
+
+            emit.IndentDec()
+            emit.Line("}")
+            emit.IndentDec()
+            emit.Line("} ProxyStubRegistration;")
+            emit.Line()
+            emit.IndentDec()
+            emit.Line("} // namespace")
+            emit.Line()
+
+
+        emit.Line("//")
+        emit.Line("// generated automatically from \"%s\"" % interface_header_name)
+        emit.Line("//")
+        emit.Line("// implements COM-RPC proxy stubs for:")
+
+        for face in interfaces:
+            if not face.obj.omit:
+                emit.Line("//   - %s" % Flatten(str(face.obj), ns))
+
+        emit.Line("//")
+
+        if ENABLE_SECURE:
+            emit.Line("// secure code enabled:")
+            if ENABLE_INSTANCE_VERIFICATION:
+                emit.Line("//   - instance verification enabled")
+            if ENABLE_RANGE_VERIFICATION:
+                emit.Line("//   - range verification enabled")
+            if ENABLE_INTEGRITY_VERIFICATION:
+                emit.Line("//   - frame coherency verification enabled")
+            emit.Line("//")
+
+        emit.Line()
+
+        if os.path.isfile(os.path.join(os.path.dirname(source_file), "Module.h")):
+            emit.Line('#include "Module.h"')
+
+        if os.path.isfile(os.path.join(os.path.dirname(source_file), interface_header_name)):
+            emit.Line('#include "%s"' % interface_header_name)
+
+        emit.Line()
+
+        emit.Line('#include <com/com.h>')
+        emit.Line()
+
+        emit.Line("namespace %s {" % STUB_NAMESPACE.split("::")[-2])
+        emit.Line()
+        emit.Line("namespace %s {" % STUB_NAMESPACE.split("::")[-1])
+        emit.Line()
+        emit.IndentInc()
+
+        if (interface_namespace != STUB_NAMESPACE.split("::")[-2]):
+            emit.Line("using namespace %s;" % interface_namespace)
+            emit.Line()
+
+        emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
+        emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
+        emit.Line()
+
+        emit.Line("// -----------------------------------------------------------------")
+        emit.Line("// STUBS")
+        emit.Line("// -----------------------------------------------------------------\n")
+
+        for name, element in announce_list.items():
+            EmitStub(name, element[0], element[1], element[4], element[5])
+
+        emit.Line("// -----------------------------------------------------------------")
+        emit.Line("// PROXIES")
+        emit.Line("// -----------------------------------------------------------------\n")
+
+        for name, [methods, _, _, proxy_name, interface, prepared_params] in announce_list.items():
+            EmitProxy(name, methods, proxy_name, interface, prepared_params)
+
+        emit.Line("POP_WARNING()")
+        emit.Line("POP_WARNING()")
+        emit.Line()
+
         emit.Line("// -----------------------------------------------------------------")
         emit.Line("// REGISTRATION")
         emit.Line("// -----------------------------------------------------------------")
-        emit.Line()
-        emit.Line("namespace {")
-        emit.IndentInc()
-
-        emit.Line()
-
-        for _, [_, methods, stub, _, interface, _ ] in announce_list.items():
-            emit.Line("typedef ProxyStub::UnknownStubType<%s, %s> %s;" % (Flatten(interface.obj.type, ns), methods, stub))
-
-        emit.Line()
-
-        emit.Line("static class Instantiation {")
-        emit.Line("public:")
-        emit.IndentInc()
-        emit.Line("Instantiation()")
-        emit.Line("{")
-        emit.IndentInc()
-
-        if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
-
-        for _, [_, _, stub, proxy, interface, _ ]  in announce_list.items():
-            emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>();" % (Flatten(interface.obj.type, ns), proxy, stub))
-
-        if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
-
-        emit.IndentDec()
-        emit.Line("}")
-
-        emit.Line("~Instantiation()")
-        emit.Line("{")
-        emit.IndentInc()
-
-        if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Recalling %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
-
-        for _, [_, _, _, _, interface, _ ]  in announce_list.items():
-            emit.Line("RPC::Administrator::Instance().Recall<%s>();" % (Flatten(interface.obj.type, ns)))
-
-        if EMIT_TRACES:
-            emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
-
-        emit.IndentDec()
-        emit.Line("}")
-
-        emit.IndentDec()
-        emit.Line("} ProxyStubRegistration;")
-        emit.Line()
-        emit.IndentDec()
-        emit.Line("} // namespace")
-        emit.Line()
+        EmitRegistration(announce_list)
 
         emit.IndentDec()
         emit.Line("} // namespace %s" % STUB_NAMESPACE.split("::")[-1])
         emit.Line()
-        emit.Line("}") # // namespace %s" % STUB_NAMESPACE.split("::")[-1])
+        emit.Line("}")
 
     return interfaces, omit_interface_used
-
-def GenerateIdentification(name):
-    if not os.path.exists(name):
-        with open(name, "w") as file:
-            emit = Emitter(file, INDENT_SIZE)
-            emit.Line("//")
-            emit.Line("// generated automatically")
-            emit.Line()
-            emit.Line("#include \"Module.h\"")
-            emit.Line("#include <com/ProxyStubs.h>")
-            emit.Line()
-            emit.Line("extern \"C\" {")
-            emit.Line()
-
-            options = []
-
-            # These should always go together...
-            assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
-
-            if ENABLE_INSTANCE_VERIFICATION:
-                options.append("PROXYSTUBS_OPTIONS_SECURE")
-            if ENABLE_INTEGRITY_VERIFICATION:
-                options.append("PROXYSTUBS_OPTIONS_COHERENT")
-            if not options:
-                options.append("0")
-
-            emit.Line("EXTERNAL_EXPORT proxystubs_options_t proxystubs_options()")
-            emit.Line("{")
-            emit.IndentInc()
-            emit.Line("return (static_cast<proxystubs_options_t>(%s));" % " | ".join(options))
-            emit.IndentDec()
-            emit.Line("}")
-            emit.IndentDec()
-            emit.Line()
-            emit.Line("}")
-            emit.Line()
-
-            log.Print("created file %s" % os.path.basename(name))
 
 
 # -------------------------------------------------------------------------
@@ -2016,7 +2753,7 @@ def GenerateIdentification(name):
 if __name__ == "__main__":
     argparser = argparse.ArgumentParser(description='Generate proxy stub code out of interface header files.',
                                         epilog='Note that using --secure, --coherent and --traces options will produce less performant code.',
-                                        formatter_class=argparse.RawTextHelpFormatter)
+                                        formatter_class=lambda prog: argparse.RawTextHelpFormatter(prog, max_help_position=30))
     argparser.add_argument('path', nargs="*", help="C++ interface file(s) or a directory(ies) with interface files")
     argparser.add_argument("--help-tags",
                            dest="help_tags",
@@ -2043,11 +2780,6 @@ if __name__ == "__main__":
                            action="store_true",
                            default=False,
                            help="emit additional frame coherency verification (default: no extra verification)")
-    argparser.add_argument("--no-identify",
-                           dest="noidentify",
-                           action="store_true",
-                           default=False,
-                           help="do not emit additional file with identification code (default: emit identification code)")
     argparser.add_argument("--traces",
                            dest="traces",
                            action="store_true",
@@ -2058,7 +2790,13 @@ if __name__ == "__main__":
                            metavar="NS",
                            action="append",
                            default=[],
-                           help="set a namespace to look for interfaces in (default: %s)" % INTERFACE_NAMESPACES[0])
+                           help="set a namespace to look for interfaces in, can be used multiple times (default: search in %s)" % INTERFACE_NAMESPACES[0])
+    argparser.add_argument("--framework-namespace",
+                           dest="framework_namespace",
+                           metavar="NS",
+                           action="store",
+                           default=FRAMEWORK_NAMESPACE,
+                           help="set framework namespace (default: %s)" % FRAMEWORK_NAMESPACE)
     argparser.add_argument("--outdir",
                            dest="outdir",
                            metavar="DIR",
@@ -2085,12 +2823,18 @@ if __name__ == "__main__":
                            action="store_true",
                            default=FORCE,
                            help="force stub generation even if destination file is up-to-date (default: force disabled)")
+    argparser.add_argument("--collated-iterators",
+                           dest="collated_iterators",
+                           action="store_true",
+                           default=ENABLE_ITERATOR_OPTIMIZATION,
+                           help="pass collated iterator data in one go (default: pass interface)")
     argparser.add_argument("-i",
                            dest="extra_includes",
                            metavar="FILE",
                            action='append',
                            default=[],
-                           help="include an additional C++ header file, may be used multiple times (default: include 'Ids.h')")
+                           nargs="*",
+                           help="include an additional C++ header file, can be used multiple times (default: include 'Module.h')")
     argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
                            help='add an include search path, can be used multiple times')
 
@@ -2102,12 +2846,19 @@ if __name__ == "__main__":
     ENABLE_RANGE_VERIFICATION = args.secure
     ENABLE_INTEGRITY_VERIFICATION = args.integrity
     ENABLE_SECURE = ENABLE_INSTANCE_VERIFICATION or ENABLE_RANGE_VERIFICATION or ENABLE_INTEGRITY_VERIFICATION
+    ENABLE_ITERATOR_OPTIMIZATION = args.collated_iterators
     log.show_infos = BE_VERBOSE
     log.show_warnings = SHOW_WARNINGS
     OUTDIR = args.outdir
     EMIT_TRACES = args.traces
     scan_only = False
     keep_incomplete = args.keep_incomplete
+
+    if args.framework_namespace:
+        FRAMEWORK_NAMESPACE = args.framework_namespace
+        STUB_NAMESPACE = "::%s::ProxyStubs" % FRAMEWORK_NAMESPACE
+        INTERFACE_NAMESPACES = ["::%s" % FRAMEWORK_NAMESPACE]
+        CLASS_IUNKNOWN = "::%s::Core::IUnknown" % FRAMEWORK_NAMESPACE
 
     if args.if_namespaces:
         INTERFACE_NAMESPACES = args.if_namespaces
@@ -2131,9 +2882,10 @@ if __name__ == "__main__":
         print("   @in                    - indicates an input parameter")
         print("   @out                   - indicates an output parameter")
         print("   @inout                 - indicates an input/output parameter (equivalent of @in @out)")
-        print("   @restrict {range}      - specifies valid range for a parameter (for buffers and strings: valid size)")
-        print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1")
+        print("   @restrict:[{min}..]{max} - specifies valid range for a parameter (for buffers, vectors, iterators, strings: valid size)")
+        print("                            e.g.: @restrict:1..32, @restrict:256..1K, @restrict:1M-1, @restrict:nonempty")
         print("   @interface:{expr}      - specifies a parameter or value indicating interface ID value for void* interface passing")
+        print("   @interface             - specifies an iterator class, iterator parameter or typedef to iterator to be always passed as interface")
         print("   @length:{expr}         - specifies a buffer length value (a constant, a parameter name or a math expression)")
         print("   @maxlength:{expr}      - specifies a maximum buffer length value (a constant, a parameter name or a math expression),")
         print("                            if @maxlength is not specified, expresion from @length is used")
@@ -2150,30 +2902,37 @@ if __name__ == "__main__":
         print("   @uncompliant:extended  - tags a class to be generated in the obsolete 'extended' format")
         print("   @uncompliant:collapsed - tags a class to be generated in the obsolete 'collapsed' format")
         print("   @text:keep             - keeps original C++ names for all JSON names in an interface")
+        print("   @text:{caseconvention} - sets case convention for an interface")
         print("   @event                 - tags a class to be generated as an JSON-RPC notification")
         print("   @iterator              - tags a C++ class to be generated as an JSON-RPC interator")
         print("   @property              - tags C++ method to be generated as a JSON-RPC property")
-        print("   @statuslistener        - marks an event as status-listener")
+        print("   @async                 - indicates that a method is asynchronous")
+        print("   @wrapped               - enforces object result even if a single item is returned (method or interface level)")
+        print("   @statuslistener        - emits registration/unregistration status listeners for an event")
         print("   @bitmask               - indicates that enumerator lists should be packed into into a bit mask")
         print("   @index                 - indicates that a parameter in a JSON-RPC property or notification is an index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
         print("   @extract               - indicates that that if only one element is present in the array it shall be taken out of it")
-        print("   @optional              - indicates that a parameter, struct member or property index is optional")
-        print("   @prefix {name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
-        print("   @text {name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, struct members, property or notification")
-        print("   @alt {name}            - provides an alternative name a JSON-RPC method or property can by called by")
+        print("                            or, if the parameter is a struct, the object should be collapsed and its members spilled to method parameters")
+        print("   @optional              - indicates that a parameter, struct member or property index is optional (deprecated, use Core::OptionalType instead)")
+        print("   @default:{value}       - set a default value for the deprecated optional parameter (deprecated)")
+        print("   @encode:{method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
+        print("   @encode:{lookup}       - encodes interface instances to JSON using lookup methods (lookup, autolookup) ")
+        print("   @encode:bitmask        - encodes a bitmask enum to a JSON array")
+        print("   @encode:text           - enocdes enum to text (generate enum conversion tables), implicit for enums inside @json-tagged classes")
+        print("   @prefix:{name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
+        print("   @text:{name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, struct members, property or notification")
+        print("   @alt:{name}            - provides an alternative name a JSON-RPC method or property can by called by")
         print("                            (for a notification it provides an additional name to send out)")
-        print("   @alt-deprecated {name} - provides an alternative deprecated name a JSON-RPC method can by called by")
-        print("   @alt-obsolete {name}   - provides an alternative obsolete name a JSON-RPC method can by called by")
+        print("   @alt-deprecated:{name} - provides an alternative deprecated name a JSON-RPC method can by called by")
+        print("   @alt-obsolete:{name}   - provides an alternative obsolete name a JSON-RPC method can by called by")
         print("")
         print("JSON-RPC documentation-related parameters:")
-        print("   @sourcelocation {link} - sets source location link to be used in the documentation")
+        print("   @sourcelocation {lnk}  - sets source location link to be used in the documentation")
         print("   @deprecated            - outlines a JSON-RPC method, property or notification as deprecated")
         print("   @obsolete              - outlines a JSON-RPC method, property or notification as osbsolete")
         print("   @brief {desc}          - sets a brief description for a JSON-RPC method, property or notification")
         print("   @details {desc}        - sets a detailed description for a JSON-RPC method, property or notification")
-        print("   @pre {desc}            - describes preconditions for a JSON-RPC method, property or notification")
-        print("   @post {desc}           - describes postconditions for a JSON-RPC method, property or notification")
         print("   @param {name} {desc}   - sets a description for a parameter of a JSON-RPC method or notification")
         print("   @retval {value} {desc} - sets a description for a return value of a JSON-RPC method or property")
         print("   @end                   - indicates end of the enumerator list (meaning don't document further)")
@@ -2201,9 +2960,9 @@ if __name__ == "__main__":
         for elem in files:
             if os.path.isdir(elem):
                 interface_files += [ os.path.join(elem, f) for f in os.listdir(elem)
-                    if (os.path.isfile(os.path.join(elem, f)) and re.match("I.*\\.h", f) and f != IDS_DEFINITIONS_FILE) ]
+                    if (os.path.isfile(os.path.join(elem, f)) and re.match("I.*\\.h", f)) ]
             elif os.path.isfile(elem):
-                if re.match(".*I.*\\.h", elem) and not elem.endswith(IDS_DEFINITIONS_FILE):
+                if re.match(".*I.*\\.h", elem):
                     interface_files += [elem]
             else:
                 log.Error("invalid file or directory", elem)
@@ -2214,26 +2973,18 @@ if __name__ == "__main__":
         if interface_files:
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
-                lua_file = open(("." if not OUTDIR else OUTDIR) + os.sep + name, "w")
+                output_file = ("." if not OUTDIR else OUTDIR) + os.sep + name
+                lua_file = open(output_file, "w")
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
                 lua_enums = dict()
 
-            if args.code and not args.noidentify:
-                output_file = os.path.join(os.path.dirname(interface_files[0]) if not OUTDIR else OUTDIR, "ProxyStubsMetadata.cpp")
-
-                out_dir = os.path.dirname(output_file)
-                if not os.path.exists(out_dir):
-                    os.makedirs(out_dir)
-
-                GenerateIdentification(output_file)
-
             for source_file in interface_files:
                 try:
-                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), IDS_DEFINITIONS_FILE) ]
+                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), MODULE_FILE) ]
                     _extra_includes.extend(args.extra_includes)
 
-                    tree = Parse(source_file, args.includePaths,
+                    tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths,
                                     os.path.join("@" + os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE),
                                     _extra_includes)
 
@@ -2263,7 +3014,7 @@ if __name__ == "__main__":
 
                         else:
                             faces += new_faces
-                            log.Print("created file %s" % os.path.basename(output_file))
+                            log.Info("created file %s" % os.path.basename(output_file))
 
                         # dump interfaces if only scanning
                         if scan_only:
@@ -2271,13 +3022,13 @@ if __name__ == "__main__":
                                 print(f.id, f.obj.full_name)
 
                     if args.lua_code:
-                        log.Print("(lua generator) Scanning %s..." % os.path.basename(source_file))
+                        log.Info("(lua generator) Scanning %s..." % os.path.basename(source_file))
 
                         for ns in INTERFACE_NAMESPACES:
                             GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums, source_file, tree, ns)
 
                 except NotModifiedException as err:
-                    log.Print("skipped file %s, up-to-date" % os.path.basename(output_file))
+                    log.Info("skipped file %s, up-to-date" % os.path.basename(output_file))
                     skipped.append(source_file)
                 except SkipFileError as err:
                     log.Print("skipped file %s" % os.path.basename(output_file))
@@ -2326,9 +3077,9 @@ if __name__ == "__main__":
                 # Epilogue
                 for ns in INTERFACE_NAMESPACES:
                     GenerateLuaData(Emitter(lua_file, INDENT_SIZE), lua_interfaces, lua_enums)
-                    log.Print("Created %s (%s interfaces, %s enums)" % (lua_file.name, len(lua_interfaces), len(lua_enums)))
+                    log.Info("Created %s (%s interfaces, %s enums)" % (lua_file.name, len(lua_interfaces), len(lua_enums)))
 
         else:
-            log.Print("Nothing to do")
+            log.Info("Nothing to do")
 
         sys.exit(1 if len(log.errors) else 0)
