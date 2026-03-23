@@ -22,7 +22,7 @@
 #pragma once
 #include <core/core.h>
 
-namespace Thunder {
+namespace WPEFramework {
 namespace Exchange {
 namespace JSONRPC {
 
