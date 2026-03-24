@@ -49,7 +49,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     needs_move = False
     error_condition_emitted = False
 
-    converted = param.TempName("conv_") if has_conversion else param.original_name
+    converted = param.TempName("conv_") if has_conversion else param.original_name if param.original_name else param.name
     converted_result = param.TempName("convResult_")
     converted_enum = param.TempName("convEnum_")
     array_size = param.schema.get("@arraysize")
@@ -1309,9 +1309,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         else:
                             # fallback to @length
                             alloca_param = size
-                            conditions.check_set(maxlength_param[0])
-                            conditions.check_not_null(maxlength_param[0])
-                            if maxlength_param[0].size > 16:
+                            conditions.check_set(length_param[0])
+                            conditions.check_not_null(length_param[0])
+                            if length_param[0].size > 16:
                                 conditions.extend("%s <= 0x100000" % size)
 
                         emit.EnterBlock(conditions)
