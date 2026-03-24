@@ -118,12 +118,6 @@ namespace Thunder {
             //         Caller pre-allocates output buffer; maxLength carries the buffer capacity in and
             //         the number of bytes written out.
             //
-            //  @json:omit Excluded from JSON-RPC: Raw pointer + length pattern with @maxlength/@inout doesn't
-            //             map cleanly to JSON (would require base64 encoding or complex buffer handling).
-            //             This pattern works in COM-RPC where buffer marshalling is native.
-            //             JsonGenerator also generates non-compiling code for this signature.
-            //             Use EchoString() for JSON-RPC string testing instead.
-            //
             // FIXME: Commented out until JsonGenerator supports this pattern or we redesign the signature
             // virtual Core::hresult EchoCharPtr(const char* input /* @in @length:maxLength @restrict:255 */, 
             //                                    char* output /* @out @maxlength:maxLength */, 
