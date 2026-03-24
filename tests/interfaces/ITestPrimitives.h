@@ -117,6 +117,7 @@ namespace Thunder {
             //  @brief Round-trip marshalling test for const char* (raw C-string, distinct marshalling path).
             //         Caller pre-allocates output buffer; maxLength carries the buffer capacity in and
             //         the number of bytes written out.
+            //
             // FIXME: Commented out until JsonGenerator supports this pattern or we redesign the signature
             // virtual Core::hresult EchoCharPtr(const char* input /* @in @length:maxLength @restrict:255 */, 
             //                                    char* output /* @out @maxlength:maxLength */, 
