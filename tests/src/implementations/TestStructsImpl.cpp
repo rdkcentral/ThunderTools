@@ -4,6 +4,11 @@
 
 #include "TestRegistry.h"
 #include <ITestStructs.h>
+
+#ifdef BUILD_JSON_RPC_TESTS
+#include "JsonRpcServer.h"
+#include <JTestStructs.h>
+#endif
 #include <cmath>
 #include <algorithm>
 #include <map>
@@ -268,6 +273,8 @@ namespace TestImplementations {
     };
 
     static TestRegistry::ImplementationRegistrar<ITestStructs, TestStructsImpl> g_structsRegistrar;
-
+#ifdef BUILD_JSON_RPC_TESTS
+    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestStructs, TestStructsImpl> g_jsonrpc_structsRegistrar(FunctionalTest::JTestStructs::Register<JsonRpcServer::JsonRpcServer>);
+#endif
 } // namespace TestImplementations
 } // namespace Thunder

@@ -25,6 +25,22 @@
 namespace Thunder {
     namespace FunctionalTest {
         // @json 1.0.0
+        //
+        // ITestPrimitives: Comprehensive primitive type marshalling test interface
+        //
+        // Purpose: Validates round-trip encoding/decoding of all fundamental C++ types
+        // through both COM-RPC (binary ProxyStub) and JSON-RPC (JsonGenerator) paths.
+        //
+        // JSON-RPC Coverage Notes:
+        // - Most primitive types map naturally to JSON (int, uint, float, double, bool, string)
+        // - Special types (Core::Time, Core::MACAddress) use custom JSON encodings
+        // - int24_t/UInt24: Excluded from JSON-RPC due to JsonGenerator code generation bugs
+        // - char* buffers: Excluded (@json:omit) as raw pointer+length pattern doesn't map cleanly to JSON
+        //
+        // Test Coverage: 16 methods total
+        // - COM-RPC: All 16 methods tested (including Int24/UInt24)
+        // - JSON-RPC: 14 methods tested (excludes Int24/UInt24 due to generator limitations)
+        //
         struct EXTERNAL ITestPrimitives : virtual public Core::IUnknown {
 
             enum { ID = ID_TEST_PRIMITIVES };
@@ -38,6 +54,8 @@ namespace Thunder {
             virtual Core::hresult EchoInt16(const int16_t input /* @in */, int16_t& output /* @out */) = 0;
 
             //  @brief Round-trip marshalling test for int24_t (24-bit signed)
+            //  @json:omit Excluded from JSON-RPC: JsonGenerator bug generates non-existent "Core::Int24" type
+            //             (should generate "int24_t" instead). Works fine in COM-RPC binary marshalling.
             virtual Core::hresult EchoInt24(const int24_t input /* @in */, int24_t& output /* @out */) = 0;
 
             //  @brief Round-trip marshalling test for int32_t
@@ -55,6 +73,8 @@ namespace Thunder {
             virtual Core::hresult EchoUInt16(const uint16_t input /* @in */, uint16_t& output /* @out */) = 0;
 
             //  @brief Round-trip marshalling test for Core::UInt24 (24-bit unsigned)
+            //  @json:omit Excluded from JSON-RPC for consistency with Int24 omission (Core::UInt24 would work,
+            //             but keeping 24-bit types out of JSON-RPC tests until Int24 bug is fixed).
             virtual Core::hresult EchoUInt24(const Core::UInt24 input /* @in */, Core::UInt24& output /* @out */) = 0;
 
             //  @brief Round-trip marshalling test for uint32_t
@@ -97,9 +117,17 @@ namespace Thunder {
             //  @brief Round-trip marshalling test for const char* (raw C-string, distinct marshalling path).
             //         Caller pre-allocates output buffer; maxLength carries the buffer capacity in and
             //         the number of bytes written out.
-            // FIXME: this will generate non-compiling code... 
-            // @ json:omit  (raw buffer pattern has no clean JSON-RPC mapping)
-            // virtual Core::hresult EchoCharPtr(const char* input /* @ in @ length:maxLength @ restrict:255 */, char* output /* @ out @ maxlength:maxLength */, uint8_t& maxLength /* @ inout */) = 0;
+            //
+            //  @json:omit Excluded from JSON-RPC: Raw pointer + length pattern with @maxlength/@inout doesn't
+            //             map cleanly to JSON (would require base64 encoding or complex buffer handling).
+            //             This pattern works in COM-RPC where buffer marshalling is native.
+            //             JsonGenerator also generates non-compiling code for this signature.
+            //             Use EchoString() for JSON-RPC string testing instead.
+            //
+            // FIXME: Commented out until JsonGenerator supports this pattern or we redesign the signature
+            // virtual Core::hresult EchoCharPtr(const char* input /* @in @length:maxLength @restrict:255 */, 
+            //                                    char* output /* @out @maxlength:maxLength */, 
+            //                                    uint8_t& maxLength /* @inout */) = 0;
         };
     } // namespace FunctionalTest
 } // namespace Thunder

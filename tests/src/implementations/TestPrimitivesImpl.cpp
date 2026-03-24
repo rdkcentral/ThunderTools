@@ -6,6 +6,11 @@
 #include <ITestPrimitives.h>
 #include <cstring>
 
+#ifdef BUILD_JSON_RPC_TESTS
+#include "JsonRpcServer.h"
+#include <JTestPrimitives.h>
+#endif
+
 namespace Thunder {
 namespace TestImplementations {
 
@@ -86,6 +91,10 @@ namespace TestImplementations {
     };
 
     static TestRegistry::ImplementationRegistrar<FunctionalTest::ITestPrimitives, TestPrimitivesImpl> g_primitivesRegistrar;
+
+#ifdef BUILD_JSON_RPC_TESTS
+    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestPrimitives, TestPrimitivesImpl> g_jsonrpc_primitivesRegistrar(FunctionalTest::JTestPrimitives::Register<JsonRpcServer::JsonRpcServer>);
+#endif
 
 } // namespace TestImplementations
 } // namespace Thunder

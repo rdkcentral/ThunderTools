@@ -1,4 +1,4 @@
-name: Proxy Stub Generator Functional Tests
+name: ProxyStub & JSON-RPC Generator Functional Tests
 
 permissions:
   contents: read
@@ -9,11 +9,13 @@ on:
     branches: [ master ]
     paths:
       - "ProxyStubGenerator/**"
+      - "JsonGenerator/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
   pull_request:
     branches: [ master ]
     paths:
       - "ProxyStubGenerator/**"
+      - "JsonGenerator/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
 
 jobs:
@@ -72,7 +74,7 @@ jobs:
           pip install --upgrade pip
           pip install jsonref
 
-      - name: Build ProxyStubFunctionalTests
+      - name: Build Functional Tests
         run: |
           source venv/bin/activate
           cmake \
@@ -81,10 +83,14 @@ jobs:
             -B Build/ThunderTools \
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
-            -DCMAKE_VERBOSE_MAKEFILE=ON
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DBUILD_JSON_RPC_TESTS=ON
           cmake \
             --build Build/ThunderTools \
-            --target ProxyStubFunctionalTests
+            --target ProxyStubFunctionalTests JsonRpcFunctionalTests
 
       - name: Run ProxyStub Functional Tests
         run: Build/ThunderTools/tests/ProxyStubFunctionalTests
+
+      - name: Run JSON-RPC Functional Tests
+        run: Build/ThunderTools/tests/JsonRpcFunctionalTests

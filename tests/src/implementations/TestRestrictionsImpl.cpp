@@ -8,6 +8,11 @@
 
 #include "TestRegistry.h"
 #include <ITestRestrictions.h>
+
+#ifdef BUILD_JSON_RPC_TESTS
+#include "JsonRpcServer.h"
+#include <JTestRestrictions.h>
+#endif
 #include <cmath>
 #include <algorithm>
 
@@ -212,6 +217,8 @@ namespace TestImplementations {
     };
 
     static TestRegistry::ImplementationRegistrar<ITestRestrictions, TestRestrictionsImpl> g_restrictionsRegistrar;
-
+#ifdef BUILD_JSON_RPC_TESTS
+    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestRestrictions, TestRestrictionsImpl> g_jsonrpc_restrictionsRegistrar(FunctionalTest::JTestRestrictions::Register<JsonRpcServer::JsonRpcServer>);
+#endif
 } // namespace TestImplementations
 } // namespace Thunder

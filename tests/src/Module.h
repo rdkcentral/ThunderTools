@@ -25,6 +25,7 @@
 
 #include <core/core.h>
 #include <com/com.h>
+#include <plugins/JSONRPC.h>  // Only need JSONRPC (includes IPlugin, IShell, IDispatcher)
 
 #undef EXTERNAL
 #define EXTERNAL
