@@ -157,7 +157,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     return converted, error_condition_emitted
 
 
-def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False, has_extra_index=False, legacy_array=False, async_event=False):
+def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False, has_extra_index=False, legacy_array=False):
 
     def trim(identifier):
         return str(identifier).replace(ns + "::", "").replace("::" + config.FRAMEWORK_NAMESPACE + "::", "")
@@ -546,13 +546,13 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
     if needs_legacy_array_as_string and not legacy_array and params_type == "native":
         emit.Line("// legacy array as string version")
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=has_extra_index, legacy_array=True, async_event=async_event)
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=has_extra_index, legacy_array=True)
 
     if event.is_status_listener and not has_client:
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, has_extra_index=has_extra_index, legacy_array=legacy_array, async_event=async_event)
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=True, has_extra_index=has_extra_index, legacy_array=legacy_array)
 
     if event.sendif_type and event.sendif_type.optional and not event.sendif_deprecated and not has_extra_index and not has_client and params_type != "json":
-        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=True, legacy_array=legacy_array, async_event=async_event)
+        EmitEvent(emit, ns, root, event, params_type, legacy=legacy, has_client=has_client, has_extra_index=True, legacy_array=legacy_array)
 
 
 
@@ -674,66 +674,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         stripped = "::" + "::".join(id.split("::")[2:])
         return (stripped.replace("::I","").replace("::","") + "Implementation")
 
-    def _EmitAsyncCallbackImpl(method):
-        impl_name = _GenerateImplName(method.original_type)
-        face_name = trim(method.original_type)
-        emit.Line("class %s : public %s {" % (impl_name, face_name))
-        emit.Indent()
-        emit.Unindent()
-        emit.Line("public:")
-        emit.Indent()
-        emit.Line("%s() = delete;" % (impl_name))
-        emit.Line("%s(const %s&) = delete;" % (impl_name, impl_name))
-        emit.Line("%s(%s&&) = delete;" % (impl_name, impl_name))
-        emit.Line("%s& operator=(%s&&) = delete;" % (impl_name, impl_name))
-        emit.Line("%s& operator=(const %s&) = delete;" % (impl_name, impl_name))
-        emit.Line()
-        emit.Line("%s(%s& module, const string& id)" % (impl_name, names.jsonrpc_type))
-        emit.Indent()
-        emit.Line(": _module(module)")
-        emit.Line(", _id(id)")
-        emit.Unindent()
-        emit.Line("{")
-        emit.Line("}")
-        emit.Line("~%s() override" % (impl_name))
-        emit.Line("{")
-        emit.Line("}")
-        emit.Line()
-
-        initializer = []
-        sorted_vars = _BuildVars(method.params if (method.params and not method.params.is_void) else None, None)
-
-        for vname, [p, _, _] in sorted_vars:
-            initializer.append(trim(p.local_proto))
-
-        emit.Line("void %s(%s) override" % (method.original_name, ", ".join(initializer)))
-        emit.Line("{")
-        emit.Indent()
-
-        params = [ "_module", "_id" ]
-        for vname, _  in sorted_vars:
-            params.append(vname)
-
-        emit.Line("Async::%s::%s(%s);" % (method.json_name.capitalize(), method.original_name, ", ".join(params)))
-        emit.Unindent()
-        emit.Line("}")
-        emit.Line()
-
-        emit.Line("BEGIN_INTERFACE_MAP(%s)" % (impl_name))
-        emit.Indent()
-        emit.Line("INTERFACE_ENTRY(%s)" % (face_name))
-        emit.Unindent()
-        emit.Line("END_INTERFACE_MAP")
-        emit.Line()
-        emit.Unindent()
-        emit.Line("private:")
-        emit.Indent()
-        emit.Line("%s& _module;" % names.jsonrpc_type)
-        emit.Line("string _id;")
-        emit.Unindent()
-        emit.Line("};")
-        emit.Line()
-
     def _EmitNoPushWarnings(prologue = True):
         if prologue:
             if not config.NO_PUSH_WARNING:
@@ -755,7 +695,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("POP_WARNING()")
                 emit.Line()
 
-    def _EmitEvents(events, namespace = None, async_event = False):
+    def _EmitEvents(events, namespace = None):
         assert events
 
         if not namespace:
@@ -766,14 +706,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line()
 
         for event in events:
-            EmitEvent(emit, ns, root, event, "object", async_event=async_event)
+            EmitEvent(emit, ns, root, event, "object")
 
             if not event.params.is_void:
                 if isinstance(event.params, JsonObject):
-                    EmitEvent(emit, ns, root, event, "json", async_event=async_event)
+                    EmitEvent(emit, ns, root, event, "json")
 
                 if not isinstance(event.params, JsonArray):
-                    EmitEvent(emit, ns, root, event, "native", async_event=async_event)
+                    EmitEvent(emit, ns, root, event, "native")
 
 
         emit.Unindent()
@@ -897,10 +837,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if "encode" in param.schema:
                 param_meta.flags.encode = param.schema["encode"]
 
-            if "@async" in param.schema:
-                param_meta.flags.asynchronous = True
-
-            elif param.schema.get("@bypointer"):
+            if param.schema.get("@bypointer"):
                 param_meta.flags.prefix = "&"
 
         # Tie buffer with length variables
@@ -951,7 +888,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         invoke_restrictions = Restrictions(json=False)
         call_conditions = Restrictions(test_set=False)
         cleanup = []
-        async_event = None
 
         if conditional_invoke:
             invoke_restrictions.extend("%s == %s" % (error_code.temp_name, CoreError("none")))
@@ -973,8 +909,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         # Emit temporary variables and deserializing of JSON data
 
-        async_param = None
-
         if not is_json_source:
             implementation = names.impl
             interface = names.interface
@@ -995,19 +929,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             # Take care of POD aggregation
             cpp_name = ((parent + param.cpp_name) if parent else param.local_name)
 
-            if isinstance(param, JsonString) and param_meta.flags.asynchronous:
-                asyncid_param = param.TempName("_asyncId")
-                async_event = method.callback.notification.json_name
-                async_param = param.temp_name
-                initializer = (("(%s)" if isinstance(param, JsonObject) else "{%s}") % cpp_name) if is_readable and not param.convert else "{}"
-                emit.Line("%s%s %s%s;" % (cv_qualifier, "string", asyncid_param, initializer))
-                emit.Line("%s* %s = Core::ServiceType<%s>::Create<%s>(%s, %s);" % (param.original_type, param.temp_name, _GenerateImplName(param.original_type), param.original_type, names.module, asyncid_param))
-                emit.Line("const uint32_t _subscribe_result__ = %s.Subscribe(%s.ChannelId(), %s, %s, _T(\"\"), true /* one-off */);" % (names.module, names.context, Tstring(async_event), asyncid_param))
-                emit.Line("ASSERT(%s != nullptr);" % param.temp_name)
-                call_conditions.extend("_subscribe_result__ == Core::ERROR_NONE")
-
             # Encoded JSON strings to C-style buffer
-            elif isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size or param_meta.flags.container) and param_meta.flags.encode:
+            if isinstance(param, JsonString) and (param_meta.flags.length or param_meta.flags.size or param_meta.flags.container) and param_meta.flags.encode:
                 container = param_meta.flags.container
                 length_param = param_meta.flags.length
                 maxlength_param = param_meta.flags.maxlength
@@ -1346,14 +1269,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             assert method.function_name
             emit.Line("%s = %s->%s(%s);" % (error_code.temp_name, implementation_object, method.function_name, ", ".join(function_params)))
 
-            if method.callback:
-                emit.Line()
-                emit.Line("if (%s != Core::ERROR_NONE) {" % (error_code.temp_name))
-                emit.Indent()
-                emit.Line("%s.Unsubscribe(%s.ChannelId(), %s, %s, _T(\"\"));" % (names.module, names.context, Tstring(method.callback.notification.json_name), param.TempName("_asyncId")))
-                emit.Unindent()
-                emit.Line("}")
-
             if call_conditions.count():
                 emit.Unindent()
                 emit.Line("}")
@@ -1369,13 +1284,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Unindent()
                 emit.Line("}")
 
-            if async_param:
-                emit.Line()
-                emit.Line("if (%s != nullptr) {" % async_param)
-                emit.Indent()
-                emit.Line("%s->Release();" % async_param)
-                emit.Unindent()
-                emit.Line("}")
 
         # Semi-automatic mode
         else:
@@ -1588,8 +1496,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     methods = [x for x in methods_and_properties if not isinstance(x, (JsonNotification, JsonProperty))]
     properties = [x for x in methods_and_properties if isinstance(x, (JsonProperty))]
     events = [x for x in root.properties if isinstance(x, JsonNotification)]
-    async_events = []
-    async_methods = []
     listener_events = [x for x in events if x.is_status_listener]
     alt_methods = [x for x in methods if x.alternative]
     alt_properties = [x for x in properties if x.alternative]
@@ -1640,31 +1546,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         sorted_vars = _BuildVars(normalized_params, normalized_response)
 
-        has_async_params = False
-
-        if m.callback:
-            async_events.append(m.callback.notification)
-            async_methods.append(m.callback)
-
-        m.processed_vars = [params, response, normalized_params, normalized_response, sorted_vars, False, False, (m.callback != None)]
+        m.processed_vars = [params, response, normalized_params, normalized_response, sorted_vars, False, False, False]
 
     if listener_events and not is_json_source:
         _EmitHandlerInterface(listener_events)
-
-    if async_events:
-        emit.Line("namespace Async {")
-        emit.Indent()
-        emit.Line()
-
-        for aev in async_events:
-            _EmitEvents([aev], aev.name.capitalize(), True)
-
-        emit.Unindent()
-        emit.Line("} // namespace Async")
-        emit.Line()
-
-    for m in async_methods:
-        _EmitAsyncCallbackImpl(m)
 
     _EmitNoPushWarnings(prologue=True)
 
@@ -1728,16 +1613,16 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         is_property = isinstance(m, JsonProperty)
         has_index = is_property and m.index
 
-        params, response, normalized_params, normalized_response, sorted_vars, _, _, has_async_params = m.processed_vars
+        params, response, normalized_params, normalized_response, sorted_vars, _, _, _ = m.processed_vars
 
         any_index = (m.index[0] if m.index[0] else m.index[1]) if has_index else None
         indexes_are_different = not m.index[2] if has_index else False
         index_name = any_index.local_name if any_index else None
 
         has_context = not is_property and m.context
- 
-        needs_module = has_async_params 
-        needs_context = has_context or has_async_params
+
+        needs_module = False
+        needs_context = has_context
         needs_id = False
         needs_index = has_index
         needs_handler = needs_context or needs_id or needs_index

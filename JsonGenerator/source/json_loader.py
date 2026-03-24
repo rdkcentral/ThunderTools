@@ -833,7 +833,6 @@ class JsonMethod(JsonObject):
 
         self.context = schema.get("context")
 
-        self.callback = None
         self.alternative = None
         self.summary = schema.get("summary")
         self.deprecated = schema.get("deprecated")
@@ -859,16 +858,6 @@ class JsonMethod(JsonObject):
             self.alternative = schema.get("alt")
         else:
             self.alternative = None
-
-        if not property:
-            if isinstance(self.properties[0], JsonObject):
-                for prop in self.properties[0].properties:
-                    if "@async" in prop.schema:
-                        if self.callback:
-                            assert False, "repeated async callback"
-
-                        event = JsonNotification(self.json_name, self.parent, prop.schema["@async"], included)
-                        self.callback = JsonCallback(self.json_name, self.parent, event, prop.schema["@async"], included)
 
     def _Check(self):
         if self.name.lower() in RESERVED_NAMES:
@@ -934,12 +923,6 @@ class JsonNotification(JsonMethod):
     def _Check(self):
         pass
 
-class JsonCallback(JsonMethod):
-    def __init__(self, name, parent, notification, schema, included=None):
-        JsonMethod.__init__(self, name, parent, schema, included)
-        self.notification = notification
-        self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
-        self.notification.sendif_deprecated = False
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
