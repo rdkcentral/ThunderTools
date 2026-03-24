@@ -24,7 +24,6 @@
 
 namespace Thunder {
     namespace FunctionalTest {
-        // @json 1.0.0
         //
         // ITestPrimitives: Comprehensive primitive type marshalling test interface
         //
@@ -41,6 +40,7 @@ namespace Thunder {
         // - COM-RPC: All 16 methods tested (including Int24/UInt24)
         // - JSON-RPC: 14 methods tested (excludes Int24/UInt24 due to generator limitations)
         //
+        // @json 1.0.0
         struct EXTERNAL ITestPrimitives : virtual public Core::IUnknown {
 
             enum { ID = ID_TEST_PRIMITIVES };
@@ -117,13 +117,6 @@ namespace Thunder {
             //  @brief Round-trip marshalling test for const char* (raw C-string, distinct marshalling path).
             //         Caller pre-allocates output buffer; maxLength carries the buffer capacity in and
             //         the number of bytes written out.
-            //
-            //  @json:omit Excluded from JSON-RPC: Raw pointer + length pattern with @maxlength/@inout doesn't
-            //             map cleanly to JSON (would require base64 encoding or complex buffer handling).
-            //             This pattern works in COM-RPC where buffer marshalling is native.
-            //             JsonGenerator also generates non-compiling code for this signature.
-            //             Use EchoString() for JSON-RPC string testing instead.
-            //
             // FIXME: Commented out until JsonGenerator supports this pattern or we redesign the signature
             // virtual Core::hresult EchoCharPtr(const char* input /* @in @length:maxLength @restrict:255 */, 
             //                                    char* output /* @out @maxlength:maxLength */, 
