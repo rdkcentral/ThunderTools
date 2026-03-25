@@ -10,16 +10,26 @@
 using namespace Thunder;
 using namespace Thunder::FunctionalTest;
 
-class TestPrimitivesJsonRpc : public JsonRpcTesting::JsonRpcTestHarness<ITestPrimitives> {};
+class TestPrimitivesJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 
 // ===== Signed integers =====
-// NOTE: Signed integer boundary tests fail due to JsonGenerator bug (overflow validation)
-// See: https://github.com/rdkcentral/ThunderTools - known issue with DecSInt validation
 
 TEST_F(TestPrimitivesJsonRpc, EchoInt8_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt8", R"({"input":42})", response));
     EXPECT_NE(response.find("42"), string::npos) << "Response: " << response;
+}
+
+// DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
+TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt8_Boundaries) {
+    string response;
+    
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt8", R"({"input":-128})", response));
+    EXPECT_NE(response.find("-128"), string::npos) << "Response: " << response;
+    
+    response.clear();
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt8", R"({"input":127})", response));
+    EXPECT_NE(response.find("127"), string::npos) << "Response: " << response;
 }
 
 TEST_F(TestPrimitivesJsonRpc, EchoInt16_Positive) {
@@ -28,16 +38,52 @@ TEST_F(TestPrimitivesJsonRpc, EchoInt16_Positive) {
     EXPECT_NE(response.find("1000"), string::npos) << "Response: " << response;
 }
 
+// DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
+TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt16_Boundaries) {
+    string response;
+    
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt16", R"({"input":-32768})", response));
+    EXPECT_NE(response.find("-32768"), string::npos) << "Response: " << response;
+    
+    response.clear();
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt16", R"({"input":32767})", response));
+    EXPECT_NE(response.find("32767"), string::npos) << "Response: " << response;
+}
+
 TEST_F(TestPrimitivesJsonRpc, EchoInt32_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt32", R"({"input":100000})", response));
     EXPECT_NE(response.find("100000"), string::npos) << "Response: " << response;
 }
 
+// DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
+TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt32_Boundaries) {
+    string response;
+    
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt32", R"({"input":-2147483648})", response));
+    EXPECT_NE(response.find("-2147483648"), string::npos) << "Response: " << response;
+    
+    response.clear();
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt32", R"({"input":2147483647})", response));
+    EXPECT_NE(response.find("2147483647"), string::npos) << "Response: " << response;
+}
+
 TEST_F(TestPrimitivesJsonRpc, EchoInt64_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt64", R"({"input":9223372036854775})", response));
     EXPECT_NE(response.find("9223372036854775"), string::npos) << "Response: " << response;
+}
+
+// DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
+TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt64_Boundaries) {
+    string response;
+    
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt64", R"({"input":-9223372036854775808})", response));
+    EXPECT_NE(response.find("-9223372036854775808"), string::npos) << "Response: " << response;
+    
+    response.clear();
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt64", R"({"input":9223372036854775807})", response));
+    EXPECT_NE(response.find("9223372036854775807"), string::npos) << "Response: " << response;
 }
 
 // ===== Unsigned integers =====

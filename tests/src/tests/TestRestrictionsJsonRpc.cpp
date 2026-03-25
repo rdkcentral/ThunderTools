@@ -9,7 +9,7 @@
 using namespace Thunder;
 using namespace Thunder::FunctionalTest;
 
-class TestRestrictionsJsonRpc : public JsonRpcTesting::JsonRpcTestHarness<ITestRestrictions> {};
+class TestRestrictionsJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 
 TEST_F(TestRestrictionsJsonRpc, SetFixedValue_Correct) {
     string response;
@@ -40,20 +40,20 @@ TEST_F(TestRestrictionsJsonRpc, SetNegative_ZeroRejected) {
 
 TEST_F(TestRestrictionsJsonRpc, SetRatio_OutOfRange) {
     string response;
-    uint32_t result = CallMethod("setRatio", R"({"value":1.5})", response);
+    uint32_t result = CallMethod("setRatio", R"({"ratio":1.5})", response);
     EXPECT_NE(Core::ERROR_NONE, result) << "Should reject value > 1.0";
 }
 
 TEST_F(TestRestrictionsJsonRpc, SetName_EmptyRejected) {
     string response;
-    uint32_t result = CallMethod("setName", R"({"value":""})", response);
+    uint32_t result = CallMethod("setName", R"({"name":""})", response);
     EXPECT_NE(Core::ERROR_NONE, result) << "Should reject empty string";
 }
 
 TEST_F(TestRestrictionsJsonRpc, SetName_TooLongRejected) {
     string response;
     string longName(100, 'x');
-    string json = "{\"value\":\"" + longName + "\"}";
+    string json = "{\"name\":\"" + longName + "\"}";
     uint32_t result = CallMethod("setName", json, response);
     EXPECT_NE(Core::ERROR_NONE, result) << "Should reject too long string";
 }

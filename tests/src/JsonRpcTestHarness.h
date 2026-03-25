@@ -28,7 +28,10 @@ namespace JsonRpcTesting {
 
     // JSON-RPC test harness that invokes JSON-RPC methods directly via PluginHost::JSONRPC
     // Tests the generated JSON stubs by sending JSON strings and validating responses
-    template <typename INTERFACE>
+    // 
+    // All test fixtures share the same JsonRpcServer singleton and registered implementations.
+    // No per-interface state isolation - tests may affect each other if implementations
+    // maintain state between method calls.
     class JsonRpcTestHarness : public ::testing::Test {
     protected:
         JsonRpcTestHarness()

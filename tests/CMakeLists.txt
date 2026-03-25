@@ -74,6 +74,8 @@ endif()
 # ============================================================================
 
 macro(AddTestInterface TestName)
+    cmake_parse_arguments(ARG "JSON_RPC;HAS_ENUMS" "" "" ${ARGN})
+
     list(APPEND IMPLEMENTATION_SOURCES
         ${CMAKE_CURRENT_SOURCE_DIR}/src/implementations/Test${TestName}Impl.cpp
     )
@@ -90,36 +92,24 @@ macro(AddTestInterface TestName)
         ${COM_RPC_OUTPUT_DIR}/ProxyStubs_Test${TestName}.cpp
     )
 
-    # Note: JSON-RPC generation is handled separately for each interface
-    # because some interfaces (like Buffers) have known generator issues
-endmacro()
-
-# Helper macro to also add interface to JSON-RPC generation
-macro(AddTestInterfaceWithJsonRpc TestName)
-    AddTestInterface(${TestName})
-
-    if (INCLUDE_JSON_RPC_INTERFACES)
+    # Add to JSON-RPC generation if JSON_RPC flag is set
+    if (ARG_JSON_RPC AND INCLUDE_JSON_RPC_INTERFACES)
         list(APPEND JSON_INTERFACE_HEADERS
             ${CMAKE_CURRENT_SOURCE_DIR}/interfaces/ITest${TestName}.h
         )
         
         if(EXISTS "${JSON_RPC_OUTPUT_DIR}/json_ITest${TestName}.h")
-        list(APPEND JSON_RPC_INTERFACES_GENERATED
-            "${JSON_RPC_OUTPUT_DIR}/json_ITest${TestName}.h"
-        )
+            list(APPEND JSON_RPC_INTERFACES_GENERATED
+                "${JSON_RPC_OUTPUT_DIR}/json_ITest${TestName}.h"
+            )
         endif()
-    endif()
-endmacro()
 
-# Helper macro for interfaces that have enums (generates JsonEnum_*.cpp)
-macro(AddTestInterfaceWithJsonRpcAndEnums TestName)
-    AddTestInterfaceWithJsonRpc(${TestName})
-
-    if (INCLUDE_JSON_RPC_INTERFACES)
-        # This interface has enums, so JsonGenerator will create JsonEnum file
-        list(APPEND JSON_RPC_ENUM_SOURCES
-            ${JSON_RPC_OUTPUT_DIR}/JsonEnum_Test${TestName}.cpp
-        )
+        # Add enum conversion file if HAS_ENUMS flag is set
+        if (ARG_HAS_ENUMS)
+            list(APPEND JSON_RPC_ENUM_SOURCES
+                ${JSON_RPC_OUTPUT_DIR}/JsonEnum_Test${TestName}.cpp
+            )
+        endif()
     endif()
 endmacro()
 
@@ -129,58 +119,52 @@ endmacro()
 
 if (TEST_PRIMITIVES)
     message(STATUS "Enabling Primitives tests")
-    AddTestInterfaceWithJsonRpc("Primitives")
+    AddTestInterface("Primitives" JSON_RPC)
 endif()
 
 if (TEST_BUFFERS)
     message(STATUS "Enabling Buffers tests")
-    AddTestInterface("Buffers")  # Excluded from JSON-RPC due to known generator bug
-    if (INCLUDE_JSON_RPC_INTERFACES)
-        message(STATUS "  NOTE: Buffers excluded from JSON-RPC generation (known generator issue)")
-    endif()
+    AddTestInterface("Buffers")  # COM-RPC only — known generator bug
 endif()
 
 if (TEST_OPTIONALS)
     message(STATUS "Enabling Optionals tests")
-    AddTestInterface("Optionals")  # Excluded from JSON-RPC due to known generator bug
-    if (INCLUDE_JSON_RPC_INTERFACES)
-        message(STATUS "  NOTE: Optionals excluded from JSON-RPC generation (known generator issue)")
-    endif()
+    AddTestInterface("Optionals")  # COM-RPC only — known generator bug
 endif()
 
 if(TEST_ENUMS)
     message(STATUS "Enabling Enums tests")
-    AddTestInterfaceWithJsonRpcAndEnums("Enums")
+    AddTestInterface("Enums" JSON_RPC HAS_ENUMS)
 endif()
 
 if (TEST_INTERFACES)
     message(STATUS "Enabling Interfaces tests")
-    AddTestInterfaceWithJsonRpc("Interfaces")
+    AddTestInterface("Interfaces" JSON_RPC)
 endif()
 
 if (TEST_ITERATORS)
     message(STATUS "Enabling Iterators tests")
-    AddTestInterface("Iterators")  # COM-RPC only - no JSON-RPC mapping
+    AddTestInterface("Iterators")  # COM-RPC only — no JSON mapping
 endif()
 
 if (TEST_STRUCTS)
     message(STATUS "Enabling Structs tests")
-    AddTestInterfaceWithJsonRpc("Structs")
+    AddTestInterface("Structs" JSON_RPC)
 endif()
 
 if (TEST_RESTRICTIONS)
     message(STATUS "Enabling Restrictions tests")
-    AddTestInterfaceWithJsonRpc("Restrictions")
+    AddTestInterface("Restrictions" JSON_RPC)
 endif()
 
 if (TEST_EVENTS)
     message(STATUS "Enabling Events tests")
-    AddTestInterfaceWithJsonRpc("Events")
+    AddTestInterface("Events" JSON_RPC)
 endif()
 
 if (TEST_ASYNC)
     message(STATUS "Enabling Async tests")
-    AddTestInterfaceWithJsonRpc("Async")
+    AddTestInterface("Async" JSON_RPC)
 endif()
 
 # Verify at least one test is enabled

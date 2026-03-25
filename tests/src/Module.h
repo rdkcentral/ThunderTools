@@ -25,7 +25,9 @@
 
 #include <core/core.h>
 #include <com/com.h>
-#include <plugins/JSONRPC.h>  // Only need JSONRPC (includes IPlugin, IShell, IDispatcher)
+#ifdef BUILD_JSON_RPC_TESTS
+#include <plugins/JSONRPC.h>
+#endif
 
 #undef EXTERNAL
 #define EXTERNAL
