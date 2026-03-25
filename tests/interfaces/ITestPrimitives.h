@@ -54,7 +54,6 @@ namespace Thunder {
             virtual Core::hresult EchoInt16(const int16_t input /* @in */, int16_t& output /* @out */) = 0;
 
             //  @brief Round-trip marshalling test for int24_t (24-bit signed)
-            //  @stubgen:omit ProxyStubGenerator generates non-existent Core::Int24 type
             //  @json:omit JsonGenerator also has issue with Int24
             virtual Core::hresult EchoInt24(const int24_t input /* @in */, int24_t& output /* @out */) = 0;
 
@@ -73,7 +72,6 @@ namespace Thunder {
             virtual Core::hresult EchoUInt16(const uint16_t input /* @in */, uint16_t& output /* @out */) = 0;
 
             //  @brief Round-trip marshalling test for Core::UInt24 (24-bit unsigned)
-            //  @stubgen:omit Excluded for consistency with Int24
             //  @json:omit Excluded for consistency with Int24
             virtual Core::hresult EchoUInt24(const Core::UInt24 input /* @in */, Core::UInt24& output /* @out */) = 0;
 
