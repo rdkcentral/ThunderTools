@@ -1,0 +1,96 @@
+name: ProxyStub & JSON-RPC Generator Functional Tests
+
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master ]
+    paths:
+      - "ProxyStubGenerator/**"
+      - "JsonGenerator/**"
+      - ".github/workflows/ProxyStubFunctionalTests.yml"
+  pull_request:
+    branches: [ master ]
+    paths:
+      - "ProxyStubGenerator/**"
+      - "JsonGenerator/**"
+      - ".github/workflows/ProxyStubFunctionalTests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    name: Build type - ${{ matrix.architecture == '32' && 'x86' || 'x86_64' }}
+    strategy:
+      matrix:
+        architecture: [32, 64]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare apt (add i386 if needed)
+        if: ${{ matrix.architecture == '32' }}
+        run: |
+          sudo dpkg --add-architecture i386
+
+      - name: Update apt indices (with retries)
+        shell: bash
+        run: |
+          set -euo pipefail
+          for attempt in {1..5}; do
+            if sudo apt-get update -o Acquire::Retries=5 -o Acquire::http::Timeout=30; then
+              break
+            fi
+            echo "apt-get update failed (attempt $attempt), retrying..."
+            sleep $((attempt*10))
+          done
+
+      - name: Install system dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          export DEBIAN_FRONTEND=noninteractive
+          PKGS="python3-venv python3-pip build-essential cmake ninja-build"
+          if [ "${{ matrix.architecture }}" = "32" ]; then
+            PKGS="$PKGS zlib1g-dev:i386 libssl-dev:i386 gcc-13-multilib g++-13-multilib"
+          else
+            PKGS="$PKGS zlib1g-dev libssl-dev"
+          fi
+          for attempt in {1..4}; do
+            if sudo apt-get install -y --no-install-recommends $PKGS; then
+              break
+            fi
+            echo "apt-get install failed (attempt $attempt), cleaning up & retrying..."
+            sudo apt-get clean
+            sleep $((attempt*15))
+          done
+
+      - name: Set up Python environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install jsonref
+
+      - name: Build Functional Tests
+        run: |
+          source venv/bin/activate
+          cmake \
+            -G Ninja \
+            -S . \
+            -B Build/ThunderTools \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DBUILD_JSON_RPC_TESTS=ON
+          cmake \
+            --build Build/ThunderTools \
+            --target JsonRpcFunctionalTests
+
+      # - name: Run ProxyStub Functional Tests
+      #   run: Build/ThunderTools/tests/ProxyStubFunctionalTests
+
+      - name: Run JSON-RPC Functional Tests
+        run: Build/ThunderTools/tests/JsonRpcFunctionalTests
