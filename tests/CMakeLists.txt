@@ -159,7 +159,7 @@ endif()
 
 if (TEST_EVENTS)
     message(STATUS "Enabling Events tests")
-    AddTestInterface("Events" JSON_RPC)
+    AddTestInterface("Events")
 endif()
 
 if (TEST_ASYNC)
