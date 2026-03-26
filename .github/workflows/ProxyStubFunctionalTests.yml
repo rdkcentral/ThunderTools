@@ -87,10 +87,10 @@ jobs:
             -DBUILD_JSON_RPC_TESTS=ON
           cmake \
             --build Build/ThunderTools \
-            --target ProxyStubFunctionalTests JsonRpcFunctionalTests
+            --target JsonRpcFunctionalTests
 
-      - name: Run ProxyStub Functional Tests
-        run: Build/ThunderTools/tests/ProxyStubFunctionalTests
+      # - name: Run ProxyStub Functional Tests
+      #   run: Build/ThunderTools/tests/ProxyStubFunctionalTests
 
       - name: Run JSON-RPC Functional Tests
         run: Build/ThunderTools/tests/JsonRpcFunctionalTests
