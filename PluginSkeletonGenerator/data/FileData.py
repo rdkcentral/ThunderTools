@@ -929,21 +929,21 @@ class SourceData(FileData):
         if not self.m_preconditions:
             return ''
         entries = self._validateSubsystemEntries(self.m_preconditions, "Preconditions")
-        lines = [f" subsystem::{entry} " for entry in entries]
+        lines = [f" subsystem::{entry}" for entry in entries]
         return generateSimpleText(lines, sep=",")
 
     def _generateTerminations(self):
         if not self.m_terminations:
             return ''
         entries = self._validateSubsystemEntries(self.m_terminations, "Terminations")
-        lines = [f" subsystem::{entry} " for entry in entries]
+        lines = [f" subsystem::{entry}" for entry in entries]
         return generateSimpleText(lines, sep=",")
 
     def _generateControls(self):
         if not self.m_controls:
             return ''
         entries = self._validateSubsystemEntries(self.m_controls, "Controls")
-        lines = [f" subsystem::{entry} " for entry in entries]
+        lines = [f" subsystem::{entry}" for entry in entries]
         return generateSimpleText(lines, sep=",")
 
     def _generateSourceIncludeStatements(self):

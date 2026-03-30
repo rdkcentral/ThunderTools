@@ -102,25 +102,25 @@ jobs:
             { "name": "InProcessPreconditions", "header": "ITimeSync.h",
               "answers": mk_answers(
                   "InProcessPreconditions", "N", "N",
-                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+                  pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
               ) },
 
             { "name": "OutOfProcessPreconditions", "header": "IMessageControl.h",
               "answers": mk_answers(
                   "OutOfProcessPreconditions", "Y", "N",
-                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+                  pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
               ) },
 
             { "name": "InProcessConfigPreconditions", "header": "IVolumeControl.h",
               "answers": mk_answers(
                   "InProcessConfigPreconditions", "N", "Y",
-                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+                  pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
               ) },
 
             { "name": "OutOfProcessConfigPreconditions", "header": "IWifiControl.h",
               "answers": mk_answers(
                   "OutOfProcessConfigPreconditions", "Y", "Y",
-                  pre={"pre": ["GRAPHICS", "NOT_GRAPHICS", "TIME"], "term": [], "ctrl": []}
+                  pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
               ) },
           ]
 
