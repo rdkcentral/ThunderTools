@@ -5,6 +5,7 @@
 
 #include "JsonData_System.h"
 #include "JsonData_Discovery.h"
+#include "JsonData_Configuration.h"
 #include "JsonData_LifeTime.h"
 #include "JsonData_Subsystems.h"
 #include "JsonData_Events.h"

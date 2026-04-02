@@ -31,17 +31,49 @@ namespace Exchange {
 
                 // Register methods and properties...
 
-                // Method: 'persist' - Stores all configuration to the persistent memory
-                _module__.PluginHost::JSONRPC::template Register<void, void>(_T("persist"),
-                    [_implementation__]() -> uint32_t {
+                // Method: 'persist' - Stores configuration to the persistent memory
+                _module__.PluginHost::JSONRPC::template Register<JsonData::Configuration::PersistParamsInfo, void>(_T("persist"),
+                    [_implementation__](const JsonData::Configuration::PersistParamsInfo& params) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        _errorCode__ = _implementation__->Persist();
+                        if ((params.IsSet() == true) && (params.IsDataValid() == false)) {
+                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        }
+                        else {
+                            Core::OptionalType<string> _callsign_{};
+                            if (params.Callsign.IsSet() == true) {
+                                _callsign_ = params.Callsign;
+                            }
+
+                            _errorCode__ = _implementation__->Persist(_callsign_);
+
+                        }
 
                         return (_errorCode__);
                     });
 
                 _module__.PluginHost::JSONRPC::Register(_T("storeconfig"), _T("persist"));
+
+                // Method: 'restore' - Restores configuration back to default
+                _module__.PluginHost::JSONRPC::template Register<JsonData::Configuration::PersistParamsInfo, void>(_T("restore"),
+                    [_implementation__](const JsonData::Configuration::PersistParamsInfo& params) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
+
+                        if ((params.IsSet() == true) && (params.IsDataValid() == false)) {
+                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        }
+                        else {
+                            Core::OptionalType<string> _callsign_{};
+                            if (params.Callsign.IsSet() == true) {
+                                _callsign_ = params.Callsign;
+                            }
+
+                            _errorCode__ = _implementation__->Restore(_callsign_);
+
+                        }
+
+                        return (_errorCode__);
+                    });
 
                 // Indexed Property: 'configuration' - Service configuration
                 _module__.PluginHost::JSONRPC::template Register<Core::JSON::String, Core::JSON::String, std::function<uint32_t(const string&, const Core::JSON::String&, Core::JSON::String&)>>(_T("configuration"),
@@ -97,6 +129,7 @@ namespace Exchange {
                 // Unregister methods and properties...
                 _module__.PluginHost::JSONRPC::Unregister(_T("persist"));
                 _module__.PluginHost::JSONRPC::Unregister(_T("storeconfig"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("restore"));
                 _module__.PluginHost::JSONRPC::Unregister(_T("configuration"));
             }
 
