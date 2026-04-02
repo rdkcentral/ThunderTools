@@ -486,8 +486,8 @@ def Create(log, args, schema, path, indent_size = 4):
                         _registrant2 += "@" + (props["id"]["example"] if "example" in props["id"] else "?")
 
 
-                generic_method = "%s.1.%s" % (classname, _registrant)
-                call_method ="%s.1.%s" % (classname, _registrant2)
+                generic_method = "%s.%s" % (classname, _registrant)
+                call_method ="%s.%s" % (classname, _registrant2)
             else:
                 if "@lookup" in props:
                     _obj_prefix = props["@lookup"]["prefix"].lower()
@@ -498,8 +498,8 @@ def Create(log, args, schema, path, indent_size = 4):
                     _example_callee = method
                     _callee = method
 
-                generic_method = "%s.1.%s" % (classname, _callee)
-                call_method = "%s.1.%s" % (classname, _example_callee)
+                generic_method = "%s.%s" % (classname, _callee)
+                call_method = "%s.%s" % (classname, _example_callee)
 
                 if is_property and "index" in props:
                     call_method += ("@" + str(props["index"][0]["example"]) if "example" in props["index"][0] else "?")
