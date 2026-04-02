@@ -85,6 +85,28 @@ namespace JsonRpcTesting {
             return result;
         }
 
+        uint32_t CallVersionedMethod(
+            const uint32_t version,
+            const string& method,
+            const string& parameters,
+            string& response)
+        {
+            if (_server == nullptr) {
+                ADD_FAILURE() << "JsonRpcServer is nullptr";
+                return Core::ERROR_UNAVAILABLE;
+            }
+
+            string fullMethod = _server->Callsign() + "." + std::to_string(version) + "." + method;
+
+            return _server->Invoke(
+                0,
+                1,
+                _T(""),
+                fullMethod,
+                parameters,
+                response);
+        }
+
         // Helper to build simple JSON parameter objects
         string MakeJsonParams(const std::map<string, string>& params) {
             string result = "{";

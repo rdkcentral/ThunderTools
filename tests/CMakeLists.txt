@@ -303,6 +303,10 @@ if(BUILD_JSON_RPC_TESTS)
         )
     endif()
 
+    list(APPEND JSON_RPC_TEST_SOURCES
+        ${CMAKE_CURRENT_SOURCE_DIR}/src/tests/TestVersioningJsonRpc.cpp
+    )
+
     # Note: Events, Async, and Interfaces tests not implemented (require IHandler/async patterns)
     # Note: Iterators excluded - no clean JSON-RPC mapping for RPC::IStringIterator/IValueIterator
 

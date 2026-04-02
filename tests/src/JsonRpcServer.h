@@ -196,6 +196,38 @@ namespace JsonRpcServer {
     extern JsonRpcServer* g_server;
     extern Core::ProxyType<MockShell> g_shell;
     extern std::vector<Core::IUnknown*> g_implementations;
+
+    // -----------------------------------------------------------------------
+    // Versioned handler provider (phase 2)
+    //
+    // Lambdas registered here run AFTER all base interface registrations so
+    // that CreateHandler() clones have fully populated base handler tables.
+    //
+    // This is the correct place to implement the Thunder handwritten versioning
+    // pattern (mirrors ThunderNanoServices JSONRPCPlugin.cpp CreateHandler use).
+    // -----------------------------------------------------------------------
+    class JsonRpcVersionedHandlerProvider {
+    public:
+        using HandlerSetupFunc = std::function<void(JsonRpcServer&)>;
+
+        static JsonRpcVersionedHandlerProvider& Instance() {
+            static JsonRpcVersionedHandlerProvider instance;
+            return instance;
+        }
+
+        void Register(HandlerSetupFunc func) {
+            _registrations.push_back(func);
+        }
+
+        void Apply(JsonRpcServer& server) {
+            for (auto& reg : _registrations) {
+                reg(server);
+            }
+        }
+
+    private:
+        std::vector<HandlerSetupFunc> _registrations;
+    };
     
     inline void Start() {
         if (g_server == nullptr) {
@@ -208,11 +240,15 @@ namespace JsonRpcServer {
             g_server = new JsonRpcServer();
             g_server->Initialize(g_shell.operator->());
             
-            // Register all interfaces via static registrations
+            // Phase 1: register all base interfaces via static registrations
             printf("JsonRpcServer: Registering JSON-RPC interfaces...\n");
             JsonRpcRegistrationProvider::Instance().RegisterAll(*g_server, g_implementations);
             printf("JsonRpcServer: JSON-RPC registration complete\n");
-            
+
+            // Phase 2: set up versioned handlers (runs after phase 1 so clones
+            // of the base handler capture all previously registered methods)
+            JsonRpcVersionedHandlerProvider::Instance().Apply(*g_server);
+
             printf("JsonRpcServer started successfully\n");
         }
     }
@@ -259,10 +295,25 @@ namespace JsonRpcServer {
                     if (impl) {
                         registerFunc(server, impl);
                         implementations.push_back(impl);
-                        printf("  ✓ %s registered\n", typeid(INTERFACE).name());
+                        printf("  [ok] %s registered\n", typeid(INTERFACE).name());
                     }
                 }
             );
+        }
+    };
+
+    // Static registrar for handwritten versioned handler setup.
+    // Usage:
+    //   static JsonRpcServer::JsonRpcVersionedRegistrar g_reg(
+    //       [](JsonRpcServer::JsonRpcServer& server) {
+    //           Core::JSONRPC::Handler* v1 = server.GetHandler(1);
+    //           Core::JSONRPC::Handler& v2 = server.CreateHandler({2}, *v1);
+    //           v2.Register("myMethod", Core::JSONRPC::InvokeFunction(...));
+    //       });
+    class JsonRpcVersionedRegistrar {
+    public:
+        JsonRpcVersionedRegistrar(std::function<void(JsonRpcServer&)> setupFunc) {
+            JsonRpcVersionedHandlerProvider::Instance().Register(setupFunc);
         }
     };
 
