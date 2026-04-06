@@ -107,6 +107,34 @@ namespace JsonRpcTesting {
                 response);
         }
 
+        uint32_t SubscribeEvent(
+            PluginHost::IDispatcher::ICallback* callback,
+            const string& eventId,
+            const string& designator,
+            const string& index = string())
+        {
+            if (_server == nullptr) {
+                ADD_FAILURE() << "JsonRpcServer is nullptr";
+                return Core::ERROR_UNAVAILABLE;
+            }
+
+            return _server->Subscribe(callback, eventId, designator, index);
+        }
+
+        uint32_t UnsubscribeEvent(
+            PluginHost::IDispatcher::ICallback* callback,
+            const string& eventId,
+            const string& designator,
+            const string& index = string())
+        {
+            if (_server == nullptr) {
+                ADD_FAILURE() << "JsonRpcServer is nullptr";
+                return Core::ERROR_UNAVAILABLE;
+            }
+
+            return _server->Unsubscribe(callback, eventId, designator, index);
+        }
+
         // Helper to build simple JSON parameter objects
         string MakeJsonParams(const std::map<string, string>& params) {
             string result = "{";
