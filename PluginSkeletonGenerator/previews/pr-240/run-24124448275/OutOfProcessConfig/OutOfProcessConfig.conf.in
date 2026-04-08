@@ -1,0 +1,6 @@
+startmode = "@PLUGIN_OUTOFPROCESSCONFIG_STARTMODE@"
+configuration = JSON()
+configuration.add("example", "@PLUGIN_OUTOFPROCESSCONFIG_EXAMPLE@")
+root = JSON()
+root.add("mode", "@PLUGIN_OUTOFPROCESSCONFIG_MODE@")
+configuration.add("root", root)
