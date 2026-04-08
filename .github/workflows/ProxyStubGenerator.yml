@@ -54,6 +54,8 @@ jobs:
           # ----- Paths to the generated files -----
           PATHS_TO_HARVEST=(
             "ThunderInterfaces/interfaces/generated"
+            "ThunderInterfaces/qa_interfaces/qa_generated"
+            "ThunderInterfaces/example_interfaces/example_generated"
             "Thunder/Source/com/generated"
             "Thunder/Source/plugins/generated"
           )
@@ -96,7 +98,13 @@ jobs:
               echo "  -> Copying to: $SUB_DEST"
 
               mkdir -p "$SUB_DEST"
-              cp -r "$SRC"/* "$SUB_DEST/"
+
+              if [ -z "$(ls -A "$SRC")" ]; then
+                echo "::warning::Path '$SRC' is empty, skipping."
+                continue
+              fi
+
+              cp -r "$SRC"/. "$SUB_DEST/"
             done
           done
 
@@ -187,14 +195,14 @@ jobs:
             mkdir -p diffs "site/$RUN_DIR/diff"
 
             if [[ -d "$BASELINE_ROOT" ]]; then
-               git diff --no-index \
+               git diff --no-index -U5 \
                   --src-prefix=baseline/ \
                   --dst-prefix=generated/ \
                   -- "$BASELINE_ROOT" "generated" \
                   > "diffs/combined.diff" || true
             else
                mkdir empty_dir
-               git diff --no-index \
+               git diff --no-index -U5 \
                   --src-prefix=baseline/ \
                   --dst-prefix=generated/ \
                   -- "empty_dir" "generated" \

@@ -187,7 +187,7 @@ jobs:
 
             while read -r name; do
               if [[ -d "${BASELINE_ROOT}/${name}" ]]; then
-                git diff --no-index \
+                git diff --no-index -U5 \
                   --src-prefix=baseline/ \
                   --dst-prefix=generated/ \
                   -- "${BASELINE_ROOT}/${name}" "artifacts/PluginSkeleton-${name}" \
