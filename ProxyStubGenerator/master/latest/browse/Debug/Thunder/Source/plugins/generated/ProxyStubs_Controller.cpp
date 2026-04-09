@@ -178,25 +178,50 @@ namespace ProxyStubs {
     // Controller::IConfiguration interface stub definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult Persist() = 0
-    //  (1) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
-    //  (2) virtual Core::hresult Configuration(const string&, const string&) = 0
+    //  (0) virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0
+    //  (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
+    //  (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
+    //  (3) virtual Core::hresult Configuration(const string&, const string&) = 0
     //
 
     static ProxyStub::MethodHandler ControllerConfigurationStubMethods[] = {
-        // (0) virtual Core::hresult Persist() = 0
+        // (0) virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Controller::IConfiguration* implementation = reinterpret_cast<Controller::IConfiguration*>(message->Parameters().Implementation());
             ASSERT(implementation != nullptr);
 
-            Core::hresult result = implementation->Persist();
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::OptionalType<string> _callsign{};
+            if (reader.Boolean() == true) {
+                _callsign = reader.Text();
+            }
+
+            Core::hresult result = implementation->Persist(static_cast<const Core::OptionalType<string>&>(_callsign));
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Core::hresult>(result);
         },
 
-        // (1) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
+        // (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Controller::IConfiguration* implementation = reinterpret_cast<Controller::IConfiguration*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::OptionalType<string> _callsign{};
+            if (reader.Boolean() == true) {
+                _callsign = reader.Text();
+            }
+
+            Core::hresult result = implementation->Restore(static_cast<const Core::OptionalType<string>&>(_callsign));
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
+        },
+
+        // (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             const Controller::IConfiguration* implementation = reinterpret_cast<const Controller::IConfiguration*>(message->Parameters().Implementation());
@@ -217,7 +242,7 @@ namespace ProxyStubs {
             writer.Text(_configuration);
         },
 
-        // (2) virtual Core::hresult Configuration(const string&, const string&) = 0
+        // (3) virtual Core::hresult Configuration(const string&, const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             Controller::IConfiguration* implementation = reinterpret_cast<Controller::IConfiguration*>(message->Parameters().Implementation());
@@ -1008,9 +1033,10 @@ namespace ProxyStubs {
     // Controller::IConfiguration interface proxy definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult Persist() = 0
-    //  (1) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
-    //  (2) virtual Core::hresult Configuration(const string&, const string&) = 0
+    //  (0) virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0
+    //  (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
+    //  (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
+    //  (3) virtual Core::hresult Configuration(const string&, const string&) = 0
     //
 
     class ControllerConfigurationProxy final : public ProxyStub::UnknownProxyType<Controller::IConfiguration> {
@@ -1020,9 +1046,36 @@ namespace ProxyStubs {
         {
         }
 
-        Core::hresult Persist() override
+        Core::hresult Persist(const Core::OptionalType<string>& _callsign) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_callsign.IsSet());
+            if (_callsign.IsSet() == true) {
+                writer.Text(_callsign.Value());
+            }
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Restore(const Core::OptionalType<string>& _callsign) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_callsign.IsSet());
+            if (_callsign.IsSet() == true) {
+                writer.Text(_callsign.Value());
+            }
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
@@ -1037,7 +1090,7 @@ namespace ProxyStubs {
 
         Core::hresult Configuration(const Core::OptionalType<string>& _callsign, string& _configuration) const override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(1));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Boolean(_callsign.IsSet());
@@ -1059,7 +1112,7 @@ namespace ProxyStubs {
 
         Core::hresult Configuration(const string& _callsign, const string& _configuration) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(2));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Text(_callsign);

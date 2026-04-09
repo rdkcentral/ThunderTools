@@ -306,13 +306,14 @@ namespace ProxyStubs {
     // Controller::IConfiguration interface stub definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult Persist() = 0
-    //  (1) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
-    //  (2) virtual Core::hresult Configuration(const string&, const string&) = 0
+    //  (0) virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0
+    //  (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
+    //  (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
+    //  (3) virtual Core::hresult Configuration(const string&, const string&) = 0
     //
 
     static ProxyStub::MethodHandler ControllerConfigurationStubMethods[] = {
-        // (0) virtual Core::hresult Persist() = 0
+        // (0) virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -324,7 +325,17 @@ namespace ProxyStubs {
                 ASSERT(implementation != nullptr);
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Controller::IConfiguration::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
-                Core::hresult result = implementation->Persist();
+                RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+                Core::OptionalType<string> _callsign{};
+                if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                if (reader.Boolean() == true) {
+                    if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    const uint16_t _callsignPeekedLen__ = reader.PeekNumber<uint16_t>();
+                    if (reader.Length() < (static_cast<uint32_t>(1) + _callsignPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    _callsign = reader.Text();
+                }
+
+                Core::hresult result = implementation->Persist(static_cast<const Core::OptionalType<string>&>(_callsign));
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<Core::hresult>(result);
@@ -339,7 +350,44 @@ namespace ProxyStubs {
             }
         },
 
-        // (1) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
+        // (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Core::hresult hresult = Core::ERROR_NONE;
+
+            hresult = [&]() -> Core::hresult {
+                if (message->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+
+                Controller::IConfiguration* implementation = reinterpret_cast<Controller::IConfiguration*>(message->Parameters().Implementation());
+                ASSERT(implementation != nullptr);
+                if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Controller::IConfiguration::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+
+                RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+                Core::OptionalType<string> _callsign{};
+                if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                if (reader.Boolean() == true) {
+                    if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    const uint16_t _callsignPeekedLen__ = reader.PeekNumber<uint16_t>();
+                    if (reader.Length() < (static_cast<uint32_t>(1) + _callsignPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    _callsign = reader.Text();
+                }
+
+                Core::hresult result = implementation->Restore(static_cast<const Core::OptionalType<string>&>(_callsign));
+
+                RPC::Data::Frame::Writer writer(message->Response().Writer());
+                writer.Number<Core::hresult>(result);
+
+                return (Core::ERROR_NONE);
+            } ();
+
+            if (hresult != Core::ERROR_NONE) {
+                RPC::Data::Frame::Writer writer(message->Response().Writer());
+                writer.Number<uint32_t>(hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 1, hresult);
+            }
+        },
+
+        // (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -375,11 +423,11 @@ namespace ProxyStubs {
             if (hresult != Core::ERROR_NONE) {
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<uint32_t>(hresult);
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 1, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 2, hresult);
             }
         },
 
-        // (2) virtual Core::hresult Configuration(const string&, const string&) = 0
+        // (3) virtual Core::hresult Configuration(const string&, const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -412,7 +460,7 @@ namespace ProxyStubs {
             if (hresult != Core::ERROR_NONE) {
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<uint32_t>(hresult);
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 2, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 3, hresult);
             }
         }
         , nullptr
@@ -1711,9 +1759,10 @@ namespace ProxyStubs {
     // Controller::IConfiguration interface proxy definitions
     //
     // Methods:
-    //  (0) virtual Core::hresult Persist() = 0
-    //  (1) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
-    //  (2) virtual Core::hresult Configuration(const string&, const string&) = 0
+    //  (0) virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0
+    //  (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
+    //  (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
+    //  (3) virtual Core::hresult Configuration(const string&, const string&) = 0
     //
 
     class ControllerConfigurationProxy final : public ProxyStub::UnknownProxyType<Controller::IConfiguration> {
@@ -1723,9 +1772,15 @@ namespace ProxyStubs {
         {
         }
 
-        Core::hresult Persist() override
+        Core::hresult Persist(const Core::OptionalType<string>& _callsign) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_callsign.IsSet());
+            if (_callsign.IsSet() == true) {
+                writer.Text(_callsign.Value());
+            }
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
@@ -1747,9 +1802,39 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        Core::hresult Configuration(const Core::OptionalType<string>& _callsign, string& _configuration) const override
+        Core::hresult Restore(const Core::OptionalType<string>& _callsign) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_callsign.IsSet());
+            if (_callsign.IsSet() == true) {
+                writer.Text(_callsign.Value());
+            }
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
+
+                    return (hresult);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 1, hresult);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Configuration(const Core::OptionalType<string>& _callsign, string& _configuration) const override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Boolean(_callsign.IsSet());
@@ -1777,7 +1862,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 1, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 2, hresult);
             }
 
             return (hresult);
@@ -1785,7 +1870,7 @@ namespace ProxyStubs {
 
         Core::hresult Configuration(const string& _callsign, const string& _configuration) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(2));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Text(_callsign);
@@ -1805,7 +1890,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 2, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Controller::IConfiguration::ID, 3, hresult);
             }
 
             return (hresult);
