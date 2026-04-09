@@ -142,9 +142,10 @@ METHODS[18] = {
 
 INTERFACES[17] = "Exchange::Controller::IConfiguration"
 METHODS[17] = {
-    [3] = { name = "Persist", signature = "virtual Core::hresult Persist() = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } } }, 
-    [4] = { name = "Configuration", signature = "virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "configuration", type = Type.STRING16, class = "string" } }, params = { { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
-    [5] = { name = "Configuration", signature = "virtual Core::hresult Configuration(const string&, const string&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "configuration", type = Type.STRING16, class = "string" } } } 
+    [3] = { name = "Persist", signature = "virtual Core::hresult Persist(const Core::OptionalType<string>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
+    [4] = { name = "Restore", signature = "virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
+    [5] = { name = "Configuration", signature = "virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "configuration", type = Type.STRING16, class = "string" } }, params = { { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
+    [6] = { name = "Configuration", signature = "virtual Core::hresult Configuration(const string&, const string&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "configuration", type = Type.STRING16, class = "string" } } } 
 }
 
 INTERFACES[20] = "Exchange::Controller::ILifeTime"
