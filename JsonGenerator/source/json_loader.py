@@ -358,7 +358,7 @@ class JsonInteger(JsonNative, JsonFundamental, JsonType):
         self.__cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size if self.size != 24 else 32))
 
         if self.size == 24:
-            self.__cpp_native_type = "Core::Int24" if self.signed else "Core::UInt24"
+            self.__cpp_native_type = "Core::SInt24" if self.signed else "Core::UInt24"
         else:
             self.__cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
 
