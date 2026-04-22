@@ -102,9 +102,9 @@ def Create(log, args, schema, path, indent_size = 4):
 
             def _TableObj(name, obj, parentName="", parent=None, prefix="", parentOptional=False):
                 # determine if the attribute is optional
-                optional = parentOptional or (obj["optional"] if "optional" in obj else False)
-                deprecated = obj["deprecated"] if "deprecated" in obj else False
-                obsolete = obj["obsolete"] if "obsolete" in obj else False
+                optional = parentOptional or obj.get("optional") or obj.get("@optionaltype")
+                deprecated = obj.get("deprecated")
+                obsolete = obj.get("obsolete")
                 restricted = obj.get("range")
 
                 name = name.replace(' ','-')
@@ -123,7 +123,7 @@ def Create(log, args, schema, path, indent_size = 4):
                     endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
-                            break;
+                            break
                         enums.append(str(obj["enum"][i]))
                         if "default" in obj and e == obj["default"]:
                             default_enum = enums[-1]
@@ -141,7 +141,7 @@ def Create(log, args, schema, path, indent_size = 4):
                     prefix += "?." if optional else "."
 
                 prefix += name
-                description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else "*...*" if "@async" not in obj else ""
+                description = obj["description"] if "description" in obj else obj["summary"] if "summary" in obj else "*...*"
                 if description and description[0].islower():
                     description = description[0].upper() + description[1:]
 
@@ -234,21 +234,14 @@ def Create(log, args, schema, path, indent_size = 4):
                     if obj.get("@extract"):
                         row += " " + italics("(if only one element is present then the array will be omitted)")
 
-                    if obj.get("@async"):
-                        if row:
-                            row += "<br>"
-
-                        obj_type = "string (async ID)"
+                    if obj.get("opaque"):
+                        obj_type = "opaque object"
+                    elif obj.get("encode"):
+                        obj_type = "string (%s)" % obj.get("encode")
+                    elif obj.get("time"):
+                        obj_type = "string (%s time)" % obj.get("time").upper()
                     else:
-                        obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
-
-                    if obj.get("@lookup"):
-                        if row == "...":
-                            row = ""
-                        elif row:
-                            row += "<br>"
-
-                        obj_type += " (instance ID)"
+                        obj_type = obj["type"]
 
                     MdRow([prefix, obj_type, "optional" if optional else "mandatory", row])
 
@@ -260,7 +253,7 @@ def Create(log, args, schema, path, indent_size = 4):
                         _TableObj(pname, props, parentName + "/" + name, obj, prefix, False)
 
                 elif obj["type"] == "array":
-                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", False)
+                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", optional)
 
             _TableObj(name, object, "")
             MdBr()
@@ -316,9 +309,6 @@ def Create(log, args, schema, path, indent_size = 4):
             obj_type = obj["type"]
             default = obj["example"] if "example" in obj else obj["default"] if ("default" in obj and "enum" not in obj) else ""
 
-            if not default and "@async" in obj:
-                default = "myid-complete"
-
             if not default and "enum" in obj:
                 default = obj["enum"][1 if len(obj["enum"]) > 1 else 0]
 
@@ -336,8 +326,8 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 if obj.get("opaque"):
                     json_data += default if default else "{ }"
-                elif "@lookup" in obj:
-                    json_data += '"%s"' % (default if default else ("1" if obj["@lookup"] == "auto" else "id1"))
+                elif obj.get("time"):
+                    json_data += '"%s"' % (default if default else "2025-04-22T11:48:30.674516")
                 else:
                     json_data += '"%s"' % (default if default else "...")
 
@@ -374,7 +364,6 @@ def Create(log, args, schema, path, indent_size = 4):
         def MethodDump(method, props, classname, interface, section, header, is_notification=False, is_property=False, include=None):
             method = (method.rsplit(".", 1)[1] if "." in method else method)
             type = "property" if is_property else "notification" if is_notification else "method"
-            is_async = False
 
             log.Info("Emitting documentation for %s '%s'..." % (type, method))
 
@@ -459,22 +448,12 @@ def Create(log, args, schema, path, indent_size = 4):
                 _events = [props["events"]] if isinstance(props["events"], str) else props["events"]
                 MdParagraph("Also see: " + (", ".join(map(lambda x: link("event." + x), _events))))
 
-            idex = ("1" if props["@lookup"]["id"] == "generate" else "id1") if "@lookup" in props else ""
-
             if is_notification:
-                if "@lookup" in props:
-                    _obj_prefix = props["@lookup"]["prefix"].lower()
-                    _registrant = "%s#<%s-id>::register" % (_obj_prefix, _obj_prefix)
-                    _registrant2 ="%s#%s::register" % (_obj_prefix, idex)
-                    notification_event = method[method.rfind(':') + 1:]
-                    notification_generic_method = "<client-id>." + ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
-                    notification_example_method = "myid." + ("#%s::" % idex).join(method.rsplit("::", 1))
-                else:
-                    _registrant = "register"
-                    _registrant2 = "register"
-                    notification_event = method
-                    notification_generic_method = "<client-id>." + method
-                    notification_example_method = "myid." + method
+                _registrant = "register"
+                _registrant2 = "register"
+                notification_event = method
+                notification_generic_method = "<client-id>." + method
+                notification_example_method = "myid." + method
 
                 if "id" in props:
                     if "deprecated" in props["id"]:
@@ -486,28 +465,18 @@ def Create(log, args, schema, path, indent_size = 4):
                         _registrant2 += "@" + (props["id"]["example"] if "example" in props["id"] else "?")
 
 
-                generic_method = "%s.1.%s" % (classname, _registrant)
-                call_method ="%s.1.%s" % (classname, _registrant2)
+                generic_method = "%s.%s" % (classname, _registrant)
+                call_method ="%s.%s" % (classname, _registrant2)
             else:
-                if "@lookup" in props:
-                    _obj_prefix = props["@lookup"]["prefix"].lower()
-                    _example_callee = ("#%s::" % idex).join(method.rsplit("::", 1))
-                    _callee = ("#<%s-id>::" % _obj_prefix).join(method.rsplit("::", 1))
-                    generic_lookup_method = _callee
-                else:
-                    _example_callee = method
-                    _callee = method
+                _example_callee = method
+                _callee = method
 
-                generic_method = "%s.1.%s" % (classname, _callee)
-                call_method = "%s.1.%s" % (classname, _example_callee)
+                generic_method = "%s.%s" % (classname, _callee)
+                call_method = "%s.%s" % (classname, _example_callee)
 
                 if is_property and "index" in props:
                     call_method += ("@" + str(props["index"][0]["example"]) if "example" in props["index"][0] else "?")
                     generic_method += "@<index>"
-
-                if "@async" in props:
-                    async_generic_method = "<async-id>." + method
-                    async_example_method = "myid-complete." + method
 
             if is_property:
                 if "index" in props:
@@ -581,12 +550,6 @@ def Create(log, args, schema, path, indent_size = 4):
 
                     MdHeader("Notification Parameters", 3)
                 else:
-                    if "@async" in props:
-                        MdParagraph("> This method is asynchronous.")
-
-                    if "result" in props and "@lookup" in props["result"] and props["result"]["@lookup"] == "auto":
-                        MdParagraph("> This method creates an instance of a *%s* object." % props["result"]["@originalname"].lower())
-
                     MdHeader("Parameters", 3)
 
                 if "params" in props:
@@ -597,10 +560,6 @@ def Create(log, args, schema, path, indent_size = 4):
                     else:
                         MdParagraph("This method takes no parameters.")
 
-            if not is_notification:
-                if "@lookup" in props:
-                    MdParagraph("> The *%s instance ID* shall be passed within the method designator, i.e. ``%s``." % (props["@lookup"]["prefix"].lower(), generic_lookup_method))
-
             if "result" in props and not is_property:
                 MdHeader("Result", 3)
                 ParamTable("result", props["result"])
@@ -608,15 +567,6 @@ def Create(log, args, schema, path, indent_size = 4):
             if not is_notification and "errors" in props:
                 MdHeader("Errors", 3)
                 ErrorTable(props["errors"])
-
-            if "@async" in props and "params" in props:
-                MdHeader("Asynchronous Result", 3)
-
-                for k,v in props["params"]["properties"].items():
-                    if v.get("@async"):
-                        ParamTable("result", v["@async"]["params"])
-                        is_async = True
-                        async_param = v["@async"]
 
             MdHeader("Example", 3)
 
@@ -702,9 +652,6 @@ def Create(log, args, schema, path, indent_size = 4):
                             else:
                                 MdParagraph("> The *%s* parameter is passed as index within the notification designator, i.e. ``%s``. " % (props["id"]["name"], notification_generic_method))
 
-                    if "@lookup" in props:
-                        MdParagraph("> The *%s instance id* parameter is passed within the notification designator, i.e. ``%s``." % (props["@lookup"]["prefix"].lower(), notification_generic_method))
-
                 if not is_notification and not is_property:
                     if "result" not in props:
                         props["result"] = { "type": "null" }
@@ -719,19 +666,6 @@ def Create(log, args, schema, path, indent_size = 4):
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")
-
-                    if is_async:
-                        MdHeader("Asynchronous Response", 4)
-
-                        try:
-                            jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "method": "%s"%s }' % (async_example_method, ", " + ExampleObj("params", async_param["params"], True)),
-                                                        object_pairs_hook=OrderedDict), indent=2)
-                        except:
-                            jsonResponse = jsonError
-                            log.Error(jsonError)
-
-                        MdCode(jsonResponse, "json")
-                        MdParagraph("> The *async ID* parameter is passed within the notification designator, i.e. ``%s``." % async_generic_method)
 
                 if is_property:
                     MdHeader("Set Response", 4)
@@ -1133,9 +1067,6 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 if section in interface:
                     for method, contents in interface[section].items():
-                        if "#" in method and (section == "events" and "@lookup" in contents):
-                            method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
-
                         if contents and method not in skip_list and "#" not in method:
                             ns = interface["info"]["namespace"] if "namespace" in interface["info"] else ""
 
@@ -1258,9 +1189,6 @@ def Create(log, args, schema, path, indent_size = 4):
 
             if section in api:
                 for method, props in api[section].items():
-                    if "#" in method and (section == "events" and "@lookup" in props):
-                        method = method[:method.find('#')] + method[method.find(':', method.find('#')):]
-
                     if props and method not in skip_list and "#" not in method:
                         to_skip = MethodDump(method, props, ("<callsign>" if document_type == "interface" else plugin_class), api, section_name, header, event, prop)
 
