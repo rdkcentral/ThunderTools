@@ -201,6 +201,9 @@ class CCString(Intrinsic):
         Intrinsic.__init__(self, "ccstring")
 
 
+class Time(Intrinsic):
+    def __init__(self):
+        Intrinsic.__init__(self, "Core::Time::microsecondsfromepoch")
 
 class Optional(Intrinsic):
     def __init__(self, subtype):
@@ -796,6 +799,8 @@ class Identifier():
                     self.type[i] = Type(BuiltinInteger(False))
                 elif type == "__stubgen_instance_id":
                     self.type[i] = Type(InstanceId())
+                elif type == "__stubgen_time":
+                    self.type[i] = Type(Time())
                 elif is_valid_scoped(type):
                     found = LookupIdentifier(type, scope=parent)
                     if found:

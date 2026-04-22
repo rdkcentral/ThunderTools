@@ -616,6 +616,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 elif isinstance(cppType, CppParser.InstanceId):
                     result = [ "instanceid", {} ]
 
+                # Time
+                elif isinstance(cppType, CppParser.Time):
+                    result = [ "string", { "time": "iso8601" } ]
+
                 # Float
                 elif isinstance(cppType, CppParser.Float):
                     result = [ "number", { "float": True, "size": 32 if cppType.type == "float" else 64 if cppType.type == "double" else 128 } ]
@@ -872,7 +876,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             required.append(var_name)
 
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
-                                and not "enum" in converted:
+                                and not "enum" in converted and not "time" in converted:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
 
                         if converted.get("@optionaltype") and not var.type.IsReference():

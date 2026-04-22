@@ -522,6 +522,9 @@ def GenerateLuaData(emit, interfaces_list, enums_list, source_file=None, tree=No
                     if "bitmask" in meta.decorators or "bitmask" in paramtype.meta.decorators:
                         lua_type.append("bitmask", "true")
 
+                elif isinstance(p, CppParser.Time):
+                    lua_type.append_type("TIME", param)
+
                 elif isinstance(p, CppParser.BuiltinInteger) and paramtype.type.TypeName().endswith(INSTANCE_ID):
                     lua_type.append_type("OBJECT", None) # without class!
 
@@ -1243,6 +1246,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Number<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean()"
+                elif isinstance(self.kind, (CppParser.Time)):
+                    return "Number<%s>()" % self.target_type_name
 
                 # Floating point types
                 elif isinstance(self.kind, CppParser.Float):
@@ -1283,6 +1288,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Number<%s>(%s)" % (self.type_name, self.as_rvalue)
                 elif isinstance(self.kind, CppParser.Bool):
                     return "Boolean(%s)" % self.as_rvalue
+                elif isinstance(self.kind, CppParser.Time):
+                    return "Number<%s>(%s.Ticks())" % (self.target_type_name, self.as_rvalue)
 
                 # Floating point types
                 elif isinstance(self.kind, CppParser.Float):
@@ -1315,8 +1322,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return "Core::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "1" # always one byte
+
                 elif isinstance(self.kind, CppParser.DynamicArray):
                     return "Core::RealSize<%s>()" % self.peek_length.type_name
+                elif isinstance(self.kind, CppParser.Time):
+                    return "sizeof(%s)" % self.target_type_name
                 else:
                     Unreachable()
 
@@ -2709,7 +2719,7 @@ if __name__ == "__main__":
         print("   @optional              - indicates that a parameter, struct member or property index is optional (deprecated, use Core::OptionalType instead)")
         print("   @default:{value}       - set a default value for the deprecated optional parameter (deprecated)")
         print("   @encode:{method}       - encodes a buffer, array or vector to a string using the specified method (base64, hex, mac)")
-        print("   @encode:bitmask        - encodes a bitmask enum to a JSON array")
+        print("   @encode:bitmask        - encodes a bitmask enum to a JSON array (also: @bitmask)")
         print("   @encode:text           - enocdes enum to text (generate enum conversion tables), implicit for enums inside @json-tagged classes")
         print("   @prefix:{name}         - prefixes all JSON-RPC methods, properties and notifications names in an interface with a string")
         print("   @text:{name}           - sets a different name for a parameter, enumerator, struct or JSON-RPC method, struct members, property or notification")
