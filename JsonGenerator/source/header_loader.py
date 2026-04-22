@@ -507,11 +507,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             elif var_type.IsPointer() and (is_iterator or (meta.length and meta.length != ["void"]) or var.array) and not no_array and not is_bitmask:
 
                 # C-style buffers that will be converted to base64 encoded JSON strings
-                if isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and encoding:
+                if isinstance(cppType, CppParser.Integer) and (cppType.size == "char") and not encoding or encoding != "array":
                     props = {}
 
                     props["@originaltype"] = cppType.type
-                    props["encode"] = encoding
+                    props["encode"] = "base64" if not encoding else encoding
                     props["@proto"] = var.ProtoFmt()
 
                     if meta.output and meta.maxlength:
@@ -544,7 +544,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                 # C-style buffers converted to JSON array (not char type or fixed array)
                 elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Int24, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
-                    if encoding:
+                    if encoding and encoding != "array":
                         raise CppParseError(var, "'%s': @encode only available for char buffers" % var.name)
 
                     if var.array > 0xFFFF:
@@ -642,7 +642,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if meta.range:
                         props["range"] = meta.range.as_list
 
-                    if encoding:
+                    if encoding and encoding != "array":
                         if not isinstance(cppType.element.Type().type, CppParser.Integer) or cppType.element.Type().type.size != "char":
                             raise CppParseError(var, "invalid type for encoded std::vector")
 
@@ -1352,7 +1352,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     return_value = ConvertParameter(method.retval)
                     if return_value["type"] != "null":
-                        raise CppParseError(method, "%s: JSON-RPC notification method must not have a return value" % method.name)
+                        log.WarnLine(method, "%s: JSON-RPC notification method must not have a return value" % method.name)
 
                     if len(method.vars) > 0:
                         for v in method.vars[1:]:

@@ -552,6 +552,8 @@ class Identifier():
                     self.meta.decorators.append("encode:ip")
                 elif tag == "ENCODEMAC":
                     self.meta.decorators.append("encode:mac")
+                elif tag == "ENCODEARRAY":
+                    self.meta.decorators.append("encode:array")
                 elif tag == "OPTIONAL":
                     self.meta.decorators.append("optional")
                 elif tag == "EXTRACT":
@@ -2061,6 +2063,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ENCODEIP")
                 elif _find("@encode:mac", token):
                     tagtokens.append("@ENCODEMAC")
+                elif _find("@encode:array", token):
+                    tagtokens.append("@ENCODEARRAY")
 
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
