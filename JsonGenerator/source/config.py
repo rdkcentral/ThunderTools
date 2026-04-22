@@ -67,7 +67,7 @@ class CaseConvention(Enum):
     KEEP = "keep"
     CUSTOM = "custom"
 
-DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
+DEFAULT_CASE_CONVENTION = CaseConvention.LEGACY
 IGNORE_SOURCE_CASE_CONVENTION = False
 
 RPC_FORMAT = RpcFormat.COMPLIANT
