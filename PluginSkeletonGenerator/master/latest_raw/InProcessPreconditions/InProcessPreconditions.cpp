@@ -25,15 +25,15 @@ namespace Plugin {
 
     namespace {
 
-        static Metadata<InProcessPreconditions>metadata(
+        static Metadata<InProcessPreconditions> metadata(
         // Version
         1, 0, 0,
         // Preconditions
-        { subsystem::GRAPHICS },
+        {subsystem::GRAPHICS},
         // Terminations
-        { subsystem::NOT_GRAPHICS },
+        {subsystem::NOT_GRAPHICS},
         // Controls
-        { subsystem::TIME }
+        {subsystem::TIME}
         );
     }
 
@@ -53,10 +53,33 @@ namespace Plugin {
         return (string());
     }
 
-    Core::hresult InProcessPreconditions::Register(INotification* const /* notification */) {
+    Core::hresult InProcessPreconditions::Register(Exchange::ITimeSync::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_timesyncNotification.begin(), _timesyncNotification.end(), notification);
+        ASSERT(item == _timesyncNotification.end());
+
+        if (item == _timesyncNotification.end()) {
+            notification->AddRef();
+            _timesyncNotification.push_back(notification);
+        }
+
+        _adminLock.Unlock();
         return Core::ERROR_NONE;
     }
-    Core::hresult InProcessPreconditions::Unregister(const INotification* const /* notification */) {
+    Core::hresult InProcessPreconditions::Unregister(const Exchange::ITimeSync::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_timesyncNotification.begin(), _timesyncNotification.end(), notification);
+        ASSERT(item != _timesyncNotification.end());
+
+        if (item != _timesyncNotification.end()) {
+            _timesyncNotification.erase(item);
+            notification->Release();
+        }
+        _adminLock.Unlock();
         return Core::ERROR_NONE;
     }
     Core::hresult InProcessPreconditions::Synchronize() {
@@ -70,6 +93,14 @@ namespace Plugin {
     }
     Core::hresult InProcessPreconditions::Time(const Core::Time& /* time */) {
         return Core::ERROR_NONE;
+    }
+
+    void InProcessPreconditions::NotifyTimeChanged() const {
+        _adminLock.Lock();
+        for (auto* notification : _timesyncNotification) {
+            notification->TimeChanged();
+        }
+        _adminLock.Unlock();
     }
 } // Plugin
 } // Thunder

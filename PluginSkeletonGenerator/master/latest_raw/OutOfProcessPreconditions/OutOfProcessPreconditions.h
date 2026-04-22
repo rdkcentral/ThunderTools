@@ -21,7 +21,6 @@
 
 #include "Module.h"
 #include <interfaces/IMessageControl.h>
-#include <interfaces/json/JMessageControl.h>
 
 namespace Thunder {
 namespace Plugin {
@@ -44,6 +43,7 @@ namespace Plugin {
         }
 
         ~OutOfProcessPreconditions() override = default;
+    private:
         class Notification : public RPC::IRemoteConnection::INotification {
         public:
             Notification(const Notification&) = delete;

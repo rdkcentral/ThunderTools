@@ -26,6 +26,6 @@
     }
   },
   "interface": {
-    "$cppref": "{cppinterfacedir}/IBluetooth.h"
+    "$cppref": "{cppinterfacedir}/IWifiControl.h"
   }
 }

@@ -40,6 +40,8 @@ namespace Plugin {
             , Exchange::IBrowserCookieJar()
             , _adminLock()
             , _browserNotification()
+            , _webbrowserNotification()
+            , _browsercookiejarNotification()
         {
         }
         ~OutOfProcessImplementation() override = default;
@@ -56,10 +58,12 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IBrowserCookieJar)
         END_INTERFACE_MAP
 
+        // Type aliases copied from interface headers
+        using IStringIterator = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
         // IBrowser methods
 
         void Register(Exchange::IBrowser::INotification* notification) override {
-
             ASSERT(notification != nullptr);
 
             _adminLock.Lock();
@@ -72,11 +76,9 @@ namespace Plugin {
             }
 
             _adminLock.Unlock();
-
         }
 
-        void Unregister(const Exchange::IBrowser::INotification* notification) override {
-
+        void Unregister(Exchange::IBrowser::INotification* notification) override {
             ASSERT(notification != nullptr);
 
             _adminLock.Lock();
@@ -88,15 +90,13 @@ namespace Plugin {
                 notification->Release();
             }
             _adminLock.Unlock();
-
         }
 
         void SetURL(const string& /* URL */) override {
-            return Core::ERROR_NONE;
         }
 
         string GetURL() const override {
-            return Core::ERROR_NONE;
+            return string();
         }
 
         uint32_t GetFPS() const override {
@@ -104,41 +104,37 @@ namespace Plugin {
         }
 
         void Hide(const bool /* hidden */) override {
-            return Core::ERROR_NONE;
         }
 
         // IWebBrowser methods
 
-        void LoadFinished(const string& /* URL */, const int32_t /* httpstatus */) override {
-            return Core::ERROR_NONE;
+        void Register(Exchange::IWebBrowser::INotification* notification) override {
+            ASSERT(notification != nullptr);
+
+            _adminLock.Lock();
+            auto item = std::find(_webbrowserNotification.begin(), _webbrowserNotification.end(), notification);
+            ASSERT(item == _webbrowserNotification.end());
+
+            if (item == _webbrowserNotification.end()) {
+                notification->AddRef();
+                _webbrowserNotification.push_back(notification);
+            }
+
+            _adminLock.Unlock();
         }
 
-        void LoadFailed(const string& /* URL */) override {
-            return Core::ERROR_NONE;
-        }
+        void Unregister(Exchange::IWebBrowser::INotification* notification) override {
+            ASSERT(notification != nullptr);
 
-        void URLChange(const string& /* URL */, const bool /* loaded */) override {
-            return Core::ERROR_NONE;
-        }
+            _adminLock.Lock();
+            auto item = std::find(_webbrowserNotification.begin(), _webbrowserNotification.end(), notification);
+            ASSERT(item != _webbrowserNotification.end());
 
-        void VisibilityChange(const bool /* hidden */) override {
-            return Core::ERROR_NONE;
-        }
-
-        void PageClosure() override {
-            return Core::ERROR_NONE;
-        }
-
-        void BridgeQuery(const string& /* message */) override {
-            return Core::ERROR_NONE;
-        }
-
-        void Register(INotification* /* sink */) override {
-            return Core::ERROR_NONE;
-        }
-
-        void Unregister(INotification* /* sink */) override {
-            return Core::ERROR_NONE;
+            if (item != _webbrowserNotification.end()) {
+                _webbrowserNotification.erase(item);
+                notification->Release();
+            }
+            _adminLock.Unlock();
         }
 
         uint32_t URL(string& /* url */ /* @out */) const override {
@@ -279,16 +275,33 @@ namespace Plugin {
 
         // IBrowserCookieJar methods
 
-        void CookieJarChanged() override {
-            return Core::ERROR_NONE;
+        void Register(Exchange::IBrowserCookieJar::INotification* notification) override {
+            ASSERT(notification != nullptr);
+
+            _adminLock.Lock();
+            auto item = std::find(_browsercookiejarNotification.begin(), _browsercookiejarNotification.end(), notification);
+            ASSERT(item == _browsercookiejarNotification.end());
+
+            if (item == _browsercookiejarNotification.end()) {
+                notification->AddRef();
+                _browsercookiejarNotification.push_back(notification);
+            }
+
+            _adminLock.Unlock();
         }
 
-        void Register(INotification* /* sink */) override {
-            return Core::ERROR_NONE;
-        }
+        void Unregister(Exchange::IBrowserCookieJar::INotification* notification) override {
+            ASSERT(notification != nullptr);
 
-        void Unregister(INotification* /* sink */) override {
-            return Core::ERROR_NONE;
+            _adminLock.Lock();
+            auto item = std::find(_browsercookiejarNotification.begin(), _browsercookiejarNotification.end(), notification);
+            ASSERT(item != _browsercookiejarNotification.end());
+
+            if (item != _browsercookiejarNotification.end()) {
+                _browsercookiejarNotification.erase(item);
+                notification->Release();
+            }
+            _adminLock.Unlock();
         }
 
         uint32_t CookieJar(Config& /* cookieJarInfo */ /* @out */) const override {
@@ -298,43 +311,72 @@ namespace Plugin {
         uint32_t CookieJar(const Config& /* cookieJarInfo */) override {
             return Core::ERROR_NONE;
         }
+
     private:
         using BrowserNotificationContainer = std::vector<Exchange::IBrowser::INotification*>;
+        using WebBrowserNotificationContainer = std::vector<Exchange::IWebBrowser::INotification*>;
+        using BrowserCookieJarNotificationContainer = std::vector<Exchange::IBrowserCookieJar::INotification*>;
 
-        void NotifyLoadFinished(const string& URL) const {
+        void NotifyLoadFinished(const string& URL, const int32_t httpstatus) const {
             _adminLock.Lock();
-            for (auto* notification : _browserNotification) {
-                notification->LoadFinished(URL);
+            for (auto* notification : _webbrowserNotification) {
+                notification->LoadFinished(URL, httpstatus);
             }
             _adminLock.Unlock();
         }
 
-        void NotifyURLChanged(const string& URL) const {
+        void NotifyLoadFailed(const string& URL) const {
             _adminLock.Lock();
-            for (auto* notification : _browserNotification) {
-                notification->URLChanged(URL);
+            for (auto* notification : _webbrowserNotification) {
+                notification->LoadFailed(URL);
             }
             _adminLock.Unlock();
         }
 
-        void NotifyHidden(const bool hidden) const {
+        void NotifyURLChange(const string& URL, const bool loaded) const {
             _adminLock.Lock();
-            for (auto* notification : _browserNotification) {
-                notification->Hidden(hidden);
+            for (auto* notification : _webbrowserNotification) {
+                notification->URLChange(URL, loaded);
             }
             _adminLock.Unlock();
         }
 
-        void NotifyClosure() const {
+        void NotifyVisibilityChange(const bool hidden) const {
             _adminLock.Lock();
-            for (auto* notification : _browserNotification) {
-                notification->Closure();
+            for (auto* notification : _webbrowserNotification) {
+                notification->VisibilityChange(hidden);
+            }
+            _adminLock.Unlock();
+        }
+
+        void NotifyPageClosure() const {
+            _adminLock.Lock();
+            for (auto* notification : _webbrowserNotification) {
+                notification->PageClosure();
+            }
+            _adminLock.Unlock();
+        }
+
+        void NotifyBridgeQuery(const string& message) const {
+            _adminLock.Lock();
+            for (auto* notification : _webbrowserNotification) {
+                notification->BridgeQuery(message);
+            }
+            _adminLock.Unlock();
+        }
+
+        void NotifyCookieJarChanged() const {
+            _adminLock.Lock();
+            for (auto* notification : _browsercookiejarNotification) {
+                notification->CookieJarChanged();
             }
             _adminLock.Unlock();
         }
 
         mutable Core::CriticalSection _adminLock;
         BrowserNotificationContainer _browserNotification;
+        WebBrowserNotificationContainer _webbrowserNotification;
+        BrowserCookieJarNotificationContainer _browsercookiejarNotification;
     };
 
     SERVICE_REGISTRATION(OutOfProcessImplementation, 1, 0)

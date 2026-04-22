@@ -18,14 +18,19 @@
 */
 
 #include "OutOfProcess.h"
-#include <interfaces/json/JBrowser.h>
+#include <interfaces/json/JWebBrowser.h>
+#include <interfaces/json/JWebBrowserExt.h>
+#include <interfaces/json/JBrowserResources.h>
+#include <interfaces/json/JBrowserSecurity.h>
+#include <interfaces/json/JBrowserScripting.h>
+#include <interfaces/json/JBrowserCookieJar.h>
 
 namespace Thunder {
 namespace Plugin {
 
     namespace {
 
-        static Metadata<OutOfProcess>metadata(
+        static Metadata<OutOfProcess> metadata(
         // Version
         1, 0, 0,
         // Preconditions
@@ -78,11 +83,14 @@ namespace Plugin {
                                 if (_implBrowserCookieJar == nullptr) {
                                     message = _T("Failed to acquire IBrowserCookieJar interface.");
                                 } else {
+                                    _implBrowser->Register(&_notification);
+                                    _implWebBrowser->Register(&_notification);
                                     Exchange::JWebBrowser::Register(*this, _implWebBrowser);
                                     Exchange::JWebBrowserExt::Register(*this, _implWebBrowserExt);
                                     Exchange::JBrowserResources::Register(*this, _implBrowserResources);
                                     Exchange::JBrowserSecurity::Register(*this, _implBrowserSecurity);
                                     Exchange::JBrowserScripting::Register(*this, _implBrowserScripting);
+                                    _implBrowserCookieJar->Register(&_notification);
                                     Exchange::JBrowserCookieJar::Register(*this, _implBrowserCookieJar);
                                 }
                             }
@@ -106,6 +114,7 @@ namespace Plugin {
 
             if (_implWebBrowser != nullptr) {
                 Exchange::JWebBrowser::Unregister(*this);
+                _implWebBrowser->Unregister(&_notification);
                 _implWebBrowser->Release();
                 _implWebBrowser = nullptr;
             }
@@ -136,9 +145,11 @@ namespace Plugin {
 
             if (_implBrowserCookieJar != nullptr) {
                 Exchange::JBrowserCookieJar::Unregister(*this);
+                _implBrowserCookieJar->Unregister(&_notification);
                 _implBrowserCookieJar->Release();
                 _implBrowserCookieJar = nullptr;
             }
+            _implBrowser->Unregister(&_notification);
 
             RPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));
             VARIABLE_IS_NOT_USED uint32_t result = _implBrowser->Release();
@@ -178,10 +189,27 @@ namespace Plugin {
         if (interfaceId == Exchange::IBrowser::INotification::ID) {
             auto* revokedInterface = remote->QueryInterface<Exchange::IBrowser::INotification>();
             if (revokedInterface) {
-                _implBrowser->Unregister(revokedInterface);
+                _implBrowser->Unregister(const_cast<Exchange::IBrowser::INotification*>(revokedInterface));
                 revokedInterface->Release();
             }
         }
+
+        if (interfaceId == Exchange::IWebBrowser::INotification::ID) {
+            auto* revokedInterface = remote->QueryInterface<Exchange::IWebBrowser::INotification>();
+            if (revokedInterface) {
+                _implWebBrowser->Unregister(const_cast<Exchange::IWebBrowser::INotification*>(revokedInterface));
+                revokedInterface->Release();
+            }
+        }
+
+        if (interfaceId == Exchange::IBrowserCookieJar::INotification::ID) {
+            auto* revokedInterface = remote->QueryInterface<Exchange::IBrowserCookieJar::INotification>();
+            if (revokedInterface) {
+                _implBrowserCookieJar->Unregister(const_cast<Exchange::IBrowserCookieJar::INotification*>(revokedInterface));
+                revokedInterface->Release();
+            }
+        }
+
     }
 
 } // Plugin

@@ -25,7 +25,7 @@ namespace Plugin {
 
     namespace {
 
-        static Metadata<InProcess>metadata(
+        static Metadata<InProcess> metadata(
         // Version
         1, 0, 0,
         // Preconditions
@@ -59,5 +59,6 @@ namespace Plugin {
     uint32_t InProcess::Sub(const uint16_t /* A */, const uint16_t /* B */, uint16_t& /* sum */ /* @out */) const {
         return Core::ERROR_NONE;
     }
+
 } // Plugin
 } // Thunder

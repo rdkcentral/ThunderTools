@@ -20,12 +20,12 @@
 #pragma once
 
 #include "Module.h"
-#include <interfaces/IDictionary.h>
+#include <interfaces/IVolumeControl.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class InProcessConfigPreconditions : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IDictionary {
+    class InProcessConfigPreconditions : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IVolumeControl {
     public:
         InProcessConfigPreconditions(const InProcessConfigPreconditions&) = delete;
         InProcessConfigPreconditions& operator=(const InProcessConfigPreconditions&) = delete;
@@ -35,27 +35,28 @@ namespace Plugin {
         InProcessConfigPreconditions()
             : PluginHost::IPlugin()
             , PluginHost::JSONRPC()
-            , Exchange::IDictionary()
+            , Exchange::IVolumeControl()
             , _adminLock()
-            , _dictionaryNotification()
+            , _volumecontrolNotification()
         {
         }
 
         ~InProcessConfigPreconditions() override = default;
-        class Config : public Core::JSON::Container {
+    private:
+        class PluginConfig : public Core::JSON::Container {
         public:
-            Config(const Config&) = delete;
-            Config& operator=(const Config&) = delete;
-            Config(Config&&) = delete;
-            Config& operator=(Config&&) = delete;
+            PluginConfig(const PluginConfig&) = delete;
+            PluginConfig& operator=(const PluginConfig&) = delete;
+            PluginConfig(PluginConfig&&) = delete;
+            PluginConfig& operator=(PluginConfig&&) = delete;
 
-            Config()
+            PluginConfig()
                 : Core::JSON::Container()
                 , Example()
             {
                 Add(_T("example"), &Example);
             }
-            ~Config() override = default;
+            ~PluginConfig() override = default;
         public:
             Core::JSON::String Example;
         };
@@ -65,29 +66,34 @@ namespace Plugin {
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
 
-        // IDictionary methods
+        // IVolumeControl methods
 
-        Core::hresult Register(const string& /* path */, IDictionary::INotification* /* sink */) override;
+        void Register(Exchange::IVolumeControl::INotification* const /* sink */) override;
 
-        Core::hresult Unregister(const string& /* path */, const IDictionary::INotification* /* sink */) override;
+        void Unregister(const Exchange::IVolumeControl::INotification* const /* sink */) override;
 
-        Core::hresult Get(const string& /* path */, const string& /* key */, string& /* value */ /* @out */) const override;
+        uint32_t Muted(const bool /* muted */) override;
 
-        Core::hresult Set(const string& /* path */, const string& /* key */, const string& /* value */) override;
+        uint32_t Muted(bool& /* muted */ /* @out */) const override;
 
-        Core::hresult PathEntries(const string& /* path */, IDictionary::IPathIterator*& /* entries */ /* @out */) const override;
+        uint32_t Volume(const uint8_t /* volume */) override;
+
+        uint32_t Volume(uint8_t& /* volume */ /* @out */) const override;
 
         BEGIN_INTERFACE_MAP(InProcessConfigPreconditions)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
-            INTERFACE_ENTRY(Exchange::IDictionary)
+            INTERFACE_ENTRY(Exchange::IVolumeControl)
         END_INTERFACE_MAP
 
     private:
-        using DictionaryNotificationContainer = std::vector<Exchange::IDictionary::INotification*>;
+        using VolumeControlNotificationContainer = std::vector<Exchange::IVolumeControl::INotification*>;
+
+        void NotifyVolume(const uint8_t /* volume */) const;
+        void NotifyMuted(const bool /* muted */) const;
 
         mutable Core::CriticalSection _adminLock;
-        DictionaryNotificationContainer _dictionaryNotification;
+        VolumeControlNotificationContainer _volumecontrolNotification;
     };
 } // Plugin
 } // Thunder

@@ -26,7 +26,7 @@ namespace Plugin {
 
     namespace {
 
-        static Metadata<OutOfProcessConfig>metadata(
+        static Metadata<OutOfProcessConfig> metadata(
         // Version
         1, 0, 0,
         // Preconditions
@@ -119,10 +119,11 @@ namespace Plugin {
         if (interfaceId == Exchange::INetworkControl::INotification::ID) {
             auto* revokedInterface = remote->QueryInterface<Exchange::INetworkControl::INotification>();
             if (revokedInterface) {
-                _implNetworkControl->Unregister(revokedInterface);
+                _implNetworkControl->Unregister(const_cast<Exchange::INetworkControl::INotification*>(revokedInterface));
                 revokedInterface->Release();
             }
         }
+
     }
 
 } // Plugin

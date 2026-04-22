@@ -44,6 +44,7 @@ namespace Plugin {
         }
 
         ~OutOfProcessConfig() override = default;
+    private:
         class Notification : public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification, public Exchange::INetworkControl::INotification {
         public:
             Notification(const Notification&) = delete;

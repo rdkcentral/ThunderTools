@@ -20,12 +20,13 @@
 #pragma once
 
 #include "Module.h"
-#include <Y/IBluetooth.h>
+#include <interfaces/IWifiControl.h>
+#include <interfaces/json/JWifiControl.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class OutOfProcessConfigPreconditions : public PluginHost::IPlugin {
+    class OutOfProcessConfigPreconditions : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     public:
         OutOfProcessConfigPreconditions(const OutOfProcessConfigPreconditions&) = delete;
         OutOfProcessConfigPreconditions& operator=(const OutOfProcessConfigPreconditions&) = delete;
@@ -34,15 +35,17 @@ namespace Plugin {
 
         OutOfProcessConfigPreconditions()
             : PluginHost::IPlugin()
+            , PluginHost::JSONRPC()
             , _service(nullptr)
             , _connectionId(0)
-            , _implBluetooth(nullptr)
+            , _implWifiControl(nullptr)
             , _notification(*this)
         {
         }
 
         ~OutOfProcessConfigPreconditions() override = default;
-        class Notification : public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification, public Exchange::IBluetooth::INotification, public Exchange::IBluetooth::INotification, public Exchange::IBluetooth::INotification {
+    private:
+        class Notification : public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification, public Exchange::IWifiControl::INotification {
         public:
             Notification(const Notification&) = delete;
             Notification& operator=(const Notification&) = delete;
@@ -53,9 +56,7 @@ namespace Plugin {
             explicit Notification(OutOfProcessConfigPreconditions& parent)
                 : RPC::IRemoteConnection::INotification()
                 , PluginHost::IShell::ICOMLink::INotification()
-                , Exchange::IBluetooth::INotification()
-                , Exchange::IBluetooth::INotification()
-                , Exchange::IBluetooth::INotification()
+                , Exchange::IWifiControl::INotification()
                 , _parent(parent)
             {
             }
@@ -73,22 +74,16 @@ namespace Plugin {
             void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {
                 _parent.Dangling(remote, interfaceId);
             }
-            void Update(IDevice* device) override {
+            void NetworkChange() override {
+                Exchange::JWifiControl::Event::NetworkChange(_parent);
             }
-            void ScanningStateChanged() override {
-            }
-            void AdvertisingStateChanged() override {
-            }
-            void ScanningStateChanged() override {
-            }
-            void InquiryScanningStateChanged() override {
+            void ConnectionChange(const string& ssid) override {
+                Exchange::JWifiControl::Event::ConnectionChange(_parent, ssid);
             }
             BEGIN_INTERFACE_MAP(Notification)
                 INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
                 INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)
-                INTERFACE_ENTRY(Exchange::IBluetooth::INotification)
-                INTERFACE_ENTRY(Exchange::IBluetooth::INotification)
-                INTERFACE_ENTRY(Exchange::IBluetooth::INotification)
+                INTERFACE_ENTRY(Exchange::IWifiControl::INotification)
             END_INTERFACE_MAP
         private:
             OutOfProcessConfigPreconditions& _parent;
@@ -103,7 +98,8 @@ namespace Plugin {
 
         BEGIN_INTERFACE_MAP(OutOfProcessConfigPreconditions)
             INTERFACE_ENTRY(PluginHost::IPlugin)
-            INTERFACE_AGGREGATE(Exchange::IBluetooth, _implBluetooth)
+            INTERFACE_ENTRY(PluginHost::IDispatcher)
+            INTERFACE_AGGREGATE(Exchange::IWifiControl, _implWifiControl)
         END_INTERFACE_MAP
 
     private:
@@ -112,7 +108,7 @@ namespace Plugin {
 
         PluginHost::IShell* _service;
         uint32_t _connectionId;
-        Exchange::IBluetooth* _implBluetooth;
+        Exchange::IWifiControl* _implWifiControl;
         Core::SinkType<Notification> _notification;
     };
 } // Plugin

@@ -18,22 +18,22 @@
 */
 
 #include "InProcessConfigPreconditions.h"
-#include <interfaces/json/JDictionary.h>
+#include <interfaces/json/JVolumeControl.h>
 
 namespace Thunder {
 namespace Plugin {
 
     namespace {
 
-        static Metadata<InProcessConfigPreconditions>metadata(
+        static Metadata<InProcessConfigPreconditions> metadata(
         // Version
         1, 0, 0,
         // Preconditions
-        { subsystem::GRAPHICS },
+        {subsystem::GRAPHICS},
         // Terminations
-        { subsystem::NOT_GRAPHICS },
+        {subsystem::NOT_GRAPHICS},
         // Controls
-        { subsystem::TIME }
+        {subsystem::TIME}
         );
     }
 
@@ -41,35 +41,75 @@ namespace Plugin {
         string message;
 
         ASSERT(service != nullptr);
-        Config config;
+        PluginConfig config;
         config.FromString(service->ConfigLine());
         TRACE(Trace::Information, (_T("This is just an example: [%s]"), config.Example.Value().c_str()));
-        Exchange::JDictionary::Register(*this, this);
+        Exchange::JVolumeControl::Register(*this, this);
         return (message);
     }
 
     void InProcessConfigPreconditions::Deinitialize(VARIABLE_IS_NOT_USED PluginHost::IShell* service) {
-        Exchange::JDictionary::Unregister(*this);
+        Exchange::JVolumeControl::Unregister(*this);
     }
 
     string InProcessConfigPreconditions::Information() const {
         return (string());
     }
 
-    Core::hresult InProcessConfigPreconditions::Register(const string& /* path */, IDictionary::INotification* /* sink */) {
+    void InProcessConfigPreconditions::Register(Exchange::IVolumeControl::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_volumecontrolNotification.begin(), _volumecontrolNotification.end(), notification);
+        ASSERT(item == _volumecontrolNotification.end());
+
+        if (item == _volumecontrolNotification.end()) {
+            notification->AddRef();
+            _volumecontrolNotification.push_back(notification);
+        }
+
+        _adminLock.Unlock();
+    }
+    void InProcessConfigPreconditions::Unregister(const Exchange::IVolumeControl::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_volumecontrolNotification.begin(), _volumecontrolNotification.end(), notification);
+        ASSERT(item != _volumecontrolNotification.end());
+
+        if (item != _volumecontrolNotification.end()) {
+            _volumecontrolNotification.erase(item);
+            notification->Release();
+        }
+        _adminLock.Unlock();
+    }
+    uint32_t InProcessConfigPreconditions::Muted(const bool /* muted */) {
         return Core::ERROR_NONE;
     }
-    Core::hresult InProcessConfigPreconditions::Unregister(const string& /* path */, const IDictionary::INotification* /* sink */) {
+    uint32_t InProcessConfigPreconditions::Muted(bool& /* muted */ /* @out */) const {
         return Core::ERROR_NONE;
     }
-    Core::hresult InProcessConfigPreconditions::Get(const string& /* path */, const string& /* key */, string& /* value */ /* @out */) const {
+    uint32_t InProcessConfigPreconditions::Volume(const uint8_t /* volume */) {
         return Core::ERROR_NONE;
     }
-    Core::hresult InProcessConfigPreconditions::Set(const string& /* path */, const string& /* key */, const string& /* value */) {
+    uint32_t InProcessConfigPreconditions::Volume(uint8_t& /* volume */ /* @out */) const {
         return Core::ERROR_NONE;
     }
-    Core::hresult InProcessConfigPreconditions::PathEntries(const string& /* path */, IDictionary::IPathIterator*& /* entries */ /* @out */) const {
-        return Core::ERROR_NONE;
+
+    void InProcessConfigPreconditions::NotifyVolume(const uint8_t volume) const {
+        _adminLock.Lock();
+        for (auto* notification : _volumecontrolNotification) {
+            notification->Volume(volume);
+        }
+        _adminLock.Unlock();
+    }
+
+    void InProcessConfigPreconditions::NotifyMuted(const bool muted) const {
+        _adminLock.Lock();
+        for (auto* notification : _volumecontrolNotification) {
+            notification->Muted(muted);
+        }
+        _adminLock.Unlock();
     }
 } // Plugin
 } // Thunder

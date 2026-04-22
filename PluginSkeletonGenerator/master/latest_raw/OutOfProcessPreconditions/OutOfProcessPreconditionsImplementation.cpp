@@ -42,6 +42,11 @@ namespace Plugin {
             INTERFACE_ENTRY(Exchange::IMessageControl)
         END_INTERFACE_MAP
 
+        // Type aliases copied from interface headers
+        using IControlIterator = RPC::IIteratorType<Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>;
+        using IStringIterator = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+        using messagetype = Core::Messaging::Metadata::type;
+
         // IMessageControl methods
 
         Core::hresult Enable(const messagetype /* type */, const string& /* category */, const string& /* module */, const bool /* enabled */) override {
@@ -55,6 +60,7 @@ namespace Plugin {
         Core::hresult Controls(const string& /* module */ /* @index */, IControlIterator*& /* control */ /* @out */) const override {
             return Core::ERROR_NONE;
         }
+
     private:
 
     };

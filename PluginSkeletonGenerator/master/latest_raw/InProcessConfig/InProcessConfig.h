@@ -42,20 +42,21 @@ namespace Plugin {
         }
 
         ~InProcessConfig() override = default;
-        class Config : public Core::JSON::Container {
+    private:
+        class PluginConfig : public Core::JSON::Container {
         public:
-            Config(const Config&) = delete;
-            Config& operator=(const Config&) = delete;
-            Config(Config&&) = delete;
-            Config& operator=(Config&&) = delete;
+            PluginConfig(const PluginConfig&) = delete;
+            PluginConfig& operator=(const PluginConfig&) = delete;
+            PluginConfig(PluginConfig&&) = delete;
+            PluginConfig& operator=(PluginConfig&&) = delete;
 
-            Config()
+            PluginConfig()
                 : Core::JSON::Container()
                 , Example()
             {
                 Add(_T("example"), &Example);
             }
-            ~Config() override = default;
+            ~PluginConfig() override = default;
         public:
             Core::JSON::String Example;
         };
@@ -67,9 +68,9 @@ namespace Plugin {
 
         // IPower methods
 
-        Core::hresult Register(INotification* const /* sink */) override;
+        Core::hresult Register(Exchange::IPower::INotification* const /* sink */) override;
 
-        Core::hresult Unregister(const INotification* const /* sink */) override;
+        Core::hresult Unregister(const Exchange::IPower::INotification* const /* sink */) override;
 
         Core::hresult GetState(PCState& /* state */ /* @out */) const override;
 
@@ -85,6 +86,8 @@ namespace Plugin {
 
     private:
         using PowerNotificationContainer = std::vector<Exchange::IPower::INotification*>;
+
+        void NotifyStateChange(const PCState /* origin */, const PCState /* destination */, const PCPhase /* phase */) const;
 
         mutable Core::CriticalSection _adminLock;
         PowerNotificationContainer _powerNotification;

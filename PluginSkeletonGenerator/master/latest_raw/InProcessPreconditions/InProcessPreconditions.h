@@ -42,8 +42,6 @@ namespace Plugin {
         }
 
         ~InProcessPreconditions() override = default;
-    private:
-    public:
         // IPlugin Methods
         const string Initialize(PluginHost::IShell* service) override;
         void Deinitialize(PluginHost::IShell* service) override;
@@ -51,9 +49,9 @@ namespace Plugin {
 
         // ITimeSync methods
 
-        Core::hresult Register(INotification* const /* notification */) override;
+        Core::hresult Register(Exchange::ITimeSync::INotification* const /* sink */) override;
 
-        Core::hresult Unregister(const INotification* const /* notification */) override;
+        Core::hresult Unregister(const Exchange::ITimeSync::INotification* const /* sink */) override;
 
         Core::hresult Synchronize() override;
 
@@ -71,6 +69,8 @@ namespace Plugin {
 
     private:
         using TimeSyncNotificationContainer = std::vector<Exchange::ITimeSync::INotification*>;
+
+        void NotifyTimeChanged() const;
 
         mutable Core::CriticalSection _adminLock;
         TimeSyncNotificationContainer _timesyncNotification;

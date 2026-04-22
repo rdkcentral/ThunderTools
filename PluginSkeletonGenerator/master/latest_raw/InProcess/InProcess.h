@@ -40,8 +40,6 @@ namespace Plugin {
         }
 
         ~InProcess() override = default;
-    private:
-    public:
         // IPlugin Methods
         const string Initialize(PluginHost::IShell* service) override;
         void Deinitialize(PluginHost::IShell* service) override;
@@ -58,8 +56,6 @@ namespace Plugin {
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             INTERFACE_ENTRY(Exchange::IMath)
         END_INTERFACE_MAP
-
-    private:
 
     };
 } // Plugin

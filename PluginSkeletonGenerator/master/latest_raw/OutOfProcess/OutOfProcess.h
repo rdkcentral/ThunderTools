@@ -21,7 +21,8 @@
 
 #include "Module.h"
 #include <interfaces/IBrowser.h>
-#include <interfaces/json/JBrowser.h>
+#include <interfaces/json/JWebBrowser.h>
+#include <interfaces/json/JBrowserCookieJar.h>
 
 namespace Thunder {
 namespace Plugin {
@@ -50,7 +51,8 @@ namespace Plugin {
         }
 
         ~OutOfProcess() override = default;
-        class Notification : public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification, public Exchange::IBrowser::INotification {
+    private:
+        class Notification : public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification, public Exchange::IBrowser::INotification, public Exchange::IWebBrowser::INotification, public Exchange::IBrowserCookieJar::INotification {
         public:
             Notification(const Notification&) = delete;
             Notification& operator=(const Notification&) = delete;
@@ -62,6 +64,8 @@ namespace Plugin {
                 : RPC::IRemoteConnection::INotification()
                 , PluginHost::IShell::ICOMLink::INotification()
                 , Exchange::IBrowser::INotification()
+                , Exchange::IWebBrowser::INotification()
+                , Exchange::IBrowserCookieJar::INotification()
                 , _parent(parent)
             {
             }
@@ -79,22 +83,41 @@ namespace Plugin {
             void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {
                 _parent.Dangling(remote, interfaceId);
             }
-            void LoadFinished(const string& URL) override {
-                Exchange::JBrowser::Event::LoadFinished(_parent, URL);
+            void LoadFinished(const string& /* URL */) override {
             }
-            void URLChanged(const string& URL) override {
-                Exchange::JBrowser::Event::URLChanged(_parent, URL);
+            void URLChanged(const string& /* URL */) override {
             }
-            void Hidden(const bool hidden) override {
-                Exchange::JBrowser::Event::Hidden(_parent, hidden);
+            void Hidden(const bool /* hidden */) override {
             }
             void Closure() override {
-                Exchange::JBrowser::Event::Closure(_parent);
+            }
+            void LoadFinished(const string& URL, const int32_t httpstatus) override {
+                Exchange::JWebBrowser::Event::LoadFinished(_parent, URL, httpstatus);
+            }
+            void LoadFailed(const string& URL) override {
+                Exchange::JWebBrowser::Event::LoadFailed(_parent, URL);
+            }
+            void URLChange(const string& URL, const bool loaded) override {
+                Exchange::JWebBrowser::Event::URLChange(_parent, URL, loaded);
+            }
+            void VisibilityChange(const bool hidden) override {
+                Exchange::JWebBrowser::Event::VisibilityChange(_parent, hidden);
+            }
+            void PageClosure() override {
+                Exchange::JWebBrowser::Event::PageClosure(_parent);
+            }
+            void BridgeQuery(const string& message) override {
+                Exchange::JWebBrowser::Event::BridgeQuery(_parent, message);
+            }
+            void CookieJarChanged() override {
+                Exchange::JBrowserCookieJar::Event::CookieJarChanged(_parent);
             }
             BEGIN_INTERFACE_MAP(Notification)
                 INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
                 INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)
                 INTERFACE_ENTRY(Exchange::IBrowser::INotification)
+                INTERFACE_ENTRY(Exchange::IWebBrowser::INotification)
+                INTERFACE_ENTRY(Exchange::IBrowserCookieJar::INotification)
             END_INTERFACE_MAP
         private:
             OutOfProcess& _parent;

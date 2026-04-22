@@ -19,11 +19,12 @@
 
 #include "Module.h"
 #include <interfaces/INetworkControl.h>
+#include <interfaces/IConfiguration.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class OutOfProcessConfigImplementation : public Exchange::INetworkControl {
+    class OutOfProcessConfigImplementation : public Exchange::IConfiguration, public Exchange::INetworkControl {
     public:
         OutOfProcessConfigImplementation(const OutOfProcessConfigImplementation&) = delete;
         OutOfProcessConfigImplementation& operator=(const OutOfProcessConfigImplementation&) = delete;
@@ -40,33 +41,37 @@ namespace Plugin {
 
     private:
 
-        class Config : public Core::JSON::Container {
+        class PluginConfig : public Core::JSON::Container {
         public:
-            Config(const Config&) = delete;
-            Config& operator=(const Config&) = delete;
-            Config(Config&&) = delete;
-            Config& operator=(Config&&) = delete;
+            PluginConfig(const PluginConfig&) = delete;
+            PluginConfig& operator=(const PluginConfig&) = delete;
+            PluginConfig(PluginConfig&&) = delete;
+            PluginConfig& operator=(PluginConfig&&) = delete;
 
-            Config()
+            PluginConfig()
                 : Core::JSON::Container()
                 , Example()
             {
                 Add(_T("example"), &Example);
             }
-            ~Config() override = default;
+            ~PluginConfig() override = default;
         public:
             Core::JSON::String Example;
         };
     public:
 
         BEGIN_INTERFACE_MAP(OutOfProcessConfigImplementation)
+            INTERFACE_ENTRY(Exchange::IConfiguration)
             INTERFACE_ENTRY(Exchange::INetworkControl)
         END_INTERFACE_MAP
+
+        // Type aliases copied from interface headers
+        using INetworkInfoIterator = RPC::IIteratorType<NetworkInfo, Exchange::ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>;
+        using IStringIterator = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
 
         // INetworkControl methods
 
         uint32_t Register(Exchange::INetworkControl::INotification* notification) override {
-
             ASSERT(notification != nullptr);
 
             _adminLock.Lock();
@@ -79,11 +84,10 @@ namespace Plugin {
             }
 
             _adminLock.Unlock();
-
+            return Core::ERROR_NONE;
         }
 
-        uint32_t Unregister(const Exchange::INetworkControl::INotification* notification) override {
-
+        uint32_t Unregister(Exchange::INetworkControl::INotification* notification) override {
             ASSERT(notification != nullptr);
 
             _adminLock.Lock();
@@ -95,7 +99,7 @@ namespace Plugin {
                 notification->Release();
             }
             _adminLock.Unlock();
-
+            return Core::ERROR_NONE;
         }
 
         uint32_t Interfaces(IStringIterator*& /* interfaces */ /* @out */) const override {
@@ -131,6 +135,14 @@ namespace Plugin {
         }
 
         uint32_t Flush(const string& /* interface */) override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t Configure(PluginHost::IShell* service) override {
+            ASSERT(service != nullptr);
+            PluginConfig config;
+            config.FromString(service->ConfigLine());
+            TRACE(Trace::Information, (_T("This is just an example: [%s]"), config.Example.Value().c_str()));
             return Core::ERROR_NONE;
         }
     private:

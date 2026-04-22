@@ -26,6 +26,6 @@
     }
   },
   "interface": {
-    "$cppref": "{cppinterfacedir}/IDictionary.h"
+    "$cppref": "{cppinterfacedir}/IVolumeControl.h"
   }
 }

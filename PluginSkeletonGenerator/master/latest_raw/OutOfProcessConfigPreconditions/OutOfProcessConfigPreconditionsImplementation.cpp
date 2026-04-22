@@ -18,12 +18,13 @@
 */
 
 #include "Module.h"
-#include <Y/IBluetooth.h>
+#include <interfaces/IWifiControl.h>
+#include <interfaces/IConfiguration.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class OutOfProcessConfigPreconditionsImplementation : public Exchange::IBluetooth {
+    class OutOfProcessConfigPreconditionsImplementation : public Exchange::IConfiguration, public Exchange::IWifiControl {
     public:
         OutOfProcessConfigPreconditionsImplementation(const OutOfProcessConfigPreconditionsImplementation&) = delete;
         OutOfProcessConfigPreconditionsImplementation& operator=(const OutOfProcessConfigPreconditionsImplementation&) = delete;
@@ -31,141 +32,145 @@ namespace Plugin {
         OutOfProcessConfigPreconditionsImplementation& operator=(OutOfProcessConfigPreconditionsImplementation&&) = delete;
 
         OutOfProcessConfigPreconditionsImplementation()
-            : Exchange::IBluetooth()
+            : Exchange::IWifiControl()
             , _adminLock()
-            , _bluetoothNotification()
+            , _wificontrolNotification()
         {
         }
         ~OutOfProcessConfigPreconditionsImplementation() override = default;
 
     private:
 
-        class Config : public Core::JSON::Container {
+        class PluginConfig : public Core::JSON::Container {
         public:
-            Config(const Config&) = delete;
-            Config& operator=(const Config&) = delete;
-            Config(Config&&) = delete;
-            Config& operator=(Config&&) = delete;
+            PluginConfig(const PluginConfig&) = delete;
+            PluginConfig& operator=(const PluginConfig&) = delete;
+            PluginConfig(PluginConfig&&) = delete;
+            PluginConfig& operator=(PluginConfig&&) = delete;
 
-            Config()
+            PluginConfig()
                 : Core::JSON::Container()
                 , Example()
             {
                 Add(_T("example"), &Example);
             }
-            ~Config() override = default;
+            ~PluginConfig() override = default;
         public:
             Core::JSON::String Example;
         };
     public:
 
         BEGIN_INTERFACE_MAP(OutOfProcessConfigPreconditionsImplementation)
-            INTERFACE_ENTRY(Exchange::IBluetooth)
+            INTERFACE_ENTRY(Exchange::IConfiguration)
+            INTERFACE_ENTRY(Exchange::IWifiControl)
         END_INTERFACE_MAP
 
-        // IBluetooth methods
+        // Type aliases copied from interface headers
+        using INetworkInfoIterator = RPC::IIteratorType<NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>;
+        using ISecurityIterator = RPC::IIteratorType<SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>;
+        using IStringIterator = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
 
-        uint32_t Register(Exchange::IBluetooth::INotification* notification) override {
+        // IWifiControl methods
 
+        uint32_t Register(Exchange::IWifiControl::INotification* notification) override {
             ASSERT(notification != nullptr);
 
             _adminLock.Lock();
-            auto item = std::find(_bluetoothNotification.begin(), _bluetoothNotification.end(), notification);
-            ASSERT(item == _bluetoothNotification.end());
+            auto item = std::find(_wificontrolNotification.begin(), _wificontrolNotification.end(), notification);
+            ASSERT(item == _wificontrolNotification.end());
 
-            if (item == _bluetoothNotification.end()) {
+            if (item == _wificontrolNotification.end()) {
                 notification->AddRef();
-                _bluetoothNotification.push_back(notification);
+                _wificontrolNotification.push_back(notification);
             }
 
             _adminLock.Unlock();
-
+            return Core::ERROR_NONE;
         }
 
-        uint32_t Unregister(const Exchange::IBluetooth::INotification* notification) override {
-
+        uint32_t Unregister(Exchange::IWifiControl::INotification* notification) override {
             ASSERT(notification != nullptr);
 
             _adminLock.Lock();
-            auto item = std::find(_bluetoothNotification.begin(), _bluetoothNotification.end(), notification);
-            ASSERT(item != _bluetoothNotification.end());
+            auto item = std::find(_wificontrolNotification.begin(), _wificontrolNotification.end(), notification);
+            ASSERT(item != _wificontrolNotification.end());
 
-            if (item != _bluetoothNotification.end()) {
-                _bluetoothNotification.erase(item);
+            if (item != _wificontrolNotification.end()) {
+                _wificontrolNotification.erase(item);
                 notification->Release();
             }
             _adminLock.Unlock();
-
-        }
-
-        bool IsScanning() const override {
             return Core::ERROR_NONE;
         }
 
-        uint32_t Scan(const bool /* lowEnergy */, const uint16_t /* duration */ /* sec */) override {
+        uint32_t Networks(INetworkInfoIterator*& /* networkInfoList */ /* @out */) const override {
             return Core::ERROR_NONE;
         }
 
-        uint32_t StopScanning() override {
+        uint32_t Securities(const string& /* ssid */ /* @index */, ISecurityIterator*& /* securityMethods */ /* @out */) const override {
             return Core::ERROR_NONE;
         }
 
-        IDevice* Device(const string& /* address */, const IDevice::type /* type */) override {
+        uint32_t Configs(IStringIterator*& /* configs */ /* @out */) const override {
             return Core::ERROR_NONE;
         }
 
-        IDevice::IIterator* Devices() override {
+        uint32_t Config(const string& /* ssid */ /* @index */, ConfigInfo& /* configInfo */ /* @out */) const override {
             return Core::ERROR_NONE;
         }
 
-        uint32_t ForgetDevice(const string& /* address */, const IDevice::type /* type */) override {
+        uint32_t Config(const string& /* ssid */ /* @index */, const ConfigInfo& /* configInfo */) override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t Scan() override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t AbortScan() override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t Connect(const string& /* configSSID */) override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t Disconnect(const string& /* configSSID */) override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t Status(string& /* connectedSsid */ /* @out */, bool& /* isScanning */ /* @out */) const override {
+            return Core::ERROR_NONE;
+        }
+
+        uint32_t Configure(PluginHost::IShell* service) override {
+            ASSERT(service != nullptr);
+            PluginConfig config;
+            config.FromString(service->ConfigLine());
+            TRACE(Trace::Information, (_T("This is just an example: [%s]"), config.Example.Value().c_str()));
             return Core::ERROR_NONE;
         }
     private:
-        using BluetoothNotificationContainer = std::vector<Exchange::IBluetooth::INotification*>;
+        using WifiControlNotificationContainer = std::vector<Exchange::IWifiControl::INotification*>;
 
-        void NotifyUpdate(IDevice* device) const {
+        void NotifyNetworkChange() const {
             _adminLock.Lock();
-            for (auto* notification : _bluetoothNotification) {
-                notification->Update(device);
+            for (auto* notification : _wificontrolNotification) {
+                notification->NetworkChange();
             }
             _adminLock.Unlock();
         }
 
-        void NotifyScanningStateChanged() const {
+        void NotifyConnectionChange(const string& ssid) const {
             _adminLock.Lock();
-            for (auto* notification : _bluetoothNotification) {
-                notification->ScanningStateChanged();
-            }
-            _adminLock.Unlock();
-        }
-
-        void NotifyAdvertisingStateChanged() const {
-            _adminLock.Lock();
-            for (auto* notification : _bluetoothNotification) {
-                notification->AdvertisingStateChanged();
-            }
-            _adminLock.Unlock();
-        }
-
-        void NotifyScanningStateChanged() const {
-            _adminLock.Lock();
-            for (auto* notification : _bluetoothNotification) {
-                notification->ScanningStateChanged();
-            }
-            _adminLock.Unlock();
-        }
-
-        void NotifyInquiryScanningStateChanged() const {
-            _adminLock.Lock();
-            for (auto* notification : _bluetoothNotification) {
-                notification->InquiryScanningStateChanged();
+            for (auto* notification : _wificontrolNotification) {
+                notification->ConnectionChange(ssid);
             }
             _adminLock.Unlock();
         }
 
         mutable Core::CriticalSection _adminLock;
-        BluetoothNotificationContainer _bluetoothNotification;
+        WifiControlNotificationContainer _wificontrolNotification;
     };
 
     SERVICE_REGISTRATION(OutOfProcessConfigPreconditionsImplementation, 1, 0)

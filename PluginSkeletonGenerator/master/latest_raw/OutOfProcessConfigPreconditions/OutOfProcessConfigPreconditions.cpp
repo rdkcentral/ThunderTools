@@ -19,21 +19,22 @@
 
 #include "OutOfProcessConfigPreconditions.h"
 #include <interfaces/IConfiguration.h>
+#include <interfaces/json/JWifiControl.h>
 
 namespace Thunder {
 namespace Plugin {
 
     namespace {
 
-        static Metadata<OutOfProcessConfigPreconditions>metadata(
+        static Metadata<OutOfProcessConfigPreconditions> metadata(
         // Version
         1, 0, 0,
         // Preconditions
-        {},
+        {subsystem::GRAPHICS},
         // Terminations
-        {},
+        {subsystem::NOT_GRAPHICS},
         // Controls
-        {}
+        {subsystem::TIME}
         );
     }
 
@@ -42,7 +43,7 @@ namespace Plugin {
 
         ASSERT(_service == nullptr);
         ASSERT(service != nullptr);
-        ASSERT(_implBluetooth == nullptr);
+        ASSERT(_implWifiControl == nullptr);
         ASSERT(_connectionId == 0);
 
         _service = service;
@@ -50,11 +51,13 @@ namespace Plugin {
         _service->Register(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));
         _service->Register(static_cast<PluginHost::IShell::ICOMLink::INotification*>(&_notification));
 
-        _implBluetooth = service->Root<Exchange::IBluetooth>(_connectionId, timeout, _T("OutOfProcessConfigPreconditionsImplementation"));
-        if (_implBluetooth == nullptr) {
-            message = _T("Couldn't create instance of _implBluetooth");
+        _implWifiControl = service->Root<Exchange::IWifiControl>(_connectionId, timeout, _T("OutOfProcessConfigPreconditionsImplementation"));
+        if (_implWifiControl == nullptr) {
+            message = _T("Couldn't create instance of _implWifiControl");
         } else {
-            Exchange::IConfiguration* configuration = _implBluetooth->QueryInterface<Exchange::IConfiguration>();
+            _implWifiControl->Register(&_notification);
+            Exchange::JWifiControl::Register(*this, _implWifiControl);
+            Exchange::IConfiguration* configuration = _implWifiControl->QueryInterface<Exchange::IConfiguration>();
             ASSERT(configuration != nullptr);
             if (configuration != nullptr) {
                 if (configuration->Configure(service) != Core::ERROR_NONE) {
@@ -74,11 +77,13 @@ namespace Plugin {
         _service->Unregister(static_cast<RPC::IRemoteConnection::INotification*>(&_notification));
         _service->Unregister(static_cast<PluginHost::IShell::ICOMLink::INotification*>(&_notification));
 
-        if (_implBluetooth != nullptr) {
+        if (_implWifiControl != nullptr) {
+            Exchange::JWifiControl::Unregister(*this);
+            _implWifiControl->Unregister(&_notification);
 
             RPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));
-            VARIABLE_IS_NOT_USED uint32_t result = _implBluetooth->Release();
-            _implBluetooth = nullptr;
+            VARIABLE_IS_NOT_USED uint32_t result = _implWifiControl->Release();
+            _implWifiControl = nullptr;
 
             ASSERT((result == Core::ERROR_DESTRUCTION_SUCCEEDED) || (result == Core::ERROR_CONNECTION_CLOSED));
 
@@ -111,32 +116,15 @@ namespace Plugin {
     void OutOfProcessConfigPreconditions::Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) {
         ASSERT(remote != nullptr);
 
-        if (interfaceId == Exchange::IBluetooth::INotification::ID) {
-            auto* revokedInterface = remote->QueryInterface<Exchange::IBluetooth::INotification>();
+        if (interfaceId == Exchange::IWifiControl::INotification::ID) {
+            auto* revokedInterface = remote->QueryInterface<Exchange::IWifiControl::INotification>();
             if (revokedInterface) {
-                _implBluetooth->Unregister(revokedInterface);
+                _implWifiControl->Unregister(const_cast<Exchange::IWifiControl::INotification*>(revokedInterface));
                 revokedInterface->Release();
             }
         }
-    }
 
-    if (interfaceId == Exchange::IBluetooth::INotification::ID) {
-        auto* revokedInterface = remote->QueryInterface<Exchange::IBluetooth::INotification>();
-        if (revokedInterface) {
-            _implBluetooth->Unregister(revokedInterface);
-            revokedInterface->Release();
-        }
     }
-}
-
-if (interfaceId == Exchange::IBluetooth::INotification::ID) {
-    auto* revokedInterface = remote->QueryInterface<Exchange::IBluetooth::INotification>();
-    if (revokedInterface) {
-        _implBluetooth->Unregister(revokedInterface);
-        revokedInterface->Release();
-    }
-}
-}
 
 } // Plugin
 } // Thunder

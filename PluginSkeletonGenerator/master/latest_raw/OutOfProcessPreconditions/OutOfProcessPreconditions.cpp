@@ -25,15 +25,15 @@ namespace Plugin {
 
     namespace {
 
-        static Metadata<OutOfProcessPreconditions>metadata(
+        static Metadata<OutOfProcessPreconditions> metadata(
         // Version
         1, 0, 0,
         // Preconditions
-        { subsystem::GRAPHICS },
+        {subsystem::GRAPHICS},
         // Terminations
-        { subsystem::NOT_GRAPHICS },
+        {subsystem::NOT_GRAPHICS},
         // Controls
-        { subsystem::TIME }
+        {subsystem::TIME}
         );
     }
 

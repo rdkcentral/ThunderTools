@@ -25,7 +25,7 @@ namespace Plugin {
 
     namespace {
 
-        static Metadata<InProcessConfig>metadata(
+        static Metadata<InProcessConfig> metadata(
         // Version
         1, 0, 0,
         // Preconditions
@@ -41,7 +41,7 @@ namespace Plugin {
         string message;
 
         ASSERT(service != nullptr);
-        Config config;
+        PluginConfig config;
         config.FromString(service->ConfigLine());
         TRACE(Trace::Information, (_T("This is just an example: [%s]"), config.Example.Value().c_str()));
         Exchange::JPower::Register(*this, this);
@@ -56,10 +56,33 @@ namespace Plugin {
         return (string());
     }
 
-    Core::hresult InProcessConfig::Register(INotification* const /* sink */) {
+    Core::hresult InProcessConfig::Register(Exchange::IPower::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_powerNotification.begin(), _powerNotification.end(), notification);
+        ASSERT(item == _powerNotification.end());
+
+        if (item == _powerNotification.end()) {
+            notification->AddRef();
+            _powerNotification.push_back(notification);
+        }
+
+        _adminLock.Unlock();
         return Core::ERROR_NONE;
     }
-    Core::hresult InProcessConfig::Unregister(const INotification* const /* sink */) {
+    Core::hresult InProcessConfig::Unregister(const Exchange::IPower::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_powerNotification.begin(), _powerNotification.end(), notification);
+        ASSERT(item != _powerNotification.end());
+
+        if (item != _powerNotification.end()) {
+            _powerNotification.erase(item);
+            notification->Release();
+        }
+        _adminLock.Unlock();
         return Core::ERROR_NONE;
     }
     Core::hresult InProcessConfig::GetState(PCState& /* state */ /* @out */) const {
@@ -69,7 +92,14 @@ namespace Plugin {
         return Core::ERROR_NONE;
     }
     void InProcessConfig::PowerKey() {
-        return Core::ERROR_NONE;
+    }
+
+    void InProcessConfig::NotifyStateChange(const PCState origin, const PCState destination, const PCPhase phase) const {
+        _adminLock.Lock();
+        for (auto* notification : _powerNotification) {
+            notification->StateChange(origin, destination, phase);
+        }
+        _adminLock.Unlock();
     }
 } // Plugin
 } // Thunder
