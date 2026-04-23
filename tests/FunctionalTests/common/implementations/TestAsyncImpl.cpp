@@ -8,14 +8,15 @@
  * on a spare worker thread.
  */
 
-#include "TestRegistry.h"
 #include <ITestAsync.h>
 #include <array>
 #include <thread>
 #include <chrono>
 
+#include <ImplementationFactory.h>
+
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     using namespace FunctionalTest;
 
@@ -154,7 +155,7 @@ namespace TestImplementations {
         std::array<Slot, 7>           _slots;
     };
 
-    static TestRegistry::ImplementationRegistrar<ITestAsync, TestAsyncImpl> g_asyncRegistrar;
+    static Factory::Registrar<ITestAsync, TestAsyncImpl> g_asyncRegistrar;
 
-} // namespace TestImplementations
+} // namespace TestImplementation
 } // namespace Thunder

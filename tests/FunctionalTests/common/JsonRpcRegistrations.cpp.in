@@ -1,0 +1,20 @@
+/* Generated header file - DO NOT EDIT - */
+
+#include <JsonRpcRegistrations.h>
+#include <JsonGeneratedInterfaces.h>
+#include <ImplementationFactory.h>
+
+namespace Thunder {
+namespace Test {
+
+void RegisterJsonRpcInterfaces(JsonRPCRegister& module)
+{
+@JSON_RPC_REGISTRATIONS@
+}
+
+void UnregisterJsonRpcInterfaces(JsonRPCRegister& module)
+{
+@JSON_RPC_UNREGISTRATIONS@
+}
+} // namespace Test
+} // namespace Thunder

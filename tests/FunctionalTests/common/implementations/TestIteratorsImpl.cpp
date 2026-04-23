@@ -11,14 +11,14 @@
  * before querying results.
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestIterators.h>
 #include <map>
 #include <thread>
 #include <chrono>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     class TestIteratorsImpl : public FunctionalTest::ITestIterators {
     public:
@@ -228,7 +228,7 @@ namespace TestImplementations {
         Core::CriticalSection          _lock;
     };
 
-    static TestRegistry::ImplementationRegistrar<FunctionalTest::ITestIterators, TestIteratorsImpl> g_iteratorsRegistrar;
+    static Factory::Registrar<FunctionalTest::ITestIterators, TestIteratorsImpl> g_iteratorsRegistrar;
 
-} // namespace TestImplementations
+} // namespace TestImplementation
 } // namespace Thunder

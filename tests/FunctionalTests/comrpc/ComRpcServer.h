@@ -22,35 +22,10 @@
 #include "Module.h"
 #include "Ids.h"
 
+#include <ImplementationFactory.h>
+
 namespace Thunder {
 namespace ComRpcServer {
-
-    // Forward declarations of implementation factories
-    class ImplementationProvider {
-    public:
-        using CreateFunction = void* (*)(const uint32_t interfaceId);
-        
-        static ImplementationProvider& Instance() {
-            static ImplementationProvider instance;
-            return instance;
-        }
-        
-        void Register(uint32_t interfaceId, CreateFunction creator) {
-            _creators[interfaceId] = creator;
-        }
-        
-        void* Create(uint32_t interfaceId) {
-            auto it = _creators.find(interfaceId);
-            if (it != _creators.end()) {
-                return it->second(interfaceId);
-            }
-            return nullptr;
-        }
-        
-    private:
-        ImplementationProvider() = default;
-        std::map<uint32_t, CreateFunction> _creators;
-    };
 
     // RPC::Communicator-based server using Acquire() pattern
     class ComRpcServer : public RPC::Communicator {
@@ -83,19 +58,7 @@ namespace ComRpcServer {
         // Override Acquire() to create implementations on-demand
         void* Acquire(VARIABLE_IS_NOT_USED const string& className, const uint32_t interfaceId, VARIABLE_IS_NOT_USED const uint32_t versionId) override
         {
-            //printf("Acquire() called: className='%s', interfaceId=0x%X, versionId=%u\n",
-            //       className.c_str(), interfaceId, versionId);
-
-            // Use the registered factory to create implementation
-            void* result = ImplementationProvider::Instance().Create(interfaceId);
-            
-            // if (result != nullptr) {
-            //     printf("Created implementation for interface 0x%X\n", interfaceId);
-            // } else {
-            //     printf("No factory registered for interface 0x%X\n", interfaceId);
-            // }
-            
-            return result;
+            return TestImplementation::Factory::Instance().Create(interfaceId);
         }
     };
 

@@ -20,14 +20,12 @@
 #pragma once
 
 #ifndef MODULE_NAME
-#define MODULE_NAME TestInterfaces
+#define MODULE_NAME JsonRpcFunctionalTests
 #endif
 
 #include <core/core.h>
 #include <com/com.h>
-#ifdef BUILD_JSON_RPC_TESTS
 #include <plugins/JSONRPC.h>
-#endif
 
 #undef EXTERNAL
 #define EXTERNAL

@@ -6,18 +6,14 @@
  * they store the last-written value and answer query helpers.
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestRestrictions.h>
 
-#ifdef BUILD_JSON_RPC_TESTS
-#include "JsonRpcServer.h"
-#include <JTestRestrictions.h>
-#endif
 #include <cmath>
 #include <algorithm>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     using namespace FunctionalTest;
 
@@ -216,9 +212,6 @@ namespace TestImplementations {
         string   _username;
     };
 
-    static TestRegistry::ImplementationRegistrar<ITestRestrictions, TestRestrictionsImpl> g_restrictionsRegistrar;
-#ifdef BUILD_JSON_RPC_TESTS
-    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestRestrictions, TestRestrictionsImpl> g_jsonrpc_restrictionsRegistrar(FunctionalTest::JTestRestrictions::Register<JsonRpcServer::JsonRpcServer>);
-#endif
-} // namespace TestImplementations
+    static Factory::Registrar<ITestRestrictions, TestRestrictionsImpl> g_restrictionsRegistrar;
+} // namespace TestImplementation
 } // namespace Thunder

@@ -2,16 +2,11 @@
  * Copyright 2026 Metrological - Apache 2.0
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestEnums.h>
 
-#ifdef BUILD_JSON_RPC_TESTS
-#include "JsonRpcServer.h"
-#include <JTestEnums.h>
-#endif
-
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     using namespace FunctionalTest;
 
@@ -183,9 +178,7 @@ namespace TestImplementations {
         ITestEnums::Capabilities _capabilities;
     };
 
-    static TestRegistry::ImplementationRegistrar<ITestEnums, TestEnumsImpl> g_enumsRegistrar;
-#ifdef BUILD_JSON_RPC_TESTS
-    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestEnums, TestEnumsImpl> g_jsonrpc_enumsRegistrar(FunctionalTest::JTestEnums::Register<JsonRpcServer::JsonRpcServer>);
-#endif
-} // namespace TestImplementations
+    static Factory::Registrar<ITestEnums, TestEnumsImpl> g_enumsRegistrar;
+
+} // namespace TestImplementation
 } // namespace Thunder

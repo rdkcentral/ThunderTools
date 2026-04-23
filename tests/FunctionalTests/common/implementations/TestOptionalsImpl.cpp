@@ -2,7 +2,7 @@
  * Copyright 2026 Metrological - Apache 2.0
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestOptionals.h>
 #include <cctype>
 #include <cstdlib>
@@ -10,7 +10,7 @@
 #include <algorithm>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     class TestOptionalsImpl : public FunctionalTest::ITestOptionals {
     public:
@@ -136,7 +136,7 @@ namespace TestImplementations {
         END_INTERFACE_MAP
     };
 
-    static TestRegistry::ImplementationRegistrar<FunctionalTest::ITestOptionals, TestOptionalsImpl> g_optionalsRegistrar;
+    static Factory::Registrar<FunctionalTest::ITestOptionals, TestOptionalsImpl> g_optionalsRegistrar;
 
-} // namespace TestImplementations
+} // namespace TestImplementation
 } // namespace Thunder

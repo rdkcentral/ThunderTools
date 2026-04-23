@@ -33,6 +33,7 @@ namespace JsonRpcTesting {
     // No per-interface state isolation - tests may affect each other if implementations
     // maintain state between method calls.
     class JsonRpcTestHarness : public ::testing::Test {
+
     protected:
         JsonRpcTestHarness()
             : _server(nullptr)

@@ -8,7 +8,7 @@
  * The dispatch thread is self-contained — no Thunder WorkerPool required.
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestEvents.h>
 #include <algorithm>
 #include <condition_variable>
@@ -19,7 +19,7 @@
 #include <vector>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     using namespace FunctionalTest;
 
@@ -299,7 +299,7 @@ namespace TestImplementations {
         std::thread _dispatchThread;
     };
 
-    static TestRegistry::ImplementationRegistrar<ITestEvents, TestEventsImpl> g_eventsRegistrar;
+    static Factory::Registrar<ITestEvents, TestEventsImpl> g_eventsRegistrar;
 
-} // namespace TestImplementations
+} // namespace TestImplementation
 } // namespace Thunder

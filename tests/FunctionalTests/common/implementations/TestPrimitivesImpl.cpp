@@ -2,17 +2,12 @@
  * Copyright 2026 Metrological - Apache 2.0
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestPrimitives.h>
 #include <cstring>
 
-#ifdef BUILD_JSON_RPC_TESTS
-#include "JsonRpcServer.h"
-#include <JTestPrimitives.h>
-#endif
-
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     class TestPrimitivesImpl : public FunctionalTest::ITestPrimitives {
     public:
@@ -90,11 +85,6 @@ namespace TestImplementations {
         END_INTERFACE_MAP
     };
 
-    static TestRegistry::ImplementationRegistrar<FunctionalTest::ITestPrimitives, TestPrimitivesImpl> g_primitivesRegistrar;
-
-#ifdef BUILD_JSON_RPC_TESTS
-    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestPrimitives, TestPrimitivesImpl> g_jsonrpc_primitivesRegistrar(FunctionalTest::JTestPrimitives::Register<JsonRpcServer::JsonRpcServer>);
-#endif
-
-} // namespace TestImplementations
+    static Factory::Registrar<FunctionalTest::ITestPrimitives, TestPrimitivesImpl> g_primitivesRegistrar;
+} // namespace TestImplementation
 } // namespace Thunder

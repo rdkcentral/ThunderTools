@@ -18,46 +18,10 @@
  */
 
 #include <gtest/gtest.h>
-#include "ComRpcServer.h"
-
-#ifdef BUILD_JSON_RPC_TESTS
 #include "JsonRpcServer.h"
-
-// Define global variables for JSON-RPC server
-namespace Thunder {
-namespace JsonRpcServer {
-    JsonRpcServer* g_server = nullptr;
-    Core::ProxyType<MockShell> g_shell;
-    std::vector<Core::IUnknown*> g_implementations;
-} // namespace JsonRpcServer
-} // namespace Thunder
-#endif
-
-#if defined(INCLUDE_JSON_RPC_INTERFACES) && !defined(BUILD_JSON_RPC_TESTS)
-// Include generated headers for JSON-RPC interfaces (only for COM-RPC tests)
-#include <JsonRpcInterfaces.h>
-#endif
 
 using namespace Thunder;
 
-class TestEnvironment : public ::testing::Environment {
-public:
-    void SetUp() override {
-        // Start the RPC server
-        // Implementation factories are already registered via static initialization
-        ComRpcServer::Start();
-        
-        // Give the server a moment to fully initialize
-        SleepMs(100);
-    }
-
-    void TearDown() override {
-        // Stop the RPC server
-        ComRpcServer::Stop();
-    }
-};
-
-#ifdef BUILD_JSON_RPC_TESTS
 // JSON-RPC test environment (separate executable)
 class JsonRpcTestEnvironment : public ::testing::Environment {
 public:
@@ -75,15 +39,9 @@ public:
         JsonRpcServer::Stop();
     }
 };
-#endif // BUILD_JSON_RPC_TESTS
 
 int main(int argc, char** argv) {
     ::testing::InitGoogleTest(&argc, argv);
-
-#ifdef BUILD_JSON_RPC_TESTS
     ::testing::AddGlobalTestEnvironment(new JsonRpcTestEnvironment());
-#else
-    ::testing::AddGlobalTestEnvironment(new TestEnvironment());
-#endif
     return RUN_ALL_TESTS();
 }

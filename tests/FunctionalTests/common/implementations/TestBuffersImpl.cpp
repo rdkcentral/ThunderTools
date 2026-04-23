@@ -2,13 +2,14 @@
  * Copyright 2026 Metrological - Apache 2.0
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
+
 #include <ITestBuffers.h>
 #include <algorithm>
 #include <cstring>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     class TestBuffersImpl : public FunctionalTest::ITestBuffers {
     public:
@@ -165,7 +166,7 @@ namespace TestImplementations {
         uint8_t _token[8];
     };
 
-    static TestRegistry::ImplementationRegistrar<FunctionalTest::ITestBuffers, TestBuffersImpl> g_buffersRegistrar;
+    static Factory::Registrar<FunctionalTest::ITestBuffers, TestBuffersImpl> g_buffersRegistrar;
 
-} // namespace TestImplementations
+} // namespace TestImplementation
 } // namespace Thunder

@@ -10,11 +10,11 @@
  * LocalOnly() is @omit: no marshalling code generated at all.
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestInterfaces.h>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     using namespace FunctionalTest;
 
@@ -78,7 +78,7 @@ namespace TestImplementations {
         END_INTERFACE_MAP
     };
 
-    static TestRegistry::ImplementationRegistrar<ITestInterfacePointers, TestInterfacesImpl> g_interfacesRegistrar;
+    static Factory::Registrar<ITestInterfacePointers, TestInterfacesImpl> g_interfacesRegistrar;
 
-} // namespace TestImplementations
+} // namespace TestImplementation
 } // namespace Thunder

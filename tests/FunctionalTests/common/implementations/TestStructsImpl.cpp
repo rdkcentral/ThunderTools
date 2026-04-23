@@ -2,19 +2,15 @@
  * Copyright 2026 Metrological - Apache 2.0
  */
 
-#include "TestRegistry.h"
+#include <ImplementationFactory.h>
 #include <ITestStructs.h>
 
-#ifdef BUILD_JSON_RPC_TESTS
-#include "JsonRpcServer.h"
-#include <JTestStructs.h>
-#endif
 #include <cmath>
 #include <algorithm>
 #include <map>
 
 namespace Thunder {
-namespace TestImplementations {
+namespace TestImplementation {
 
     using namespace FunctionalTest;
 
@@ -272,9 +268,7 @@ namespace TestImplementations {
         std::map<uint8_t, Point> _slots;
     };
 
-    static TestRegistry::ImplementationRegistrar<ITestStructs, TestStructsImpl> g_structsRegistrar;
-#ifdef BUILD_JSON_RPC_TESTS
-    static JsonRpcServer::JsonRpcRegistrar<FunctionalTest::ITestStructs, TestStructsImpl> g_jsonrpc_structsRegistrar(FunctionalTest::JTestStructs::Register<JsonRpcServer::JsonRpcServer>);
-#endif
-} // namespace TestImplementations
+    static Factory::Registrar<ITestStructs, TestStructsImpl> g_structsRegistrar;
+
+} // namespace TestImplementation
 } // namespace Thunder
