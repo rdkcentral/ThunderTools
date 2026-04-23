@@ -84,13 +84,14 @@ jobs:
             -DCMAKE_BUILD_TYPE=Release \
             -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
-            -DBUILD_JSON_RPC_TESTS=ON
+            -DENABLE_TESTING=ON \
+            -DFUNCTIONAL_TESTS=ON \
           cmake \
             --build Build/ThunderTools \
-            --target JsonRpcFunctionalTests ProxyStubFunctionalTests
+            --target JsonRpcFunctionalTests ComRpcFunctionalTests
 
       - name: Run ProxyStub Functional Tests
-        run: Build/ThunderTools/tests/ProxyStubFunctionalTests
+        run: Build/ThunderTools/tests/FunctionalTests/comrpc/ComRpcFunctionalTests
 
       - name: Run JSON-RPC Functional Tests
-        run: Build/ThunderTools/tests/JsonRpcFunctionalTests
+        run: Build/ThunderTools/tests/FunctionalTests/jsonrpc/JsonRpcFunctionalTests
