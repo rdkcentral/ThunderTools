@@ -85,9 +85,10 @@ jobs:
             -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
             -DCMAKE_VERBOSE_MAKEFILE=ON \
             -DENABLE_TESTING=ON \
-            -DFUNCTIONAL_TESTS=ON \
+            -DFUNCTIONAL_TESTS=ON
           cmake \
-            --build Build/ThunderTools --target all
+            --build Build/ThunderTools \
+            --target JsonRpcFunctionalTests ComRpcFunctionalTests
 
       - name: Run ProxyStub Functional Tests
         run: Build/ThunderTools/tests/FunctionalTests/comrpc/ComRpcFunctionalTests
