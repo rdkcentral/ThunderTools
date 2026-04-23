@@ -24,7 +24,7 @@ namespace Plugin {
 
     namespace {
 
-        static Metadata<{{PLUGIN_NAME}}>metadata( 
+        static Metadata<{{PLUGIN_NAME}}> metadata( 
             // Version
             1, 0, 0,
             // Preconditions
@@ -49,5 +49,7 @@ string {{PLUGIN_NAME}}::Information() const {
 }
 
 {{SOURCE_METHOD_IMPL}}
+
+{{SOURCE_NOTIFY_IMPL}}
 } // Plugin
 } // Thunder

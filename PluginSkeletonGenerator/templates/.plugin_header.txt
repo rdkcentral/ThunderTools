@@ -55,7 +55,7 @@ namespace Plugin {
     {{HEADER_INTERFACE_AGGREGATE}}
     END_INTERFACE_MAP
     
-    private:
+{{ADD_PRIVATE_MEMBERS_FIELD}}
     {{HEADER_USING_CONTAINER}}
     {{HEADER_STATIC_TIMEOUT}}
     

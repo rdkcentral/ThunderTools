@@ -1,8 +1,26 @@
+'''
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
+
 import re
 from enum import Enum
 import os
 from typing import Dict
-
 
 class ScopeType(Enum):
     CLASS = 1
@@ -24,13 +42,14 @@ class ClassData:
         self.m_tags = []
         self.m_methods = []
         self.m_children = {}
+        self.m_usings = {}
+        self.m_types = set()
 
     def addMethod(self, method):
         self.m_methods.append(method)
 
     def addChild(self, child):
         self.m_children[child.m_name] = child
-
 
 class InterfaceTree:
     '''
@@ -129,6 +148,8 @@ class Parser:
                 self.processTag(line)
                 self.processNamespace(line)
                 self.processClass(line)
+                self.processUsing(line)
+                self.processTypeDecl(line)
                 self.processMethod(line)
                 self.processScope(line)
         return self.m_interface_tree.parsedClasses()
@@ -146,10 +167,41 @@ class Parser:
             self.m_interface_tree.pushNamespace(namespace)
 
     def processClass(self, line):
-        match = re.match(r'struct\s+EXTERNAL\s+(\w+)\s*:\s*virtual\s+public\s+Core::IUnknown', line)
+        #   struct EXTERNAL IFoo : virtual public Core::IUnknown
+        #   struct IFoo : virtual public Core::IUnknown
+        match = re.match(r'struct\s+(?:EXTERNAL\s+)?(\w+)\s*:\s*virtual\s+public\s+Core::IUnknown', line)
         if match:
             interface = match.group(1)
             self.m_pending_class = interface
+
+    def processUsing(self, line):
+        """Parse a `using Name = ...;` alias inside the current class scope."""
+        m = re.match(r'^using\s+(\w+)\s*=\s*(.+);$', line)
+        if m and self.m_interface_tree.m_class_stack:
+            name = m.group(1).strip()
+            value = m.group(2).strip()
+            current = self.m_interface_tree.m_class_stack[-1]
+            if name not in current.m_usings:
+                current.m_usings[name] = value
+
+    def processTypeDecl(self, line: str):
+        """Capture nested typedef/enum/struct names inside the current class scope."""
+        if not self.m_interface_tree.m_class_stack:
+            return
+
+        current = self.m_interface_tree.m_class_stack[-1]
+
+        m = re.match(r'^typedef\s+.+\s+(\w+)\s*;\s*$', line)
+        if m:
+            current.m_types.add(m.group(1))
+        else:
+            m = re.match(r'^enum\s+(?:class\s+)?(\w+)\b', line)
+            if m:
+                current.m_types.add(m.group(1))
+            elif 'Core::IUnknown' not in line:
+                m = re.match(r'^struct\s+(\w+)\b', line)
+                if m:
+                    current.m_types.add(m.group(1))
 
     def processMethod(self, line):
         if "virtual" in line and ";" in line:

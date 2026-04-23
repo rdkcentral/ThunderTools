@@ -1,17 +1,17 @@
-class Config : public Core::JSON::Container {
+class PluginConfig : public Core::JSON::Container {
 public:
-    Config(const Config&) = delete;
-    Config& operator=(const Config&) = delete;
-    Config(Config&&) = delete;
-    Config& operator=(Config&&) = delete;
+    PluginConfig(const PluginConfig&) = delete;
+    PluginConfig& operator=(const PluginConfig&) = delete;
+    PluginConfig(PluginConfig&&) = delete;
+    PluginConfig& operator=(PluginConfig&&) = delete;
     
-    Config() 
+    PluginConfig() 
         : Core::JSON::Container()
         , Example()
     {
         Add(_T("example"), &Example);
     }
-    ~Config() override = default;
+    ~PluginConfig() override = default;
 public:
 Core::JSON::String Example;
 };
