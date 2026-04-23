@@ -1275,12 +1275,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("else {")
                 emit.Indent()
                 emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
-                for c in cleanup:
-                    emit.Line("if (%s != nullptr) {" % c)
-                    emit.Indent()
-                    emit.Line("%s->Release();" % c)
-                    emit.Unindent()
-                    emit.Line("}")
+                emit.Unindent()
+                emit.Line("}")
+
+            for c in cleanup:
+                emit.Line("if (%s != nullptr) {" % c)
+                emit.Indent()
+                emit.Line("%s->Release();" % c)
                 emit.Unindent()
                 emit.Line("}")
 
