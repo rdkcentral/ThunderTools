@@ -87,7 +87,7 @@ jobs:
             -DENABLE_TESTING=ON \
             -DFUNCTIONAL_TESTS=ON \
           cmake \
-            --build Build/ThunderTools --target all -- -j$(nproc)
+            --build Build/ThunderTools --target all
 
       - name: Run ProxyStub Functional Tests
         run: Build/ThunderTools/tests/FunctionalTests/comrpc/ComRpcFunctionalTests
