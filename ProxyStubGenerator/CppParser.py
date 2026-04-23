@@ -2851,6 +2851,20 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
             with open(source_file) as file:
                 file_content = file.read()
                 pos = 0
+
+                def Import(tryPath, quiet=False):
+                    global current_file
+                    nonlocal contents
+
+                    if os.path.isfile(tryPath):
+                        prev = current_file
+                        current_file = source_file
+                        contents += ReadFile(tryPath, includePaths, quiet, contents, True)
+                        current_file = prev
+                        return True
+                    else:
+                        return False
+
                 while True:
                     idx = file_content.find("@stubgen:include", pos)
                     if idx == -1:
@@ -2865,12 +2879,7 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
                             if match.group(1) != os.path.basename(os.path.realpath(source_file)):
                                 tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
 
-                                if os.path.isfile(tryPath):
-                                    prev = current_file
-                                    current_file = source_file
-                                    contents += ReadFile(tryPath, includePaths, False, contents, True)
-                                    current_file = prev
-                                else:
+                                if not Import(tryPath):
                                     raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
                             else:
                                 raise LoaderError(source_file, "can't recursively include self")
@@ -2879,17 +2888,21 @@ def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
 
                             if match:
                                 found = False
-                                for ipath in includePaths:
-                                    tryPath = os.path.join(ipath, match.group(1))
+                                searched_file = match.group(1)
 
-                                    if os.path.isfile(tryPath):
-                                        prev = current_file
-                                        current_file = source_file
-                                        contents += ReadFile(tryPath, includePaths, True, contents, True)
-                                        current_file = prev
+                                # hack for legacy interfaces
+                                if searched_file == "com/IIteratorType.h":
+                                    searched_file = "com/ICOM.h"
+
+                                for ipath in includePaths:
+                                    tryPath = os.path.join(ipath, searched_file)
+
+                                    if Import(tryPath, True):
                                         found = True
+                                        break
+
                                 if not found:
-                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
+                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % searched_file)
                             else:
                                 raise LoaderError(source_file, "syntax error at '%s'" % source_file)
                     else:

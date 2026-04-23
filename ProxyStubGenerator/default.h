@@ -72,6 +72,13 @@ namespace __FRAMEWORK_NAMESPACE__ {
     }
   }
 
+  // for legacy compatibiltity only
+  namespace RPC {
+    class IStringIterator;
+    class IValueIterator;
+  }
+
+  // for legacy compatibiltity only
   namespace PluginHost {
     class IShell;
     class ISubSystem;
