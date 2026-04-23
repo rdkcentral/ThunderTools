@@ -2840,90 +2840,75 @@ def Parse(contents,log = None):
 
 # -------------------------------------------------------------------------
 
+def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=[], quiet=False, omit=False, use_includes=False):
 
-def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
     contents = ""
-    global current_file
+    file_path = None
+
+    if source_file[0] == '@':
+        quiet = True
+        source_file = source_file[1:]
+
+    if not parent_file:
+        parent_file = source_file
+
     abs_source_file = os.path.abspath(source_file)
 
-    if abs_source_file not in initial:
-        try:
-            with open(source_file) as file:
-                file_content = file.read()
-                pos = 0
+    if os.path.isfile(abs_source_file):
+        file_path = abs_source_file
 
-                def Import(tryPath, quiet=False):
-                    global current_file
-                    nonlocal contents
+    elif not os.path.isabs(source_file) and use_includes:
+        for path in include_paths:
+            abs_source_file = os.path.abspath(os.path.join(path, source_file))
+            if os.path.isfile(abs_source_file):
+                file_path = abs_source_file
+                break
 
-                    if os.path.isfile(tryPath):
-                        prev = current_file
-                        current_file = source_file
-                        contents += ReadFile(tryPath, includePaths, quiet, contents, True)
-                        current_file = prev
-                        return True
-                    else:
-                        return False
+    if file_path in inclusions:
+        pass
 
-                while True:
-                    idx = file_content.find("@stubgen:include", pos)
-                    if idx == -1:
-                        idx = file_content.find("@insert", pos)
+    elif file_path:
+        inclusions.append(file_path)
 
-                    if idx != -1:
-                        pos = idx + 1
-                        line = file_content[idx:].split("\n", 1)[0]
-                        match = re.search(r' \"(.+?)\"', line)
-
-                        if match:
-                            if match.group(1) != os.path.basename(os.path.realpath(source_file)):
-                                tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
-
-                                if not Import(tryPath):
-                                    raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
-                            else:
-                                raise LoaderError(source_file, "can't recursively include self")
-                        else:
-                            match = re.search(r' <(.+?)>', line)
-
-                            if match:
-                                found = False
-                                searched_file = match.group(1)
-
-                                # hack for legacy interfaces
-                                if searched_file == "com/IIteratorType.h":
-                                    searched_file = "com/ICOM.h"
-
-                                for ipath in includePaths:
-                                    tryPath = os.path.join(ipath, searched_file)
-
-                                    if Import(tryPath, True):
-                                        found = True
-                                        break
-
-                                if not found:
-                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % searched_file)
-                            else:
-                                raise LoaderError(source_file, "syntax error at '%s'" % source_file)
-                    else:
-                        break
-
-                contents += "// @_file:%s\n" % abs_source_file
-
-                if omit:
-                    contents += "// @_omit_start\n"
-                    contents += file_content
-                    contents += "// @_omit_end\n"
+        with open(file_path) as file:
+            file_content = file.readlines()
+            for i,line in enumerate(file_content):
+                match = re.search(r'@(?:insert|stubgen:include)\s*"([^"]+)"', line)
+                if match:
+                    included_file = os.path.join(os.path.dirname(os.path.realpath(file_path)), match.group(1))
+                    included_content = ReadFile(included_file, include_paths, file_path, i+1, inclusions, quiet=False, omit=True, use_includes=False)
+                    file_content[i] = included_content
                 else:
-                    contents += file_content
+                    match = re.search(r'@(?:insert|stubgen:include)\s*<([^>]+)>', line)
+                    if match:
+                        included_content = ReadFile(match.group(1), include_paths, file_path, i+1, inclusions, quiet=False, omit=True, use_includes=True)
+                        file_content[i] = included_content
+                    else:
+                        match = re.search(r'@insert:weak\s*<([^>]+)>', line)
+                        if match:
+                            included_content = ReadFile(match.group(1), include_paths, file_path, i+1, inclusions, quiet=True, omit=True, use_includes=True)
+                            file_content[i] = included_content
 
-                return contents
+            contents = "// @_file:%s,1\n" % (file_path)
 
-        except FileNotFoundError:
-            if not quiet:
-                raise LoaderError(source_file, "failed to open file")
+            if omit:
+                contents += "// @_omit_start\n"
 
-    return ""
+            contents += "".join(file_content)
+
+            if omit:
+                contents += "// @_omit_end\n"
+
+            if index:
+                contents += "// @_file:%s,%i\n" % (parent_file,index)
+
+    elif not quiet:
+        if use_includes:
+            raise LoaderError(parent_file, "can't find '%s' in any of the include paths" % source_file)
+        else:
+            raise LoaderError(parent_file, "failed to open file %s" % source_file)
+
+    return contents
 
 
 def Locate(block_name, tree=None):
@@ -2954,10 +2939,10 @@ def ParseFile(source_file, includePaths = []):
 
 def ParseFiles(source_files, framework_namespace, includePaths = [], log = None):
     contents = ""
+
     for source_file in source_files:
         if source_file:
-            quiet = (source_file[0] == "@")
-            contents += ReadFile((source_file[1:] if quiet else source_file), includePaths, quiet, "")
+            contents += ReadFile(source_file, includePaths)
             contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
     return Parse(contents, log)

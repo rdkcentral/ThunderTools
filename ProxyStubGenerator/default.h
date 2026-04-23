@@ -87,3 +87,5 @@ namespace __FRAMEWORK_NAMESPACE__ {
     };
   }
 }
+
+// @insert:weak <com/ICOM.h>
