@@ -3,6 +3,8 @@
     "cmake.configureSettings": {
         "CMAKE_BUILD_TYPE" : "Release" ,
         "CMAKE_MESSAGE_LOG_LEVEL" : "VERBOSE" ,
-        "CMAKE_VERBOSE_MAKEFILE" : "ON"
+        "CMAKE_VERBOSE_MAKEFILE" : "ON",
+        "ENABLE_TESTING" : "ON",
+        "FUNCTIONAL_TESTS" : "ON",
     }
 }

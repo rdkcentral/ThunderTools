@@ -2,10 +2,10 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Local Debug ProxyStubFunctionalTests",
+            "name": "Local Debug ComRpcFunctionalTests",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${config:cmake.buildDirectory}/tests/ProxyStubFunctionalTests",
+            "program": "${config:cmake.buildDirectory}/tests/FunctionalTests/comrpc/ComRpcFunctionalTests",
             "args": [
                 // "--gtest_filter=TestAsync.*",
                 // "--gtest_filter=-TestInterfaces.*"
@@ -19,7 +19,45 @@
             },
             "externalConsole": false,
             "linux": {
-                "program": "${config:cmake.buildDirectory}/tests/ProxyStubFunctionalTests",
+                "program": "${config:cmake.buildDirectory}/tests/FunctionalTests/comrpc/ComRpcFunctionalTests",
+                "MIMode": "gdb",
+                "miDebuggerPath": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    },
+                    {
+                        "description": "Break on pure virtual call",
+                        "text": "break __cxa_pure_virtual",
+                        "ignoreFailures": false
+                    }
+                ],
+                "sourceFileMap": {},
+                "environment": [],
+                "additionalSOLibSearchPath": "",
+            },
+        },
+        {
+            "name": "Local Debug JsonRpcFunctionalTests",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${config:cmake.buildDirectory}/tests/FunctionalTests/jsonrpc/JsonRpcFunctionalTests",
+            "args": [
+                // "--gtest_filter=TestAsync.*",
+                // "--gtest_filter=-TestInterfaces.*"
+                // "--gtest_repeat=1"
+            ],
+            "stopAtEntry": false,
+            "cwd": "${config:cmake.buildDirectory}",
+            "logging": {
+                "moduleLoad": false,
+                "trace": false
+            },
+            "externalConsole": false,
+            "linux": {
+                "program": "${config:cmake.buildDirectory}/tests/FunctionalTests/jsonrpc/JsonRpcFunctionalTests",
                 "MIMode": "gdb",
                 "miDebuggerPath": "gdb",
                 "setupCommands": [
