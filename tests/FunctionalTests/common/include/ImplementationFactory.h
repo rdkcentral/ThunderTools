@@ -49,7 +49,7 @@ namespace TestImplementation {
             return nullptr;
         }
 
-    private:
+    public:
         template <typename INTERFACE, typename IMPLEMENTATION>
         class Registrar {
         public:
