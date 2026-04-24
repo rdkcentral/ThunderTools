@@ -1832,10 +1832,10 @@ def __Tokenize(contents,log = None):
     inComment = 0
     for token in tokens:
         if token.startswith("// @_file:"):
-            line = 1
+            line = int(token[11:].split(',')[1])
             eoltokens.append(token)
         else:
-            if not inComment:
+            if not inComment and token.strip() and not token.lstrip().startswith("//"):
                 eoltokens.append("// @_line:" + str(line) + " ")
 
             if (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
@@ -1844,11 +1844,13 @@ def __Tokenize(contents,log = None):
             else:
                 eoltokens.append(token)
 
-            line += 1
+            if not token.startswith("// @_"):
+                line += 1
 
             inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
     contents = "\n".join(eoltokens)
+    print(contents)
 
     formula = (
         r"(#if 0[\S\s]*?#endif)"
@@ -2125,8 +2127,9 @@ def __Tokenize(contents,log = None):
 
                 if _find("@_file", token):
                     idx = token.index("@_file:") + 7
-                    tagtokens.append("@FILE:" + token[idx:])
-                    current_file = token[idx:]
+                    _current_file = token[idx:].split(',')[0]
+                    tagtokens.append("@FILE:" + _current_file)
+                    current_file = _current_file
                 if _find("@_line", token):
                     idx = token.index("@_line:") + 7
                     if len(tagtokens) and not isinstance(tagtokens[-1],list) and tagtokens[-1].startswith("@LINE:"):
