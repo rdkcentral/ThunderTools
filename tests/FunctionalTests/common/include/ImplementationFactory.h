@@ -49,13 +49,12 @@ namespace TestImplementation {
             return nullptr;
         }
 
-    public:
+    private:
         template <typename INTERFACE, typename IMPLEMENTATION>
         class Registrar {
         public:
             Registrar()
             {
-                // Register factory function for this interface ID
                 Factory::Instance().Register(INTERFACE::ID, &Registrar::Create);
             }
 
