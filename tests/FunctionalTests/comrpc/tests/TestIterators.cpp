@@ -13,6 +13,9 @@ using namespace Thunder::FunctionalTest;
 
 class TestIterators : public Testing::TestHarness<ITestIterators> {};
 
+// server-side drain happens asynchronously, so wait briefly before querying results
+const uint32_t ASYNC_DRAIN_DELAY_MS = 20;  
+
 // ===== Direct client-side iteration =====
 
 TEST_F(TestIterators, GetStrings_ClientIteration) {
@@ -93,7 +96,7 @@ TEST_F(TestIterators, RegisterStringIterator_CountCorrect) {
     iter->Release();
 
     // Wait for async drain
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     uint32_t count = 0;
     ASSERT_EQ(_proxy->GetStringIteratorCount(id, count), Core::ERROR_NONE);
@@ -110,7 +113,7 @@ TEST_F(TestIterators, RegisterStringIterator_FirstElement) {
     ASSERT_EQ(_proxy->RegisterStringIterator(iter, id), Core::ERROR_NONE);
     iter->Release();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     string first;
     ASSERT_EQ(_proxy->GetStringIteratorFirst(id, first), Core::ERROR_NONE);
@@ -127,7 +130,7 @@ TEST_F(TestIterators, RegisterStringIterator_Empty) {
     ASSERT_EQ(_proxy->RegisterStringIterator(iter, id), Core::ERROR_NONE);
     iter->Release();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     bool empty = false;
     ASSERT_EQ(_proxy->IsStringIteratorEmpty(id, empty), Core::ERROR_NONE);
@@ -144,7 +147,7 @@ TEST_F(TestIterators, RegisterValueIterator_SumAndCount) {
     ASSERT_EQ(_proxy->RegisterValueIterator(iter, id), Core::ERROR_NONE);
     iter->Release();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     uint32_t count = 0, sum = 0;
     ASSERT_EQ(_proxy->GetValueIteratorCount(id, count), Core::ERROR_NONE);
@@ -163,7 +166,7 @@ TEST_F(TestIterators, RegisterValueIterator_FirstElement) {
     ASSERT_EQ(_proxy->RegisterValueIterator(iter, id), Core::ERROR_NONE);
     iter->Release();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     uint32_t first = 99;
     ASSERT_EQ(_proxy->GetValueIteratorFirst(id, first), Core::ERROR_NONE);
@@ -180,7 +183,7 @@ TEST_F(TestIterators, UnregisterIterator_ReturnsNotExist) {
     ASSERT_EQ(_proxy->RegisterStringIterator(iter, id), Core::ERROR_NONE);
     iter->Release();
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     ASSERT_EQ(_proxy->UnregisterIterator(id), Core::ERROR_NONE);
     EXPECT_EQ(_proxy->UnregisterIterator(id), Core::ERROR_NOT_EXIST);
@@ -199,7 +202,7 @@ TEST_F(TestIterators, MultipleIterators_IndependentIds) {
 
     EXPECT_NE(sid, vid);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(150));
+    std::this_thread::sleep_for(std::chrono::milliseconds(ASYNC_DRAIN_DELAY_MS));
 
     uint32_t scount = 0, vcount = 0;
     ASSERT_EQ(_proxy->GetStringIteratorCount(sid, scount), Core::ERROR_NONE);
