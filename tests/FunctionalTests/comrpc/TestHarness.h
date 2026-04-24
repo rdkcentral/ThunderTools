@@ -25,67 +25,46 @@
 namespace Thunder {
 namespace Testing {
 
-    // Base test harness template for all test fixtures
     template <typename INTERFACE>
     class TestHarness : public ::testing::Test {
     protected:
-        TestHarness()
-            : _proxy(nullptr)
-            , _engine()
-            , _client()
+        static void SetUpTestSuite()
         {
-        }
-
-        ~TestHarness() override = default;
-
-        void SetUp() override
-        {
-            // Create InvokeServer engine (matching working test pattern)
-            // Template parameters: <threads, stack, messaging, profiling, proxy pool, channel ID>
             _engine = Core::ProxyType<RPC::InvokeServerType<4, 0, 1, 1, 1>>::Create();
-            ASSERT_TRUE(_engine.IsValid()) << "Failed to create InvokeServer engine";
-
-            // Create client with explicit engine
-            Core::NodeId remoteNode("/tmp/comrpc_test.socket");
             _client = Core::ProxyType<RPC::CommunicatorClient>::Create(
-                remoteNode,
+                Core::NodeId("/tmp/comrpc_test.socket"),
                 Core::ProxyType<Core::IIPCServer>(_engine));
-            ASSERT_TRUE(_client.IsValid()) << "Failed to create CommunicatorClient";
-
-            // Create proxy to interface
-            // Empty string means default instance of this interface type
             _proxy = _client->Open<INTERFACE>(_T(""));
             ASSERT_NE(_proxy, nullptr) << "Failed to create proxy for interface 0x"
                                        << std::hex << INTERFACE::ID;
         }
 
-        void TearDown() override
+        static void TearDownTestSuite()
         {
-            // Release proxy
             if (_proxy != nullptr) {
                 _proxy->Release();
                 _proxy = nullptr;
             }
-
-            // Close client
-            if (_client.IsValid()) {
-                _client->Close(1000);
-                _client.Release();
-            }
-
-            // Release engine
-            if (_engine.IsValid()) {
-                _engine.Release();
-            }
+            _client->Close(1000);
+            _client.Release();
+            _engine.Release();
         }
 
-        // Proxy for tests to call RPC methods
-        INTERFACE* _proxy;
+        static INTERFACE* _proxy;
 
     private:
-        Core::ProxyType<RPC::InvokeServerType<4, 0, 1, 1, 1>> _engine;
-        Core::ProxyType<RPC::CommunicatorClient> _client;
+        static Core::ProxyType<RPC::InvokeServerType<4, 0, 1, 1, 1>> _engine;
+        static Core::ProxyType<RPC::CommunicatorClient> _client;
     };
+
+    template <typename INTERFACE>
+    INTERFACE* TestHarness<INTERFACE>::_proxy{nullptr};
+
+    template <typename INTERFACE>
+    Core::ProxyType<RPC::InvokeServerType<4, 0, 1, 1, 1>> TestHarness<INTERFACE>::_engine;
+
+    template <typename INTERFACE>
+    Core::ProxyType<RPC::CommunicatorClient> TestHarness<INTERFACE>::_client;
 
 } // namespace Testing
 } // namespace Thunder
