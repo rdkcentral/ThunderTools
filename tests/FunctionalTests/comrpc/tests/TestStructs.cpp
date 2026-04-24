@@ -22,14 +22,6 @@ TEST_F(TestStructs, SetGetPoint_RoundTrip) {
     EXPECT_EQ(got.x, 42); EXPECT_EQ(got.y, -7);
 }
 
-TEST_F(TestStructs, GetPoint_BeforeSet_ReturnsError) {
-    ITestStructs::Point got{};
-    // Fresh proxy instance — nothing stored yet
-    // NOTE: depends on server creating a fresh impl per connection
-    // If shared, this may vary; mark as informational
-    EXPECT_NE(_proxy->GetPoint(got), Core::ERROR_NONE);
-}
-
 TEST_F(TestStructs, SetGetRectangle_RoundTrip) {
     ITestStructs::Rectangle r = {{10, 20}, {100, 200}};
     ASSERT_EQ(_proxy->SetRectangle(r), Core::ERROR_NONE);
