@@ -1,0 +1,18 @@
+# type: context_pair — checks that two patterns appear together on the same declaration line.
+# Here: a struct/class that inherits IUnknown must ALSO carry EXTERNAL.
+# No Python required.
+
+id: iface/missing-external
+severity: error
+source: "07-interface-driven-development.md#Required-Elements-in-Every-Interface-Header"
+description: >
+  COM interface struct or class inherits Core::IUnknown but is not decorated
+  with EXTERNAL. Missing EXTERNAL causes linker failures in OOP mode and
+  incorrect dynamic_cast on macOS for non-template classes.
+type: context_pair
+# 'trigger' activates the check when this pattern matches a declaration line
+trigger: ':\s*(virtual\s+public\s+Core::IUnknown|public\s+Core::IUnknown)'
+# 'required' must also be present on the same line; absence = finding
+required: '\bEXTERNAL\b'
+scope: h
+message: "Interface inherits Core::IUnknown but is missing the EXTERNAL keyword on its declaration."

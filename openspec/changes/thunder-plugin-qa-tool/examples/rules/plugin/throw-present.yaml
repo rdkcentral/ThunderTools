@@ -1,0 +1,15 @@
+# type: pattern — simplest rule type.
+# A regex is applied to every line in scope.
+# No Python required — adding this file to rules/plugin/ is all that is needed.
+
+id: plugin/throw-present
+severity: error
+source: "09-error-handling-and-logging.md#No-Exceptions"
+description: >
+  throw, try, or catch found in plugin source.
+  Thunder is built with -fno-exceptions; these constructs cause std::terminate()
+  at runtime or a linker error depending on toolchain.
+type: pattern
+pattern: '\b(throw|try|catch)\b'
+scope: any
+message: "'{match}' found — Thunder is compiled with -fno-exceptions. Use Core::hresult return values instead."

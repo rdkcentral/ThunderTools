@@ -49,52 +49,84 @@ For `type: custom` rules, a `handler` field naming the Python module in `rule_en
 
 ---
 
-### Requirement: Structural rules use named Python custom handlers
-Rules that require structural analysis across method bodies (e.g. paired
-`Register`/`Unregister` calls across `Initialize` and `Deinitialize`) SHALL use
-`type: custom` in their YAML file and delegate to a Python module in
-`rule_engine/custom/`. Custom handlers SHALL receive parsed structural context (extracted
-method bodies, class declarations, include order) from the engine's shared parser — they
-SHALL NOT re-parse raw file text.
+### Requirement: Structural rules are evaluated via focused AI queries on extracted code blocks
+Rules that require structural analysis (paired `Register`/`Unregister` calls, `IShell*`
+lifetime discipline, interface map completeness) SHALL use `type: ai_query` in their YAML
+file. The engine SHALL extract the named structural regions (e.g. `initialize_body`,
+`deinitialize_body`) from the file and send them with the YAML `query` field as the
+question to the GitHub Models API. The AI response SHALL be evaluated as yes/no; a "yes"
+produces a finding; a "no" produces nothing; a "cannot determine" produces a
+`suggestion`-severity finding.
 
-#### Scenario: Custom handler receives pre-parsed context
-- **WHEN** the engine runs a `type: custom` rule
-- **THEN** the handler is called with a `ParsedFile` object containing extracted method bodies and class structure
-- **THEN** the handler does not open or read the source file directly
+#### Scenario: AI query returns a violation citation
+- **WHEN** the engine runs a `type: ai_query` rule and the model responds with "yes" and a cited line
+- **THEN** a finding is produced with `source: "ai"`, the rule's `severity`, and the cited line in `message`
+
+#### Scenario: AI query returns no violation
+- **WHEN** the model responds with "no issue"
+- **THEN** no finding is produced for that rule
+
+#### Scenario: AI query cannot determine
+- **WHEN** the model responds with "cannot determine" or equivalent uncertainty
+- **THEN** a `suggestion`-severity finding is produced with `ruleId` prefixed `suggestion/` and a message prompting manual review
+
+#### Scenario: GH_TOKEN absent — AI pass skipped
+- **WHEN** `GH_TOKEN` is not set
+- **THEN** all `type: ai_query` rules are skipped
+- **THEN** a single `system/ai-skipped` meta-finding is produced with `severity: "suggestion"` explaining that AI checks require `GH_TOKEN`
 
 ---
 
-### Requirement: Rule engine covers all mandatory Thunder cross-cutting rules
-The rule engine SHALL implement a check for each of the following rule categories. Each
-check SHALL be deterministic, offline, and produce a finding with a stable `ruleId`.
+### Requirement: Rule engine implements 9 offline pattern rules covering trivially reliable token checks
+The offline pass SHALL implement checks for the following rules using `type: pattern`
+YAML files. Each check SHALL be deterministic, require no network or AI model, and
+produce a finding with a stable `ruleId`.
 
 | Rule ID | Category | Severity |
 |---------|----------|----------|
-| `mem/ishell-no-addref` | `IShell*` stored without `AddRef()` | error |
-| `mem/ishell-no-release` | `IShell*` not released in `Deinitialize()` | error |
-| `mem/qi-no-release` | `QueryInterface`/`QueryInterfaceByCallsign` result not released | error |
 | `mem/direct-delete-com` | `delete` used directly on a COM interface pointer | error |
 | `iface/missing-external` | COM class or struct missing `EXTERNAL` | error |
 | `iface/non-hresult-method` | Interface method not returning `Core::hresult` | error |
 | `iface/non-virtual-iunknown` | Interface lacks `virtual public Core::IUnknown` | error |
 | `iface/stl-across-boundary` | STL container in interface method signature | error |
 | `plugin/throw-present` | `throw`, `try`, or `catch` found in plugin source | error |
-| `plugin/init-logic-in-ctor` | Non-trivial logic in constructor or destructor | warning |
-| `plugin/register-leak` | `Register()` call without matching `Unregister()` | error |
-| `plugin/missing-unavailable` | `IPlugin::INotification` subclass missing `Unavailable()` | error |
 | `plugin/hardcoded-path` | Hardcoded absolute path (not a `%token%`) | warning |
 | `plugin/module-h-not-first` | `Module.h` not the first include in a `.cpp` file | warning |
-| `imap/incomplete` | `BEGIN_INTERFACE_MAP` missing an inherited interface entry | warning |
 | `config/raw-json-parse` | Config parsed by hand rather than via `Core::JSON::Container` | warning |
-| `oop/missing-terminate` | OOP plugin `Deinitialize()` missing `connection->Terminate()` | warning |
 
-#### Scenario: Each rule produces a finding for a known-bad snippet
+#### Scenario: Each offline rule produces a finding for a known-bad snippet
 - **WHEN** the rule engine is run against the test corpus file for rule `<ruleId>`
 - **THEN** a finding with that `ruleId` is present in the output
 - **THEN** the finding cites the correct line number from the test corpus
 
-#### Scenario: Each rule does not fire on a known-good snippet
+#### Scenario: Each offline rule does not fire on a known-good snippet
 - **WHEN** the rule engine is run against the clean reference snippet for rule `<ruleId>`
+- **THEN** no finding with that `ruleId` is present in the output
+
+---
+
+### Requirement: Rule engine implements 8 AI query rules covering structural checks
+The AI query pass SHALL implement checks for the following rules using `type: ai_query`
+YAML files. Each check sends focused extracted code blocks with a bounded question to the
+GitHub Models API. The `extract` field specifies which structural regions to extract.
+
+| Rule ID | Category | Severity | extract |
+|---------|----------|----------|---------|
+| `mem/ishell-no-addref` | `IShell*` stored without `AddRef()` | error | `initialize_body` |
+| `mem/ishell-no-release` | `IShell*` not released in `Deinitialize()` | error | `deinitialize_body` |
+| `mem/qi-no-release` | `QueryInterface` result not released | error | `method_bodies` |
+| `plugin/register-leak` | `Register()` without matching `Unregister()` | error | `initialize_body, deinitialize_body` |
+| `plugin/missing-unavailable` | `IPlugin::INotification` subclass missing `Unavailable()` | error | `class_declarations` |
+| `plugin/init-logic-in-ctor` | Non-trivial logic in constructor or destructor | warning | `ctor_body, dtor_body` |
+| `imap/incomplete` | `BEGIN_INTERFACE_MAP` missing an inherited interface entry | warning | `interface_map, class_declarations` |
+| `oop/missing-terminate` | OOP `Deinitialize()` missing `connection->Terminate()` | warning | `deinitialize_body` |
+
+#### Scenario: Each AI query rule produces a finding for a known-bad snippet
+- **WHEN** the AI query rule is run against a known-bad snippet with the live model
+- **THEN** a finding with that `ruleId` and `source: "ai"` is present in the output
+
+#### Scenario: Each AI query rule does not fire on a known-good snippet
+- **WHEN** the AI query rule is run against a known-good snippet
 - **THEN** no finding with that `ruleId` is present in the output
 
 ---
@@ -122,22 +154,23 @@ The corpus SHALL be runnable via `pytest` as part of CI.
 
 ---
 
-### Requirement: LLM-enhanced pass is invoked only when GH_TOKEN is present
-When the environment variable `GH_TOKEN` is set, the rule engine SHALL perform a second
-LLM-backed pass using the GitHub Models API after the offline pass. The LLM findings
-SHALL be merged into the same output structure with `source: "llm"` on each finding.
-When `GH_TOKEN` is absent, only the offline pass runs.
+### Requirement: AI query pass is gated on GH_TOKEN; absence is made explicit
+The AI query pass SHALL only run when `GH_TOKEN` is set in the environment. When absent,
+all `type: ai_query` rules SHALL be skipped and a single meta-finding SHALL be appended
+to inform the developer. Every finding in the output SHALL carry a `source` tag
+(`"ai"`, `"offline"`, or `"skipped"`) so callers can distinguish mechanism.
 
 #### Scenario: Offline-only mode when no token
 - **WHEN** `GH_TOKEN` is not set in the environment
 - **THEN** `review_plugin` returns findings with `source: "offline"` only
+- **THEN** a `suggestion`-severity meta-finding with `ruleId: "system/ai-skipped"` is appended
 - **THEN** no network call is made
 
-#### Scenario: LLM findings appended when token present
+#### Scenario: AI findings returned when token present
 - **WHEN** `GH_TOKEN` is set and the GitHub Models API returns a valid response
-- **THEN** `review_plugin` returns findings from both passes, each tagged with `source: "offline"` or `source: "llm"`
+- **THEN** `review_plugin` returns findings from both passes, each tagged with `source: "offline"` or `source: "ai"`
 
-#### Scenario: LLM API failure does not abort offline results
+#### Scenario: AI API failure does not abort offline results
 - **WHEN** the GitHub Models API returns a non-200 response or times out
 - **THEN** `review_plugin` still returns the offline findings
-- **THEN** a `warning`-severity meta-finding with `ruleId: "system/llm-unavailable"` is appended to indicate the LLM pass was skipped
+- **THEN** a `warning`-severity meta-finding with `ruleId: "system/ai-unavailable"` is appended to indicate the AI pass was skipped

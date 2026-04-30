@@ -7,9 +7,10 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 ## Goals / Non-Goals
 
 **Goals:**
-- Provide offline, deterministic rule-checking of plugin C++ files covering all Thunder architecture rules — no AI model required at review time.
-- Rule definitions are plain YAML files, editable without Python knowledge, so Thunder architects can own and update rules directly.
-- Surface quality guidance in VS Code Agent mode via prompt-file slash commands backed by the standalone rule engine.
+- Use the AI model as the primary mechanism for structural checks (ref-counting discipline, call symmetry, interface map completeness) — the checks where C++ idioms vary too widely for reliable offline matching.
+- Use offline regex patterns only for trivially reliable token-level checks where false-positive/false-negative risk is negligible (keyword presence, include order, absolute path literals).
+- Rule definitions are plain YAML files, editable without Python knowledge, so Thunder architects can own and update rules and AI queries directly.
+- Surface quality guidance in VS Code Agent mode via prompt-file slash commands backed by the standalone review engine.
 - Catch architecture violations at the PR gate via CI, before merge.
 - Zero changes to existing PSG source.
 - MCP server wrapper (enabling fully agent-driven generation) is an optional enhancement on top of the standalone engine.
@@ -43,13 +44,19 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 
 ---
 
-### D3 — Hybrid review: deterministic offline pass + optional LLM pass
+### D3 — AI model is primary for structural checks; offline patterns for trivial token checks only
 
-**Decision:** The rule engine runs a deterministic offline pass first (always, no model, no network), then an optional LLM pass (GitHub Models API) if a `GH_TOKEN` is available.
+**Decision:** The review engine uses two mechanisms: (1) focused AI model queries via the GitHub Models API for all structural checks; (2) offline regex pattern matching for trivially reliable token-level checks only. The AI pass is the primary value delivery mechanism, not an optional enhancement.
 
-**Rationale:** The offline pass is the primary value — it runs everywhere (developer laptop without internet, CI without secrets, air-gapped partner environments) and produces the same result every time. The LLM pass adds semantic depth (spotting logic errors in Initialize/Deinitialize ordering that pattern matching cannot) but is explicitly additive. No AI model is needed for the core review.
+**Rationale:** Real RDK plugin codebases (`DeviceInfo`, `UserSettings`, `SystemServices`) show wildly different C++ idioms for the same architectural intent — `IShell*` storage, `Register`/`Unregister` pairing, interface map completeness. Writing regex or Python custom handlers that are reliable across this diversity is not tractable. An AI model already understands all these idioms.
 
-**Alternative considered:** LLM-only. Rejected — adds network latency, requires a token, and produces non-deterministic results that make it hard to track improvements.
+The AI queries are tightly bounded — each query sends a single extracted code block (e.g. `Deinitialize()` body only) with a specific yes/no question (e.g. “Does this call `Release()` on the stored `IShell*`?”). Bounded queries force the model to cite the relevant line when it finds a violation, making findings verifiable. This is distinct from open-ended whole-file review, which produces verbose and hard-to-action output.
+
+Offline regex handles only the trivial checks where the pattern is unambiguous: `throw`/`try`/`catch` keyword presence, `Module.h` include order, hardcoded absolute path literals. False-positive and false-negative risk for these patterns is negligible.
+
+**Alternative considered:** Offline-first + optional LLM. Rejected — testing on real plugin code showed offline structural checks produced too many false positives/negatives to be reliable as the primary mechanism. The LLM is better at this class of check and should be the primary, not the fallback.
+
+**Alternative considered:** LLM-only (whole-file open-ended review). Rejected — produces non-deterministic, hard-to-cite findings that are difficult to track and hard to suppress per rule.
 
 ---
 
@@ -71,26 +78,43 @@ Rule-file path is configurable in `mcp.json` via `THUNDER_REPO_PATH` environment
 
 ---
 
-### D7 — Rules defined as YAML files, not hardcoded Python (Option B)
+### D7 — YAML rule files as registry and AI prompt context, not pattern execution engine
 
-**Decision:** Each rule is a YAML file in `ThunderTools/PluginQA/rules/<category>/<rule-id>.yaml`. A Python interpreter in the engine reads and executes these rules. Structural rules that cannot be expressed as patterns use a `type: custom` tag pointing to a named Python handler in `rule_engine/custom/`.
+**Decision:** Each rule is a YAML file in `ThunderTools/PluginQA/rules/<category>/<rule-id>.yaml`. YAML files serve two roles: (1) a rule registry linking rule IDs to instruction file sections (for traceability and staleness detection); (2) the source of truth for what code block to extract and what question to ask the AI. There is no `type: custom` Python handler dispatch — structural analysis is delegated to the AI model, not to custom Python code.
 
-**Rationale:** Thunder architects who own the `.github/instructions/` files should be able to add, modify, or remove rules without Python knowledge. A YAML rule file for a simple pattern check is ~10 lines; adding a new rule means dropping a new file in `rules/`, not editing engine code. The engine is written once. External RDK partners can extend the rule set for their own conventions by adding YAML files alongside the default set.
+**Rationale:** Thunder architects who own the `.github/instructions/` files should be able to add, modify, or update the AI query for a rule without Python knowledge. Adding a new structural check means adding a new `type: ai_query` YAML file specifying the extraction target and the bounded question. The Python engine is written once and handles the API call mechanics. External RDK partners can extend the rule set by adding YAML files.
 
-YAML rule schema:
+YAML rule schema — `type: pattern` (offline):
 ```yaml
-id: plugin/throw-present          # stable rule ID
-severity: error                   # error | warning | suggestion
+id: plugin/throw-present
+severity: error
 source: "09-error-handling-and-logging.md#No-Exceptions"
 description: throw/try/catch found in plugin source
-type: pattern                     # pattern | context_pair | custom
-pattern: '\b(throw|try|catch)\b'  # regex applied per line
-scope: cpp                        # cpp | h | any
+type: pattern
+pattern: '\b(throw|try|catch)\b'
+scope: any
 ```
 
-Complex structural rules (e.g. `plugin/register-leak` requiring paired call analysis across `Initialize`/`Deinitialize`) use `type: custom` with a `handler: register_symmetry` field, mapping to `rule_engine/custom/register_symmetry.py`.
+YAML rule schema — `type: ai_query` (structural, AI-evaluated):
+```yaml
+id: plugin/register-leak
+severity: error
+source: "10-plugin-development.md#JSON-RPC-Method-Registration"
+description: Register() call without matching Unregister() in Deinitialize()
+type: ai_query
+extract:
+  - initialize_body
+  - deinitialize_body
+query: >
+  Does Initialize() call Register() or Subscribe() without a matching
+  Unregister() or Unsubscribe() call in Deinitialize()?
+  If yes, cite the Register/Subscribe call line. If no, say "no issue".
+scope: cpp
+```
 
-**Alternative considered (Option A):** Rules hardcoded as Python functions. Rejected — requires Python knowledge to update, couples rule logic to engine implementation, and makes it hard for architects to own rules independently.
+The `extract` field names one or more structural regions the parser extracts from the file. The `query` field is the bounded yes/no question sent to the AI with those extracted blocks as context.
+
+**Alternative considered:** `type: custom` Python handlers for structural rules. Rejected — custom handlers suffer the same C++ idiom diversity problem as regex. An AI model is better at this class of check and does not require a Python handler per rule.
 
 ---
 
@@ -105,11 +129,13 @@ Complex structural rules (e.g. `plugin/register-leak` requiring paired call anal
 | Risk | Mitigation |
 |------|-----------|
 | MCP SDK protocol version breaks between VS Code releases | Pin `mcp` SDK version in `requirements.txt`; test against VS Code Insiders in CI matrix |
-| Regex rule engine produces false positives / false negatives | Each rule ships with a test corpus of pass/fail C++ snippets; coverage tracked by rule ID |
+| AI model returns a false positive (flags non-violation as violation) | Each `ai_query` rule ships with a known-good test snippet; CI asserts no false positive on that snippet with the live model |
+| AI model returns a false negative (misses a real violation) | Each `ai_query` rule ships with a known-bad test snippet; CI asserts finding is present |
+| GitHub Models API unavailable (network outage, token expired) | AI pass is gated on `GH_TOKEN`; when absent or on API failure, offline findings are returned and a `system/ai-unavailable` meta-finding is appended |
 | PSG subprocess path fragility (Python version, working directory) | MCP server resolves PSG path from `THUNDER_TOOLS_PATH` env var; documents invocation contract clearly; fails fast with actionable error |
-| GitHub Models API rate limits in CI | Add retry with exponential back-off; LLM pass is optional — CI still posts offline findings when rate-limited |
+| GitHub Models API rate limits in CI | Add retry with exponential back-off (max 3 attempts per query); per-rule failure is isolated — remaining rules still run; CI still posts offline findings when rate-limited |
 | Rule file staleness (instruction files updated, rule engine not) | Each rule includes a `source` tag referencing the instruction file section; CI includes a rule-freshness lint that fails if a referenced section has been deleted |
-| macOS vs. Linux parity for file path handling in rule engine | All paths normalised through `pathlib.Path`; CI matrix covers both ubuntu-latest and macos-latest |
+| Linux/macOS parity for file path handling in rule engine | All paths normalised through `pathlib.Path`; primary dev and CI target is Linux (`ubuntu-latest`); `macos-latest` also included in CI matrix to verify macOS support |
 
 ## Open Questions
 

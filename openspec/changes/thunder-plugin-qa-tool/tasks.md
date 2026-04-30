@@ -8,11 +8,12 @@
 
 ## 2. Rule Engine — Core Infrastructure
 
-- [ ] 2.1 Implement `rule_engine/parser.py`: lightweight structural C++ parser using `re` — extracts class declarations, method signatures, `Initialize`/`Deinitialize` bodies, `#include` order, and interface maps into a `ParsedFile` dataclass. No full AST required.
-- [ ] 2.2 Implement `rule_engine/loader.py`: scans `rules/` directory tree, loads and validates all YAML rule files at startup, raises actionable errors for missing required fields
-- [ ] 2.3 Implement `rule_engine/interpreter.py`: executes `type: pattern` rules (regex per line, scoped to `cpp`/`h`/`any`), `type: context_pair` rules (paired presence/absence across method bodies), and `type: custom` rules (delegates to named handler in `rule_engine/custom/`)
-- [ ] 2.4 Implement `rule_engine/engine.py`: `RuleEngine` class that loads rules via `loader.py`, parses files via `parser.py`, dispatches rules via `interpreter.py`, and returns a list of `Finding` instances
-- [ ] 2.5 Implement `review_plugin.py` as standalone CLI entry point: accepts file paths as CLI args, runs `RuleEngine`, prints findings as line-delimited JSON to stdout, exits `1` on any `error` finding, `0` otherwise
+- [ ] 2.1 Implement `rule_engine/parser.py`: lightweight structural C++ parser using `re` — extracts class declarations, method signatures, `Initialize`/`Deinitialize` bodies, constructor/destructor bodies, `#include` order, interface maps, and `QueryInterface` call sites into a `ParsedFile` dataclass. No full AST required.
+- [ ] 2.2 Implement `rule_engine/loader.py`: scans `rules/` directory tree, loads and validates all YAML rule files at startup, raises actionable errors for missing required fields; validates that `type: ai_query` rules have both `extract` and `query` fields
+- [ ] 2.3 Implement `rule_engine/prompt_builder.py`: accepts a `ParsedFile`, a rule's `extract` list, and a `query` string; extracts the named structural regions from `ParsedFile`; calls GitHub Models API (`openai/gpt-4.1`) with the extracted context + query; parses yes/no/cannot-determine response; returns a `Finding` or `None`
+- [ ] 2.4 Implement `rule_engine/interpreter.py`: executes `type: pattern` rules only (regex per line, scoped to `cpp`/`h`/`any`); no `type: custom` dispatch
+- [ ] 2.5 Implement `rule_engine/engine.py`: `RuleEngine` class that loads rules via `loader.py`, parses files via `parser.py`, runs offline pass via `interpreter.py`, then runs AI query pass via `prompt_builder.py` (gated on `GH_TOKEN`), and returns a merged list of `Finding` instances
+- [ ] 2.6 Implement `review_plugin.py` as standalone CLI entry point: accepts file paths as CLI args, runs `RuleEngine`, prints findings as line-delimited JSON to stdout, exits `1` on any `error` finding, `0` otherwise
 
 ## 3. Rule Definitions — Pattern and Context-Pair Rules (YAML)
 
@@ -26,15 +27,16 @@
 - [ ] 3.8 Write `rules/mem/direct-delete-com.yaml` (`type: pattern`, `delete` applied to a COM interface pointer)
 - [ ] 3.9 Write `rules/config/raw-json-parse.yaml` (`type: pattern`, `std::string::find`/`sscanf` used for JSON instead of `Core::JSON::Container`)
 
-## 4. Rule Definitions — Custom Handler Rules (Python)
+## 4. Rule Definitions — AI Query Rules (YAML with `type: ai_query`)
 
-- [ ] 4.1 Implement `rule_engine/custom/ishell_lifetime.py`: handles `mem/ishell-no-addref` and `mem/ishell-no-release` — cross-checks `IShell*` member storage against `AddRef()`/`Release()` calls across `Initialize`/`Deinitialize` bodies; write `rules/mem/ishell-no-addref.yaml` and `rules/mem/ishell-no-release.yaml` (`type: custom`, `handler: ishell_lifetime`)
-- [ ] 4.2 Implement `rule_engine/custom/qi_release.py`: handles `mem/qi-no-release` — detects `QueryInterface`/`QueryInterfaceByCallsign` result assigned to a local variable without a `Release()` call in scope; write `rules/mem/qi-no-release.yaml`
-- [ ] 4.3 Implement `rule_engine/custom/register_symmetry.py`: handles `plugin/register-leak` — pairs `Register()`/`Unregister()` calls across `Initialize` and `Deinitialize`; write `rules/plugin/register-leak.yaml`
-- [ ] 4.4 Implement `rule_engine/custom/unavailable_impl.py`: handles `plugin/missing-unavailable` — detects inner `IPlugin::INotification` subclass without `Unavailable()` override; write `rules/plugin/missing-unavailable.yaml`
-- [ ] 4.5 Implement `rule_engine/custom/ctor_logic.py`: handles `plugin/init-logic-in-ctor` — detects non-trivial constructor/destructor bodies; write `rules/plugin/init-logic-in-ctor.yaml`
-- [ ] 4.6 Implement `rule_engine/custom/interface_map.py`: handles `imap/incomplete` — cross-checks `BEGIN_INTERFACE_MAP` entries against declared base interfaces; write `rules/imap/incomplete.yaml`
-- [ ] 4.7 Implement `rule_engine/custom/oop_terminate.py`: handles `oop/missing-terminate` — detects OOP `Deinitialize()` acquiring `RemoteConnection` without `Terminate()`; write `rules/oop/missing-terminate.yaml`
+- [ ] 4.1 Write `rules/mem/ishell-no-addref.yaml` (`type: ai_query`, `extract: [initialize_body]`, query asks whether stored `IShell*` member has `AddRef()` called in `Initialize()`)
+- [ ] 4.2 Write `rules/mem/ishell-no-release.yaml` (`type: ai_query`, `extract: [deinitialize_body]`, query asks whether stored `IShell*` member has `Release()` called in `Deinitialize()`)
+- [ ] 4.3 Write `rules/mem/qi-no-release.yaml` (`type: ai_query`, `extract: [method_bodies]`, query asks whether any `QueryInterface`/`QueryInterfaceByCallsign` result is assigned without a subsequent `Release()`)
+- [ ] 4.4 Write `rules/plugin/register-leak.yaml` (`type: ai_query`, `extract: [initialize_body, deinitialize_body]`, query asks whether every `Register()`/`Subscribe()` call in `Initialize()` has a matching `Unregister()`/`Unsubscribe()` in `Deinitialize()`)
+- [ ] 4.5 Write `rules/plugin/missing-unavailable.yaml` (`type: ai_query`, `extract: [class_declarations]`, query asks whether any inner class inheriting `IPlugin::INotification` is missing an `Unavailable()` override)
+- [ ] 4.6 Write `rules/plugin/init-logic-in-ctor.yaml` (`type: ai_query`, `extract: [ctor_body, dtor_body]`, query asks whether the constructor or destructor contains non-trivial logic beyond member initialisation)
+- [ ] 4.7 Write `rules/imap/incomplete.yaml` (`type: ai_query`, `extract: [interface_map, class_declarations]`, query asks whether `BEGIN_INTERFACE_MAP` is missing any entry for an inherited interface)
+- [ ] 4.8 Write `rules/oop/missing-terminate.yaml` (`type: ai_query`, `extract: [deinitialize_body]`, query asks whether `Deinitialize()` acquires a `RemoteConnection` without calling `Terminate()`)
 
 ## 5. Rule Engine — Test Corpus
 
@@ -43,13 +45,14 @@
 - [ ] 5.3 Add `tests/test_yaml_schema.py`: pytest test that loads every YAML file in `rules/` and validates required fields are present
 - [ ] 5.4 Verify `pytest ThunderTools/PluginQA/tests/` passes locally and in CI
 
-## 6. LLM-Enhanced Pass
+## 6. AI Query Mechanism
 
-- [ ] 6.1 Implement `rule_engine/llm_pass.py`: accepts file contents + offline findings, calls GitHub Models API (`openai/gpt-4.1` model, matching PSG workflow), returns additional findings with `source: "llm"`
-- [ ] 6.2 Add retry with exponential back-off (max 3 attempts) to LLM pass; on final failure append `system/llm-unavailable` meta-finding and return offline results
-- [ ] 6.3 Gate LLM pass on `GH_TOKEN` environment variable presence; when absent skip silently
+- [ ] 6.1 Implement GitHub Models API client inside `rule_engine/prompt_builder.py`: uses `openai/gpt-4.1` model (matching PSG workflow), authenticates via `GH_TOKEN`, sends extracted code block + bounded query, returns structured yes/no/cannot-determine result
+- [ ] 6.2 Implement per-rule failure isolation in `prompt_builder.py`: if the API call for one rule fails (non-200, timeout), that rule produces a `system/ai-unavailable` meta-finding and the engine continues with remaining rules
+- [ ] 6.3 Add retry with exponential back-off (max 3 attempts) per AI query call; gate entire AI query pass on `GH_TOKEN` presence; when absent, append single `system/ai-skipped` meta-finding instead of per-rule meta-findings
+- [ ] 6.4 Write `tests/test_ai_queries.py`: tests using mocked GitHub Models API responses — assert yes response → finding produced, no response → no finding, cannot-determine → suggestion finding, API error → meta-finding produced + offline results intact
 
-## 7. VS Code Prompt Files
+## 7. Phase 1 — Agent-Surfaced Results (VS Code Prompt Files)
 
 - [ ] 7.1 Write `ThunderTools/PluginQA/prompts/thunder-review.prompt.md`: open-file or explicit-paths → instructs agent to run `review_plugin.py` via terminal tool → grouped severity output
 - [ ] 7.2 Write `ThunderTools/PluginQA/prompts/thunder-generate.prompt.md`: Q&A flow → YAML construction → instructs agent to run PSG via terminal → then run `review_plugin.py` on generated output
@@ -57,7 +60,9 @@
 - [ ] 7.4 Write `ThunderTools/PluginQA/prompts/thunder-interface.prompt.md`: open-header or explicit path → instructs agent to run `review_plugin.py` with `--iface-only` flag → compliance summary
 - [ ] 7.5 Manually verify each prompt file appears as a slash command in VS Code Copilot Chat Agent mode and produces correct output
 
-## 8. CI Workflow
+## 8. Phase 2 — GitHub Actions PR Integration
+
+> Implement this section after Phase 1 (Section 7) prompt files are validated in the developer workflow.
 
 - [ ] 8.1 Write `.github/workflows/PluginQA.yml`: trigger on `pull_request` for `**/*.h`, `**/*.cpp`, `**/CMakeLists.txt`; detect changed plugin directories by checking for `Module.h`
 - [ ] 8.2 Add job: install Python deps, run rule engine offline pass on all changed plugin files, serialize findings to JSON artefact
