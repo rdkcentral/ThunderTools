@@ -1850,7 +1850,6 @@ def __Tokenize(contents,log = None):
             inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
     contents = "\n".join(eoltokens)
-    print(contents)
 
     formula = (
         r"(#if 0[\S\s]*?#endif)"
