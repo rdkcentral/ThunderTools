@@ -49,7 +49,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     needs_move = False
     error_condition_emitted = False
 
-    converted = param.TempName("conv_") if has_conversion else param.original_name if param.original_name else param.name
+    converted = param.TempName("conv_") if has_conversion else param.local_name
     converted_result = param.TempName("convResult_")
     converted_enum = param.TempName("convEnum_")
     array_size = param.schema.get("@arraysize")
@@ -76,12 +76,12 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    default_conditions.extend("%s.empty() == true" % param.original_name)
+    default_conditions.extend("%s.empty() == true" % param.local_name)
 
     emit.If(default_conditions)
     if param.default_value:
         emit.Line("%s = %s;" % (opt_name, param.default_value))
-    elif is_optional_type:
+    elif is_optional_type or is_legacy_optional:
         emit.Line("// no error, optional")
     else:
         emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
@@ -99,12 +99,12 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
             if encode == "base64":
                 converted_length_param = param.TempName("convLength_")
                 emit.Line("%s %s(%s);" % (length_type, converted_length_param, length))
-                emit.Line("Core::FromString(%s, %s, %s);" % (param.original_name, converted, converted_length_param))
+                emit.Line("Core::FromString(%s, %s, %s);" % (param.local_name, converted, converted_length_param))
                 emit.Line("const bool %s = (%s != 0);" % (converted_result, converted_length_param))
             elif encode == "hex":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0));" % (converted_result, param.original_name, converted, length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0));" % (converted_result, param.local_name, converted, length))
             elif encode == "mac":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.original_name, converted, length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.local_name, converted, length))
             else:
                 assert False, "bad encode method"
 
@@ -117,10 +117,10 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
             needs_move = True
 
     elif isinstance(param, (JsonInteger, JsonBoolean)):
-        emit.Line("const bool %s = Core::FromString(%s, %s);" % (converted_result, param.original_name, converted))
+        emit.Line("const bool %s = Core::FromString(%s, %s);" % (converted_result, param.local_name, converted))
 
     elif isinstance(param, JsonEnum):
-        emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (param.cpp_native_type, converted_enum, param.original_name))
+        emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (param.cpp_native_type, converted_enum, param.local_name))
         emit.Line("%s %s{%s.Value()};" % (param.cpp_native_type, converted, converted_enum))
         emit.Line("const bool %s = %s.IsSet();" % (converted_result, converted_enum))
 
@@ -151,7 +151,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
 
     emit.Endif(default_conditions)
 
-    if converted != param.original_name:
+    if converted != param.local_name:
         emit.Line()
 
     return converted, error_condition_emitted
@@ -164,14 +164,12 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
 
     names = DottedDict()
     names['module'] = "module_"
-    names['instance_id'] = "instanceId_"
     names['id'] = "id_"
     names['client'] = "client_"
     names['params'] = "params_"
     names['designator'] = "designator_"
     names['sendif'] = "sendIfMethod_"
     names["index"] = "index_"
-    names['designator_id'] = "designatorId_"
 
     prefix = ("%s." % names.module) if not legacy else ""
 
@@ -470,11 +468,11 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
             if event.sendif_type and event.sendif_deprecated:
                 if event.is_status_listener and has_client:
                     emit.Line("const size_t _dot = %s.find('.');" % (names.designator))
-                    emit.Line("const string %s = %s.substr(0, _dot);" % (names.designator_id, names.designator))
+                    emit.Line("const string %s = %s.substr(0, _dot);" % (names.index, names.designator))
                     check = ("%s.substr(_dot + 1)" % (names.designator))
                     cond.append("((%s.empty() == true) || (%s == %s))" % (names.client, names.client, check))
                 else:
-                    emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.designator_id, names.designator, names.designator))
+                    emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.index, names.designator, names.designator))
 
                 converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
 
@@ -750,7 +748,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 params = []
                 params.append("const uint32_t%s" % (" channelId_" if has_lookup else ""))
-                params.append("const string&%s" % (" instanceId_" if has_lookup else ""))
                 params.append("const string& client_")
                 params.append("const string&%s" % (" index_" if event.sendif_type and not event.sendif_deprecated else ""))
                 params.append("const %s::Status status_" % "PluginHost::JSONRPCSupportsEventStatus")
@@ -1510,7 +1507,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
     names['handler_interface'] = "IHandler"
     names['context'] = "context_"
     names['id'] = "id_"
-    names['instance_id'] = "instanceId_"
     names["index"] = "index_"
     names["client"] = "client_"
 
@@ -1558,13 +1554,17 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line("using JSONRPC = %s;" % names.jsonrpc_type)
         emit.Line()
 
-    impl_name = ((" " + names.impl) if impl_required else "")
+        register_params = [ "JSONRPC& %s" % (names.module) ]
+        template_params = []
+    else:
+        register_params = [ "MODULE& %s" % (names.module) ]
+        template_params = [ "typename MODULE" ]
 
-    register_params = [ "MODULE& %s" % (names.module) ]
+    impl_name = ((" " + names.impl) if impl_required else "")
 
     if is_json_source:
         register_params.append("IMPLEMENTATION&%s" % impl_name)
-        emit.Line("template<typename IMPLEMENTATION>")
+        template_params.append("typename IMPLEMENTATION")
 
     else:
         register_params.append("%s*%s" % (names.interface, impl_name))
@@ -1572,7 +1572,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         if listener_events:
             register_params.append("%s* %s" % (names.handler_interface, names.handler))
 
-    emit.Line("template<typename MODULE>")
+    emit.Line("template<%s>" % ", ".join(template_params))
     emit.Line("static void Register(%s)" % (", ".join(register_params)))
 
     emit.Line("{")
@@ -1657,7 +1657,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             template_params.append("std::function<uint32_t(%s)>" % (", ".join(function_params)))
 
-        emit.Line("%s.PluginHost::JSONRPC::template Register<%s>(%s, " % (names.module, (", ".join(template_params)), Tstring(m.json_name)))
+        emit.Line("%s.PluginHost::JSONRPC::Register<%s>(%s, " % (names.module, (", ".join(template_params)), Tstring(m.json_name)))
         emit.Indent()
 
         lambda_params = []

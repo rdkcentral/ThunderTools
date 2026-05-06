@@ -937,6 +937,11 @@ class JsonNotification(JsonMethod):
         if "id" in schema and "type" not in schema["id"]:
             schema["id"]["type"] = "string"
 
+        # correct mixed json/header case
+        if "id" in schema and "@originalname" not in schema["id"]:
+            schema["id"]["@originalname"] = "index_"
+            schema["id"]["deprecated"] = True
+
         self.sendif_type = JsonItem("id", self, schema["id"]) if "id" in schema else None
         self.sendif_deprecated = schema["id"].get("deprecated") if "id" in schema else False
         self.is_status_listener = schema.get("statuslistener")
