@@ -1181,7 +1181,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("%s %s;" % (param.original_type, vector))
 
                         emit.Line("auto %s = %s.Elements();" % (temp, parent + param.cpp_name))
-                        emit.Line("while ((%s.Next() == true) { %s.push_back(%s.Current()); }" % (temp, vector, temp))
+                        emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (temp, vector, temp))
 
                         if param.optional:
                             emit.Line("%s = std::move(%s);" % (param.temp_name, vector))

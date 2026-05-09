@@ -454,9 +454,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         def ResolveTypedef(type, parent=type):
             if isinstance(type, str):
-                raise CppParseError(parent, "%s: undefined type" % type)
+                raise CppParseError(parent, "%s: undefined type1"% type)
             elif isinstance(type, list):
-                raise CppParseError(parent, "%s: undefined type" % " ".join(type))
+                raise CppParseError(parent, "%s: undefined type2"% " ".join(type))
 
             return type.Resolve()
 
@@ -465,16 +465,16 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 meta = var.meta
 
             if isinstance(var.type, str):
-                raise CppParseError(var, "%s: undefined type" % var.type)
+                raise CppParseError(var, "%s: undefined type3" % var.type)
             elif isinstance(var.type, list):
-                raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
+                raise CppParseError(var, "%s: undefined type4" % " ".join(var.type))
 
             var_type = ResolveTypedef(var.type)
 
             if isinstance(var_type, str):
-                raise CppParseError(var, "%s: undefined type" % var_type)
+                raise CppParseError(var, "%s: undefined type5" % var_type)
             elif isinstance(var_type, list):
-                raise CppParseError(var, "%s: undefined type" % " ".join(var_type))
+                raise CppParseError(var, "%s: undefined type6" % " ".join(var_type))
 
             cppType = var_type.Type()
 
@@ -666,9 +666,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             p_type = ResolveTypedef(p.type)
 
                             if isinstance(p.type, list):
-                                raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
+                                raise CppParseError(p, "%s: undefined type10" % " ".join(p.type))
                             if isinstance(p.type, str):
-                                raise CppParseError(p, "%s: undefined type" % p.type)
+                                raise CppParseError(p, "%s: undefined type11" % p.type)
                             elif isinstance(p_type.Type(), CppParser.Class) and not p.array:
                                 _, props = GenerateObject(p_type.Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                 properties[p_name] = props
@@ -791,7 +791,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             if isinstance(type.Type(), CppParser.Class) and type.Type().is_event:
                                 events.append(var)
                     else:
-                        raise CppParseError(var, "undefined type: '%s'" % " ".join(type))
+                        raise CppParseError(var, "undefined type12: '%s'" % " ".join(type))
 
                     resolved.append(type)
                     return events
@@ -872,9 +872,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         converted["@position"] = vars.index(var)
 
-                        if not handle_optional(var, ResolveTypedef(var.type), converted, test):
-                            required.append(var_name)
-
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in converted and not "time" in converted:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
@@ -889,6 +886,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                         raise CppParseError(var, "@extract not allowed on this parameter")
 
                                     properties = converted["properties"]
+                                    params["@originaltype"] = converted["@originaltype"]
+                                    required = converted["required"]
                                     extracted = var
                                 elif converted["type"] != "array":
                                     raise CppParseError(var, "@extract not supported for this type")
@@ -898,6 +897,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 raise CppParseError(var, "multiple @extract object parameters")
                         else:
                             properties[var_name] = converted
+
+                            if not handle_optional(var, ResolveTypedef(var.type), converted, test):
+                                required.append(var_name)
 
 
             params["properties"] = properties
@@ -963,6 +965,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                     raise CppParseError(var, "@extract not allowed on property parameters")
 
                                 properties = converted["properties"]
+                                params["@originaltype"] = converted["@originaltype"]
                                 extracted = var
                             elif converted["type"] != "array":
                                 raise CppParseError(var, "@extract not supported for this type")
@@ -1385,7 +1388,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
-                                obj["id"]["@originalname"] = "designatorId_" if deprecated else "index_"
+                                obj["id"]["@originalname"] = "index_"
                                 obj["id"]["@generated"] = True
 
                                 if deprecated:
@@ -1529,6 +1532,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
     return schemas, []
 
 def LoadInterface(file, log, all = False, include_paths = []):
+
     try:
         schemas = []
         includes = []

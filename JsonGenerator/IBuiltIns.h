@@ -38,7 +38,7 @@ namespace JSONRPC {
 
         // @brief Retrieves a list of JSON-RPC interfaces offered by this service
         // @description %%VERSIONS%%
-        // @param versions A list ofsinterfaces with their version numbers
+        // @param versions A list of interfaces with their version numbers
         virtual Core::hresult Versions(std::vector<Interface>& versions /* @out @restrict:255 */) = 0;
     };
 
@@ -70,7 +70,7 @@ namespace JSONRPC {
         virtual Core::hresult Unregister(const string& event, const string& id) = 0;
     };
 
-} // namespace JSONRPCs
+} // namespace JSONRPC
 } // namespace Exchange 
 }
 

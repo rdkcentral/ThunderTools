@@ -2944,7 +2944,7 @@ def ParseFiles(source_files, framework_namespace, includePaths = [], log = None)
 
     for source_file in source_files:
         if source_file:
-            contents += ReadFile(source_file, includePaths)
+            contents += ReadFile(source_file, includePaths, inclusions=[])
             contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
     return Parse(contents, log)
