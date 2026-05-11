@@ -1,91 +1,87 @@
 ## 1. Repository and Project Scaffold
 
-- [ ] 1.1 Create `ThunderTools/PluginQA/` directory with `README.md`, `requirements.txt` (`PyYAML` only — no `mcp` in core), and `__init__.py`
-- [ ] 1.2 Create `ThunderTools/PluginQA/tests/` directory with `__init__.py` and empty `corpus/` subdirectory
+- [ ] 1.1 Create `ThunderTools/PluginQA/` directory with `README.md`, `requirements.txt` (`PyYAML` + `openai` SDK), and `__init__.py`
+- [ ] 1.2 Create `ThunderTools/PluginQA/tests/` directory with `__init__.py` and `corpus/` subdirectory
 - [ ] 1.3 Create `ThunderTools/PluginQA/rules/` directory tree: `rules/mem/`, `rules/iface/`, `rules/plugin/`, `rules/imap/`, `rules/config/`, `rules/oop/`
-- [ ] 1.4 Create `ThunderTools/PluginQA/rule_engine/` package with `__init__.py`, `finding.py` (`Finding` dataclass, `Severity` enum, JSON serialisation), and `custom/` subdirectory
+- [ ] 1.4 Create `ThunderTools/PluginQA/rule_engine/` package with `__init__.py` and `finding.py` (`Finding` dataclass, `Severity` enum, JSON serialisation)
 - [ ] 1.5 Add `ThunderTools/PluginQA/` entry to `ThunderDevTools.py` script menu as option 2 (alongside PSG option 1)
 
 ## 2. Rule Engine — Core Infrastructure
 
-- [ ] 2.1 Implement `rule_engine/parser.py`: lightweight structural C++ parser using `re` — extracts class declarations, method signatures, `Initialize`/`Deinitialize` bodies, constructor/destructor bodies, `#include` order, interface maps, and `QueryInterface` call sites into a `ParsedFile` dataclass. No full AST required.
-- [ ] 2.2 Implement `rule_engine/loader.py`: scans `rules/` directory tree, loads and validates all YAML rule files at startup, raises actionable errors for missing required fields; validates that `type: ai_query` rules have both `extract` and `query` fields
-- [ ] 2.3 Implement `rule_engine/prompt_builder.py`: accepts a `ParsedFile`, a rule's `extract` list, and a `query` string; extracts the named structural regions from `ParsedFile`; calls GitHub Models API (`openai/gpt-4.1`) with the extracted context + query; parses yes/no/cannot-determine response; returns a `Finding` or `None`
-- [ ] 2.4 Implement `rule_engine/interpreter.py`: executes `type: pattern` rules only (regex per line, scoped to `cpp`/`h`/`any`); no `type: custom` dispatch
-- [ ] 2.5 Implement `rule_engine/engine.py`: `RuleEngine` class that loads rules via `loader.py`, parses files via `parser.py`, runs offline pass via `interpreter.py`, then runs AI query pass via `prompt_builder.py` (gated on `GH_TOKEN`), and returns a merged list of `Finding` instances
-- [ ] 2.6 Implement `review_plugin.py` as standalone CLI entry point: accepts file paths as CLI args, runs `RuleEngine`, prints findings as line-delimited JSON to stdout, exits `1` on any `error` finding, `0` otherwise
+- [ ] 2.1 Implement `rule_engine/loader.py`: scans `rules/` directory tree, loads and validates all YAML rule files at startup, raises actionable errors for missing required fields; returns a list of rule dicts filtered by `scope` for a given file type
+- [ ] 2.2 Implement `rule_engine/prompt_builder.py`: accepts file content (string) + list of rule dicts; assembles the structured rule checklist prompt; calls GitHub Models API (`openai/gpt-4.1`, authenticated via `GH_TOKEN`); parses the JSON array response; returns a list of `Finding` instances
+- [ ] 2.3 Implement `rule_engine/engine.py`: `RuleEngine` class that loads rules via `loader.py`, reads file content, handles token-limit guard (split by scope if needed), calls `prompt_builder.py`, and returns a list of `Finding` instances
+- [ ] 2.4 Implement `review_plugin.py` as standalone CLI entry point: accepts file paths as CLI args; fails fast with actionable message if `GH_TOKEN` not set; runs `RuleEngine` per file; prints findings as line-delimited JSON to stdout; exits `1` on any `error` finding, `0` otherwise
 
-## 3. Rule Definitions — Pattern and Context-Pair Rules (YAML)
+## 3. Rule Definitions — YAML Checklist Files (17 rules)
 
-- [ ] 3.1 Write `rules/plugin/throw-present.yaml` (`type: pattern`, regex `\b(throw|try|catch)\b`, scope `any`)
-- [ ] 3.2 Write `rules/plugin/hardcoded-path.yaml` (`type: pattern`, detects string literals starting with `/` not preceded by `%`)
-- [ ] 3.3 Write `rules/plugin/module-h-not-first.yaml` (`type: context_pair`, `Module.h` not the first `#include` in a `.cpp`)
-- [ ] 3.4 Write `rules/iface/missing-external.yaml` (`type: pattern`, `struct`/`class` inheriting `IUnknown` without `EXTERNAL`)
-- [ ] 3.5 Write `rules/iface/non-hresult-method.yaml` (`type: pattern`, virtual method return type not `Core::hresult`)
-- [ ] 3.6 Write `rules/iface/non-virtual-iunknown.yaml` (`type: pattern`, interface without `virtual public Core::IUnknown`)
-- [ ] 3.7 Write `rules/iface/stl-across-boundary.yaml` (`type: pattern`, STL container types in virtual method signatures)
-- [ ] 3.8 Write `rules/mem/direct-delete-com.yaml` (`type: pattern`, `delete` applied to a COM interface pointer)
-- [ ] 3.9 Write `rules/config/raw-json-parse.yaml` (`type: pattern`, `std::string::find`/`sscanf` used for JSON instead of `Core::JSON::Container`)
+Each file has fields: `id`, `severity`, `source`, `description`, `scope`. No `type`, `pattern`, `extract`, or `query` fields.
 
-## 4. Rule Definitions — AI Query Rules (YAML with `type: ai_query`)
+- [ ] 3.1 Write `rules/mem/ishell-no-addref.yaml`
+- [ ] 3.2 Write `rules/mem/ishell-no-release.yaml`
+- [ ] 3.3 Write `rules/mem/qi-no-release.yaml`
+- [ ] 3.4 Write `rules/mem/direct-delete-com.yaml`
+- [ ] 3.5 Write `rules/iface/missing-external.yaml`
+- [ ] 3.6 Write `rules/iface/non-hresult-method.yaml`
+- [ ] 3.7 Write `rules/iface/non-virtual-iunknown.yaml`
+- [ ] 3.8 Write `rules/iface/stl-across-boundary.yaml`
+- [ ] 3.9 Write `rules/plugin/throw-present.yaml`
+- [ ] 3.10 Write `rules/plugin/register-leak.yaml`
+- [ ] 3.11 Write `rules/plugin/missing-unavailable.yaml`
+- [ ] 3.12 Write `rules/plugin/hardcoded-path.yaml`
+- [ ] 3.13 Write `rules/plugin/module-h-not-first.yaml`
+- [ ] 3.14 Write `rules/plugin/init-logic-in-ctor.yaml`
+- [ ] 3.15 Write `rules/imap/incomplete.yaml`
+- [ ] 3.16 Write `rules/config/raw-json-parse.yaml`
+- [ ] 3.17 Write `rules/oop/missing-terminate.yaml`
 
-- [ ] 4.1 Write `rules/mem/ishell-no-addref.yaml` (`type: ai_query`, `extract: [initialize_body]`, query asks whether stored `IShell*` member has `AddRef()` called in `Initialize()`)
-- [ ] 4.2 Write `rules/mem/ishell-no-release.yaml` (`type: ai_query`, `extract: [deinitialize_body]`, query asks whether stored `IShell*` member has `Release()` called in `Deinitialize()`)
-- [ ] 4.3 Write `rules/mem/qi-no-release.yaml` (`type: ai_query`, `extract: [method_bodies]`, query asks whether any `QueryInterface`/`QueryInterfaceByCallsign` result is assigned without a subsequent `Release()`)
-- [ ] 4.4 Write `rules/plugin/register-leak.yaml` (`type: ai_query`, `extract: [initialize_body, deinitialize_body]`, query asks whether every `Register()`/`Subscribe()` call in `Initialize()` has a matching `Unregister()`/`Unsubscribe()` in `Deinitialize()`)
-- [ ] 4.5 Write `rules/plugin/missing-unavailable.yaml` (`type: ai_query`, `extract: [class_declarations]`, query asks whether any inner class inheriting `IPlugin::INotification` is missing an `Unavailable()` override)
-- [ ] 4.6 Write `rules/plugin/init-logic-in-ctor.yaml` (`type: ai_query`, `extract: [ctor_body, dtor_body]`, query asks whether the constructor or destructor contains non-trivial logic beyond member initialisation)
-- [ ] 4.7 Write `rules/imap/incomplete.yaml` (`type: ai_query`, `extract: [interface_map, class_declarations]`, query asks whether `BEGIN_INTERFACE_MAP` is missing any entry for an inherited interface)
-- [ ] 4.8 Write `rules/oop/missing-terminate.yaml` (`type: ai_query`, `extract: [deinitialize_body]`, query asks whether `Deinitialize()` acquires a `RemoteConnection` without calling `Terminate()`)
-
-## 5. Rule Engine — Test Corpus
+## 4. Rule Engine — Test Corpus
 
 - [ ] 5.1 Create `tests/corpus/<ruleId>-bad.cpp` and `tests/corpus/<ruleId>-good.cpp` snippet files for all 17 rules (tasks 3.1–3.9 and 4.1–4.7)
 - [ ] 5.2 Write `tests/test_corpus.py`: pytest parametrised test that runs each bad snippet through the engine and asserts the expected `ruleId` appears, and each good snippet produces no finding for that rule
 - [ ] 5.3 Add `tests/test_yaml_schema.py`: pytest test that loads every YAML file in `rules/` and validates required fields are present
 - [ ] 5.4 Verify `pytest ThunderTools/PluginQA/tests/` passes locally and in CI
 
-## 6. AI Query Mechanism
+## 5. Single-Call API Mechanism
 
-- [ ] 6.1 Implement GitHub Models API client inside `rule_engine/prompt_builder.py`: uses `openai/gpt-4.1` model (matching PSG workflow), authenticates via `GH_TOKEN`, sends extracted code block + bounded query, returns structured yes/no/cannot-determine result
-- [ ] 6.2 Implement per-rule failure isolation in `prompt_builder.py`: if the API call for one rule fails (non-200, timeout), that rule produces a `system/ai-unavailable` meta-finding and the engine continues with remaining rules
-- [ ] 6.3 Add retry with exponential back-off (max 3 attempts) per AI query call; gate entire AI query pass on `GH_TOKEN` presence; when absent, append single `system/ai-skipped` meta-finding instead of per-rule meta-findings
-- [ ] 6.4 Write `tests/test_ai_queries.py`: tests using mocked GitHub Models API responses — assert yes response → finding produced, no response → no finding, cannot-determine → suggestion finding, API error → meta-finding produced + offline results intact
+- [ ] 5.1 Implement prompt assembly in `rule_engine/prompt_builder.py`: loads rules filtered by scope, formats them as a numbered checklist (id, severity, description), instructs model to return a JSON array with fields `ruleId`, `severity`, `line`, `message`; empty array if clean
+- [ ] 5.2 Implement token-limit guard in `prompt_builder.py`: estimate token count of file + prompt; if over limit, split into two calls (one per scope: `cpp` rules + `h` rules); merge results
+- [ ] 5.3 Implement retry with exponential back-off (max 3 attempts) in `prompt_builder.py`; on final failure raise with enough context for a `system/ai-unavailable` meta-finding
+- [ ] 5.4 Write `tests/test_prompt_builder.py`: unit tests using mocked API — assert correct prompt structure, correct JSON parsing, token-split behaviour, retry behaviour, `GH_TOKEN` absent fast-fail
 
-## 7. Phase 1 — Agent-Surfaced Results (VS Code Prompt Files)
+## 6. Phase 1 — Agent-Surfaced Results (VS Code Prompt Files)
 
-- [ ] 7.1 Write `ThunderTools/PluginQA/prompts/thunder-review.prompt.md`: open-file or explicit-paths → instructs agent to run `review_plugin.py` via terminal tool → grouped severity output
-- [ ] 7.2 Write `ThunderTools/PluginQA/prompts/thunder-generate.prompt.md`: Q&A flow → YAML construction → instructs agent to run PSG via terminal → then run `review_plugin.py` on generated output
-- [ ] 7.3 Write `ThunderTools/PluginQA/prompts/thunder-pattern.prompt.md`: description → agent reasons using Thunder instruction files → returns canonical pattern + code block
-- [ ] 7.4 Write `ThunderTools/PluginQA/prompts/thunder-interface.prompt.md`: open-header or explicit path → instructs agent to run `review_plugin.py` with `--iface-only` flag → compliance summary
-- [ ] 7.5 Manually verify each prompt file appears as a slash command in VS Code Copilot Chat Agent mode and produces correct output
+- [ ] 6.1 Write `ThunderTools/PluginQA/prompts/thunder-review.prompt.md`: instructs agent to read the currently open plugin file (or explicit paths), consult the Thunder instruction files in `.github/instructions/`, and list all violations by rule ID and line number with severity. No subprocess. No API call beyond the agent’s own inference.
+- [ ] 6.2 Write `ThunderTools/PluginQA/prompts/thunder-generate.prompt.md`: Q&A flow → YAML construction → instructs agent to run PSG via terminal → then `/thunder-review` the generated output
+- [ ] 6.3 Write `ThunderTools/PluginQA/prompts/thunder-pattern.prompt.md`: description → agent reasons using Thunder instruction files → returns canonical pattern + code block
+- [ ] 6.4 Write `ThunderTools/PluginQA/prompts/thunder-interface.prompt.md`: open-header or explicit path → agent reviews interface file against `07-interface-driven-development.md` rules → compliance summary
+- [ ] 6.5 Manually verify each prompt file appears as a slash command in VS Code Copilot Chat Agent mode and produces correct output without any subprocess or external dependency
 
-## 8. Phase 2 — GitHub Actions PR Integration
+## 7. Phase 2 — GitHub Actions PR Integration
 
-> Implement this section after Phase 1 (Section 7) prompt files are validated in the developer workflow.
+> Implement this section after Phase 1 (Section 6) prompt files are validated in the developer workflow.
 
-- [ ] 8.1 Write `.github/workflows/PluginQA.yml`: trigger on `pull_request` for `**/*.h`, `**/*.cpp`, `**/CMakeLists.txt`; detect changed plugin directories by checking for `Module.h`
-- [ ] 8.2 Add job: install Python deps, run rule engine offline pass on all changed plugin files, serialize findings to JSON artefact
-- [ ] 8.3 Add job step: LLM pass using `GH_TOKEN`; append findings to JSON; handle rate-limit gracefully
-- [ ] 8.4 Add job step: render PR comment with severity-grouped findings using `peter-evans/create-or-update-comment@v5` (matching PSG workflow pattern); collapsible AI section for LLM findings
-- [ ] 8.5 Exit workflow with non-zero status if any `error`-severity findings present; exit 0 for warnings-only
-- [ ] 8.6 Add CI matrix: `ubuntu-latest` and `macos-latest` runners; verify findings are identical across platforms
-- [ ] 8.7 Run the workflow against `rdkservices/DeviceInfo` and `rdkservices/UserSettings` as integration smoke test; document known findings in `ThunderTools/PluginQA/README.md`
+- [ ] 7.1 Write `.github/workflows/PluginQA.yml`: trigger on `pull_request` for `**/*.h`, `**/*.cpp`, `**/CMakeLists.txt`; detect changed plugin directories by checking for `Module.h`
+- [ ] 7.2 Add job: install Python deps (`PyYAML`, `openai`), run `review_plugin.py` on each changed plugin file (one API call per file), serialize findings to JSON artefact
+- [ ] 7.3 Add job step: render PR comment with severity-grouped findings using `peter-evans/create-or-update-comment@v5` (matching PSG workflow pattern)
+- [ ] 7.4 Exit workflow with non-zero status if any `error`-severity findings present; exit 0 for warnings-only
+- [ ] 7.5 Add CI matrix: `ubuntu-latest` and `macos-latest` runners; verify findings are identical across platforms
+- [ ] 7.6 Run the workflow against `rdkservices/DeviceInfo` and `rdkservices/UserSettings` as integration smoke test; document known findings in `ThunderTools/PluginQA/README.md`
 
-## 9. Documentation and Packaging
+## 8. Documentation and Packaging
 
-- [ ] 9.1 Write `ThunderTools/PluginQA/README.md`: terminal usage, prompt file installation, CI integration, environment variables (`THUNDER_REPO_PATH`), how to add/modify YAML rules
-- [ ] 9.2 Add `ThunderTools/PluginQA/` to the `ThunderTools` top-level `README.md` under Developer Tools
-- [ ] 9.3 Update `ThunderTools/ThunderDevTools/ThunderDevTools.py` to include `thunder-plugin-qa` as a runnable tool option
+- [ ] 8.1 Write `ThunderTools/PluginQA/README.md`: prompt file installation (Phase 1), CI integration (Phase 2), `GH_TOKEN` requirement, how to add/modify YAML rules
+- [ ] 8.2 Add `ThunderTools/PluginQA/` to the `ThunderTools` top-level `README.md` under Developer Tools
+- [ ] 8.3 Update `ThunderTools/ThunderDevTools/ThunderDevTools.py` to include `thunder-plugin-qa` as a runnable tool option
 
-## 10. MCP Server (Optional Enhancement — implement after sections 1–9 are complete)
+## 9. MCP Server (Optional Enhancement — implement after sections 1–8 are complete)
 
-- [ ] 10.1 Create `requirements-mcp.txt` (`mcp` SDK only); keep core `requirements.txt` unchanged
-- [ ] 10.2 Implement `mcp_server.py`: initialise `mcp` SDK server with `name="thunder-plugin-qa"`, register tools: `review_plugin`, `generate_skeleton`, `validate_interface`, `suggest_pattern`, `explain_rule`
-- [ ] 10.3 Implement `review_plugin` tool handler: delegate to `RuleEngine` + optional LLM pass; return serialised `Finding` list
-- [ ] 10.4 Implement `generate_skeleton` tool handler: validate YAML config against PSG schema, invoke `PluginSkeletonGenerator.py` subprocess, return file tree or structured error
-- [ ] 10.5 Implement `validate_interface` tool handler: run `RuleEngine` with `iface/*` rules only
-- [ ] 10.6 Implement `suggest_pattern` and `explain_rule` tool handlers: look up patterns and rule descriptions from the rules registry and instruction files
-- [ ] 10.7 Write `ThunderTools/PluginQA/mcp.json` sample VS Code MCP config with `THUNDER_TOOLS_PATH` env var
-- [ ] 10.8 Write `tests/test_server.py`: integration tests for all MCP tools using the `mcp` SDK test client
-- [ ] 10.9 Update prompt files (7.1–7.4) to call MCP tools directly instead of invoking scripts via the agent terminal tool
+- [ ] 9.1 Create `requirements-mcp.txt` (`mcp` SDK only); keep core `requirements.txt` unchanged
+- [ ] 9.2 Implement `mcp_server.py`: initialise `mcp` SDK server with `name="thunder-plugin-qa"`, register tools: `review_plugin`, `generate_skeleton`, `validate_interface`, `suggest_pattern`, `explain_rule`
+- [ ] 9.3 Implement `review_plugin` tool handler: delegate to `RuleEngine`; return serialised `Finding` list
+- [ ] 9.4 Implement `generate_skeleton` tool handler: validate YAML config against PSG schema, invoke `PluginSkeletonGenerator.py` subprocess, return file tree or structured error
+- [ ] 9.5 Implement `validate_interface` tool handler: run `RuleEngine` with `iface/*` rules only
+- [ ] 9.6 Implement `suggest_pattern` and `explain_rule` tool handlers: look up patterns and rule descriptions from the rules registry and instruction files
+- [ ] 9.7 Write `ThunderTools/PluginQA/mcp.json` sample VS Code MCP config with `THUNDER_TOOLS_PATH` env var
+- [ ] 9.8 Write `tests/test_server.py`: integration tests for all MCP tools using the `mcp` SDK test client
+- [ ] 9.9 Update prompt files (6.1–6.4) to optionally call MCP tools directly instead of invoking scripts via the agent terminal tool

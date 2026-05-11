@@ -7,13 +7,12 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 ## Goals / Non-Goals
 
 **Goals:**
-- Use the AI model as the primary mechanism for structural checks (ref-counting discipline, call symmetry, interface map completeness) — the checks where C++ idioms vary too widely for reliable offline matching.
-- Use offline regex patterns only for trivially reliable token-level checks where false-positive/false-negative risk is negligible (keyword presence, include order, absolute path literals).
-- Rule definitions are plain YAML files, editable without Python knowledge, so Thunder architects can own and update rules and AI queries directly.
-- Surface quality guidance in VS Code Agent mode via prompt-file slash commands backed by the standalone review engine.
+- Phase 1: deliver review quality guidance through VS Code prompt files alone — no Python tool, no API cost beyond the agent's own inference. The agent reads the plugin file and reasons about all Thunder architecture violations using the instruction files already in the workspace.
+- Phase 2: deliver CI-gate enforcement through a thin Python harness that makes **one** GitHub Models API call per plugin file, keeping API cost proportional to the number of changed files, not the number of rules.
+- YAML rule files define the checklist of rules (id, severity, source, description) that is embedded into the single CI prompt. Architects own and update rules without Python knowledge.
 - Catch architecture violations at the PR gate via CI, before merge.
 - Zero changes to existing PSG source.
-- MCP server wrapper (enabling fully agent-driven generation) is an optional enhancement on top of the standalone engine.
+- MCP server wrapper is an optional enhancement on top of the CI harness.
 
 **Non-Goals:**
 - Full C++ compiler-level static analysis (clang-tidy integration is out of scope).
@@ -24,13 +23,13 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 
 ## Decisions
 
-### D1 — Standalone script as the core; MCP server as an optional enhancement
+### D1 — Phase 1 is pure prompt files; Phase 2 is a thin Python CI harness
 
-**Decision:** The rule engine is a standalone Python CLI script (`review_plugin.py`) that runs entirely without an AI model. The MCP server is a thin optional wrapper around it that enables AI agents to call it programmatically.
+**Decision:** Phase 1 delivers review quality guidance entirely through `.prompt.md` slash commands. No Python tool, no subprocess, no API cost. The agent already has the plugin file and the Thunder instruction files in context; the prompt file structures the review task. Phase 2 delivers CI enforcement through a minimal Python script (`review_plugin.py`) whose only job is to make one GitHub Models API call per plugin file and serialise the findings as JSON.
 
-**Rationale:** A developer already has PSG and ThunderTools locally. The rule engine provides immediate value as a terminal command (`python review_plugin.py MyPlugin.cpp`), in CI (direct subprocess call, no server process), and via Copilot prompt files (Agent mode reads the open file, calls the script). The MCP wrapper adds value specifically for fully automated agent sessions (AI calls PSG, then immediately reviews the output) — but this is an enhancement, not a prerequisite. This ordering means the tool is useful on day one without any MCP setup.
+**Rationale:** A developer using Copilot Agent mode in Phase 1 already pays for the model inference as part of their normal workflow — the prompt file adds zero marginal cost. The CI harness in Phase 2 is needed only because GitHub Actions runs headlessly with no interactive agent session. Keeping it as a thin API harness (not a regex engine, not a multi-call dispatcher) minimises implementation surface and API cost: one call per plugin, not one call per rule.
 
-**Alternative considered:** MCP server as the foundational layer with prompt files on top. Rejected — it couples every use-case (CI, terminal, Copilot review) to a running server process that provides no benefit for those scenarios.
+**Alternative considered:** Standalone Python script as Phase 1. Rejected — prompt files deliver the same review quality with zero additional dependencies, zero setup, and zero marginal cost in VS Code Agent mode.
 
 ---
 
@@ -44,19 +43,17 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 
 ---
 
-### D3 — AI model is primary for structural checks; offline patterns for trivial token checks only
+### D3 — Single API call per plugin file; rule checklist embedded in the prompt
 
-**Decision:** The review engine uses two mechanisms: (1) focused AI model queries via the GitHub Models API for all structural checks; (2) offline regex pattern matching for trivially reliable token-level checks only. The AI pass is the primary value delivery mechanism, not an optional enhancement.
+**Decision:** `review_plugin.py` makes exactly one GitHub Models API call per plugin file. The call sends the full file content (or key structural sections for very large files) alongside a structured rule checklist built from the YAML registry. The model is instructed to return findings as a JSON array — no commentary, no prose — citing rule ID and line number for each violation found.
 
-**Rationale:** Real RDK plugin codebases (`DeviceInfo`, `UserSettings`, `SystemServices`) show wildly different C++ idioms for the same architectural intent — `IShell*` storage, `Register`/`Unregister` pairing, interface map completeness. Writing regex or Python custom handlers that are reliable across this diversity is not tractable. An AI model already understands all these idioms.
+**Rationale:** The previous design dispatched one API call per rule (8 calls per file). For a PR touching 10 plugin files that would be 80 API calls with 15–30 seconds of cumulative latency. A single call per file costs the same inference tokens but eliminates 7/8 of the round-trips and latency. The model sees the whole file at once, which *improves* cross-method checks (e.g. it sees `Initialize` and `Deinitialize` together when checking `Register`/`Unregister` symmetry). Structuring the output as a JSON array makes findings machine-parseable without any post-processing heuristics.
 
-The AI queries are tightly bounded — each query sends a single extracted code block (e.g. `Deinitialize()` body only) with a specific yes/no question (e.g. “Does this call `Release()` on the stored `IShell*`?”). Bounded queries force the model to cite the relevant line when it finds a violation, making findings verifiable. This is distinct from open-ended whole-file review, which produces verbose and hard-to-action output.
+**Rationale for dropping offline regex pass:** The trivial token checks (keyword presence, include order, path literals) that previously justified an offline regex pass are equally fast and more reliably understood by the model as part of the single call. Maintaining a parallel regex engine adds implementation surface and a separate test corpus with no meaningful benefit once the single-call architecture is adopted.
 
-Offline regex handles only the trivial checks where the pattern is unambiguous: `throw`/`try`/`catch` keyword presence, `Module.h` include order, hardcoded absolute path literals. False-positive and false-negative risk for these patterns is negligible.
+**Alternative considered:** Per-rule API calls. Rejected — 80 calls for a 10-file PR; latency and cost scale with rule count, not file count.
 
-**Alternative considered:** Offline-first + optional LLM. Rejected — testing on real plugin code showed offline structural checks produced too many false positives/negatives to be reliable as the primary mechanism. The LLM is better at this class of check and should be the primary, not the fallback.
-
-**Alternative considered:** LLM-only (whole-file open-ended review). Rejected — produces non-deterministic, hard-to-cite findings that are difficult to track and hard to suppress per rule.
+**Alternative considered:** Offline regex for trivial checks + single AI call for structural. Rejected — adds implementation surface (interpreter, test corpus) for checks the model handles equally well inside the single call.
 
 ---
 
@@ -78,43 +75,29 @@ Rule-file path is configurable in `mcp.json` via `THUNDER_REPO_PATH` environment
 
 ---
 
-### D7 — YAML rule files as registry and AI prompt context, not pattern execution engine
+### D7 — YAML rule files as a structured checklist for the single prompt
 
-**Decision:** Each rule is a YAML file in `ThunderTools/PluginQA/rules/<category>/<rule-id>.yaml`. YAML files serve two roles: (1) a rule registry linking rule IDs to instruction file sections (for traceability and staleness detection); (2) the source of truth for what code block to extract and what question to ask the AI. There is no `type: custom` Python handler dispatch — structural analysis is delegated to the AI model, not to custom Python code.
+**Decision:** Each rule is a YAML file in `ThunderTools/PluginQA/rules/<category>/<rule-id>.yaml`. At CI runtime, `review_plugin.py` loads all YAML files and assembles them into a structured rule checklist that is embedded in the single prompt sent to the model. The YAML files are not an execution engine — they define what to check, not how to check it. There is no `type` dispatch, no regex, no custom handler, no `extract` field.
 
-**Rationale:** Thunder architects who own the `.github/instructions/` files should be able to add, modify, or update the AI query for a rule without Python knowledge. Adding a new structural check means adding a new `type: ai_query` YAML file specifying the extraction target and the bounded question. The Python engine is written once and handles the API call mechanics. External RDK partners can extend the rule set by adding YAML files.
+**Rationale:** Thunder architects who own the `.github/instructions/` files should be able to add or update a rule by editing a single plain YAML file. A new rule is one new file; removing a rule is one deleted file. The Python harness never needs to change when rules change. The checklist structure in the prompt (rule ID, severity, description, instruction file source) also gives the model enough context to explain findings in terms of the actual Thunder guidelines, not generic advice.
 
-YAML rule schema — `type: pattern` (offline):
-```yaml
-id: plugin/throw-present
-severity: error
-source: "09-error-handling-and-logging.md#No-Exceptions"
-description: throw/try/catch found in plugin source
-type: pattern
-pattern: '\b(throw|try|catch)\b'
-scope: any
-```
-
-YAML rule schema — `type: ai_query` (structural, AI-evaluated):
+YAML rule schema:
 ```yaml
 id: plugin/register-leak
 severity: error
 source: "10-plugin-development.md#JSON-RPC-Method-Registration"
-description: Register() call without matching Unregister() in Deinitialize()
-type: ai_query
-extract:
-  - initialize_body
-  - deinitialize_body
-query: >
-  Does Initialize() call Register() or Subscribe() without a matching
-  Unregister() or Unsubscribe() call in Deinitialize()?
-  If yes, cite the Register/Subscribe call line. If no, say "no issue".
-scope: cpp
+description: >
+  Register() call in Initialize() has no matching Unregister() in
+  Deinitialize(). Leaked registrations cause collisions if the plugin
+  is re-activated after deactivation.
+scope: cpp   # cpp | h | any  — tells harness which files to pass for this rule
 ```
 
-The `extract` field names one or more structural regions the parser extracts from the file. The `query` field is the bounded yes/no question sent to the AI with those extracted blocks as context.
+The assembled prompt instructs the model: “For each rule in this checklist, if a violation is present in the file, return a JSON object `{"ruleId", "severity", "line", "message"}`; if no violation, omit it. Return an empty array if the file is clean.”
 
-**Alternative considered:** `type: custom` Python handlers for structural rules. Rejected — custom handlers suffer the same C++ idiom diversity problem as regex. An AI model is better at this class of check and does not require a Python handler per rule.
+**Alternative considered:** `type: ai_query` with per-rule `extract` and `query` fields (previous design). Rejected — requires one API call per rule (8 calls per file); single-call with checklist achieves the same review quality at 1/8 the cost.
+
+**Alternative considered:** Rules hardcoded as Python functions or regex. Rejected — requires Python knowledge to update, couples rule logic to engine implementation.
 
 ---
 
@@ -129,13 +112,13 @@ The `extract` field names one or more structural regions the parser extracts fro
 | Risk | Mitigation |
 |------|-----------|
 | MCP SDK protocol version breaks between VS Code releases | Pin `mcp` SDK version in `requirements.txt`; test against VS Code Insiders in CI matrix |
-| AI model returns a false positive (flags non-violation as violation) | Each `ai_query` rule ships with a known-good test snippet; CI asserts no false positive on that snippet with the live model |
-| AI model returns a false negative (misses a real violation) | Each `ai_query` rule ships with a known-bad test snippet; CI asserts finding is present |
-| GitHub Models API unavailable (network outage, token expired) | AI pass is gated on `GH_TOKEN`; when absent or on API failure, offline findings are returned and a `system/ai-unavailable` meta-finding is appended |
-| PSG subprocess path fragility (Python version, working directory) | MCP server resolves PSG path from `THUNDER_TOOLS_PATH` env var; documents invocation contract clearly; fails fast with actionable error |
-| GitHub Models API rate limits in CI | Add retry with exponential back-off (max 3 attempts per query); per-rule failure is isolated — remaining rules still run; CI still posts offline findings when rate-limited |
-| Rule file staleness (instruction files updated, rule engine not) | Each rule includes a `source` tag referencing the instruction file section; CI includes a rule-freshness lint that fails if a referenced section has been deleted |
-| Linux/macOS parity for file path handling in rule engine | All paths normalised through `pathlib.Path`; primary dev and CI target is Linux (`ubuntu-latest`); `macos-latest` also included in CI matrix to verify macOS support |
+| AI model returns a false positive (flags non-violation as violation) | CI test corpus includes a known-good snippet per rule; a nightly job runs the harness against the corpus and alerts on regressions |
+| AI model returns a false negative (misses a real violation) | CI test corpus includes a known-bad snippet per rule; same nightly job asserts each bad snippet produces the expected finding |
+| Single-call prompt becomes too long for very large plugin files | Harness checks token estimate before sending; if file exceeds limit, it splits by scope (`cpp` rules on `.cpp`, `h` rules on `.h`) and makes two calls at most |
+| GitHub Models API unavailable (network outage, token expired) | `GH_TOKEN` absence or API failure causes `review_plugin.py` to exit non-zero with a `system/ai-unavailable` meta-finding; workflow step is marked failed but the error message is actionable |
+| GitHub Models API rate limits in CI | Retry with exponential back-off (max 3 attempts); if all retries fail, workflow posts a comment noting the AI check was skipped and exits success (not failure) |
+| Rule file staleness (instruction files updated, YAML rules not) | Each rule includes a `source` tag; CI includes a rule-freshness lint that warns if a referenced section anchor has been deleted from the instruction file |
+| Linux/macOS parity for file path handling in harness | All paths normalised through `pathlib.Path`; primary CI target is Linux (`ubuntu-latest`); `macos-latest` also included in CI matrix |
 
 ## Open Questions
 

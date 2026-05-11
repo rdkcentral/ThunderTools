@@ -1,21 +1,13 @@
-# type: ai_query — structural rule evaluated by sending extracted code blocks
-# to the GitHub Models API with a bounded yes/no question.
-# The engine extracts the listed regions from ParsedFile and includes them as
-# context in the prompt alongside the query field.
+# Checklist entry for the single-call CI prompt.
+# Fields: id, severity, source, description, scope.
+# The AI model receives all applicable rules as a numbered checklist alongside
+# the full plugin file and is instructed to return a JSON array of findings.
 
 id: plugin/register-leak
 severity: error
 source: "10-plugin-development.md#JSON-RPC-Method-Registration"
 description: >
-  A Register() call in Initialize() has no matching Unregister() call in
-  Deinitialize(). Leaked registrations cause collisions if the plugin is
-  re-activated after being deactivated.
-type: ai_query
-extract:
-  - initialize_body
-  - deinitialize_body
-query: >
-  Does Initialize() call Register() or Subscribe() without a matching
-  Unregister() or Unsubscribe() call in Deinitialize()?
-  If yes, cite the Register/Subscribe call line. If no, say "no issue".
+  Register() or Subscribe() call in Initialize() has no matching Unregister() or
+  Unsubscribe() call in Deinitialize(). Leaked registrations cause collisions if
+  the plugin is re-activated after being deactivated.
 scope: cpp
