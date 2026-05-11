@@ -1,7 +1,5 @@
 ## ADDED Requirements
 
-> **Delivery Phase**: This capability is **Phase 2**. Phase 1 (Sections 7 of `tasks.md` — prompt files and standalone CLI) delivers review findings directly in the VS Code Agent without any GitHub integration. The workflow in this spec is implemented and validated after Phase 1 is working in the developer workflow.
-
 ### Requirement: PluginQA workflow triggers on plugin directory changes in PRs
 The `PluginQA.yml` GitHub Actions workflow SHALL trigger on `pull_request` events when
 files matching `**/*/CMakeLists.txt`, `**/*.h`, or `**/*.cpp` are changed within

@@ -49,17 +49,15 @@ Each file has fields: `id`, `severity`, `source`, `description`, `scope`. No `ty
 - [ ] 5.3 Implement retry with exponential back-off (max 3 attempts) in `prompt_builder.py`; on final failure raise with enough context for a `system/ai-unavailable` meta-finding
 - [ ] 5.4 Write `tests/test_prompt_builder.py`: unit tests using mocked API — assert correct prompt structure, correct JSON parsing, token-split behaviour, retry behaviour, `GH_TOKEN` absent fast-fail
 
-## 6. Phase 1 — Agent-Surfaced Results (VS Code Prompt Files)
+## 6. VS Code Prompt Files
 
-- [ ] 6.1 Write `ThunderTools/PluginQA/prompts/thunder-review.prompt.md`: instructs agent to read the currently open plugin file (or explicit paths), consult the Thunder instruction files in `.github/instructions/`, and list all violations by rule ID and line number with severity. No subprocess. No API call beyond the agent’s own inference.
-- [ ] 6.2 Write `ThunderTools/PluginQA/prompts/thunder-generate.prompt.md`: Q&A flow → YAML construction → instructs agent to run PSG via terminal → then `/thunder-review` the generated output
+- [ ] 6.1 Write `ThunderTools/PluginQA/prompts/thunder-review.prompt.md`: instructs agent to invoke `review_plugin.py` via its terminal tool on the open plugin file (or explicit paths), then present findings grouped by severity and rule ID
+- [ ] 6.2 Write `ThunderTools/PluginQA/prompts/thunder-generate.prompt.md`: Q&A flow → YAML construction → instructs agent to run PSG via terminal → then invoke `review_plugin.py` on the generated output and present findings
 - [ ] 6.3 Write `ThunderTools/PluginQA/prompts/thunder-pattern.prompt.md`: description → agent reasons using Thunder instruction files → returns canonical pattern + code block
-- [ ] 6.4 Write `ThunderTools/PluginQA/prompts/thunder-interface.prompt.md`: open-header or explicit path → agent reviews interface file against `07-interface-driven-development.md` rules → compliance summary
-- [ ] 6.5 Manually verify each prompt file appears as a slash command in VS Code Copilot Chat Agent mode and produces correct output without any subprocess or external dependency
+- [ ] 6.4 Write `ThunderTools/PluginQA/prompts/thunder-interface.prompt.md`: open-header or explicit path → instructs agent to invoke `review_plugin.py` with `--scope h` flag → interface compliance summary
+- [ ] 6.5 Manually verify each prompt file appears as a slash command in VS Code Copilot Chat Agent mode and that the agent correctly invokes `review_plugin.py` and presents its output
 
-## 7. Phase 2 — GitHub Actions PR Integration
-
-> Implement this section after Phase 1 (Section 6) prompt files are validated in the developer workflow.
+## 7. GitHub Actions CI Workflow
 
 - [ ] 7.1 Write `.github/workflows/PluginQA.yml`: trigger on `pull_request` for `**/*.h`, `**/*.cpp`, `**/CMakeLists.txt`; detect changed plugin directories by checking for `Module.h`
 - [ ] 7.2 Add job: install Python deps (`PyYAML`, `openai`), run `review_plugin.py` on each changed plugin file (one API call per file), serialize findings to JSON artefact
@@ -70,7 +68,7 @@ Each file has fields: `id`, `severity`, `source`, `description`, `scope`. No `ty
 
 ## 8. Documentation and Packaging
 
-- [ ] 8.1 Write `ThunderTools/PluginQA/README.md`: prompt file installation (Phase 1), CI integration (Phase 2), `GH_TOKEN` requirement, how to add/modify YAML rules
+- [ ] 8.1 Write `ThunderTools/PluginQA/README.md`: terminal usage (`python review_plugin.py <file>`), VS Code prompt file installation, CI integration, `GH_TOKEN` requirement, how to add/modify YAML rules
 - [ ] 8.2 Add `ThunderTools/PluginQA/` to the `ThunderTools` top-level `README.md` under Developer Tools
 - [ ] 8.3 Update `ThunderTools/ThunderDevTools/ThunderDevTools.py` to include `thunder-plugin-qa` as a runnable tool option
 

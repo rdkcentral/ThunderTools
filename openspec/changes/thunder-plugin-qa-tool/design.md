@@ -7,12 +7,13 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 ## Goals / Non-Goals
 
 **Goals:**
-- Phase 1: deliver review quality guidance through VS Code prompt files alone — no Python tool, no API cost beyond the agent's own inference. The agent reads the plugin file and reasons about all Thunder architecture violations using the instruction files already in the workspace.
-- Phase 2: deliver CI-gate enforcement through a thin Python harness that makes **one** GitHub Models API call per plugin file, keeping API cost proportional to the number of changed files, not the number of rules.
-- YAML rule files define the checklist of rules (id, severity, source, description) that is embedded into the single CI prompt. Architects own and update rules without Python knowledge.
+- `review_plugin.py` is the single review mechanism used by both the VS Code Agent (invoked via the agent's terminal tool from a `.prompt.md` slash command) and GitHub Actions (headless subprocess). One tool, two surfaces.
+- One GitHub Models API call per plugin file — API cost scales with files reviewed, not rule count.
+- YAML rule files define the checklist embedded in that single call. Architects own and update rules without Python knowledge.
+- Prompt files provide structured, repeatable workflows for developers in VS Code Agent mode: review a plugin, generate a skeleton and review it, look up a pattern, validate an interface.
 - Catch architecture violations at the PR gate via CI, before merge.
 - Zero changes to existing PSG source.
-- MCP server wrapper is an optional enhancement on top of the CI harness.
+- MCP server wrapper is an optional enhancement for agent-driven sessions outside VS Code.
 
 **Non-Goals:**
 - Full C++ compiler-level static analysis (clang-tidy integration is out of scope).
@@ -23,13 +24,13 @@ VS Code Copilot Agent mode with MCP tool support is now the approved AI-coding s
 
 ## Decisions
 
-### D1 — Phase 1 is pure prompt files; Phase 2 is a thin Python CI harness
+### D1 — Single Python harness used by both VS Code Agent and CI
 
-**Decision:** Phase 1 delivers review quality guidance entirely through `.prompt.md` slash commands. No Python tool, no subprocess, no API cost. The agent already has the plugin file and the Thunder instruction files in context; the prompt file structures the review task. Phase 2 delivers CI enforcement through a minimal Python script (`review_plugin.py`) whose only job is to make one GitHub Models API call per plugin file and serialise the findings as JSON.
+**Decision:** `review_plugin.py` is the only review execution artifact. VS Code prompt files invoke it via the agent's built-in terminal tool. GitHub Actions invokes it as a headless subprocess. There is no separate pure-prompt path and no separate CI-only script.
 
-**Rationale:** A developer using Copilot Agent mode in Phase 1 already pays for the model inference as part of their normal workflow — the prompt file adds zero marginal cost. The CI harness in Phase 2 is needed only because GitHub Actions runs headlessly with no interactive agent session. Keeping it as a thin API harness (not a regex engine, not a multi-call dispatcher) minimises implementation surface and API cost: one call per plugin, not one call per rule.
+**Rationale:** A developer using Copilot Agent mode already has access to the terminal tool — the `.prompt.md` file instructs the agent to run `python ThunderTools/PluginQA/review_plugin.py <file>`, capture the JSON output, and present it formatted. This is simpler than maintaining two separate review paths (one for agent, one for CI) that must produce consistent findings. A single script means a single test corpus, a single prompt assembly path, and a single place to update when YAML rules change. The marginal cost of one API call in VS Code Agent mode is negligible alongside the agent's own inference cost for the session.
 
-**Alternative considered:** Standalone Python script as Phase 1. Rejected — prompt files deliver the same review quality with zero additional dependencies, zero setup, and zero marginal cost in VS Code Agent mode.
+**Alternative considered:** Pure prompt files (no Python) for VS Code, Python script only for CI. Rejected — produces two divergent review paths that must be kept consistent. The agent's prompt-only review would not be deterministic or diffable against CI findings.
 
 ---
 

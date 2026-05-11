@@ -1,6 +1,6 @@
 ## ADDED Requirements
 
-### Requirement: Rule engine is invocable as a standalone CLI script (Phase 2)
+### Requirement: Rule engine is invocable as a standalone CLI script
 The rule engine (`review_plugin.py`) SHALL be runnable directly from the terminal as
 `python review_plugin.py <file> [<file> ...]`. It SHALL make one GitHub Models API call
 per file, using the `GH_TOKEN` environment variable for authentication. It SHALL print
