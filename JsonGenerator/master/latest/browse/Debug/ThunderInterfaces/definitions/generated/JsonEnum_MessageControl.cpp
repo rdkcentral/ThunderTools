@@ -16,6 +16,7 @@ ENUM_CONVERSION_BEGIN(Exchange::IMessageControl::messagetype)
     { Exchange::IMessageControl::messagetype::REPORTING, _TXT("Reporting") },
     { Exchange::IMessageControl::messagetype::OPERATIONAL_STREAM, _TXT("OperationalStream") },
     { Exchange::IMessageControl::messagetype::ASSERT, _TXT("Assert") },
+    { Exchange::IMessageControl::messagetype::TELEMETRY, _TXT("Telemetry") },
 ENUM_CONVERSION_END(Exchange::IMessageControl::messagetype)
 
 }
