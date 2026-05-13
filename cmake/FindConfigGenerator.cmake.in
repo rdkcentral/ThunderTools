@@ -31,7 +31,10 @@ macro(IncludeConfig)
 endmacro()
 endif(CMAKE_VERSION VERSION_LESS 3.20.0 AND LEGACY_CONFIG_GENERATOR)
 
-set(CONFIG_GENERATOR_PATH "${CMAKE_CURRENT_LIST_DIR}/../ConfigGenerator")
+if(NOT CONFIG_GENERATOR_PATH)
+    set(CONFIG_GENERATOR_PATH "${CMAKE_CURRENT_LIST_DIR}/../ConfigGenerator")
+endif()
+
 set(CONFIG_GENERATOR "${CONFIG_GENERATOR_PATH}/config_generator.py")
 set(CONFIG_COMPARE "${CONFIG_GENERATOR_PATH}/config_compare.py")
 
