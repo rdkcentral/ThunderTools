@@ -2222,7 +2222,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 instances.append("{ 0, 0 }")
 
                 emit.Line("const RPC::InstanceRecord passedInstances[] = { %s };" % ", ".join(instances))
-                emit.Line("static_cast<Channel()->CustomData(passedInstances);")
+                emit.Line("Channel()->CustomData(passedInstances);")
                 emit.Line()
 
             reuse_hresult = (retval and retval.is_hresult)
