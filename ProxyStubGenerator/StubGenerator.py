@@ -2044,7 +2044,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
             emit.Line()
 
             if ENABLE_INSTANCE_VERIFICATION:
-                emit.Line("if (RPC::Administrator::Instance().IsValid(Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
+                emit.Line("if (RPC::Administrator::Instance().IsValid(Administration()->Channel(), %s, id) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }" \
                             % (vars["implementation"]))
                 emit.Line()
 
@@ -2222,7 +2222,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 instances.append("{ 0, 0 }")
 
                 emit.Line("const RPC::InstanceRecord passedInstances[] = { %s };" % ", ".join(instances))
-                emit.Line("Channel()->CustomData(passedInstances);")
+                emit.Line("Administration()->Channel()->CustomData(passedInstances);")
                 emit.Line()
 
             reuse_hresult = (retval and retval.is_hresult)
@@ -2312,7 +2312,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             if ENABLE_INSTANCE_VERIFICATION and proxy_params:
                 emit.Line()
-                emit.Line("Channel()->CustomData(nullptr);")
+                emit.Line("Administration()->Channel()->CustomData(nullptr);")
 
             if EMIT_TRACES:
                 emit.Line()
@@ -2430,23 +2430,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.Line("fprintf(stderr, \"*** Announcing %s interface methods...\\n\");" % Flatten(interface.obj.type, ns))
 
                 security_options = []
-                security_var = ""
 
                 # These should always go together...
                 assert ENABLE_INSTANCE_VERIFICATION == ENABLE_RANGE_VERIFICATION
 
-                if ENABLE_INSTANCE_VERIFICATION:
-                    security_options.append("static_cast<std::underlying_type<RPC::SecureProxyStubType>::type>(RPC::SecureProxyStubType::PROXYSTUBS_SECURITY_SECURE)")
-                if ENABLE_INTEGRITY_VERIFICATION:
-                    security_options.append("static_cast<std::underlying_type<RPC::SecureProxyStubType>::type>(RPC::SecureProxyStubType::PROXYSTUBS_SECURITY_COHERENT)")
-
-                if security_options:
-                    security_var = "security"
-                    emit.Line("const RPC::SecureProxyStubType %s = static_cast<RPC::SecureProxyStubType>(%s);"  % (security_var, " | ".join(security_options)))
-                    emit.Line()
-
                 for _, [_, _, stub, proxy, interface, _ ]  in announce_list.items():
-                    emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>(%s);" % (Flatten(interface.obj.type, ns), proxy, stub, security_var))
+                    emit.Line("RPC::Administrator::Instance().Announce<%s, %s, %s>();" % (Flatten(interface.obj.type, ns), proxy, stub))
 
                 if EMIT_TRACES:
                     emit.Line("fprintf(stderr, \"*** Announcing %s interface methods... done\\n\");" % Flatten(interface.obj.type, ns))
