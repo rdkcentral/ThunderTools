@@ -1312,19 +1312,19 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 elif self.proxy_instance or self.return_proxy:
                     return "sizeof(%s)" % INSTANCE_ID
                 elif self.is_buffer:
-                    return "Core::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
                 elif self.is_string:
                     if self.is_ccstring:
                         return "(sizeof(uint32_t))"
                     else:
-                        return "Core::RealSize<%s>()" % self.peek_length.type_name
+                        return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, (CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.BuiltinInteger)):
-                    return "Core::RealSize<%s>()" % self.type_name
+                    return "Core::Frame::RealSize<%s>()" % self.type_name
                 elif isinstance(self.kind, CppParser.Bool):
                     return "1" # always one byte
 
                 elif isinstance(self.kind, CppParser.DynamicArray):
-                    return "Core::RealSize<%s>()" % self.peek_length.type_name
+                    return "Core::Frame::RealSize<%s>()" % self.peek_length.type_name
                 elif isinstance(self.kind, CppParser.Time):
                     return "sizeof(%s)" % self.target_type_name
                 else:
