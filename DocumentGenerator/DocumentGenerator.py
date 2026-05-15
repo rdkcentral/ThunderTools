@@ -366,7 +366,7 @@ if __name__ == "__main__":
             # https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/
             commands = ["mike", "deploy", "--push", branch_name]
             if tag:
-                commands = ["mike", "deploy", "--push", "--update-aliases", branch_name, tag]
+                commands.extend(["--update-aliases", tag])
                 
             os.chdir(docs_path)
             ret_val = subprocess.run(commands)
