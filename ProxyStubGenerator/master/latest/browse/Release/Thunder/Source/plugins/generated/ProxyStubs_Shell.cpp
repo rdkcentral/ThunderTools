@@ -64,15 +64,17 @@ namespace ProxyStubs {
     //  (27) virtual void Notify(const string&, const string&) = 0
     //  (28) virtual void Register(IPlugin::INotification*, const Core::OptionalType<string>&) = 0
     //  (29) virtual void Unregister(IPlugin::INotification*, const Core::OptionalType<string>&) = 0
-    //  (30) virtual IShell::state State() const = 0
-    //  (31) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
-    //  (32) virtual Core::hresult Activate(const IShell::reason) = 0
-    //  (33) virtual Core::hresult Deactivate(const IShell::reason) = 0
-    //  (34) virtual Core::hresult Unavailable(const IShell::reason) = 0
-    //  (35) virtual Core::hresult Hibernate(const uint32_t) = 0
-    //  (36) virtual IShell::reason Reason() const = 0
-    //  (37) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
-    //  (38) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
+    //  (30) virtual void Register(IPlugin::INotification*, const uint32_t) = 0
+    //  (31) virtual void Unregister(IPlugin::INotification*, const uint32_t) = 0
+    //  (32) virtual IShell::state State() const = 0
+    //  (33) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
+    //  (34) virtual Core::hresult Activate(const IShell::reason) = 0
+    //  (35) virtual Core::hresult Deactivate(const IShell::reason) = 0
+    //  (36) virtual Core::hresult Unavailable(const IShell::reason) = 0
+    //  (37) virtual Core::hresult Hibernate(const uint32_t) = 0
+    //  (38) virtual IShell::reason Reason() const = 0
+    //  (39) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
+    //  (40) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
     //
 
     static ProxyStub::MethodHandler ShellStubMethods[] = {
@@ -945,7 +947,89 @@ namespace ProxyStubs {
             }
         },
 
-        // (30) virtual IShell::state State() const = 0
+        // (30) virtual void Register(IPlugin::INotification*, const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Core::hresult hresult = Core::ERROR_NONE;
+
+            hresult = [&]() -> Core::hresult {
+                if (message->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+
+                IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
+                ASSERT(implementation != nullptr);
+                if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), IShell::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+
+                RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+                if (reader.Length() < (sizeof(Core::instance_id))) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint32_t _interface_id = reader.Number<uint32_t>();
+
+                IPlugin::INotification* _sink{};
+                ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+                if (_sinkInstanceId__ != 0) {
+                    _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                    ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+                    if ((_sink == nullptr) || (_sinkProxy__ == nullptr)) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+                }
+
+                implementation->Register(_sink, _interface_id);
+
+                if (_sinkProxy__ != nullptr) {
+                    RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+                }
+
+                return (Core::ERROR_NONE);
+            } ();
+
+            if (hresult != Core::ERROR_NONE) {
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 30, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
+            }
+        },
+
+        // (31) virtual void Unregister(IPlugin::INotification*, const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Core::hresult hresult = Core::ERROR_NONE;
+
+            hresult = [&]() -> Core::hresult {
+                if (message->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+
+                IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
+                ASSERT(implementation != nullptr);
+                if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), IShell::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+
+                RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+                if (reader.Length() < (sizeof(Core::instance_id))) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint32_t _interface_id = reader.Number<uint32_t>();
+
+                IPlugin::INotification* _sink{};
+                ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+                if (_sinkInstanceId__ != 0) {
+                    _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                    ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+                    if ((_sink == nullptr) || (_sinkProxy__ == nullptr)) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+                }
+
+                implementation->Unregister(_sink, _interface_id);
+
+                if (_sinkProxy__ != nullptr) {
+                    RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+                }
+
+                return (Core::ERROR_NONE);
+            } ();
+
+            if (hresult != Core::ERROR_NONE) {
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 31, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
+            }
+        },
+
+        // (32) virtual IShell::state State() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -966,12 +1050,12 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 30, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 32, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         },
 
-        // (31) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
+        // (33) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1002,12 +1086,12 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 31, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 33, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         },
 
-        // (32) virtual Core::hresult Activate(const IShell::reason) = 0
+        // (34) virtual Core::hresult Activate(const IShell::reason) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1034,11 +1118,11 @@ namespace ProxyStubs {
             if (hresult != Core::ERROR_NONE) {
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<uint32_t>(hresult);
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 32, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 34, hresult);
             }
         },
 
-        // (33) virtual Core::hresult Deactivate(const IShell::reason) = 0
+        // (35) virtual Core::hresult Deactivate(const IShell::reason) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1065,11 +1149,11 @@ namespace ProxyStubs {
             if (hresult != Core::ERROR_NONE) {
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<uint32_t>(hresult);
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 33, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 35, hresult);
             }
         },
 
-        // (34) virtual Core::hresult Unavailable(const IShell::reason) = 0
+        // (36) virtual Core::hresult Unavailable(const IShell::reason) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1096,11 +1180,11 @@ namespace ProxyStubs {
             if (hresult != Core::ERROR_NONE) {
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<uint32_t>(hresult);
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 34, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 36, hresult);
             }
         },
 
-        // (35) virtual Core::hresult Hibernate(const uint32_t) = 0
+        // (37) virtual Core::hresult Hibernate(const uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1127,11 +1211,11 @@ namespace ProxyStubs {
             if (hresult != Core::ERROR_NONE) {
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
                 writer.Number<uint32_t>(hresult);
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 35, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 37, hresult);
             }
         },
 
-        // (36) virtual IShell::reason Reason() const = 0
+        // (38) virtual IShell::reason Reason() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1152,18 +1236,18 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 36, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 38, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         },
 
-        // (37) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
+        // (39) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& /* message */) {
             // stubbed method, no implementation
         },
 
-        // (38) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
+        // (40) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -1192,7 +1276,7 @@ namespace ProxyStubs {
             } ();
 
             if (hresult != Core::ERROR_NONE) {
-                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 38, hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 40, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
         }
@@ -1391,15 +1475,17 @@ namespace ProxyStubs {
     //  (27) virtual void Notify(const string&, const string&) = 0
     //  (28) virtual void Register(IPlugin::INotification*, const Core::OptionalType<string>&) = 0
     //  (29) virtual void Unregister(IPlugin::INotification*, const Core::OptionalType<string>&) = 0
-    //  (30) virtual IShell::state State() const = 0
-    //  (31) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
-    //  (32) virtual Core::hresult Activate(const IShell::reason) = 0
-    //  (33) virtual Core::hresult Deactivate(const IShell::reason) = 0
-    //  (34) virtual Core::hresult Unavailable(const IShell::reason) = 0
-    //  (35) virtual Core::hresult Hibernate(const uint32_t) = 0
-    //  (36) virtual IShell::reason Reason() const = 0
-    //  (37) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
-    //  (38) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
+    //  (30) virtual void Register(IPlugin::INotification*, const uint32_t) = 0
+    //  (31) virtual void Unregister(IPlugin::INotification*, const uint32_t) = 0
+    //  (32) virtual IShell::state State() const = 0
+    //  (33) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
+    //  (34) virtual Core::hresult Activate(const IShell::reason) = 0
+    //  (35) virtual Core::hresult Deactivate(const IShell::reason) = 0
+    //  (36) virtual Core::hresult Unavailable(const IShell::reason) = 0
+    //  (37) virtual Core::hresult Hibernate(const uint32_t) = 0
+    //  (38) virtual IShell::reason Reason() const = 0
+    //  (39) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
+    //  (40) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
     //
 
     class ShellProxy final : public ProxyStub::UnknownProxyType<IShell> {
@@ -2261,9 +2347,75 @@ namespace ProxyStubs {
             static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(nullptr);
         }
 
-        IShell::state State() const override
+        void Register(IPlugin::INotification* _sink, const uint32_t _interface_id) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(30));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+            writer.Number<uint32_t>(_interface_id);
+
+            const RPC::InstanceRecord passedInstances[] = { { RPC::instance_cast(_sink), IPlugin::INotification::ID }, { 0, 0 } };
+            static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(passedInstances);
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                    const uint32_t completeResult__ = _Complete(reader);
+                    if (completeResult__ != Core::ERROR_NONE) { return (completeResult__); }
+
+                    return (Core::ERROR_NONE);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 30, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
+            }
+
+            static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(nullptr);
+        }
+
+        void Unregister(IPlugin::INotification* _sink, const uint32_t _interface_id) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(31));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+            writer.Number<uint32_t>(_interface_id);
+
+            const RPC::InstanceRecord passedInstances[] = { { RPC::instance_cast(_sink), IPlugin::INotification::ID }, { 0, 0 } };
+            static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(passedInstances);
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                    const uint32_t completeResult__ = _Complete(reader);
+                    if (completeResult__ != Core::ERROR_NONE) { return (completeResult__); }
+
+                    return (Core::ERROR_NONE);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 31, hresult);
+                TRACE_L1("Warning: This COM-RPC failure will not propagate!");
+            }
+
+            static_cast<const ProxyStub::UnknownProxy&>(*this).Channel()->CustomData(nullptr);
+        }
+
+        IShell::state State() const override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(32));
 
             IShell::state result{};
 
@@ -2281,7 +2433,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 30, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 32, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
 
@@ -2290,7 +2442,7 @@ namespace ProxyStubs {
 
         void* QueryInterfaceByCallsign(const uint32_t _id, const string& _name) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(31));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(33));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -2311,7 +2463,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 31, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 33, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
 
@@ -2319,60 +2471,6 @@ namespace ProxyStubs {
         }
 
         Core::hresult Activate(const IShell::reason _parameter_1) override
-        {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(32));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<IShell::reason>(_parameter_1);
-
-            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                hresult = [&]() -> Core::hresult {
-                    RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<Core::hresult>();
-
-                    return (hresult);
-                } ();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 32, hresult);
-            }
-
-            return (hresult);
-        }
-
-        Core::hresult Deactivate(const IShell::reason _parameter_1) override
-        {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(33));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<IShell::reason>(_parameter_1);
-
-            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                hresult = [&]() -> Core::hresult {
-                    RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<Core::hresult>();
-
-                    return (hresult);
-                } ();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 33, hresult);
-            }
-
-            return (hresult);
-        }
-
-        Core::hresult Unavailable(const IShell::reason _parameter_1) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(34));
 
@@ -2399,12 +2497,12 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        Core::hresult Hibernate(const uint32_t _timeout) override
+        Core::hresult Deactivate(const IShell::reason _parameter_1) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(35));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_timeout);
+            writer.Number<IShell::reason>(_parameter_1);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
@@ -2426,9 +2524,63 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        IShell::reason Reason() const override
+        Core::hresult Unavailable(const IShell::reason _parameter_1) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(36));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<IShell::reason>(_parameter_1);
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
+
+                    return (hresult);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 36, hresult);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Hibernate(const uint32_t _timeout) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(37));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_timeout);
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
+
+                    return (hresult);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 37, hresult);
+            }
+
+            return (hresult);
+        }
+
+        IShell::reason Reason() const override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(38));
 
             IShell::reason result{};
 
@@ -2446,7 +2598,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 36, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 38, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
 
@@ -2462,7 +2614,7 @@ namespace ProxyStubs {
 
         RPC::IStringIterator* GetLibrarySearchPaths(const string& _parameter_1) const override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(38));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(40));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Text(_parameter_1);
@@ -2482,7 +2634,7 @@ namespace ProxyStubs {
             }
 
             if ((hresult & COM_ERROR) != 0) {
-                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 38, hresult);
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", IShell::ID, 40, hresult);
                 TRACE_L1("Warning: This COM-RPC failure will not propagate!");
             }
 

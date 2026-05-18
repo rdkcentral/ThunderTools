@@ -105,13 +105,13 @@ namespace ProxyStubs {
     // IPlugin::INotification interface stub definitions
     //
     // Methods:
-    //  (0) virtual void Activated(const string&, IShell*) = 0
-    //  (1) virtual void Deactivated(const string&, IShell*) = 0
-    //  (2) virtual void Unavailable(const string&, IShell*) = 0
+    //  (0) virtual Core::hresult CancelableActivated(const string&, IShell*)
+    //  (1) virtual Core::hresult CancelableDeactivated(const string&, IShell*)
+    //  (2) virtual Core::hresult CancelableUnavailable(const string&, IShell*)
     //
 
     static ProxyStub::MethodHandler PluginNotificationStubMethods[] = {
-        // (0) virtual void Activated(const string&, IShell*) = 0
+        // (0) virtual Core::hresult CancelableActivated(const string&, IShell*)
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             IPlugin::INotification* implementation = reinterpret_cast<IPlugin::INotification*>(message->Parameters().Implementation());
@@ -128,14 +128,17 @@ namespace ProxyStubs {
                 ASSERT((_plugin != nullptr) && (_pluginProxy__ != nullptr));
             }
 
-            implementation->Activated(static_cast<const string&>(_callsign), _plugin);
+            Core::hresult result = implementation->CancelableActivated(static_cast<const string&>(_callsign), _plugin);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
 
             if (_pluginProxy__ != nullptr) {
                 RPC::Administrator::Instance().Release(_pluginProxy__, message->Response());
             }
         },
 
-        // (1) virtual void Deactivated(const string&, IShell*) = 0
+        // (1) virtual Core::hresult CancelableDeactivated(const string&, IShell*)
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             IPlugin::INotification* implementation = reinterpret_cast<IPlugin::INotification*>(message->Parameters().Implementation());
@@ -152,14 +155,17 @@ namespace ProxyStubs {
                 ASSERT((_plugin != nullptr) && (_pluginProxy__ != nullptr));
             }
 
-            implementation->Deactivated(static_cast<const string&>(_callsign), _plugin);
+            Core::hresult result = implementation->CancelableDeactivated(static_cast<const string&>(_callsign), _plugin);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
 
             if (_pluginProxy__ != nullptr) {
                 RPC::Administrator::Instance().Release(_pluginProxy__, message->Response());
             }
         },
 
-        // (2) virtual void Unavailable(const string&, IShell*) = 0
+        // (2) virtual Core::hresult CancelableUnavailable(const string&, IShell*)
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             IPlugin::INotification* implementation = reinterpret_cast<IPlugin::INotification*>(message->Parameters().Implementation());
@@ -176,7 +182,10 @@ namespace ProxyStubs {
                 ASSERT((_plugin != nullptr) && (_pluginProxy__ != nullptr));
             }
 
-            implementation->Unavailable(static_cast<const string&>(_callsign), _plugin);
+            Core::hresult result = implementation->CancelableUnavailable(static_cast<const string&>(_callsign), _plugin);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
 
             if (_pluginProxy__ != nullptr) {
                 RPC::Administrator::Instance().Release(_pluginProxy__, message->Response());
@@ -563,9 +572,9 @@ namespace ProxyStubs {
     // IPlugin::INotification interface proxy definitions
     //
     // Methods:
-    //  (0) virtual void Activated(const string&, IShell*) = 0
-    //  (1) virtual void Deactivated(const string&, IShell*) = 0
-    //  (2) virtual void Unavailable(const string&, IShell*) = 0
+    //  (0) virtual Core::hresult CancelableActivated(const string&, IShell*)
+    //  (1) virtual Core::hresult CancelableDeactivated(const string&, IShell*)
+    //  (2) virtual Core::hresult CancelableUnavailable(const string&, IShell*)
     //
 
     class PluginNotificationProxy final : public ProxyStub::UnknownProxyType<IPlugin::INotification> {
@@ -575,7 +584,7 @@ namespace ProxyStubs {
         {
         }
 
-        void Activated(const string& _callsign, IShell* _plugin) override
+        Core::hresult CancelableActivated(const string& _callsign, IShell* _plugin) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
 
@@ -583,17 +592,20 @@ namespace ProxyStubs {
             writer.Text(_callsign);
             writer.Number<Core::instance_id>(RPC::instance_cast(_plugin));
 
-            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
 
                 _Complete(reader);
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }
+
+            return (hresult);
         }
 
-        void Deactivated(const string& _callsign, IShell* _plugin) override
+        Core::hresult CancelableDeactivated(const string& _callsign, IShell* _plugin) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(1));
 
@@ -601,17 +613,20 @@ namespace ProxyStubs {
             writer.Text(_callsign);
             writer.Number<Core::instance_id>(RPC::instance_cast(_plugin));
 
-            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
 
                 _Complete(reader);
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }
+
+            return (hresult);
         }
 
-        void Unavailable(const string& _callsign, IShell* _plugin) override
+        Core::hresult CancelableUnavailable(const string& _callsign, IShell* _plugin) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(2));
 
@@ -619,14 +634,17 @@ namespace ProxyStubs {
             writer.Text(_callsign);
             writer.Number<Core::instance_id>(RPC::instance_cast(_plugin));
 
-            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
 
                 _Complete(reader);
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }
+
+            return (hresult);
         }
 
     private:
