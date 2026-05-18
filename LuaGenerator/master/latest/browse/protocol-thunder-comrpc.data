@@ -235,9 +235,9 @@ METHODS[48] = {
 
 INTERFACES[49] = "PluginHost::IPlugin::INotification"
 METHODS[49] = {
-    [3] = { name = "Activated", signature = "virtual void Activated(const string&, PluginHost::IShell*) = 0", params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
-    [4] = { name = "Deactivated", signature = "virtual void Deactivated(const string&, PluginHost::IShell*) = 0", params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
-    [5] = { name = "Unavailable", signature = "virtual void Unavailable(const string&, PluginHost::IShell*) = 0", params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
+    [3] = { name = "CancelableActivated", signature = "virtual Core::hresult CancelableActivated(const string&, PluginHost::IShell*)", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "CancelableDeactivated", signature = "virtual Core::hresult CancelableDeactivated(const string&, PluginHost::IShell*)", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [5] = { name = "CancelableUnavailable", signature = "virtual Core::hresult CancelableUnavailable(const string&, PluginHost::IShell*)", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
 }
 
 INTERFACES[58] = "PluginHost::IPlugin::ILifeTime"
@@ -299,15 +299,17 @@ METHODS[64] = {
     [30] = { name = "Notify", signature = "virtual void Notify(const string&, const string&) = 0", params = { { name = "event", type = Type.STRING16, class = "string" }, { name = "message", type = Type.STRING16, class = "string" } } }, 
     [31] = { name = "Register", signature = "virtual void Register(PluginHost::IPlugin::INotification*, const Core::OptionalType<string>&) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
     [32] = { name = "Unregister", signature = "virtual void Unregister(PluginHost::IPlugin::INotification*, const Core::OptionalType<string>&) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
-    [33] = { name = "State", signature = "virtual PluginHost::IShell::state State() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::state" } } }, 
-    [34] = { name = "QueryInterfaceByCallsign", signature = "virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0", retvals = { { type = Type.OBJECT, class = "void", interface_param = 1 } }, params = { { name = "id", type = Type.INTERFACE, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } }, 
-    [35] = { name = "Activate", signature = "virtual Core::hresult Activate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [36] = { name = "Deactivate", signature = "virtual Core::hresult Deactivate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [37] = { name = "Unavailable", signature = "virtual Core::hresult Unavailable(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [38] = { name = "Hibernate", signature = "virtual Core::hresult Hibernate(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "timeout", type = Type.UINT32, class = "uint32_t" } } }, 
-    [39] = { name = "Reason", signature = "virtual PluginHost::IShell::reason Reason() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [40] = { name = "Submit", signature = "virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } }, params = { { name = "Id", type = Type.UINT32, class = "uint32_t" } } }, 
-    [41] = { name = "GetLibrarySearchPaths", signature = "virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0", retvals = { { type = Type.OBJECT, class = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>" } }, params = { { type = Type.STRING16, class = "string" } } } 
+    [33] = { name = "Register", signature = "virtual void Register(PluginHost::IPlugin::INotification*, const uint32_t) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "interface_id", type = Type.UINT32, class = "uint32_t" } } }, 
+    [34] = { name = "Unregister", signature = "virtual void Unregister(PluginHost::IPlugin::INotification*, const uint32_t) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "interface_id", type = Type.UINT32, class = "uint32_t" } } }, 
+    [35] = { name = "State", signature = "virtual PluginHost::IShell::state State() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::state" } } }, 
+    [36] = { name = "QueryInterfaceByCallsign", signature = "virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0", retvals = { { type = Type.OBJECT, class = "void", interface_param = 1 } }, params = { { name = "id", type = Type.INTERFACE, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } }, 
+    [37] = { name = "Activate", signature = "virtual Core::hresult Activate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [38] = { name = "Deactivate", signature = "virtual Core::hresult Deactivate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [39] = { name = "Unavailable", signature = "virtual Core::hresult Unavailable(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [40] = { name = "Hibernate", signature = "virtual Core::hresult Hibernate(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "timeout", type = Type.UINT32, class = "uint32_t" } } }, 
+    [41] = { name = "Reason", signature = "virtual PluginHost::IShell::reason Reason() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [42] = { name = "Submit", signature = "virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } }, params = { { name = "Id", type = Type.UINT32, class = "uint32_t" } } }, 
+    [43] = { name = "GetLibrarySearchPaths", signature = "virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0", retvals = { { type = Type.OBJECT, class = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>" } }, params = { { type = Type.STRING16, class = "string" } } } 
 }
 
 INTERFACES[66] = "PluginHost::IShell::IConnectionServer"
@@ -3195,7 +3197,8 @@ ENUMS["Core::Messaging::Metadata::type"] = {
     [2] = "LOGGING",
     [3] = "REPORTING",
     [4] = "OPERATIONAL_STREAM",
-    [5] = "ASSERT"
+    [5] = "ASSERT",
+    [6] = "TELEMETRY"
 }
 
 ENUMS["Exchange::INetflix::state"] = {
