@@ -32,18 +32,9 @@ def Create(log, args, schema, path, indent_size = 4):
     input_basename = os.path.basename(path)
     output_path = os.path.dirname(path) + os.sep + input_basename.replace(".json", "") + ".md"
 
-    schemas, _, _ = json_loader.Load(log, os.path.join(os.path.dirname(__file__), "..", "IBuiltIns.h"), args.if_dirs, args.cpp_if_dirs, args.include_paths)
-
     interface_builtins = []
     interface_with_events_builtins = []
     plugin_builtins = []
-
-    if schemas:
-        interface_builtins = schemas[1]
-        interface_with_events_builtins = schemas[2]
-        plugin_builtins = schemas[0]
-    else:
-        log.Error("Failed to load built-ins definitions")
 
     api = dict()
 
