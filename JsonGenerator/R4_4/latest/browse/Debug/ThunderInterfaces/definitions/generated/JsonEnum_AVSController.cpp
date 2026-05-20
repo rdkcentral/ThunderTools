@@ -1,4 +1,4 @@
-// Enumeration code for AVSController API JSON-RPC API.
+// Enumeration code for AVSController API.
 // Generated automatically from 'IAVSClient.h'.
 
 #include <core/Enumerate.h>

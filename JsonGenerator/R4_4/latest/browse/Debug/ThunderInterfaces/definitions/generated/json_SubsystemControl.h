@@ -1,4 +1,4 @@
-// SubsystemControl JSON-RPC API
+// SubsystemControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

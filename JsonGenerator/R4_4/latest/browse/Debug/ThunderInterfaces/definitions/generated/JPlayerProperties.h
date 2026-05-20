@@ -1,7 +1,6 @@
 // Generated automatically from 'IPlayerInfo.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_PlayerProperties.h"
 #include <interfaces/IPlayerInfo.h>
@@ -20,107 +19,109 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IPlayerProperties* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IPlayerProperties* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JPlayerProperties"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JPlayerProperties"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'audiocodecs' (r/o)
-            _module_.Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::AudioCodec>>>(_T("audiocodecs"), 
-                [_impl_](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::AudioCodec>>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::AudioCodec>>>(_T("audiocodecs"),
+                [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::AudioCodec>>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    ::WPEFramework::RPC::IIteratorType<IPlayerProperties::AudioCodec, ID_PLAYER_PROPERTIES_AUDIO>* _result{};
+                    ::WPEFramework::RPC::IIteratorType<IPlayerProperties::AudioCodec, ID_PLAYER_PROPERTIES_AUDIO>* _result_{};
 
-                    _errorCode = _impl_->AudioCodecs(_result);
+                    _errorCode__ = _implementation__->AudioCodecs(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Set(true);
 
-                        if (_result != nullptr) {
-                            Exchange::IPlayerProperties::AudioCodec _resultItem_{};
-                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
-                            _result->Release();
+                        if (_result_ != nullptr) {
+                            Exchange::IPlayerProperties::AudioCodec _resultItem__{};
+                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                            _result_->Release();
                         }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Property: 'videocodecs' (r/o)
-            _module_.Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::VideoCodec>>>(_T("videocodecs"), 
-                [_impl_](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::VideoCodec>>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::VideoCodec>>>(_T("videocodecs"),
+                [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::VideoCodec>>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    ::WPEFramework::RPC::IIteratorType<IPlayerProperties::VideoCodec, ID_PLAYER_PROPERTIES_VIDEO>* _result{};
+                    ::WPEFramework::RPC::IIteratorType<IPlayerProperties::VideoCodec, ID_PLAYER_PROPERTIES_VIDEO>* _result_{};
 
-                    _errorCode = _impl_->VideoCodecs(_result);
+                    _errorCode__ = _implementation__->VideoCodecs(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Set(true);
 
-                        if (_result != nullptr) {
-                            Exchange::IPlayerProperties::VideoCodec _resultItem_{};
-                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
-                            _result->Release();
+                        if (_result_ != nullptr) {
+                            Exchange::IPlayerProperties::VideoCodec _resultItem__{};
+                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                            _result_->Release();
                         }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Property: 'resolution' - Current Video playback resolution (r/o)
-            _module_.Register<void, Core::JSON::EnumType<Exchange::IPlayerProperties::PlaybackResolution>>(_T("resolution"), 
-                [_impl_](Core::JSON::EnumType<Exchange::IPlayerProperties::PlaybackResolution>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::EnumType<Exchange::IPlayerProperties::PlaybackResolution>>(_T("resolution"),
+                [_implementation__](Core::JSON::EnumType<Exchange::IPlayerProperties::PlaybackResolution>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    Exchange::IPlayerProperties::PlaybackResolution _result{};
+                    Exchange::IPlayerProperties::PlaybackResolution _result_{};
 
-                    _errorCode = _impl_->Resolution(_result);
+                    _errorCode__ = _implementation__->Resolution(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
-                        result = _result;
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result = _result_;
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Property: 'isaudioequivalenceenabled' - Checks Loudness Equivalence in platform (r/o)
-            _module_.Register<void, Core::JSON::Boolean>(_T("isaudioequivalenceenabled"), 
-                [_impl_](Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::Boolean>(_T("isaudioequivalenceenabled"),
+                [_implementation__](Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    bool _result{};
+                    bool _result_{};
 
-                    _errorCode = _impl_->IsAudioEquivalenceEnabled(_result);
+                    _errorCode__ = _implementation__->IsAudioEquivalenceEnabled(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
-                        result = _result;
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result = _result_;
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("audiocodecs"));
-            _module_.Unregister(_T("videocodecs"));
-            _module_.Unregister(_T("resolution"));
-            _module_.Unregister(_T("isaudioequivalenceenabled"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("audiocodecs"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("videocodecs"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("resolution"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("isaudioequivalenceenabled"));
         }
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JPlayerProperties

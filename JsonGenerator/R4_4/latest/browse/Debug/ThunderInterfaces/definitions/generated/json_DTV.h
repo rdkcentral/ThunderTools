@@ -1,4 +1,4 @@
-// DTV JSON-RPC API
+// DTV API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

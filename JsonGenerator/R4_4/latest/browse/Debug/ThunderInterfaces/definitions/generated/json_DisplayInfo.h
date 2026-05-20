@@ -1,4 +1,4 @@
-// DisplayInfo JSON-RPC API
+// DisplayInfo API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

@@ -1,4 +1,4 @@
-// IUserSettings JSON-RPC API
+// IUserSettings API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

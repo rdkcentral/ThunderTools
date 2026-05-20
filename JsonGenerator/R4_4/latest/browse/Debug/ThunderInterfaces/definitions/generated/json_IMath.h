@@ -1,4 +1,4 @@
-// IMath JSON-RPC API
+// IMath API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

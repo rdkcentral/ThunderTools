@@ -1,4 +1,4 @@
-// Enumeration code for BluetoothAudioSink API JSON-RPC API.
+// Enumeration code for BluetoothAudioSink API.
 // Generated automatically from 'IBluetoothAudio.h'.
 
 #include <core/Enumerate.h>

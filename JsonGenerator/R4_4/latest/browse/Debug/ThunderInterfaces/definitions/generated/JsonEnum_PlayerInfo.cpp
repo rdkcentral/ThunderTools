@@ -1,4 +1,4 @@
-// Enumeration code for Player Info API JSON-RPC API.
+// Enumeration code for Player Info API.
 // Generated automatically from 'PlayerInfo.json'.
 
 #include <core/Enumerate.h>

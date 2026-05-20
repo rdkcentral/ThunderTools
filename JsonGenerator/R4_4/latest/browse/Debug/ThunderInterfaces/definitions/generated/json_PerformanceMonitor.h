@@ -1,4 +1,4 @@
-// PerformanceMonitor JSON-RPC API
+// PerformanceMonitor API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

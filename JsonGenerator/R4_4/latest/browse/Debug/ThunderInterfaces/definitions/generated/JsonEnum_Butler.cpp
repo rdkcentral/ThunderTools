@@ -1,4 +1,4 @@
-// Enumeration code for Butler API JSON-RPC API.
+// Enumeration code for Butler API.
 // Generated automatically from 'Butler.json'.
 
 #include <core/Enumerate.h>

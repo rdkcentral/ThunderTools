@@ -1,4 +1,4 @@
-// BluetoothRemoteControl JSON-RPC API
+// BluetoothRemoteControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

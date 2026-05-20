@@ -1,7 +1,6 @@
 // Generated automatically from 'IVolumeControl.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_VolumeControl.h"
 #include <interfaces/IVolumeControl.h>
@@ -20,131 +19,139 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IVolumeControl* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IVolumeControl* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JVolumeControl"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JVolumeControl"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'muted' - Audio mute state
-            _module_.Register<Core::JSON::Boolean, Core::JSON::Boolean>(_T("muted"), 
-                [_impl_](const Core::JSON::Boolean& params, Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, Core::JSON::Boolean>(_T("muted"),
+                [_implementation__](const Core::JSON::Boolean& params, Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        bool _result{};
+                        bool _result_{};
 
-                        _errorCode = (static_cast<const IVolumeControl*>(_impl_))->Muted(_result);
+                        _errorCode__ = (static_cast<const IVolumeControl*>(_implementation__))->Muted(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const bool _params_{params};
 
-                    } else {
-                        // property set
-                        const bool _params{params};
-
-                        _errorCode = _impl_->Muted(_params);
+                        _errorCode__ = _implementation__->Muted(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
             // Property: 'volume' - Audio volume level
-            _module_.Register<Core::JSON::DecUInt8, Core::JSON::DecUInt8>(_T("volume"), 
-                [_impl_](const Core::JSON::DecUInt8& params, Core::JSON::DecUInt8& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::DecUInt8, Core::JSON::DecUInt8>(_T("volume"),
+                [_implementation__](const Core::JSON::DecUInt8& params, Core::JSON::DecUInt8& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        uint8_t _result{};
+                        uint8_t _result_{};
 
-                        _errorCode = (static_cast<const IVolumeControl*>(_impl_))->Volume(_result);
+                        _errorCode__ = (static_cast<const IVolumeControl*>(_implementation__))->Volume(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const uint8_t _params_{params};
 
-                    } else {
-                        // property set
-                        const uint8_t _params{params};
-
-                        _errorCode = _impl_->Volume(_params);
+                        _errorCode__ = _implementation__->Volume(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("muted"));
-            _module_.Unregister(_T("volume"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("muted"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("volume"));
         }
 
         namespace Event {
 
             // Event: 'volume' - Signals volume change
-            static void Volume(const JSONRPC& _module_, const JsonData::VolumeControl::VolumeParamsData& params)
+            template<typename MODULE>
+            static void Volume(const MODULE& module_, const JsonData::VolumeControl::VolumeParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("volume"), params);
+                module_.Notify(_T("volume"), params, sendIfMethod_);
             }
 
             // Event: 'volume' - Signals volume change
-            static void Volume(const JSONRPC& _module_, const Core::JSON::DecUInt8& volume)
+            template<typename MODULE>
+            static void Volume(const MODULE& module_, const Core::JSON::DecUInt8& volume, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::VolumeControl::VolumeParamsData _params_;
-                _params_.Volume = volume;
+                JsonData::VolumeControl::VolumeParamsData params_;
+                params_.Volume = volume;
 
-                Volume(_module_, _params_);
+                Volume(module_, params_, sendIfMethod_);
             }
 
             // Event: 'volume' - Signals volume change
-            static void Volume(const JSONRPC& _module_, const uint8_t& volume)
+            template<typename MODULE>
+            static void Volume(const MODULE& module_, const uint8_t volume, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::VolumeControl::VolumeParamsData _params_;
-                _params_.Volume = volume;
+                JsonData::VolumeControl::VolumeParamsData params_;
+                params_.Volume = volume;
 
-                Volume(_module_, _params_);
+                Volume(module_, params_, sendIfMethod_);
             }
 
             // Event: 'muted' - Signals mute state change
-            static void Muted(const JSONRPC& _module_, const JsonData::VolumeControl::MutedParamsData& params)
+            template<typename MODULE>
+            static void Muted(const MODULE& module_, const JsonData::VolumeControl::MutedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("muted"), params);
+                module_.Notify(_T("muted"), params, sendIfMethod_);
             }
 
             // Event: 'muted' - Signals mute state change
-            static void Muted(const JSONRPC& _module_, const Core::JSON::Boolean& muted)
+            template<typename MODULE>
+            static void Muted(const MODULE& module_, const Core::JSON::Boolean& muted, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::VolumeControl::MutedParamsData _params_;
-                _params_.Muted = muted;
+                JsonData::VolumeControl::MutedParamsData params_;
+                params_.Muted = muted;
 
-                Muted(_module_, _params_);
+                Muted(module_, params_, sendIfMethod_);
             }
 
             // Event: 'muted' - Signals mute state change
-            static void Muted(const JSONRPC& _module_, const bool& muted)
+            template<typename MODULE>
+            static void Muted(const MODULE& module_, const bool muted, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::VolumeControl::MutedParamsData _params_;
-                _params_.Muted = muted;
+                JsonData::VolumeControl::MutedParamsData params_;
+                params_.Muted = muted;
 
-                Muted(_module_, _params_);
+                Muted(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JVolumeControl

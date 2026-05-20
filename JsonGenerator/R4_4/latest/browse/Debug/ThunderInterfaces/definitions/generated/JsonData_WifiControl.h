@@ -1,4 +1,4 @@
-// C++ classes for WifiControl API JSON-RPC API.
+// C++ types for WifiControl API.
 // Generated automatically from 'IWifiControl.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -12,6 +12,8 @@ namespace WPEFramework {
 
 namespace JsonData {
 
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
+
     namespace WifiControl {
 
         // Common classes
@@ -21,6 +23,32 @@ namespace JsonData {
         public:
             ConfigInfoInfo()
                 : Core::JSON::Container()
+            {
+                _Init();
+            }
+
+            ConfigInfoInfo(const ConfigInfoInfo& _other)
+                : Core::JSON::Container()
+                , Hidden(_other.Hidden)
+                , Accesspoint(_other.Accesspoint)
+                , Ssid(_other.Ssid)
+                , Secret(_other.Secret)
+                , Identity(_other.Identity)
+                , Method(_other.Method)
+                , Key(_other.Key)
+            {
+                _Init();
+            }
+
+            ConfigInfoInfo(ConfigInfoInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Hidden(std::move(_other.Hidden))
+                , Accesspoint(std::move(_other.Accesspoint))
+                , Ssid(std::move(_other.Ssid))
+                , Secret(std::move(_other.Secret))
+                , Identity(std::move(_other.Identity))
+                , Method(std::move(_other.Method))
+                , Key(std::move(_other.Key))
             {
                 _Init();
             }
@@ -36,6 +64,30 @@ namespace JsonData {
                 Method = _other.method;
                 Key = _other.key;
                 _Init();
+            }
+
+            ConfigInfoInfo& operator=(const ConfigInfoInfo& _rhs)
+            {
+                Hidden = _rhs.Hidden;
+                Accesspoint = _rhs.Accesspoint;
+                Ssid = _rhs.Ssid;
+                Secret = _rhs.Secret;
+                Identity = _rhs.Identity;
+                Method = _rhs.Method;
+                Key = _rhs.Key;
+                return (*this);
+            }
+
+            ConfigInfoInfo& operator=(ConfigInfoInfo&& _rhs) noexcept
+            {
+                Hidden = std::move(_rhs.Hidden);
+                Accesspoint = std::move(_rhs.Accesspoint);
+                Ssid = std::move(_rhs.Ssid);
+                Secret = std::move(_rhs.Secret);
+                Identity = std::move(_rhs.Identity);
+                Method = std::move(_rhs.Method);
+                Key = std::move(_rhs.Key);
+                return (*this);
             }
 
             ConfigInfoInfo& operator=(const Exchange::IWifiControl::ConfigInfo& _rhs)
@@ -63,9 +115,12 @@ namespace JsonData {
                 return (_value);
             }
 
-            bool IsValid() const
+            ~ConfigInfoInfo() = default;
+
+        public:
+            bool IsDataValid() const
             {
-                return (true);
+                return ((Hidden.IsSet() == true) && (Accesspoint.IsSet() == true) && (Ssid.IsSet() == true) && (Secret.IsSet() == true) && (Identity.IsSet() == true) && (Method.IsSet() == true) && (Key.IsSet() == true));
             }
 
         private:
@@ -98,13 +153,19 @@ namespace JsonData {
                 Add(_T("configssid"), &ConfigSSID);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ConnectParamsInfo(const ConnectParamsInfo&) = delete;
+            ConnectParamsInfo(ConnectParamsInfo&&) noexcept  = delete;
+
             ConnectParamsInfo& operator=(const ConnectParamsInfo&) = delete;
+            ConnectParamsInfo& operator=(ConnectParamsInfo&&) noexcept  = delete;
+
+            ~ConnectParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (ConfigSSID.IsSet() == true);
+            }
 
         public:
             Core::JSON::String ConfigSSID; // Connect device to requested SSID
@@ -121,13 +182,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ConfigData(const ConfigData&) = delete;
+            ConfigData(ConfigData&&) noexcept  = delete;
+
             ConfigData& operator=(const ConfigData&) = delete;
+            ConfigData& operator=(ConfigData&&) noexcept  = delete;
+
+            ~ConfigData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Value.IsSet() == true) && (Value.IsDataValid() == true));
+            }
 
         public:
             ConfigInfoInfo Value; // Provide config details for requested SSID
@@ -141,13 +208,19 @@ namespace JsonData {
                 Add(_T("ssid"), &Ssid);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ConnectionChangeParamsData(const ConnectionChangeParamsData&) = delete;
+            ConnectionChangeParamsData(ConnectionChangeParamsData&&) noexcept  = delete;
+
             ConnectionChangeParamsData& operator=(const ConnectionChangeParamsData&) = delete;
+            ConnectionChangeParamsData& operator=(ConnectionChangeParamsData&&) noexcept  = delete;
+
+            ~ConnectionChangeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Ssid.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Ssid; // Notifies that wifi connection changes
@@ -172,6 +245,29 @@ namespace JsonData {
                 _Init();
             }
 
+            NetworkInfoData(NetworkInfoData&& _other) noexcept
+                : Core::JSON::Container()
+                , Ssid(std::move(_other.Ssid))
+                , Bssid(std::move(_other.Bssid))
+                , Frequency(std::move(_other.Frequency))
+                , Signal(std::move(_other.Signal))
+                , Security(std::move(_other.Security))
+            {
+                _Init();
+            }
+
+            NetworkInfoData(const Exchange::IWifiControl::NetworkInfo& _other)
+                : Core::JSON::Container()
+            {
+                Ssid = _other.ssid;
+                Bssid = _other.bssid;
+                Frequency = _other.frequency;
+                Signal = _other.signal;
+                Security.Set(true);
+                Security = _other.security;
+                _Init();
+            }
+
             NetworkInfoData& operator=(const NetworkInfoData& _rhs)
             {
                 Ssid = _rhs.Ssid;
@@ -182,15 +278,14 @@ namespace JsonData {
                 return (*this);
             }
 
-            NetworkInfoData(const Exchange::IWifiControl::NetworkInfo& _other)
-                : Core::JSON::Container()
+            NetworkInfoData& operator=(NetworkInfoData&& _rhs) noexcept
             {
-                Ssid = _other.ssid;
-                Bssid = _other.bssid;
-                Frequency = _other.frequency;
-                Signal = _other.signal;
-                Security = _other.security;
-                _Init();
+                Ssid = std::move(_rhs.Ssid);
+                Bssid = std::move(_rhs.Bssid);
+                Frequency = std::move(_rhs.Frequency);
+                Signal = std::move(_rhs.Signal);
+                Security = std::move(_rhs.Security);
+                return (*this);
             }
 
             NetworkInfoData& operator=(const Exchange::IWifiControl::NetworkInfo& _rhs)
@@ -199,6 +294,7 @@ namespace JsonData {
                 Bssid = _rhs.bssid;
                 Frequency = _rhs.frequency;
                 Signal = _rhs.signal;
+                Security.Set(true);
                 Security = _rhs.security;
                 return (*this);
             }
@@ -214,9 +310,12 @@ namespace JsonData {
                 return (_value);
             }
 
-            bool IsValid() const
+            ~NetworkInfoData() = default;
+
+        public:
+            bool IsDataValid() const
             {
-                return (true);
+                return ((Ssid.IsSet() == true) && (Bssid.IsSet() == true) && (Frequency.IsSet() == true) && (Signal.IsSet() == true) && (Security.IsSet() == true));
             }
 
         private:
@@ -253,6 +352,23 @@ namespace JsonData {
                 _Init();
             }
 
+            SecurityInfoData(SecurityInfoData&& _other) noexcept
+                : Core::JSON::Container()
+                , Method(std::move(_other.Method))
+                , Keys(std::move(_other.Keys))
+            {
+                _Init();
+            }
+
+            SecurityInfoData(const Exchange::IWifiControl::SecurityInfo& _other)
+                : Core::JSON::Container()
+            {
+                Method = _other.method;
+                Keys.Set(true);
+                Keys = _other.keys;
+                _Init();
+            }
+
             SecurityInfoData& operator=(const SecurityInfoData& _rhs)
             {
                 Method = _rhs.Method;
@@ -260,17 +376,17 @@ namespace JsonData {
                 return (*this);
             }
 
-            SecurityInfoData(const Exchange::IWifiControl::SecurityInfo& _other)
-                : Core::JSON::Container()
+            SecurityInfoData& operator=(SecurityInfoData&& _rhs) noexcept
             {
-                Method = _other.method;
-                Keys = _other.keys;
-                _Init();
+                Method = std::move(_rhs.Method);
+                Keys = std::move(_rhs.Keys);
+                return (*this);
             }
 
             SecurityInfoData& operator=(const Exchange::IWifiControl::SecurityInfo& _rhs)
             {
                 Method = _rhs.method;
+                Keys.Set(true);
                 Keys = _rhs.keys;
                 return (*this);
             }
@@ -283,9 +399,12 @@ namespace JsonData {
                 return (_value);
             }
 
-            bool IsValid() const
+            ~SecurityInfoData() = default;
+
+        public:
+            bool IsDataValid() const
             {
-                return (true);
+                return ((Method.IsSet() == true) && (Keys.IsSet() == true));
             }
 
         private:
@@ -309,13 +428,19 @@ namespace JsonData {
                 Add(_T("isscanning"), &IsScanning);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             StatusResultData(const StatusResultData&) = delete;
+            StatusResultData(StatusResultData&&) noexcept  = delete;
+
             StatusResultData& operator=(const StatusResultData&) = delete;
+            StatusResultData& operator=(StatusResultData&&) noexcept  = delete;
+
+            ~StatusResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((ConnectedSsid.IsSet() == true) && (IsScanning.IsSet() == true));
+            }
 
         public:
             Core::JSON::String ConnectedSsid; // Status of current device, like which SSID is connected and it is in scanning state or not
@@ -323,6 +448,8 @@ namespace JsonData {
         }; // class StatusResultData
 
     } // namespace WifiControl
+
+    POP_WARNING()
 
 } // namespace JsonData
 

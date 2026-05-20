@@ -1,4 +1,4 @@
-// C++ classes for DisplayProperties API JSON-RPC API.
+// C++ types for DisplayProperties API.
 // Generated automatically from 'IDisplayInfo.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -12,12 +12,16 @@ namespace WPEFramework {
 
 namespace JsonData {
 
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
+
     namespace DisplayProperties {
 
         // Method params/result classes
         //
 
     } // namespace DisplayProperties
+
+    POP_WARNING()
 
 } // namespace JsonData
 

@@ -1,4 +1,4 @@
-// C++ classes for Player Info API JSON-RPC API.
+// C++ types for Player Info API.
 // Generated automatically from 'PlayerInfo.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace PlayerInfo {
 
@@ -33,13 +35,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DolbymodeData(const DolbymodeData&) = delete;
+            DolbymodeData(DolbymodeData&&) noexcept  = delete;
+
             DolbymodeData& operator=(const DolbymodeData&) = delete;
+            DolbymodeData& operator=(DolbymodeData&&) noexcept  = delete;
+
+            ~DolbymodeData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<DolbymodeData::DolbyType> Value; // Dolby output mode
@@ -83,13 +91,19 @@ namespace JsonData {
                 Add(_T("video"), &Video);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             CodecsData(const CodecsData&) = delete;
+            CodecsData(CodecsData&&) noexcept  = delete;
+
             CodecsData& operator=(const CodecsData&) = delete;
+            CodecsData& operator=(CodecsData&&) noexcept  = delete;
+
+            ~CodecsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Audio.IsSet() == true) && (Video.IsSet() == true));
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<CodecsData::AudiocodecsType>> Audio; // Player general information
@@ -97,6 +111,8 @@ namespace JsonData {
         }; // class CodecsData
 
     } // namespace PlayerInfo
+
+    POP_WARNING()
 
 } // namespace JsonData
 

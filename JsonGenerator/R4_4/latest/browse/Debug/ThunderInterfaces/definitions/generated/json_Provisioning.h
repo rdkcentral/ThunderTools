@@ -1,4 +1,4 @@
-// Provisioning JSON-RPC API
+// Provisioning API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

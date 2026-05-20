@@ -1,4 +1,4 @@
-// IPlayerInfo JSON-RPC API
+// IPlayerInfo API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

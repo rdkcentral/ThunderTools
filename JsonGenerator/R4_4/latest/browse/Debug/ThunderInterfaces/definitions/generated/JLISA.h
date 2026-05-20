@@ -1,7 +1,6 @@
 // Generated automatically from 'LISA.json'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_LISA.h"
 
@@ -18,6 +17,7 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
+
     } // namespace JLISA
 
 } // namespace Exchange

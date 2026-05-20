@@ -1,4 +1,4 @@
-// WebKitBrowser JSON-RPC API
+// WebKitBrowser API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

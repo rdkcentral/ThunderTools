@@ -1,7 +1,6 @@
 // Generated automatically from 'TestController.json'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_TestController.h"
 
@@ -18,6 +17,7 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
+
     } // namespace JTestController
 
 } // namespace Exchange

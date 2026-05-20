@@ -1,4 +1,4 @@
-// INetworkTools JSON-RPC API
+// INetworkTools API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

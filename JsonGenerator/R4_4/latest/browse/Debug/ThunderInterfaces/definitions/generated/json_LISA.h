@@ -1,4 +1,4 @@
-// LISA JSON-RPC API
+// LISA API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

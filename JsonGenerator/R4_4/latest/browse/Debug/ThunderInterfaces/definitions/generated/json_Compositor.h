@@ -1,4 +1,4 @@
-// Compositor JSON-RPC API
+// Compositor API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

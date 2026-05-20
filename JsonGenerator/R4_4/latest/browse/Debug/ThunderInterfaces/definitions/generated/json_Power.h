@@ -1,4 +1,4 @@
-// Power JSON-RPC API
+// Power API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

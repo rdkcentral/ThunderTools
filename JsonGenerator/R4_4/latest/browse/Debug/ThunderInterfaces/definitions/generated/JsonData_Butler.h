@@ -1,4 +1,4 @@
-// C++ classes for Butler API JSON-RPC API.
+// C++ types for Butler API.
 // Generated automatically from 'Butler.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Butler {
 
@@ -84,25 +86,67 @@ namespace JsonData {
                 _Init();
             }
 
+            DeviceInfo(DeviceInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Id(std::move(_other.Id))
+                , Bundle(std::move(_other.Bundle))
+                , Name(std::move(_other.Name))
+                , Callsign(std::move(_other.Callsign))
+                , Basic(std::move(_other.Basic))
+                , Specific(std::move(_other.Specific))
+                , Dimension(std::move(_other.Dimension))
+                , Decimals(std::move(_other.Decimals))
+                , Minimum(std::move(_other.Minimum))
+                , Maximum(std::move(_other.Maximum))
+                , Value(std::move(_other.Value))
+            {
+                _Init();
+            }
+
             DeviceInfo& operator=(const DeviceInfo& _rhs)
             {
                 Id = _rhs.Id;
-                Bundle = _rhs.Bundle;
+                if (_rhs.Bundle != 0) {
+                    Bundle = _rhs.Bundle;
+                }
                 Name = _rhs.Name;
-                Callsign = _rhs.Callsign;
+                if (_rhs.Callsign.Value().empty() == false) {
+                    Callsign = _rhs.Callsign;
+                }
                 Basic = _rhs.Basic;
                 Specific = _rhs.Specific;
                 Dimension = _rhs.Dimension;
                 Decimals = _rhs.Decimals;
                 Minimum = _rhs.Minimum;
                 Maximum = _rhs.Maximum;
-                Value = _rhs.Value;
+                if (_rhs.Value != 0) {
+                    Value = _rhs.Value;
+                }
                 return (*this);
             }
 
-            bool IsValid() const
+            DeviceInfo& operator=(DeviceInfo&& _rhs) noexcept
             {
-                return (true);
+                Id = std::move(_rhs.Id);
+                Bundle = std::move(_rhs.Bundle);
+                Name = std::move(_rhs.Name);
+                Callsign = std::move(_rhs.Callsign);
+                Basic = std::move(_rhs.Basic);
+                Specific = std::move(_rhs.Specific);
+                Dimension = std::move(_rhs.Dimension);
+                Decimals = std::move(_rhs.Decimals);
+                Minimum = std::move(_rhs.Minimum);
+                Maximum = std::move(_rhs.Maximum);
+                Value = std::move(_rhs.Value);
+                return (*this);
+            }
+
+            ~DeviceInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Id.IsSet() == true) && (Name.IsSet() == true) && (Basic.IsSet() == true) && (Specific.IsSet() == true) && (Dimension.IsSet() == true) && (Decimals.IsSet() == true) && (Minimum.IsSet() == true) && (Maximum.IsSet() == true));
             }
 
         private:
@@ -147,13 +191,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ActivityParamsData(const ActivityParamsData&) = delete;
+            ActivityParamsData(ActivityParamsData&&) noexcept  = delete;
+
             ActivityParamsData& operator=(const ActivityParamsData&) = delete;
+            ActivityParamsData& operator=(ActivityParamsData&&) noexcept  = delete;
+
+            ~ActivityParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Id.IsSet() == true) && (Value.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 Id; // Identifier of the device
@@ -182,6 +232,18 @@ namespace JsonData {
                     _Init();
                 }
 
+                MembersData(MembersData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Name(std::move(_other.Name))
+                    , Callsign(std::move(_other.Callsign))
+                    , Children(std::move(_other.Children))
+                    , Bundle(std::move(_other.Bundle))
+                    , Id(std::move(_other.Id))
+                    , Point(std::move(_other.Point))
+                {
+                    _Init();
+                }
+
                 MembersData& operator=(const MembersData& _rhs)
                 {
                     Name = _rhs.Name;
@@ -193,9 +255,23 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                MembersData& operator=(MembersData&& _rhs) noexcept
                 {
-                    return (true);
+                    Name = std::move(_rhs.Name);
+                    Callsign = std::move(_rhs.Callsign);
+                    Children = std::move(_rhs.Children);
+                    Bundle = std::move(_rhs.Bundle);
+                    Id = std::move(_rhs.Id);
+                    Point = std::move(_rhs.Point);
+                    return (*this);
+                }
+
+                ~MembersData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Name.IsSet() == true) && (Callsign.IsSet() == true) && (Children.IsSet() == true) && (Bundle.IsSet() == true) && (Id.IsSet() == true) && (Point.IsSet() == true));
                 }
 
             private:
@@ -214,7 +290,7 @@ namespace JsonData {
                 Core::JSON::String Callsign; // The callsign that owns this external
                 Core::JSON::DecUInt32 Children; // The number of children in a group
                 Core::JSON::DecUInt32 Bundle; // The bundle id if this is a bundle
-                Core::JSON::DecUInt32 Id; // The id of the single point in this meber, it is not a bundle 
+                Core::JSON::DecUInt32 Id; // The id of the single point in this meber, it is not a bundle
                 Core::JSON::ArrayType<DeviceInfo> Point;
             }; // class MembersData
 
@@ -227,13 +303,19 @@ namespace JsonData {
                 Add(_T("members"), &Members);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GroupData(const GroupData&) = delete;
+            GroupData(GroupData&&) noexcept  = delete;
+
             GroupData& operator=(const GroupData&) = delete;
+            GroupData& operator=(GroupData&&) noexcept  = delete;
+
+            ~GroupData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Parent.IsSet() == true) && (Id.IsSet() == true) && (Base.IsSet() == true) && (Members.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 Parent; // Identifier of the group to wich this group belongs
@@ -251,13 +333,19 @@ namespace JsonData {
                 Add(_T("id"), &Id);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             LinkData(const LinkData&) = delete;
+            LinkData(LinkData&&) noexcept  = delete;
+
             LinkData& operator=(const LinkData&) = delete;
+            LinkData& operator=(LinkData&&) noexcept  = delete;
+
+            ~LinkData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Node.IsSet() == true) && (Id.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Node; // Path identifying the the node to which we should link the id
@@ -273,13 +361,19 @@ namespace JsonData {
                 Add(_T("node"), &Node);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             MoveData(const MoveData&) = delete;
+            MoveData(MoveData&&) noexcept  = delete;
+
             MoveData& operator=(const MoveData&) = delete;
+            MoveData& operator=(MoveData&&) noexcept  = delete;
+
+            ~MoveData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Origin.IsSet() == true) && (Node.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Origin; // Path identifying the the node that will be moved
@@ -287,6 +381,8 @@ namespace JsonData {
         }; // class MoveData
 
     } // namespace Butler
+
+    POP_WARNING()
 
 } // namespace JsonData
 

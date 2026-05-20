@@ -1,4 +1,4 @@
-// IOControl JSON-RPC API
+// IOControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

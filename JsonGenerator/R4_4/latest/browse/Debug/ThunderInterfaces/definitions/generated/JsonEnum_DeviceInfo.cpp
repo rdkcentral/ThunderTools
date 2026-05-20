@@ -1,4 +1,4 @@
-// Enumeration code for Device Info API JSON-RPC API.
+// Enumeration code for Device Info API.
 // Generated automatically from 'DeviceInfo.json'.
 
 #include <core/Enumerate.h>

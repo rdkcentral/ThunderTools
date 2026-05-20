@@ -1,4 +1,4 @@
-// C++ classes for Netflix API JSON-RPC API.
+// C++ types for Netflix API.
 // Generated automatically from 'Netflix.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Netflix {
 
@@ -34,13 +36,19 @@ namespace JsonData {
                 Add(_T("playing"), &Playing);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             PlaybackchangeParamsData(const PlaybackchangeParamsData&) = delete;
+            PlaybackchangeParamsData(PlaybackchangeParamsData&&) noexcept  = delete;
+
             PlaybackchangeParamsData& operator=(const PlaybackchangeParamsData&) = delete;
+            PlaybackchangeParamsData& operator=(PlaybackchangeParamsData&&) noexcept  = delete;
+
+            ~PlaybackchangeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Playing.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Playing; // Determines if the Netflix is in playing mode (true) or not playing (false)
@@ -54,19 +62,27 @@ namespace JsonData {
                 Add(_T("command"), &Command);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SystemcommandParamsData(const SystemcommandParamsData&) = delete;
+            SystemcommandParamsData(SystemcommandParamsData&&) noexcept  = delete;
+
             SystemcommandParamsData& operator=(const SystemcommandParamsData&) = delete;
+            SystemcommandParamsData& operator=(SystemcommandParamsData&&) noexcept  = delete;
+
+            ~SystemcommandParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Command.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Command; // Command to send to Netflix
         }; // class SystemcommandParamsData
 
     } // namespace Netflix
+
+    POP_WARNING()
 
 } // namespace JsonData
 

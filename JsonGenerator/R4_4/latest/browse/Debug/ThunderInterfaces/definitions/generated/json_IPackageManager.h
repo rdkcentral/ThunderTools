@@ -1,4 +1,4 @@
-// IPackageManager JSON-RPC API
+// IPackageManager API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

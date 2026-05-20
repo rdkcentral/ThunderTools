@@ -1,4 +1,4 @@
-// IDolby JSON-RPC API
+// IDolby API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

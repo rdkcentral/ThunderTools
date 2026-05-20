@@ -1,4 +1,4 @@
-// IApplication JSON-RPC API
+// IApplication API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

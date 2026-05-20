@@ -1,4 +1,4 @@
-// Spark JSON-RPC API
+// Spark API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

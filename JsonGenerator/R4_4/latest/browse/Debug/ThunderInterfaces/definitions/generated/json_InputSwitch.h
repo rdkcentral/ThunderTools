@@ -1,4 +1,4 @@
-// InputSwitch JSON-RPC API
+// InputSwitch API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

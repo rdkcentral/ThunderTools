@@ -1,4 +1,4 @@
-// IOConnector JSON-RPC API
+// IOConnector API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

@@ -1,7 +1,6 @@
 // Generated automatically from 'ILanguageTag.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include <interfaces/ILanguageTag.h>
 
@@ -19,71 +18,76 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, ILanguageTag* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, ILanguageTag* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JLanguageTag"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JLanguageTag"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'language' - Current application user interface language tag
-            _module_.Register<Core::JSON::String, Core::JSON::String>(_T("language"), 
-                [_impl_](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, Core::JSON::String>(_T("language"),
+                [_implementation__](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = (static_cast<const ILanguageTag*>(_impl_))->Language(_result);
+                        _errorCode__ = (static_cast<const ILanguageTag*>(_implementation__))->Language(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const string _params_{params};
 
-                    } else {
-                        // property set
-                        const string _params{params};
-
-                        _errorCode = _impl_->Language(_params);
+                        _errorCode__ = _implementation__->Language(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("language"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("language"));
         }
 
         namespace Event {
 
             // Event: 'languagechanged' - Notify that the Language tag has been changed
-            static void LanguageChanged(const JSONRPC& _module_, const Core::JSON::String& language)
+            template<typename MODULE>
+            static void LanguageChanged(const MODULE& module_, const Core::JSON::String& language, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("languagechanged"), language);
+                module_.Notify(_T("languagechanged"), language, sendIfMethod_);
             }
 
             // Event: 'languagechanged' - Notify that the Language tag has been changed
-            static void LanguageChanged(const JSONRPC& _module_, const string& language)
+            template<typename MODULE>
+            static void LanguageChanged(const MODULE& module_, const string& language, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                Core::JSON::String _params_;
-                _params_ = language;
+                Core::JSON::String params_;
+                params_ = language;
 
-                LanguageChanged(_module_, _params_);
+                LanguageChanged(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JLanguageTag

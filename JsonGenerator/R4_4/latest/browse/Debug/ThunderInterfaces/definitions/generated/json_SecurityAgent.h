@@ -1,4 +1,4 @@
-// SecurityAgent JSON-RPC API
+// SecurityAgent API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

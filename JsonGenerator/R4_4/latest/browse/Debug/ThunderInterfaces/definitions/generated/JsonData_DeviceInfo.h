@@ -1,4 +1,4 @@
-// C++ classes for Device Info API JSON-RPC API.
+// C++ types for Device Info API.
 // Generated automatically from 'DeviceInfo.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace DeviceInfo {
 
@@ -121,13 +123,19 @@ namespace JsonData {
                 Add(_T("audioPort"), &AudioPort);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             AudiocapabilitiesParamsInfo(const AudiocapabilitiesParamsInfo&) = delete;
+            AudiocapabilitiesParamsInfo(AudiocapabilitiesParamsInfo&&) noexcept  = delete;
+
             AudiocapabilitiesParamsInfo& operator=(const AudiocapabilitiesParamsInfo&) = delete;
+            AudiocapabilitiesParamsInfo& operator=(AudiocapabilitiesParamsInfo&&) noexcept  = delete;
+
+            ~AudiocapabilitiesParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (AudioPort.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<AudioportType> AudioPort; // Audio output supported by the device
@@ -141,13 +149,19 @@ namespace JsonData {
                 Add(_T("name"), &Name);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             FriendlynameInfo(const FriendlynameInfo&) = delete;
+            FriendlynameInfo(FriendlynameInfo&&) noexcept  = delete;
+
             FriendlynameInfo& operator=(const FriendlynameInfo&) = delete;
+            FriendlynameInfo& operator=(FriendlynameInfo&&) noexcept  = delete;
+
+            ~FriendlynameInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Name.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Name;
@@ -161,13 +175,19 @@ namespace JsonData {
                 Add(_T("videoDisplay"), &VideoDisplay);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SupportedresolutionsParamsInfo(const SupportedresolutionsParamsInfo&) = delete;
+            SupportedresolutionsParamsInfo(SupportedresolutionsParamsInfo&&) noexcept  = delete;
+
             SupportedresolutionsParamsInfo& operator=(const SupportedresolutionsParamsInfo&) = delete;
+            SupportedresolutionsParamsInfo& operator=(SupportedresolutionsParamsInfo&&) noexcept  = delete;
+
+            ~SupportedresolutionsParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (VideoDisplay.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<VideodisplayType> VideoDisplay; // Video output supported by the device
@@ -193,6 +213,15 @@ namespace JsonData {
                 _Init();
             }
 
+            AddressesData(AddressesData&& _other) noexcept
+                : Core::JSON::Container()
+                , Name(std::move(_other.Name))
+                , Mac(std::move(_other.Mac))
+                , Ip(std::move(_other.Ip))
+            {
+                _Init();
+            }
+
             AddressesData& operator=(const AddressesData& _rhs)
             {
                 Name = _rhs.Name;
@@ -201,9 +230,20 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            AddressesData& operator=(AddressesData&& _rhs) noexcept
             {
-                return (true);
+                Name = std::move(_rhs.Name);
+                Mac = std::move(_rhs.Mac);
+                Ip = std::move(_rhs.Ip);
+                return (*this);
+            }
+
+            ~AddressesData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Name.IsSet() == true) && (Mac.IsSet() == true));
             }
 
         private:
@@ -228,13 +268,19 @@ namespace JsonData {
                 Add(_T("AudioCapabilities"), &AudioCapabilities);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             AudiocapabilitiesResultData(const AudiocapabilitiesResultData&) = delete;
+            AudiocapabilitiesResultData(AudiocapabilitiesResultData&&) noexcept  = delete;
+
             AudiocapabilitiesResultData& operator=(const AudiocapabilitiesResultData&) = delete;
+            AudiocapabilitiesResultData& operator=(AudiocapabilitiesResultData&&) noexcept  = delete;
+
+            ~AudiocapabilitiesResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (AudioCapabilities.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<AudiocapabilityType>> AudioCapabilities;
@@ -248,13 +294,19 @@ namespace JsonData {
                 Add(_T("defaultResolution"), &DefaultResolution);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DefaultresolutionResultData(const DefaultresolutionResultData&) = delete;
+            DefaultresolutionResultData(DefaultresolutionResultData&&) noexcept  = delete;
+
             DefaultresolutionResultData& operator=(const DefaultresolutionResultData&) = delete;
+            DefaultresolutionResultData& operator=(DefaultresolutionResultData&&) noexcept  = delete;
+
+            ~DefaultresolutionResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (DefaultResolution.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<Output_resolutionType> DefaultResolution; // Resolution supported by the device
@@ -280,6 +332,16 @@ namespace JsonData {
                     _Init();
                 }
 
+                AudiooutputcapabilitiesData(AudiooutputcapabilitiesData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , AudioPort(std::move(_other.AudioPort))
+                    , Audiocapabilities(std::move(_other.Audiocapabilities))
+                    , Ms12capabilities(std::move(_other.Ms12capabilities))
+                    , Ms12profiles(std::move(_other.Ms12profiles))
+                {
+                    _Init();
+                }
+
                 AudiooutputcapabilitiesData& operator=(const AudiooutputcapabilitiesData& _rhs)
                 {
                     AudioPort = _rhs.AudioPort;
@@ -289,9 +351,21 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                AudiooutputcapabilitiesData& operator=(AudiooutputcapabilitiesData&& _rhs) noexcept
                 {
-                    return (true);
+                    AudioPort = std::move(_rhs.AudioPort);
+                    Audiocapabilities = std::move(_rhs.Audiocapabilities);
+                    Ms12capabilities = std::move(_rhs.Ms12capabilities);
+                    Ms12profiles = std::move(_rhs.Ms12profiles);
+                    return (*this);
+                }
+
+                ~AudiooutputcapabilitiesData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Audiocapabilities.IsSet() == true) && (Ms12capabilities.IsSet() == true) && (Ms12profiles.IsSet() == true));
                 }
 
             private:
@@ -316,13 +390,19 @@ namespace JsonData {
                 Add(_T("audiooutputcapabilities"), &Audiooutputcapabilities);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DeviceaudiocapabilitiesData(const DeviceaudiocapabilitiesData&) = delete;
+            DeviceaudiocapabilitiesData(DeviceaudiocapabilitiesData&&) noexcept  = delete;
+
             DeviceaudiocapabilitiesData& operator=(const DeviceaudiocapabilitiesData&) = delete;
+            DeviceaudiocapabilitiesData& operator=(DeviceaudiocapabilitiesData&&) noexcept  = delete;
+
+            ~DeviceaudiocapabilitiesData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Audiooutputcapabilities.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<DeviceaudiocapabilitiesData::AudiooutputcapabilitiesData> Audiooutputcapabilities;
@@ -344,13 +424,19 @@ namespace JsonData {
                 Add(_T("sku"), &Sku);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DeviceinfoData(const DeviceinfoData&) = delete;
+            DeviceinfoData(DeviceinfoData&&) noexcept  = delete;
+
             DeviceinfoData& operator=(const DeviceinfoData&) = delete;
+            DeviceinfoData& operator=(DeviceinfoData&&) noexcept  = delete;
+
+            ~DeviceinfoData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Devicetype.IsSet() == true) && (Friendlyname.IsSet() == true) && (Distributorid.IsSet() == true) && (Make.IsSet() == true) && (Modelname.IsSet() == true) && (Modelyear.IsSet() == true) && (Platformname.IsSet() == true) && (Serialnumber.IsSet() == true) && (Sku.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Devicetype; // Device type
@@ -381,13 +467,19 @@ namespace JsonData {
                 Add(_T("devicetype"), &Devicetype);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DevicetypeData(const DevicetypeData&) = delete;
+            DevicetypeData(DevicetypeData&&) noexcept  = delete;
+
             DevicetypeData& operator=(const DevicetypeData&) = delete;
+            DevicetypeData& operator=(DevicetypeData&&) noexcept  = delete;
+
+            ~DevicetypeData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Devicetype.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<DevicetypeData::DevicetypeType> Devicetype; // Device type
@@ -413,6 +505,16 @@ namespace JsonData {
                     _Init();
                 }
 
+                VideooutputcapabilitiesData(VideooutputcapabilitiesData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Hdcp(std::move(_other.Hdcp))
+                    , VideoDisplay(std::move(_other.VideoDisplay))
+                    , Output_resolutions(std::move(_other.Output_resolutions))
+                    , Defaultresolution(std::move(_other.Defaultresolution))
+                {
+                    _Init();
+                }
+
                 VideooutputcapabilitiesData& operator=(const VideooutputcapabilitiesData& _rhs)
                 {
                     Hdcp = _rhs.Hdcp;
@@ -422,9 +524,21 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                VideooutputcapabilitiesData& operator=(VideooutputcapabilitiesData&& _rhs) noexcept
                 {
-                    return (true);
+                    Hdcp = std::move(_rhs.Hdcp);
+                    VideoDisplay = std::move(_rhs.VideoDisplay);
+                    Output_resolutions = std::move(_rhs.Output_resolutions);
+                    Defaultresolution = std::move(_rhs.Defaultresolution);
+                    return (*this);
+                }
+
+                ~VideooutputcapabilitiesData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Hdcp.IsSet() == true) && (Output_resolutions.IsSet() == true) && (Defaultresolution.IsSet() == true));
                 }
 
             private:
@@ -453,13 +567,19 @@ namespace JsonData {
                 Add(_T("videooutputcapabilities"), &Videooutputcapabilities);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DevicevideocapabilitiesData(const DevicevideocapabilitiesData&) = delete;
+            DevicevideocapabilitiesData(DevicevideocapabilitiesData&&) noexcept  = delete;
+
             DevicevideocapabilitiesData& operator=(const DevicevideocapabilitiesData&) = delete;
+            DevicevideocapabilitiesData& operator=(DevicevideocapabilitiesData&&) noexcept  = delete;
+
+            ~DevicevideocapabilitiesData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Hostedid.IsSet() == true) && (Hdr.IsSet() == true) && (Atmos.IsSet() == true) && (Cec.IsSet() == true) && (Videooutputcapabilities.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Hostedid; // EDID of the host
@@ -503,13 +623,19 @@ namespace JsonData {
                 Add(_T("distributorid"), &Distributorid);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DistributoridData(const DistributoridData&) = delete;
+            DistributoridData(DistributoridData&&) noexcept  = delete;
+
             DistributoridData& operator=(const DistributoridData&) = delete;
+            DistributoridData& operator=(DistributoridData&&) noexcept  = delete;
+
+            ~DistributoridData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Distributorid.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<DistributoridData::DistributoridType> Distributorid; // Partner ID or distributor ID for device
@@ -534,13 +660,19 @@ namespace JsonData {
                 Add(_T("yocto"), &Yocto);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             FirmwareversionData(const FirmwareversionData&) = delete;
+            FirmwareversionData(FirmwareversionData&&) noexcept  = delete;
+
             FirmwareversionData& operator=(const FirmwareversionData&) = delete;
+            FirmwareversionData& operator=(FirmwareversionData&&) noexcept  = delete;
+
+            ~FirmwareversionData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Imagename.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Imagename;
@@ -557,13 +689,19 @@ namespace JsonData {
                 Add(_T("EDID"), &EDID);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             HostedidData(const HostedidData&) = delete;
+            HostedidData(HostedidData&&) noexcept  = delete;
+
             HostedidData& operator=(const HostedidData&) = delete;
+            HostedidData& operator=(HostedidData&&) noexcept  = delete;
+
+            ~HostedidData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (EDID.IsSet() == true);
+            }
 
         public:
             Core::JSON::String EDID;
@@ -598,13 +736,19 @@ namespace JsonData {
                 Add(_T("make"), &Make);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             MakeData(const MakeData&) = delete;
+            MakeData(MakeData&&) noexcept  = delete;
+
             MakeData& operator=(const MakeData&) = delete;
+            MakeData& operator=(MakeData&&) noexcept  = delete;
+
+            ~MakeData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Make.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<MakeData::MakeType> Make; // Device manufacturer
@@ -654,13 +798,19 @@ namespace JsonData {
                 Add(_T("sku"), &Sku);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ModelidData(const ModelidData&) = delete;
+            ModelidData(ModelidData&&) noexcept  = delete;
+
             ModelidData& operator=(const ModelidData&) = delete;
+            ModelidData& operator=(ModelidData&&) noexcept  = delete;
+
+            ~ModelidData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Sku.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<ModelidData::SkuType> Sku; // Device model number or SKU
@@ -674,13 +824,19 @@ namespace JsonData {
                 Add(_T("model"), &Model);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ModelnameData(const ModelnameData&) = delete;
+            ModelnameData(ModelnameData&&) noexcept  = delete;
+
             ModelnameData& operator=(const ModelnameData&) = delete;
+            ModelnameData& operator=(ModelnameData&&) noexcept  = delete;
+
+            ~ModelnameData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Model.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Model;
@@ -694,13 +850,19 @@ namespace JsonData {
                 Add(_T("year"), &Year);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ModelyearData(const ModelyearData&) = delete;
+            ModelyearData(ModelyearData&&) noexcept  = delete;
+
             ModelyearData& operator=(const ModelyearData&) = delete;
+            ModelyearData& operator=(ModelyearData&&) noexcept  = delete;
+
+            ~ModelyearData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Year.IsSet() == true);
+            }
 
         public:
             Core::JSON::DecUInt16 Year;
@@ -714,13 +876,19 @@ namespace JsonData {
                 Add(_T("MS12Capabilities"), &MS12Capabilities);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             Ms12capabilitiesResultData(const Ms12capabilitiesResultData&) = delete;
+            Ms12capabilitiesResultData(Ms12capabilitiesResultData&&) noexcept  = delete;
+
             Ms12capabilitiesResultData& operator=(const Ms12capabilitiesResultData&) = delete;
+            Ms12capabilitiesResultData& operator=(Ms12capabilitiesResultData&&) noexcept  = delete;
+
+            ~Ms12capabilitiesResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (MS12Capabilities.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<Ms12capabilityType>> MS12Capabilities;
@@ -734,13 +902,19 @@ namespace JsonData {
                 Add(_T("serialnumber"), &Serialnumber);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SerialnumberData(const SerialnumberData&) = delete;
+            SerialnumberData(SerialnumberData&&) noexcept  = delete;
+
             SerialnumberData& operator=(const SerialnumberData&) = delete;
+            SerialnumberData& operator=(SerialnumberData&&) noexcept  = delete;
+
+            ~SerialnumberData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Serialnumber.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Serialnumber;
@@ -759,13 +933,19 @@ namespace JsonData {
                 Add(_T("runs"), &Runs);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SocketinfoData(const SocketinfoData&) = delete;
+            SocketinfoData(SocketinfoData&&) noexcept  = delete;
+
             SocketinfoData& operator=(const SocketinfoData&) = delete;
+            SocketinfoData& operator=(SocketinfoData&&) noexcept  = delete;
+
+            ~SocketinfoData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Runs.IsSet() == true);
+            }
 
         public:
             Core::JSON::DecUInt32 Total;
@@ -784,13 +964,19 @@ namespace JsonData {
                 Add(_T("supportedAudioPorts"), &SupportedAudioPorts);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SupportedaudioportsData(const SupportedaudioportsData&) = delete;
+            SupportedaudioportsData(SupportedaudioportsData&&) noexcept  = delete;
+
             SupportedaudioportsData& operator=(const SupportedaudioportsData&) = delete;
+            SupportedaudioportsData& operator=(SupportedaudioportsData&&) noexcept  = delete;
+
+            ~SupportedaudioportsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (SupportedAudioPorts.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<AudioportType>> SupportedAudioPorts; // Audio Output support
@@ -804,13 +990,19 @@ namespace JsonData {
                 Add(_T("supportedHDCPVersion"), &SupportedHDCPVersion);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SupportedhdcpResultData(const SupportedhdcpResultData&) = delete;
+            SupportedhdcpResultData(SupportedhdcpResultData&&) noexcept  = delete;
+
             SupportedhdcpResultData& operator=(const SupportedhdcpResultData&) = delete;
+            SupportedhdcpResultData& operator=(SupportedhdcpResultData&&) noexcept  = delete;
+
+            ~SupportedhdcpResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (SupportedHDCPVersion.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<CopyprotectionType> SupportedHDCPVersion; // HDCP support
@@ -824,13 +1016,19 @@ namespace JsonData {
                 Add(_T("supportedMS12AudioProfiles"), &SupportedMS12AudioProfiles);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             Supportedms12audioprofilesResultData(const Supportedms12audioprofilesResultData&) = delete;
+            Supportedms12audioprofilesResultData(Supportedms12audioprofilesResultData&&) noexcept  = delete;
+
             Supportedms12audioprofilesResultData& operator=(const Supportedms12audioprofilesResultData&) = delete;
+            Supportedms12audioprofilesResultData& operator=(Supportedms12audioprofilesResultData&&) noexcept  = delete;
+
+            ~Supportedms12audioprofilesResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (SupportedMS12AudioProfiles.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<Ms12profileType>> SupportedMS12AudioProfiles; // An array of ms12 audio profiles
@@ -844,13 +1042,19 @@ namespace JsonData {
                 Add(_T("supportedResolutions"), &SupportedResolutions);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SupportedresolutionsResultData(const SupportedresolutionsResultData&) = delete;
+            SupportedresolutionsResultData(SupportedresolutionsResultData&&) noexcept  = delete;
+
             SupportedresolutionsResultData& operator=(const SupportedresolutionsResultData&) = delete;
+            SupportedresolutionsResultData& operator=(SupportedresolutionsResultData&&) noexcept  = delete;
+
+            ~SupportedresolutionsResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (SupportedResolutions.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<Output_resolutionType>> SupportedResolutions;
@@ -864,13 +1068,19 @@ namespace JsonData {
                 Add(_T("supportedVideoDisplays"), &SupportedVideoDisplays);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SupportedvideodisplaysData(const SupportedvideodisplaysData&) = delete;
+            SupportedvideodisplaysData(SupportedvideodisplaysData&&) noexcept  = delete;
+
             SupportedvideodisplaysData& operator=(const SupportedvideodisplaysData&) = delete;
+            SupportedvideodisplaysData& operator=(SupportedvideodisplaysData&&) noexcept  = delete;
+
+            ~SupportedvideodisplaysData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (SupportedVideoDisplays.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::EnumType<VideodisplayType>> SupportedVideoDisplays; // Video Output support
@@ -888,13 +1098,19 @@ namespace JsonData {
                     Add(_T("avg15min"), &Avg15min);
                 }
 
-                bool IsValid() const
-                {
-                    return (true);
-                }
-
                 CpuloadavgsData(const CpuloadavgsData&) = delete;
+                CpuloadavgsData(CpuloadavgsData&&) noexcept  = delete;
+
                 CpuloadavgsData& operator=(const CpuloadavgsData&) = delete;
+                CpuloadavgsData& operator=(CpuloadavgsData&&) noexcept  = delete;
+
+                ~CpuloadavgsData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Avg1min.IsSet() == true) && (Avg5min.IsSet() == true) && (Avg15min.IsSet() == true));
+                }
 
             public:
                 Core::JSON::DecUInt64 Avg1min; // 1min cpuload average
@@ -918,13 +1134,19 @@ namespace JsonData {
                 Add(_T("time"), &Time);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SysteminfoData(const SysteminfoData&) = delete;
+            SysteminfoData(SysteminfoData&&) noexcept  = delete;
+
             SysteminfoData& operator=(const SysteminfoData&) = delete;
+            SysteminfoData& operator=(SysteminfoData&&) noexcept  = delete;
+
+            ~SysteminfoData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Version.IsSet() == true) && (Uptime.IsSet() == true) && (Totalram.IsSet() == true) && (Freeram.IsSet() == true) && (Totalswap.IsSet() == true) && (Freeswap.IsSet() == true) && (Devicename.IsSet() == true) && (Cpuload.IsSet() == true) && ((Cpuloadavg.IsSet() == true) && (Cpuloadavg.IsDataValid() == true)) && (Serialnumber.IsSet() == true) && (Time.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Version; // Software version (in form *version#hashtag*)
@@ -941,6 +1163,8 @@ namespace JsonData {
         }; // class SysteminfoData
 
     } // namespace DeviceInfo
+
+    POP_WARNING()
 
 } // namespace JsonData
 

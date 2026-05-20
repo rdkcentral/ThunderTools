@@ -1,4 +1,4 @@
-// C++ classes for NetworkControl API JSON-RPC API.
+// C++ types for NetworkControl API.
 // Generated automatically from 'INetworkControl.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace NetworkControl {
 
@@ -35,13 +37,14 @@ namespace JsonData {
                 _Init();
             }
 
-            NetworkInfoInfo& operator=(const NetworkInfoInfo& _rhs)
+            NetworkInfoInfo(NetworkInfoInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Address(std::move(_other.Address))
+                , DefaultGateway(std::move(_other.DefaultGateway))
+                , Mask(std::move(_other.Mask))
+                , Mode(std::move(_other.Mode))
             {
-                Address = _rhs.Address;
-                DefaultGateway = _rhs.DefaultGateway;
-                Mask = _rhs.Mask;
-                Mode = _rhs.Mode;
-                return (*this);
+                _Init();
             }
 
             NetworkInfoInfo(const Exchange::INetworkControl::NetworkInfo& _other)
@@ -52,6 +55,24 @@ namespace JsonData {
                 Mask = _other.mask;
                 Mode = _other.mode;
                 _Init();
+            }
+
+            NetworkInfoInfo& operator=(const NetworkInfoInfo& _rhs)
+            {
+                Address = _rhs.Address;
+                DefaultGateway = _rhs.DefaultGateway;
+                Mask = _rhs.Mask;
+                Mode = _rhs.Mode;
+                return (*this);
+            }
+
+            NetworkInfoInfo& operator=(NetworkInfoInfo&& _rhs) noexcept
+            {
+                Address = std::move(_rhs.Address);
+                DefaultGateway = std::move(_rhs.DefaultGateway);
+                Mask = std::move(_rhs.Mask);
+                Mode = std::move(_rhs.Mode);
+                return (*this);
             }
 
             NetworkInfoInfo& operator=(const Exchange::INetworkControl::NetworkInfo& _rhs)
@@ -73,9 +94,12 @@ namespace JsonData {
                 return (_value);
             }
 
-            bool IsValid() const
+            ~NetworkInfoInfo() = default;
+
+        public:
+            bool IsDataValid() const
             {
-                return (true);
+                return ((Address.IsSet() == true) && (DefaultGateway.IsSet() == true) && (Mask.IsSet() == true) && (Mode.IsSet() == true));
             }
 
         private:
@@ -105,13 +129,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DNSData(const DNSData&) = delete;
+            DNSData(DNSData&&) noexcept  = delete;
+
             DNSData& operator=(const DNSData&) = delete;
+            DNSData& operator=(DNSData&&) noexcept  = delete;
+
+            ~DNSData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::String> Value; // DNS list
@@ -125,13 +155,19 @@ namespace JsonData {
                 Add(_T("interface"), &Interface);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             FlushParamsData(const FlushParamsData&) = delete;
+            FlushParamsData(FlushParamsData&&) noexcept  = delete;
+
             FlushParamsData& operator=(const FlushParamsData&) = delete;
+            FlushParamsData& operator=(FlushParamsData&&) noexcept  = delete;
+
+            ~FlushParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Interface.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Interface; // Flush and reload requested interface
@@ -145,13 +181,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             NetworkData(const NetworkData&) = delete;
+            NetworkData(NetworkData&&) noexcept  = delete;
+
             NetworkData& operator=(const NetworkData&) = delete;
+            NetworkData& operator=(NetworkData&&) noexcept  = delete;
+
+            ~NetworkData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<NetworkInfoInfo> Value; // Network info of requested interface
@@ -165,13 +207,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             UpData(const UpData&) = delete;
+            UpData(UpData&&) noexcept  = delete;
+
             UpData& operator=(const UpData&) = delete;
+            UpData& operator=(UpData&&) noexcept  = delete;
+
+            ~UpData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Value; // Provides given requested interface is up or not
@@ -185,19 +233,27 @@ namespace JsonData {
                 Add(_T("interfacename"), &InterfaceName);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             UpdateParamsData(const UpdateParamsData&) = delete;
+            UpdateParamsData(UpdateParamsData&&) noexcept  = delete;
+
             UpdateParamsData& operator=(const UpdateParamsData&) = delete;
+            UpdateParamsData& operator=(UpdateParamsData&&) noexcept  = delete;
+
+            ~UpdateParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (InterfaceName.IsSet() == true);
+            }
 
         public:
             Core::JSON::String InterfaceName;
         }; // class UpdateParamsData
 
     } // namespace NetworkControl
+
+    POP_WARNING()
 
 } // namespace JsonData
 

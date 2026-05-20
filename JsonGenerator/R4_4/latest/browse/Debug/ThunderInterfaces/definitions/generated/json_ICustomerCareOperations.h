@@ -1,4 +1,4 @@
-// ICustomerCareOperations JSON-RPC API
+// ICustomerCareOperations API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

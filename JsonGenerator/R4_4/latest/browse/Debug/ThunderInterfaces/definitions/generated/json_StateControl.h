@@ -1,4 +1,4 @@
-// StateControl JSON-RPC API
+// StateControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

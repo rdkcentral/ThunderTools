@@ -1,4 +1,4 @@
-// Enumeration code for BrowserSecurity API JSON-RPC API.
+// Enumeration code for BrowserSecurity API.
 // Generated automatically from 'IBrowser.h'.
 
 #include <core/Enumerate.h>

@@ -1,4 +1,4 @@
-// C++ classes for ScriptEngine API JSON-RPC API.
+// C++ types for ScriptEngine API.
 // Generated automatically from 'IScriptEngine.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace ScriptEngine {
 
@@ -25,13 +27,19 @@ namespace JsonData {
                 Add(_T("url"), &URL);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             URLChangedParamsData(const URLChangedParamsData&) = delete;
+            URLChangedParamsData(URLChangedParamsData&&) noexcept  = delete;
+
             URLChangedParamsData& operator=(const URLChangedParamsData&) = delete;
+            URLChangedParamsData& operator=(URLChangedParamsData&&) noexcept  = delete;
+
+            ~URLChangedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (URL.IsSet() == true);
+            }
 
         public:
             Core::JSON::String URL;
@@ -45,19 +53,27 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             URLData(const URLData&) = delete;
+            URLData(URLData&&) noexcept  = delete;
+
             URLData& operator=(const URLData&) = delete;
+            URLData& operator=(URLData&&) noexcept  = delete;
+
+            ~URLData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Value; // Script to be loaded into the engine and to be executed.
         }; // class URLData
 
     } // namespace ScriptEngine
+
+    POP_WARNING()
 
 } // namespace JsonData
 

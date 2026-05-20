@@ -1,4 +1,4 @@
-// C++ classes for UserSettings API JSON-RPC API.
+// C++ types for UserSettings API.
 // Generated automatically from 'IUserSettings.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace UserSettings {
 
@@ -25,13 +27,19 @@ namespace JsonData {
                 Add(_T("enabled"), &Enabled);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             OnAudioDescriptionChangedParamsInfo(const OnAudioDescriptionChangedParamsInfo&) = delete;
+            OnAudioDescriptionChangedParamsInfo(OnAudioDescriptionChangedParamsInfo&&) noexcept  = delete;
+
             OnAudioDescriptionChangedParamsInfo& operator=(const OnAudioDescriptionChangedParamsInfo&) = delete;
+            OnAudioDescriptionChangedParamsInfo& operator=(OnAudioDescriptionChangedParamsInfo&&) noexcept  = delete;
+
+            ~OnAudioDescriptionChangedParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Enabled.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Enabled; // Enabled/Disabled.
@@ -45,13 +53,19 @@ namespace JsonData {
                 Add(_T("preferredlanguages"), &PreferredLanguages);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             OnPreferredAudioLanguagesChangedParamsInfo(const OnPreferredAudioLanguagesChangedParamsInfo&) = delete;
+            OnPreferredAudioLanguagesChangedParamsInfo(OnPreferredAudioLanguagesChangedParamsInfo&&) noexcept  = delete;
+
             OnPreferredAudioLanguagesChangedParamsInfo& operator=(const OnPreferredAudioLanguagesChangedParamsInfo&) = delete;
+            OnPreferredAudioLanguagesChangedParamsInfo& operator=(OnPreferredAudioLanguagesChangedParamsInfo&&) noexcept  = delete;
+
+            ~OnPreferredAudioLanguagesChangedParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (PreferredLanguages.IsSet() == true);
+            }
 
         public:
             Core::JSON::String PreferredLanguages; // PreferredLanguages.
@@ -65,13 +79,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SetAudioDescriptionInfo(const SetAudioDescriptionInfo&) = delete;
+            SetAudioDescriptionInfo(SetAudioDescriptionInfo&&) noexcept  = delete;
+
             SetAudioDescriptionInfo& operator=(const SetAudioDescriptionInfo&) = delete;
+            SetAudioDescriptionInfo& operator=(SetAudioDescriptionInfo&&) noexcept  = delete;
+
+            ~SetAudioDescriptionInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Value; // Enabled/Disabled
@@ -85,13 +105,19 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SetPreferredAudioLanguagesInfo(const SetPreferredAudioLanguagesInfo&) = delete;
+            SetPreferredAudioLanguagesInfo(SetPreferredAudioLanguagesInfo&&) noexcept  = delete;
+
             SetPreferredAudioLanguagesInfo& operator=(const SetPreferredAudioLanguagesInfo&) = delete;
+            SetPreferredAudioLanguagesInfo& operator=(SetPreferredAudioLanguagesInfo&&) noexcept  = delete;
+
+            ~SetPreferredAudioLanguagesInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Value.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Value; // PreferredLanguages
@@ -108,13 +134,19 @@ namespace JsonData {
                 Add(_T("service"), &Service);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             OnPreferredClosedCaptionServiceChangedParamsData(const OnPreferredClosedCaptionServiceChangedParamsData&) = delete;
+            OnPreferredClosedCaptionServiceChangedParamsData(OnPreferredClosedCaptionServiceChangedParamsData&&) noexcept  = delete;
+
             OnPreferredClosedCaptionServiceChangedParamsData& operator=(const OnPreferredClosedCaptionServiceChangedParamsData&) = delete;
+            OnPreferredClosedCaptionServiceChangedParamsData& operator=(OnPreferredClosedCaptionServiceChangedParamsData&&) noexcept  = delete;
+
+            ~OnPreferredClosedCaptionServiceChangedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Service.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Service; // "CC[1-4]", "TEXT[1-4]", "SERVICE[1-64]".
@@ -128,13 +160,19 @@ namespace JsonData {
                 Add(_T("presentationlanguages"), &PresentationLanguages);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             OnPresentationLanguageChangedParamsData(const OnPresentationLanguageChangedParamsData&) = delete;
+            OnPresentationLanguageChangedParamsData(OnPresentationLanguageChangedParamsData&&) noexcept  = delete;
+
             OnPresentationLanguageChangedParamsData& operator=(const OnPresentationLanguageChangedParamsData&) = delete;
+            OnPresentationLanguageChangedParamsData& operator=(OnPresentationLanguageChangedParamsData&&) noexcept  = delete;
+
+            ~OnPresentationLanguageChangedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (PresentationLanguages.IsSet() == true);
+            }
 
         public:
             Core::JSON::String PresentationLanguages; // PresentationLanguages.
@@ -148,19 +186,27 @@ namespace JsonData {
                 Add(_T("privacymode"), &PrivacyMode);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             OnPrivacyModeChangedParamsData(const OnPrivacyModeChangedParamsData&) = delete;
+            OnPrivacyModeChangedParamsData(OnPrivacyModeChangedParamsData&&) noexcept  = delete;
+
             OnPrivacyModeChangedParamsData& operator=(const OnPrivacyModeChangedParamsData&) = delete;
+            OnPrivacyModeChangedParamsData& operator=(OnPrivacyModeChangedParamsData&&) noexcept  = delete;
+
+            ~OnPrivacyModeChangedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (PrivacyMode.IsSet() == true);
+            }
 
         public:
             Core::JSON::String PrivacyMode; // "SHARE", "DO_NOT_SHARE".
         }; // class OnPrivacyModeChangedParamsData
 
     } // namespace UserSettings
+
+    POP_WARNING()
 
 } // namespace JsonData
 

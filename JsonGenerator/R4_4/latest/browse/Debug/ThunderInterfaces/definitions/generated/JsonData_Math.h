@@ -1,4 +1,4 @@
-// C++ classes for Math API JSON-RPC API.
+// C++ types for Math API.
 // Generated automatically from 'IMath.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Math {
 
@@ -26,13 +28,19 @@ namespace JsonData {
                 Add(_T("b"), &B);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             AddParamsInfo(const AddParamsInfo&) = delete;
+            AddParamsInfo(AddParamsInfo&&) noexcept  = delete;
+
             AddParamsInfo& operator=(const AddParamsInfo&) = delete;
+            AddParamsInfo& operator=(AddParamsInfo&&) noexcept  = delete;
+
+            ~AddParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((A.IsSet() == true) && (B.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt16 A;
@@ -43,6 +51,8 @@ namespace JsonData {
         //
 
     } // namespace Math
+
+    POP_WARNING()
 
 } // namespace JsonData
 

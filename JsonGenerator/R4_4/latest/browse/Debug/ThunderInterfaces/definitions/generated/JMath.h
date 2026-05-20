@@ -1,7 +1,6 @@
 // Generated automatically from 'IMath.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_Math.h"
 #include <interfaces/IMath.h>
@@ -20,63 +19,77 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IMath* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IMath* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JMath"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JMath"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'add'
-            _module_.Register<JsonData::Math::AddParamsInfo, Core::JSON::DecUInt16>(_T("add"), 
-                [_impl_](const JsonData::Math::AddParamsInfo& params, Core::JSON::DecUInt16& sum) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::Math::AddParamsInfo, Core::JSON::DecUInt16>(_T("add"),
+                [_implementation__](const JsonData::Math::AddParamsInfo& params, Core::JSON::DecUInt16& sum) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const uint16_t _a{params.A};
-                    const uint16_t _b{params.B};
-                    uint16_t _sum{};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const uint16_t _a_{params.A};
+                        const uint16_t _b_{params.B};
+                        uint16_t _sum_{};
 
-                    _errorCode = _impl_->Add(_a, _b, _sum);
+                        _errorCode__ = _implementation__->Add(_a_, _b_, _sum_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
-                        sum = _sum;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            sum = _sum_;
+                        }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Method: 'sub'
-            _module_.Register<JsonData::Math::AddParamsInfo, Core::JSON::DecUInt16>(_T("sub"), 
-                [_impl_](const JsonData::Math::AddParamsInfo& params, Core::JSON::DecUInt16& sum) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::Math::AddParamsInfo, Core::JSON::DecUInt16>(_T("sub"),
+                [_implementation__](const JsonData::Math::AddParamsInfo& params, Core::JSON::DecUInt16& sum) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const uint16_t _a{params.A};
-                    const uint16_t _b{params.B};
-                    uint16_t _sum{};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const uint16_t _a_{params.A};
+                        const uint16_t _b_{params.B};
+                        uint16_t _sum_{};
 
-                    _errorCode = _impl_->Sub(_a, _b, _sum);
+                        _errorCode__ = _implementation__->Sub(_a_, _b_, _sum_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
-                        sum = _sum;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            sum = _sum_;
+                        }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("add"));
-            _module_.Unregister(_T("sub"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("add"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("sub"));
         }
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JMath

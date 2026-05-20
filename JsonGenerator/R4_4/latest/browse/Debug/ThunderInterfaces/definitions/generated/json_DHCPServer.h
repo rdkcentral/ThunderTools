@@ -1,4 +1,4 @@
-// DHCPServer JSON-RPC API
+// DHCPServer API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once
