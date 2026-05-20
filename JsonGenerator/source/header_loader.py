@@ -1377,7 +1377,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                     for e in interfaces:
                                         for m in e.obj.methods:
                                             for p in m.vars:
-                                                if isinstance(p.type.type, CppParser.Class) and p.type.type.is_event:
+                                                if isinstance(p.type.type, CppParser.Class) and p.type.type.is_event and p.type.type.full_name == f.obj.full_name:
                                                     log.WarnLine(method, "%s: @index is not recommended here, declare in event registration method instead: %s()" % (method.vars[0].name, m.full_name))
                                                     return
                                 MaybeWarning()
