@@ -400,6 +400,16 @@ def LookupIdentifier(identifier, scope=None):
         assert len(found) == 1, "Too many references found, need scope for %s" % identifier
         selected = found[-1]
 
+    if selected:
+        # count references to instantiated template classes, we might not want to emit proxystubs for unused templates
+        if isinstance(selected, InstantiatedTemplateClass):
+            selected.AddRef()
+        elif isinstance(selected, Typedef):
+            resolved = selected.DataType()
+            if not isinstance(resolved, str):
+                if isinstance(resolved.type, InstantiatedTemplateClass):
+                    resolved.type.AddRef()
+
     return selected
 
 
@@ -1661,6 +1671,10 @@ class InstantiatedTemplateClass(Class):
         self.args = args
         self.resolvedArgs = [Identifier(parent_block, self, [x], []) for x in args]
         self.type = self.TypeName()
+        self.refs = 0
+
+    def AddRef(self):
+        self.refs += 1
 
     def TypeName(self):
         return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join([str(x) for x in p.type]) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
@@ -2181,6 +2195,7 @@ def CurrentLine():
 
 # Builds a syntax tree (data structures only) of C++ source code
 def Parse(contents,log = None):
+
     # Start in global namespace.
     global global_namespace
     global current_file
@@ -2205,14 +2220,12 @@ def Parse(contents,log = None):
             current_line = int(token[6:].split()[0])
         elif isinstance(token, str) and token.startswith("@FILE:"):
             current_file = token[6:]
-            tokens.append("@GLOBAL")
             line_numbers.append(current_line)
             files.append(current_file)
         else:
             tokens.append(token)
             line_numbers.append(current_line)
             files.append(current_file)
-
 
     global_namespace = Namespace(None)
 
@@ -2235,6 +2248,7 @@ def Parse(contents,log = None):
     collapsed_next = False
     compliant_next = False
     iterator_next = False
+    wrap_next = False
     sourcelocation_next = False
     text_next = None
     in_typedef = False
@@ -2314,32 +2328,6 @@ def Parse(contents,log = None):
             i += 2
         elif tokens[i] == "@ITERATOR":
             iterator_next = True
-            tokens[i] = ";"
-            i += 1
-        elif tokens[i] == "@GLOBAL":
-            current_block = [global_namespace]
-            next_block = None
-            last_template_def = []
-            min_index = 0
-            omit_mode = False
-            omit_next = False
-            stub_next = False
-            json_next = False
-            object_next = False
-            autoobject_next = False
-            encode_enum_next = False
-            wrap_next = False
-            json_version = ""
-            prefix_next = False
-            prefix_string = ""
-            event_next = False
-            extended_next = False
-            collapsed_next = False
-            compliant_next = False
-            iterator_next = False
-            sourcelocation_next = False
-            text_next = None
-            in_typedef = False
             tokens[i] = ";"
             i += 1
 
@@ -2843,7 +2831,6 @@ def Parse(contents,log = None):
 # -------------------------------------------------------------------------
 
 def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=[], quiet=False, omit=False, use_includes=False):
-
     contents = ""
     file_path = None
 

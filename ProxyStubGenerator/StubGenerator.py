@@ -139,7 +139,7 @@ def FindInterfaceClasses(tree, namespace):
                 if c.omit:
                     omit_interface_used = True
 
-                if not isinstance(c, CppParser.TemplateClass):
+                if not isinstance(c, CppParser.TemplateClass) and (not isinstance(c, CppParser.InstantiatedTemplateClass) or c.refs > 0):
                     if (c.full_name.startswith(interface_namespace + "::")):
                         inherits_iunknown = False
                         for a in c.ancestors:
@@ -2535,6 +2535,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line("// -----------------------------------------------------------------")
         emit.Line("// REGISTRATION")
         emit.Line("// -----------------------------------------------------------------")
+        emit.Line()
         EmitRegistration(announce_list)
 
         emit.IndentDec()
