@@ -213,7 +213,10 @@ jobs:
                HAS_DIFF="true"
                export HAS_DIFF  # Update export so Python sees "true"
 
-               npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/index.html" -- "diffs/combined.diff"
+               # Truncate to 95 MB before diff2html to stay under GitHub's 100 MB Pages file limit
+               # (ProxyStub diffs can be very large, especially on the first run against an empty baseline)
+               head -c 95000000 diffs/combined.diff > diffs/combined_display.diff
+               npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/index.html" -- "diffs/combined_display.diff"
                head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff
             else
                mkdir -p "site/$RUN_DIR/diff"
