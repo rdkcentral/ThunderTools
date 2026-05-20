@@ -889,7 +889,7 @@ class JsonMethod(JsonObject):
 
     def _Check(self):
         if self.name.lower() in RESERVED_NAMES:
-            raise JsonParseError("Method/property name '%s' is reserved and cannot be used in a JSON-RPC interface" % self.name)
+            log.Warn("Method/property name '%s' is reserved and should not be used in a JSON-RPC interface" % self.name)
 
     @property
     def rpc_format(self):
