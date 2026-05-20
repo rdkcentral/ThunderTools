@@ -31,7 +31,7 @@ if not exist JsonGenerator.py (
     exit /b 0
 )
 
-set COMMAND=python JsonGenerator.py --docs -i ../../Source/interfaces/json -j ../../Source/interfaces -o doc 
+set COMMAND=python JsonGenerator.py ---docs -i ../../ThunderInterfaces/jsonrpc -i ../../ThunderInterfaces/qa_jsonrpc -i ../../ThunderInterfaces/example_jsonrpc -j ../../ThunderInterfaces/interfaces -j ../../ThunderInterfaces/qa_interfaces -j ../../ThunderInterfaces/example_interfaces -I ../../Thunder/Source --namespace Thunder::Example --namespace Thunder::QualityAssurance --namespace Thunder::Exchange --namespace Thunder::Exchange::JSORPC -o doc --verbose $files
 
 if "%1"=="" (
     echo Usage %0 [JSONFILE] OR [DIRECTORY]

@@ -24,9 +24,12 @@ log = None
 def SortByDependency(objects):
     sorted_objects = []
 
+    unique_objects = {it.cpp_class: it for it in filter(lambda o: not o.is_duplicate, objects)}.values()
+
     # This will order objects by their relations
-    for obj in sorted(objects, key=lambda x: x.cpp_class, reverse=False):
+    for obj in sorted(unique_objects, key=lambda x: x.cpp_class, reverse=False):
         found = filter(lambda sorted_obj: obj.cpp_class in map(lambda x: x.cpp_class, sorted_obj.objects), sorted_objects)
+
         try:
             index = min(map(lambda x: sorted_objects.index(x), found))
             movelist = filter(lambda x: x.cpp_class in map(lambda x: x.cpp_class, sorted_objects), obj.objects)
@@ -34,7 +37,10 @@ def SortByDependency(objects):
 
             for m in movelist:
                 if m in sorted_objects:
-                    sorted_objects.insert(index, sorted_objects.pop(sorted_objects.index(m)))
+                    old = sorted_objects.index(m)
+                    if old > index:
+                        sorted_objects.insert(index, sorted_objects.pop(old))
+
         except ValueError:
             sorted_objects.append(obj)
 
@@ -87,6 +93,25 @@ class ObjectTracker:
                     if rhs["signed"] != False:
                         return False
 
+                if "range" in lhs:
+                    if "range" in rhs:
+                        if lhs["range"] != rhs["range"]:
+                            return False
+                    else:
+                        return False
+                elif "range" in rhs:
+                    if rhs["range"] != [0,0]:
+                        return False
+
+                if "encode" in lhs:
+                    if "encode" in rhs:
+                        if lhs["encode"] != rhs["encode"]:
+                            return False
+                    else:
+                        return False
+                elif "encode" in rhs:
+                        return False
+
                 if "enum" in lhs:
                     if "enum" in rhs:
                         if lhs["enum"] != rhs["enum"]:
@@ -132,6 +157,15 @@ class ObjectTracker:
                 elif "enum" in rhs:
                     return False
 
+                if "@optionaltype" in lhs:
+                    if "@optionaltype" in rhs:
+                        if lhs["@optionaltype"] != rhs["@optionaltype"]:
+                            return False
+                    else:
+                        return False
+                elif "@optionaltype" in rhs:
+                    return False
+
                 if "items" in lhs:
                     if "items" in rhs:
                         if not _CompareType(lhs["items"], rhs["items"]):
@@ -150,7 +184,6 @@ class ObjectTracker:
 
                 return True
 
-            # NOTE: Two objects are considered identical if they have the same property names and types only!
             for name, prop in lhs.items():
                 if name not in rhs:
                     return False
@@ -192,7 +225,8 @@ class ObjectTracker:
     def Reset(self):
         self.objects = []
 
-    def CommonObjects(self):
+    @property
+    def common_objects(self):
         return SortByDependency(filter(lambda obj: obj.RefCount() > 1, self.objects))
 
 
@@ -260,7 +294,8 @@ class EnumTracker(ObjectTracker):
 
         return None
 
-    def CommonObjects(self):
+    @property
+    def common_objects(self):
         return SortByDependency(filter(lambda obj: ((obj.RefCount() > 1) or self._IsTopmost(obj)), self.objects))
 
 def SetLogger(logger):

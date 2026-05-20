@@ -19,16 +19,15 @@
 
 //
 // Forward declarations of types used by the interfaces.
-// Included by default by the stub generator.
-// (fundamental types, stdint and string types are built into the generator)
+// Included by default by the ProxyStubGenerator.
+// (Fundamental types, stdint and string types are built into the generator)
 //
 
 #pragma once
 
-#include <stdint.h>
-
 /* @define EXTERNAL */
 /* @define DEPRECATED */
+/* @define VARIABLE_IS_NOT_USED */
 
 typedef char TCHAR;
 typedef wchar_t WCHAR;
@@ -42,41 +41,45 @@ namespace std {
   typedef __stubgen_undetermined_integer ssize_t;
   typedef __stubgen_undetermined_integer time_t;
   typedef __stubgen_undetermined_integer clock_t;
+
+  template<typename T>
+  class vector;
 }
 
-namespace WPEFramework {
+namespace __FRAMEWORK_NAMESPACE__ {
+
+  namespace ProxyStub {
+    class UnknownProxy;
+  }
 
   namespace Core {
     typedef __stubgen_instance_id instance_id;
+    typedef __stubgen_time Time;
+
     typedef uint32_t hresult;
+
+    template<typename T>
+    struct OptionalType;
 
     struct IUnknown {
       enum {
         ID_OFFSET_INTERNAL = 0
       };
     };
+
+    namespace JSONRPC {
+      struct Context;
+    }
   }
 
+  // for legacy compatibiltity only
   namespace PluginHost {
-    class IShell {
-      enum state : uint8_t;
-      enum reason : uint8_t;
-    };
-
-    class ISubSystem {
-      enum subsystem : uint32_t;
-    };
-
+    class IShell;
+    class ISubSystem;
     class IPlugin {
       class INotification;
     };
   }
+}
 
-  namespace RPC {
-    class IStringIterator;
-    class IValueIterator;
-  }
-
-} // namespace WPEFramework
-
-
+// @insert:weak <com/ICOM.h>
