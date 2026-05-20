@@ -1,0 +1,1641 @@
+//
+// generated automatically from "IDisplayInfo.h"
+//
+// implements COM-RPC proxy stubs for:
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IHDRProperties::HDRType, INTERFACE_ID = Exchange::ID_HDR_ITERATOR]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDisplayProperties::ColorimetryType, INTERFACE_ID = Exchange::ID_COLORIMETRY_ITERATOR]
+//   - class Exchange::IGraphicsProperties
+//   - class Exchange::IConnectionProperties
+//   - class Exchange::IConnectionProperties::INotification
+//   - class Exchange::IHDRProperties
+//   - class Exchange::IDisplayProperties
+//
+
+#include "Module.h"
+#include "IDisplayInfo.h"
+
+#include <com/com.h>
+
+namespace WPEFramework {
+
+namespace ProxyStubs {
+
+    PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
+
+    // -----------------------------------------------------------------
+    // STUBS
+    // -----------------------------------------------------------------
+
+    //
+    // RPC::IIteratorTypeInstance0DB3EE30 interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual bool Next(Exchange::IHDRProperties::HDRType&) = 0
+    //  (1) virtual bool Previous(Exchange::IHDRProperties::HDRType&) = 0
+    //  (2) virtual void Reset(const uint32_t) = 0
+    //  (3) virtual bool IsValid() const = 0
+    //  (4) virtual uint32_t Count() const = 0
+    //  (5) virtual Exchange::IHDRProperties::HDRType Current() const = 0
+    //
+
+    ProxyStub::MethodHandler RPCIteratorTypeInstance0DB3EE30StubMethods[] = {
+        // (0) virtual bool Next(Exchange::IHDRProperties::HDRType&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IHDRProperties::HDRType _info{};
+
+            bool result = implementation->Next(_info);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+            writer.Number<Exchange::IHDRProperties::HDRType>(_info);
+        },
+
+        // (1) virtual bool Previous(Exchange::IHDRProperties::HDRType&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IHDRProperties::HDRType _info{};
+
+            bool result = implementation->Previous(_info);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+            writer.Number<Exchange::IHDRProperties::HDRType>(_info);
+        },
+
+        // (2) virtual void Reset(const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const uint32_t _position = reader.Number<uint32_t>();
+
+            implementation->Reset(_position);
+        },
+
+        // (3) virtual bool IsValid() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            bool result = implementation->IsValid();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+        },
+
+        // (4) virtual uint32_t Count() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint32_t result = implementation->Count();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+        },
+
+        // (5) virtual Exchange::IHDRProperties::HDRType Current() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IHDRProperties::HDRType result = implementation->Current();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Exchange::IHDRProperties::HDRType>(result);
+        }
+        , nullptr
+    }; // RPCIteratorTypeInstance0DB3EE30StubMethods
+
+    //
+    // RPC::IIteratorTypeInstance6ED78628 interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual bool Next(Exchange::IDisplayProperties::ColorimetryType&) = 0
+    //  (1) virtual bool Previous(Exchange::IDisplayProperties::ColorimetryType&) = 0
+    //  (2) virtual void Reset(const uint32_t) = 0
+    //  (3) virtual bool IsValid() const = 0
+    //  (4) virtual uint32_t Count() const = 0
+    //  (5) virtual Exchange::IDisplayProperties::ColorimetryType Current() const = 0
+    //
+
+    ProxyStub::MethodHandler RPCIteratorTypeInstance6ED78628StubMethods[] = {
+        // (0) virtual bool Next(Exchange::IDisplayProperties::ColorimetryType&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::ColorimetryType _info{};
+
+            bool result = implementation->Next(_info);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+            writer.Number<Exchange::IDisplayProperties::ColorimetryType>(_info);
+        },
+
+        // (1) virtual bool Previous(Exchange::IDisplayProperties::ColorimetryType&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::ColorimetryType _info{};
+
+            bool result = implementation->Previous(_info);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+            writer.Number<Exchange::IDisplayProperties::ColorimetryType>(_info);
+        },
+
+        // (2) virtual void Reset(const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const uint32_t _position = reader.Number<uint32_t>();
+
+            implementation->Reset(_position);
+        },
+
+        // (3) virtual bool IsValid() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            bool result = implementation->IsValid();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+        },
+
+        // (4) virtual uint32_t Count() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint32_t result = implementation->Count();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+        },
+
+        // (5) virtual Exchange::IDisplayProperties::ColorimetryType Current() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::ColorimetryType result = implementation->Current();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Exchange::IDisplayProperties::ColorimetryType>(result);
+        }
+        , nullptr
+    }; // RPCIteratorTypeInstance6ED78628StubMethods
+
+    //
+    // Exchange::IGraphicsProperties interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t TotalGpuRam(uint64_t&) const = 0
+    //  (1) virtual uint32_t FreeGpuRam(uint64_t&) const = 0
+    //
+
+    ProxyStub::MethodHandler ExchangeGraphicsPropertiesStubMethods[] = {
+        // (0) virtual uint32_t TotalGpuRam(uint64_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IGraphicsProperties* implementation = reinterpret_cast<const Exchange::IGraphicsProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint64_t _total{};
+
+            uint32_t result = implementation->TotalGpuRam(_total);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint64_t>(_total);
+        },
+
+        // (1) virtual uint32_t FreeGpuRam(uint64_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IGraphicsProperties* implementation = reinterpret_cast<const Exchange::IGraphicsProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint64_t _free{};
+
+            uint32_t result = implementation->FreeGpuRam(_free);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint64_t>(_free);
+        }
+        , nullptr
+    }; // ExchangeGraphicsPropertiesStubMethods
+
+    //
+    // Exchange::IConnectionProperties interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t Register(Exchange::IConnectionProperties::INotification*) = 0
+    //  (1) virtual uint32_t Unregister(Exchange::IConnectionProperties::INotification*) = 0
+    //  (2) virtual uint32_t IsAudioPassthrough(bool&) const = 0
+    //  (3) virtual uint32_t Connected(bool&) const = 0
+    //  (4) virtual uint32_t Width(uint32_t&) const = 0
+    //  (5) virtual uint32_t Height(uint32_t&) const = 0
+    //  (6) virtual uint32_t VerticalFreq(uint32_t&) const = 0
+    //  (7) virtual uint32_t EDID(uint16_t&, uint8_t*) const = 0
+    //  (8) virtual uint32_t WidthInCentimeters(uint8_t&) const = 0
+    //  (9) virtual uint32_t HeightInCentimeters(uint8_t&) const = 0
+    //  (10) virtual uint32_t HDCPProtection(Exchange::IConnectionProperties::HDCPProtectionType&) const = 0
+    //  (11) virtual uint32_t HDCPProtection(const Exchange::IConnectionProperties::HDCPProtectionType) = 0
+    //  (12) virtual uint32_t PortName(string&) const = 0
+    //
+
+    ProxyStub::MethodHandler ExchangeConnectionPropertiesStubMethods[] = {
+        // (0) virtual uint32_t Register(Exchange::IConnectionProperties::INotification*) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Exchange::IConnectionProperties* implementation = reinterpret_cast<Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const Core::instance_id parameter_2913a2cbImplementation = reader.Number<Core::instance_id>();
+
+            Exchange::IConnectionProperties::INotification* _parameter_2913a2cb = nullptr;
+            ProxyStub::UnknownProxy* parameter_2913a2cbProxy = nullptr;
+            if (parameter_2913a2cbImplementation != 0) {
+                parameter_2913a2cbProxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_2913a2cbImplementation, false, _parameter_2913a2cb);
+
+                ASSERT((_parameter_2913a2cb != nullptr) && (parameter_2913a2cbProxy != nullptr));
+            }
+
+            uint32_t result = implementation->Register(_parameter_2913a2cb);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+
+            if (parameter_2913a2cbProxy != nullptr) {
+                RPC::Administrator::Instance().Release(parameter_2913a2cbProxy, message->Response());
+            }
+        },
+
+        // (1) virtual uint32_t Unregister(Exchange::IConnectionProperties::INotification*) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Exchange::IConnectionProperties* implementation = reinterpret_cast<Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const Core::instance_id parameter_659a5361Implementation = reader.Number<Core::instance_id>();
+
+            Exchange::IConnectionProperties::INotification* _parameter_659a5361 = nullptr;
+            ProxyStub::UnknownProxy* parameter_659a5361Proxy = nullptr;
+            if (parameter_659a5361Implementation != 0) {
+                parameter_659a5361Proxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_659a5361Implementation, false, _parameter_659a5361);
+
+                ASSERT((_parameter_659a5361 != nullptr) && (parameter_659a5361Proxy != nullptr));
+            }
+
+            uint32_t result = implementation->Unregister(_parameter_659a5361);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+
+            if (parameter_659a5361Proxy != nullptr) {
+                RPC::Administrator::Instance().Release(parameter_659a5361Proxy, message->Response());
+            }
+        },
+
+        // (2) virtual uint32_t IsAudioPassthrough(bool&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            bool _passthru{};
+
+            uint32_t result = implementation->IsAudioPassthrough(_passthru);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Boolean(_passthru);
+        },
+
+        // (3) virtual uint32_t Connected(bool&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            bool _isconnected{};
+
+            uint32_t result = implementation->Connected(_isconnected);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Boolean(_isconnected);
+        },
+
+        // (4) virtual uint32_t Width(uint32_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint32_t _width{};
+
+            uint32_t result = implementation->Width(_width);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint32_t>(_width);
+        },
+
+        // (5) virtual uint32_t Height(uint32_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint32_t _height{};
+
+            uint32_t result = implementation->Height(_height);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint32_t>(_height);
+        },
+
+        // (6) virtual uint32_t VerticalFreq(uint32_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint32_t _vf{};
+
+            uint32_t result = implementation->VerticalFreq(_vf);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint32_t>(_vf);
+        },
+
+        // (7) virtual uint32_t EDID(uint16_t&, uint8_t*) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            uint16_t _length = reader.Number<uint16_t>();
+
+            uint8_t* _data{};
+
+            if (_length != 0) {
+                _data = static_cast<uint8_t*>(ALLOCA(_length));
+            }
+
+            uint32_t result = implementation->EDID(_length, _data);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Buffer<uint16_t>((_data == nullptr? 0 : _length), _data);
+            writer.Number<uint16_t>(_length);
+        },
+
+        // (8) virtual uint32_t WidthInCentimeters(uint8_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint8_t _width{};
+
+            uint32_t result = implementation->WidthInCentimeters(_width);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint8_t>(_width);
+        },
+
+        // (9) virtual uint32_t HeightInCentimeters(uint8_t&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint8_t _height{};
+
+            uint32_t result = implementation->HeightInCentimeters(_height);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<uint8_t>(_height);
+        },
+
+        // (10) virtual uint32_t HDCPProtection(Exchange::IConnectionProperties::HDCPProtectionType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IConnectionProperties::HDCPProtectionType _value{};
+
+            uint32_t result = implementation->HDCPProtection(_value);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IConnectionProperties::HDCPProtectionType>(_value);
+        },
+
+        // (11) virtual uint32_t HDCPProtection(const Exchange::IConnectionProperties::HDCPProtectionType) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Exchange::IConnectionProperties* implementation = reinterpret_cast<Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const Exchange::IConnectionProperties::HDCPProtectionType _value = reader.Number<Exchange::IConnectionProperties::HDCPProtectionType>();
+
+            uint32_t result = implementation->HDCPProtection(_value);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+        },
+
+        // (12) virtual uint32_t PortName(string&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IConnectionProperties* implementation = reinterpret_cast<const Exchange::IConnectionProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            string _name{};
+
+            uint32_t result = implementation->PortName(_name);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Text(_name);
+        }
+        , nullptr
+    }; // ExchangeConnectionPropertiesStubMethods
+
+    //
+    // Exchange::IConnectionProperties::INotification interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual void Updated(const Exchange::IConnectionProperties::INotification::Source) = 0
+    //
+
+    ProxyStub::MethodHandler ExchangeConnectionPropertiesNotificationStubMethods[] = {
+        // (0) virtual void Updated(const Exchange::IConnectionProperties::INotification::Source) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Exchange::IConnectionProperties::INotification* implementation = reinterpret_cast<Exchange::IConnectionProperties::INotification*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const Exchange::IConnectionProperties::INotification::Source _event = reader.Number<Exchange::IConnectionProperties::INotification::Source>();
+
+            implementation->Updated(_event);
+        }
+        , nullptr
+    }; // ExchangeConnectionPropertiesNotificationStubMethods
+
+    //
+    // Exchange::IHDRProperties interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t TVCapabilities(Exchange::IHDRProperties::IHDRIterator*&) const = 0
+    //  (1) virtual uint32_t STBCapabilities(Exchange::IHDRProperties::IHDRIterator*&) const = 0
+    //  (2) virtual uint32_t HDRSetting(Exchange::IHDRProperties::HDRType&) const = 0
+    //
+
+    ProxyStub::MethodHandler ExchangeHDRPropertiesStubMethods[] = {
+        // (0) virtual uint32_t TVCapabilities(Exchange::IHDRProperties::IHDRIterator*&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IHDRProperties* implementation = reinterpret_cast<const Exchange::IHDRProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IHDRProperties::IHDRIterator* _type{};
+
+            uint32_t result = implementation->TVCapabilities(_type);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Core::instance_id>(RPC::instance_cast(_type));
+
+            RPC::Administrator::Instance().RegisterInterface(channel, _type);
+        },
+
+        // (1) virtual uint32_t STBCapabilities(Exchange::IHDRProperties::IHDRIterator*&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IHDRProperties* implementation = reinterpret_cast<const Exchange::IHDRProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IHDRProperties::IHDRIterator* _type{};
+
+            uint32_t result = implementation->STBCapabilities(_type);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Core::instance_id>(RPC::instance_cast(_type));
+
+            RPC::Administrator::Instance().RegisterInterface(channel, _type);
+        },
+
+        // (2) virtual uint32_t HDRSetting(Exchange::IHDRProperties::HDRType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IHDRProperties* implementation = reinterpret_cast<const Exchange::IHDRProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IHDRProperties::HDRType _type{};
+
+            uint32_t result = implementation->HDRSetting(_type);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IHDRProperties::HDRType>(_type);
+        }
+        , nullptr
+    }; // ExchangeHDRPropertiesStubMethods
+
+    //
+    // Exchange::IDisplayProperties interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t ColorSpace(Exchange::IDisplayProperties::ColourSpaceType&) const = 0
+    //  (1) virtual uint32_t FrameRate(Exchange::IDisplayProperties::FrameRateType&) const = 0
+    //  (2) virtual uint32_t ColourDepth(Exchange::IDisplayProperties::ColourDepthType&) const = 0
+    //  (3) virtual uint32_t Colorimetry(Exchange::IDisplayProperties::IColorimetryIterator*&) const = 0
+    //  (4) virtual uint32_t QuantizationRange(Exchange::IDisplayProperties::QuantizationRangeType&) const = 0
+    //  (5) virtual uint32_t EOTF(Exchange::IDisplayProperties::EotfType&) const = 0
+    //
+
+    ProxyStub::MethodHandler ExchangeDisplayPropertiesStubMethods[] = {
+        // (0) virtual uint32_t ColorSpace(Exchange::IDisplayProperties::ColourSpaceType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IDisplayProperties* implementation = reinterpret_cast<const Exchange::IDisplayProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::ColourSpaceType _cs{};
+
+            uint32_t result = implementation->ColorSpace(_cs);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IDisplayProperties::ColourSpaceType>(_cs);
+        },
+
+        // (1) virtual uint32_t FrameRate(Exchange::IDisplayProperties::FrameRateType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IDisplayProperties* implementation = reinterpret_cast<const Exchange::IDisplayProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::FrameRateType _rate{};
+
+            uint32_t result = implementation->FrameRate(_rate);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IDisplayProperties::FrameRateType>(_rate);
+        },
+
+        // (2) virtual uint32_t ColourDepth(Exchange::IDisplayProperties::ColourDepthType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IDisplayProperties* implementation = reinterpret_cast<const Exchange::IDisplayProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::ColourDepthType _colour{};
+
+            uint32_t result = implementation->ColourDepth(_colour);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IDisplayProperties::ColourDepthType>(_colour);
+        },
+
+        // (3) virtual uint32_t Colorimetry(Exchange::IDisplayProperties::IColorimetryIterator*&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IDisplayProperties* implementation = reinterpret_cast<const Exchange::IDisplayProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::IColorimetryIterator* _colorimetry{};
+
+            uint32_t result = implementation->Colorimetry(_colorimetry);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Core::instance_id>(RPC::instance_cast(_colorimetry));
+
+            RPC::Administrator::Instance().RegisterInterface(channel, _colorimetry);
+        },
+
+        // (4) virtual uint32_t QuantizationRange(Exchange::IDisplayProperties::QuantizationRangeType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IDisplayProperties* implementation = reinterpret_cast<const Exchange::IDisplayProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::QuantizationRangeType _qr{};
+
+            uint32_t result = implementation->QuantizationRange(_qr);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IDisplayProperties::QuantizationRangeType>(_qr);
+        },
+
+        // (5) virtual uint32_t EOTF(Exchange::IDisplayProperties::EotfType&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Exchange::IDisplayProperties* implementation = reinterpret_cast<const Exchange::IDisplayProperties*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            Exchange::IDisplayProperties::EotfType _eotf{};
+
+            uint32_t result = implementation->EOTF(_eotf);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+            writer.Number<Exchange::IDisplayProperties::EotfType>(_eotf);
+        }
+        , nullptr
+    }; // ExchangeDisplayPropertiesStubMethods
+
+    // -----------------------------------------------------------------
+    // PROXIES
+    // -----------------------------------------------------------------
+
+    //
+    // RPC::IIteratorTypeInstance0DB3EE30 interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual bool Next(Exchange::IHDRProperties::HDRType&) = 0
+    //  (1) virtual bool Previous(Exchange::IHDRProperties::HDRType&) = 0
+    //  (2) virtual void Reset(const uint32_t) = 0
+    //  (3) virtual bool IsValid() const = 0
+    //  (4) virtual uint32_t Count() const = 0
+    //  (5) virtual Exchange::IHDRProperties::HDRType Current() const = 0
+    //
+
+    class RPCIteratorTypeInstance0DB3EE30Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>> {
+    public:
+        RPCIteratorTypeInstance0DB3EE30Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        bool Next(Exchange::IHDRProperties::HDRType& _info) override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IHDRProperties::HDRType>();
+
+            return (result);
+        }
+
+        bool Previous(Exchange::IHDRProperties::HDRType& _info) override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IHDRProperties::HDRType>();
+
+            return (result);
+        }
+
+        void Reset(const uint32_t _position) override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_position);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+        bool IsValid() const override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+
+            return (result);
+        }
+
+        uint32_t Count() const override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            uint32_t result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        Exchange::IHDRProperties::HDRType Current() const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            Exchange::IHDRProperties::HDRType result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::IHDRProperties::HDRType>();
+
+            return (result);
+        }
+
+    }; // class RPCIteratorTypeInstance0DB3EE30Proxy
+
+    //
+    // RPC::IIteratorTypeInstance6ED78628 interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual bool Next(Exchange::IDisplayProperties::ColorimetryType&) = 0
+    //  (1) virtual bool Previous(Exchange::IDisplayProperties::ColorimetryType&) = 0
+    //  (2) virtual void Reset(const uint32_t) = 0
+    //  (3) virtual bool IsValid() const = 0
+    //  (4) virtual uint32_t Count() const = 0
+    //  (5) virtual Exchange::IDisplayProperties::ColorimetryType Current() const = 0
+    //
+
+    class RPCIteratorTypeInstance6ED78628Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>> {
+    public:
+        RPCIteratorTypeInstance6ED78628Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        bool Next(Exchange::IDisplayProperties::ColorimetryType& _info) override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IDisplayProperties::ColorimetryType>();
+
+            return (result);
+        }
+
+        bool Previous(Exchange::IDisplayProperties::ColorimetryType& _info) override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IDisplayProperties::ColorimetryType>();
+
+            return (result);
+        }
+
+        void Reset(const uint32_t _position) override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_position);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+        bool IsValid() const override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+
+            return (result);
+        }
+
+        uint32_t Count() const override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            uint32_t result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        Exchange::IDisplayProperties::ColorimetryType Current() const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            Exchange::IDisplayProperties::ColorimetryType result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::IDisplayProperties::ColorimetryType>();
+
+            return (result);
+        }
+
+    }; // class RPCIteratorTypeInstance6ED78628Proxy
+
+    //
+    // Exchange::IGraphicsProperties interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t TotalGpuRam(uint64_t&) const = 0
+    //  (1) virtual uint32_t FreeGpuRam(uint64_t&) const = 0
+    //
+
+    class ExchangeGraphicsPropertiesProxy final : public ProxyStub::UnknownProxyType<Exchange::IGraphicsProperties> {
+    public:
+        ExchangeGraphicsPropertiesProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        uint32_t TotalGpuRam(uint64_t& _total) const override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _total = reader.Number<uint64_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t FreeGpuRam(uint64_t& _free) const override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _free = reader.Number<uint64_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+    }; // class ExchangeGraphicsPropertiesProxy
+
+    //
+    // Exchange::IConnectionProperties interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t Register(Exchange::IConnectionProperties::INotification*) = 0
+    //  (1) virtual uint32_t Unregister(Exchange::IConnectionProperties::INotification*) = 0
+    //  (2) virtual uint32_t IsAudioPassthrough(bool&) const = 0
+    //  (3) virtual uint32_t Connected(bool&) const = 0
+    //  (4) virtual uint32_t Width(uint32_t&) const = 0
+    //  (5) virtual uint32_t Height(uint32_t&) const = 0
+    //  (6) virtual uint32_t VerticalFreq(uint32_t&) const = 0
+    //  (7) virtual uint32_t EDID(uint16_t&, uint8_t*) const = 0
+    //  (8) virtual uint32_t WidthInCentimeters(uint8_t&) const = 0
+    //  (9) virtual uint32_t HeightInCentimeters(uint8_t&) const = 0
+    //  (10) virtual uint32_t HDCPProtection(Exchange::IConnectionProperties::HDCPProtectionType&) const = 0
+    //  (11) virtual uint32_t HDCPProtection(const Exchange::IConnectionProperties::HDCPProtectionType) = 0
+    //  (12) virtual uint32_t PortName(string&) const = 0
+    //
+
+    class ExchangeConnectionPropertiesProxy final : public ProxyStub::UnknownProxyType<Exchange::IConnectionProperties> {
+    public:
+        ExchangeConnectionPropertiesProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        uint32_t Register(Exchange::IConnectionProperties::INotification* _parameter_2913a2cb) override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_2913a2cb));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                Complete(reader);
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Unregister(Exchange::IConnectionProperties::INotification* _parameter_659a5361) override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_659a5361));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                Complete(reader);
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t IsAudioPassthrough(bool& _passthru) const override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _passthru = reader.Boolean();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Connected(bool& _isconnected) const override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _isconnected = reader.Boolean();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Width(uint32_t& _width) const override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _width = reader.Number<uint32_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Height(uint32_t& _height) const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _height = reader.Number<uint32_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t VerticalFreq(uint32_t& _vf) const override
+        {
+            IPCMessage message(BaseClass::Message(6));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _vf = reader.Number<uint32_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t EDID(uint16_t& _length, uint8_t* _data) const override
+        {
+            IPCMessage message(BaseClass::Message(7));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint16_t>(_length);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    reader.Buffer<uint16_t>(_length, _data);
+                    _length = reader.Number<uint16_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t WidthInCentimeters(uint8_t& _width) const override
+        {
+            IPCMessage message(BaseClass::Message(8));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _width = reader.Number<uint8_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t HeightInCentimeters(uint8_t& _height) const override
+        {
+            IPCMessage message(BaseClass::Message(9));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _height = reader.Number<uint8_t>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t HDCPProtection(Exchange::IConnectionProperties::HDCPProtectionType& _value) const override
+        {
+            IPCMessage message(BaseClass::Message(10));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _value = reader.Number<Exchange::IConnectionProperties::HDCPProtectionType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t HDCPProtection(const Exchange::IConnectionProperties::HDCPProtectionType _value) override
+        {
+            IPCMessage message(BaseClass::Message(11));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Exchange::IConnectionProperties::HDCPProtectionType>(_value);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t PortName(string& _name) const override
+        {
+            IPCMessage message(BaseClass::Message(12));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _name = reader.Text();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+    }; // class ExchangeConnectionPropertiesProxy
+
+    //
+    // Exchange::IConnectionProperties::INotification interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual void Updated(const Exchange::IConnectionProperties::INotification::Source) = 0
+    //
+
+    class ExchangeConnectionPropertiesNotificationProxy final : public ProxyStub::UnknownProxyType<Exchange::IConnectionProperties::INotification> {
+    public:
+        ExchangeConnectionPropertiesNotificationProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        void Updated(const Exchange::IConnectionProperties::INotification::Source _event) override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Exchange::IConnectionProperties::INotification::Source>(_event);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+    }; // class ExchangeConnectionPropertiesNotificationProxy
+
+    //
+    // Exchange::IHDRProperties interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t TVCapabilities(Exchange::IHDRProperties::IHDRIterator*&) const = 0
+    //  (1) virtual uint32_t STBCapabilities(Exchange::IHDRProperties::IHDRIterator*&) const = 0
+    //  (2) virtual uint32_t HDRSetting(Exchange::IHDRProperties::HDRType&) const = 0
+    //
+
+    class ExchangeHDRPropertiesProxy final : public ProxyStub::UnknownProxyType<Exchange::IHDRProperties> {
+    public:
+        ExchangeHDRPropertiesProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        uint32_t TVCapabilities(Exchange::IHDRProperties::IHDRIterator*& _type) const override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _type = reinterpret_cast<Exchange::IHDRProperties::IHDRIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IHDRProperties::IHDRIterator::ID));
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t STBCapabilities(Exchange::IHDRProperties::IHDRIterator*& _type) const override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _type = reinterpret_cast<Exchange::IHDRProperties::IHDRIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IHDRProperties::IHDRIterator::ID));
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t HDRSetting(Exchange::IHDRProperties::HDRType& _type) const override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _type = reader.Number<Exchange::IHDRProperties::HDRType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+    }; // class ExchangeHDRPropertiesProxy
+
+    //
+    // Exchange::IDisplayProperties interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual uint32_t ColorSpace(Exchange::IDisplayProperties::ColourSpaceType&) const = 0
+    //  (1) virtual uint32_t FrameRate(Exchange::IDisplayProperties::FrameRateType&) const = 0
+    //  (2) virtual uint32_t ColourDepth(Exchange::IDisplayProperties::ColourDepthType&) const = 0
+    //  (3) virtual uint32_t Colorimetry(Exchange::IDisplayProperties::IColorimetryIterator*&) const = 0
+    //  (4) virtual uint32_t QuantizationRange(Exchange::IDisplayProperties::QuantizationRangeType&) const = 0
+    //  (5) virtual uint32_t EOTF(Exchange::IDisplayProperties::EotfType&) const = 0
+    //
+
+    class ExchangeDisplayPropertiesProxy final : public ProxyStub::UnknownProxyType<Exchange::IDisplayProperties> {
+    public:
+        ExchangeDisplayPropertiesProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        uint32_t ColorSpace(Exchange::IDisplayProperties::ColourSpaceType& _cs) const override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _cs = reader.Number<Exchange::IDisplayProperties::ColourSpaceType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t FrameRate(Exchange::IDisplayProperties::FrameRateType& _rate) const override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _rate = reader.Number<Exchange::IDisplayProperties::FrameRateType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t ColourDepth(Exchange::IDisplayProperties::ColourDepthType& _colour) const override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _colour = reader.Number<Exchange::IDisplayProperties::ColourDepthType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Colorimetry(Exchange::IDisplayProperties::IColorimetryIterator*& _colorimetry) const override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _colorimetry = reinterpret_cast<Exchange::IDisplayProperties::IColorimetryIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDisplayProperties::IColorimetryIterator::ID));
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t QuantizationRange(Exchange::IDisplayProperties::QuantizationRangeType& _qr) const override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _qr = reader.Number<Exchange::IDisplayProperties::QuantizationRangeType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t EOTF(Exchange::IDisplayProperties::EotfType& _eotf) const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _eotf = reader.Number<Exchange::IDisplayProperties::EotfType>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+    }; // class ExchangeDisplayPropertiesProxy
+
+    POP_WARNING()
+    POP_WARNING()
+
+    // -----------------------------------------------------------------
+    // REGISTRATION
+    // -----------------------------------------------------------------
+
+    namespace {
+
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>, RPCIteratorTypeInstance0DB3EE30StubMethods> RPCIteratorTypeInstance0DB3EE30Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>, RPCIteratorTypeInstance6ED78628StubMethods> RPCIteratorTypeInstance6ED78628Stub;
+        typedef ProxyStub::UnknownStubType<Exchange::IGraphicsProperties, ExchangeGraphicsPropertiesStubMethods> ExchangeGraphicsPropertiesStub;
+        typedef ProxyStub::UnknownStubType<Exchange::IConnectionProperties, ExchangeConnectionPropertiesStubMethods> ExchangeConnectionPropertiesStub;
+        typedef ProxyStub::UnknownStubType<Exchange::IConnectionProperties::INotification, ExchangeConnectionPropertiesNotificationStubMethods> ExchangeConnectionPropertiesNotificationStub;
+        typedef ProxyStub::UnknownStubType<Exchange::IHDRProperties, ExchangeHDRPropertiesStubMethods> ExchangeHDRPropertiesStub;
+        typedef ProxyStub::UnknownStubType<Exchange::IDisplayProperties, ExchangeDisplayPropertiesStubMethods> ExchangeDisplayPropertiesStub;
+
+        static class Instantiation {
+        public:
+            Instantiation()
+            {
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>, RPCIteratorTypeInstance0DB3EE30Proxy, RPCIteratorTypeInstance0DB3EE30Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>, RPCIteratorTypeInstance6ED78628Proxy, RPCIteratorTypeInstance6ED78628Stub>();
+                RPC::Administrator::Instance().Announce<Exchange::IGraphicsProperties, ExchangeGraphicsPropertiesProxy, ExchangeGraphicsPropertiesStub>();
+                RPC::Administrator::Instance().Announce<Exchange::IConnectionProperties, ExchangeConnectionPropertiesProxy, ExchangeConnectionPropertiesStub>();
+                RPC::Administrator::Instance().Announce<Exchange::IConnectionProperties::INotification, ExchangeConnectionPropertiesNotificationProxy, ExchangeConnectionPropertiesNotificationStub>();
+                RPC::Administrator::Instance().Announce<Exchange::IHDRProperties, ExchangeHDRPropertiesProxy, ExchangeHDRPropertiesStub>();
+                RPC::Administrator::Instance().Announce<Exchange::IDisplayProperties, ExchangeDisplayPropertiesProxy, ExchangeDisplayPropertiesStub>();
+            }
+            ~Instantiation()
+            {
+                RPC::Administrator::Instance().Recall<RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>>();
+                RPC::Administrator::Instance().Recall<RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>>();
+                RPC::Administrator::Instance().Recall<Exchange::IGraphicsProperties>();
+                RPC::Administrator::Instance().Recall<Exchange::IConnectionProperties>();
+                RPC::Administrator::Instance().Recall<Exchange::IConnectionProperties::INotification>();
+                RPC::Administrator::Instance().Recall<Exchange::IHDRProperties>();
+                RPC::Administrator::Instance().Recall<Exchange::IDisplayProperties>();
+            }
+        } ProxyStubRegistration;
+
+    } // namespace
+
+} // namespace ProxyStubs
+
+}
