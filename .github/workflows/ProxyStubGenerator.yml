@@ -214,8 +214,9 @@ jobs:
                export HAS_DIFF  # Update export so Python sees "true"
 
                # diff2html expands raw diff content ~8x into HTML (table rows, spans, inline JS/CSS),
-               # Truncate the input to 10 MB so the rendered HTML stays safely under 100 MB
-               head -c 10000000 diffs/combined.diff > diffs/combined_display.diff
+               # plus ~4 MB of its own bundled assets. The repo enforces a 25 MB per-file push limit,
+               # so input must stay under ~2.6 MB, let's use 2 MB to be safe
+               head -c 2000000 diffs/combined.diff > diffs/combined_display.diff
                npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/index.html" -- "diffs/combined_display.diff"
                head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff
             else
