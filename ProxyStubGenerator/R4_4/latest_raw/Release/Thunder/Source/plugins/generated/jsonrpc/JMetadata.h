@@ -18,158 +18,187 @@ namespace Exchange {
 
             } // namespace Version
 
-            using JSONRPC = PluginHost::JSONRPC;
-
             PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+            PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+            PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-            static void Register(JSONRPC& _module_, IMetadata* _impl_)
+            template<typename MODULE>
+            static void Register(MODULE& _module__, IMetadata* _implementation__)
             {
-                ASSERT(_impl_ != nullptr);
+                ASSERT(_implementation__ != nullptr);
 
-                _module_.RegisterVersion(_T("JMetadata"), Version::Major, Version::Minor, Version::Patch);
+                _module__.PluginHost::JSONRPC::RegisterVersion(_T("JMetadata"), Version::Major, Version::Minor, Version::Patch);
 
                 // Register methods and properties...
 
                 // Property: 'proxies' - Provides currenlty running proxy details (r/o)
-                _module_.Register<void, Core::JSON::String>(_T("proxies"), 
-                    [_impl_](Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("proxies"),
+                    [_implementation__](Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = _impl_->Proxies(_result);
+                        _errorCode__ = _implementation__->Proxies(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
+                            }
                         }
 
-                        return (_errorCode);
+                        return (_errorCode__);
                     });
 
                 // Indexed Property: 'status' - Provides status of a plugin, including their configurations (r/o)
-                _module_.Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("status"), 
-                    [_impl_](const string& _index_, Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("status"),
+                    [_implementation__](const string& index, Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
+                        if (index.empty() == true) {
+                            // no error, optional
+                        }
+                        else {
+                        }
+                        string _result_{};
 
-                        _errorCode = _impl_->Status(_index_, _result);
+                        _errorCode__ = _implementation__->Status(index, _result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
+                            }
                         }
 
-                        return (_errorCode);
+                        return (_errorCode__);
                     });
 
                 // Property: 'links' - Provides active connection details (r/o)
-                _module_.Register<void, Core::JSON::String>(_T("links"), 
-                    [_impl_](Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("links"),
+                    [_implementation__](Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = _impl_->Links(_result);
+                        _errorCode__ = _implementation__->Links(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
+                            }
                         }
 
-                        return (_errorCode);
+                        return (_errorCode__);
                     });
 
                 // Property: 'processinfo' - Provides framework process info, like worker pools details (r/o)
-                _module_.Register<void, Core::JSON::String>(_T("processinfo"), 
-                    [_impl_](Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("processinfo"),
+                    [_implementation__](Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = _impl_->ProcessInfo(_result);
+                        _errorCode__ = _implementation__->ProcessInfo(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
+                            }
                         }
 
-                        return (_errorCode);
+                        return (_errorCode__);
                     });
 
                 // Property: 'subsystems' - Provides currently active subsystem details (r/o)
-                _module_.Register<void, Core::JSON::String>(_T("subsystems"), 
-                    [_impl_](Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("subsystems"),
+                    [_implementation__](Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = _impl_->Subsystems(_result);
+                        _errorCode__ = _implementation__->Subsystems(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
+                            }
                         }
 
-                        return (_errorCode);
+                        return (_errorCode__);
                     });
 
                 // Property: 'version' - Provides version of WPEFramework hash and in human readable (r/o)
-                _module_.Register<void, Core::JSON::String>(_T("version"), 
-                    [_impl_](Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("version"),
+                    [_implementation__](Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = _impl_->Version(_result);
+                        _errorCode__ = _implementation__->Version(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
+                            }
                         }
 
-                        return (_errorCode);
+                        return (_errorCode__);
                     });
 
                 // Indexed Property: 'callstack' - callstack - Information the callstack associated with the given index 0 - <Max number of threads in the threadpool> (r/o)
-                _module_.Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("callstack"), 
-                    [_impl_](const string& _index_, Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode = Core::ERROR_NONE;
+                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("callstack"),
+                    [_implementation__](const string& index, Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        // read-only property get
-                        string _result{};
-
-                        _errorCode = _impl_->CallStack(_index_, _result);
-
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                            result.SetQuoted(false);
+                        if (index.empty() == true) {
+                            _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
 
-                        return (_errorCode);
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            string _result_{};
+
+                            _errorCode__ = _implementation__->CallStack(index, _result_);
+
+                            if (_errorCode__ == Core::ERROR_NONE) {
+
+                                if (_result_.empty() == false) {
+                                    result = _result_;
+                                    result.SetQuoted(false);
+                                }
+                            }
+                        }
+
+                        return (_errorCode__);
                     });
 
             }
 
-            static void Unregister(JSONRPC& _module_)
+            template<typename MODULE>
+            static void Unregister(MODULE& _module__)
             {
                 // Unregister methods and properties...
-                _module_.Unregister(_T("proxies"));
-                _module_.Unregister(_T("status"));
-                _module_.Unregister(_T("links"));
-                _module_.Unregister(_T("processinfo"));
-                _module_.Unregister(_T("subsystems"));
-                _module_.Unregister(_T("version"));
-                _module_.Unregister(_T("callstack"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("proxies"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("status"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("links"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("processinfo"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("subsystems"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("version"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("callstack"));
             }
 
+            POP_WARNING()
+            POP_WARNING()
             POP_WARNING()
 
         } // namespace JMetadata

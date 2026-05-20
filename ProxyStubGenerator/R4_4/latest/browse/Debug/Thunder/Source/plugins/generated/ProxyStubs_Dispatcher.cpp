@@ -34,7 +34,7 @@ namespace ProxyStubs {
     //  (3) virtual ILocalDispatcher* Local() = 0
     //
 
-    ProxyStub::MethodHandler DispatcherStubMethods[] = {
+    static ProxyStub::MethodHandler DispatcherStubMethods[] = {
         // (0) virtual Core::hresult Validate(const string&, const string&, const string&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -60,7 +60,7 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id callbackImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _callbackInstanceId__ = reader.Number<Core::instance_id>();
             const uint32_t _channelId = reader.Number<uint32_t>();
             const uint32_t _id = reader.Number<uint32_t>();
             const string _token = reader.Text();
@@ -70,12 +70,11 @@ namespace ProxyStubs {
 
             string _response{};
 
-            IDispatcher::ICallback* _callback = nullptr;
-            ProxyStub::UnknownProxy* callbackProxy = nullptr;
-            if (callbackImplementation != 0) {
-                callbackProxy = RPC::Administrator::Instance().ProxyInstance(channel, callbackImplementation, false, _callback);
-
-                ASSERT((_callback != nullptr) && (callbackProxy != nullptr));
+            IDispatcher::ICallback* _callback{};
+            ProxyStub::UnknownProxy* _callbackProxy__ = nullptr;
+            if (_callbackInstanceId__ != 0) {
+                _callbackProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _callbackInstanceId__, false, _callback);
+                ASSERT((_callback != nullptr) && (_callbackProxy__ != nullptr));
             }
 
             Core::hresult result = implementation->Invoke(_callback, _channelId, _id, static_cast<const string&>(_token), static_cast<const string&>(_method), static_cast<const string&>(_parameters), _response);
@@ -84,8 +83,8 @@ namespace ProxyStubs {
             writer.Number<Core::hresult>(result);
             writer.Text<Core::Frame::UInt24>(_response);
 
-            if (callbackProxy != nullptr) {
-                RPC::Administrator::Instance().Release(callbackProxy, message->Response());
+            if (_callbackProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_callbackProxy__, message->Response());
             }
         },
 
@@ -96,14 +95,13 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id callbackImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _callbackInstanceId__ = reader.Number<Core::instance_id>();
 
-            IDispatcher::ICallback* _callback = nullptr;
-            ProxyStub::UnknownProxy* callbackProxy = nullptr;
-            if (callbackImplementation != 0) {
-                callbackProxy = RPC::Administrator::Instance().ProxyInstance(channel, callbackImplementation, false, _callback);
-
-                ASSERT((_callback != nullptr) && (callbackProxy != nullptr));
+            IDispatcher::ICallback* _callback{};
+            ProxyStub::UnknownProxy* _callbackProxy__ = nullptr;
+            if (_callbackInstanceId__ != 0) {
+                _callbackProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _callbackInstanceId__, false, _callback);
+                ASSERT((_callback != nullptr) && (_callbackProxy__ != nullptr));
             }
 
             Core::hresult result = implementation->Revoke(_callback);
@@ -111,8 +109,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Core::hresult>(result);
 
-            if (callbackProxy != nullptr) {
-                RPC::Administrator::Instance().Release(callbackProxy, message->Response());
+            if (_callbackProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_callbackProxy__, message->Response());
             }
         },
 
@@ -135,7 +133,7 @@ namespace ProxyStubs {
     //  (4) virtual Core::hresult Unsubscribe(const uint32_t, const string&, const string&) = 0
     //
 
-    ProxyStub::MethodHandler DispatcherCallbackStubMethods[] = {
+    static ProxyStub::MethodHandler DispatcherCallbackStubMethods[] = {
         // (0) virtual Core::hresult Event(const string&, const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -246,7 +244,82 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        Core::hresult Validate(const string& _token, const string& _method, const string& _paramaters) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_token);
+            writer.Text(_method);
+            writer.Text<Core::Frame::UInt24>(_paramaters);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Invoke(IDispatcher::ICallback* _callback, const uint32_t _channelId, const uint32_t _id, const string& _token, const string& _method, const string& _parameters, string& _response) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
+            writer.Number<uint32_t>(_channelId);
+            writer.Number<uint32_t>(_id);
+            writer.Text(_token);
+            writer.Text(_method);
+            writer.Text<Core::Frame::UInt24>(_parameters);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+                ASSERT((reader.PeekNumber<Core::Frame::UInt24>() >= 0) && (reader.PeekNumber<Core::Frame::UInt24>() <= 4194303));
+                _response = reader.Text<Core::Frame::UInt24>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Revoke(IDispatcher::ICallback* _callback) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        ILocalDispatcher* Local() override
+        {
+            // stubbed method, no implementation
+
+            return {};
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -262,82 +335,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        Core::hresult Validate(const string& _token, const string& _method, const string& _paramaters) const override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_token));
-            writer.Text(static_cast<const string&>(_method));
-            writer.Text<Core::Frame::UInt24>(static_cast<const string&>(_paramaters));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<Core::hresult>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        Core::hresult Invoke(IDispatcher::ICallback* _callback, const uint32_t _channelId, const uint32_t _id, const string& _token, const string& _method, const string& _parameters, string& _response) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
-            writer.Number<uint32_t>(_channelId);
-            writer.Number<uint32_t>(_id);
-            writer.Text(static_cast<const string&>(_token));
-            writer.Text(static_cast<const string&>(_method));
-            writer.Text<Core::Frame::UInt24>(static_cast<const string&>(_parameters));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<Core::hresult>();
-                if ((hresult & COM_ERROR) == 0) {
-                    ASSERT((reader.PeekNumber<Core::Frame::UInt24>() >= 0) && (reader.PeekNumber<Core::Frame::UInt24>() <= 4194303));
-                    _response = reader.Text<Core::Frame::UInt24>();
-                }
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        Core::hresult Revoke(IDispatcher::ICallback* _callback) override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<Core::hresult>();
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        ILocalDispatcher* Local() override
-        {
-            // stubbed method, no implementation
-
-            return {};
         }
 
     }; // class DispatcherProxy
@@ -360,38 +357,20 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         Core::hresult Event(const string& _event, const string& _parameters) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_event));
-            writer.Text<Core::Frame::UInt24>(static_cast<const string&>(_parameters));
+            writer.Text(_event);
+            writer.Text<Core::Frame::UInt24>(_parameters);
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -399,20 +378,20 @@ namespace ProxyStubs {
 
         Core::hresult Error(const uint32_t _channel, const uint32_t _id, const uint32_t _code, const string& _message) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_channel);
             writer.Number<uint32_t>(_id);
             writer.Number<uint32_t>(_code);
-            writer.Text(static_cast<const string&>(_message));
+            writer.Text(_message);
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -420,19 +399,19 @@ namespace ProxyStubs {
 
         Core::hresult Response(const uint32_t _channel, const uint32_t _id, const string& _response) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_channel);
             writer.Number<uint32_t>(_id);
-            writer.Text<Core::Frame::UInt24>(static_cast<const string&>(_response));
+            writer.Text<Core::Frame::UInt24>(_response);
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -440,19 +419,19 @@ namespace ProxyStubs {
 
         Core::hresult Subscribe(const uint32_t _channel, const string& _event, const string& _designator) override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_channel);
-            writer.Text(static_cast<const string&>(_event));
-            writer.Text(static_cast<const string&>(_designator));
+            writer.Text(_event);
+            writer.Text(_designator);
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -460,19 +439,19 @@ namespace ProxyStubs {
 
         Core::hresult Unsubscribe(const uint32_t _channel, const string& _event, const string& _designator) override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_channel);
-            writer.Text(static_cast<const string&>(_event));
-            writer.Text(static_cast<const string&>(_designator));
+            writer.Text(_event);
+            writer.Text(_designator);
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);

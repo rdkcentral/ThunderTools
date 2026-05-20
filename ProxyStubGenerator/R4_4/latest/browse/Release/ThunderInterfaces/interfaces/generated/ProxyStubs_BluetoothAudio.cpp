@@ -2,8 +2,8 @@
 // generated automatically from "IBluetoothAudio.h"
 //
 // implements COM-RPC proxy stubs for:
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IBluetoothAudioSink::audiocodec, INTERFACE_ID = Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IBluetoothAudioSink::drmscheme, INTERFACE_ID = Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IBluetoothAudioSink::audiocodec, INTERFACE_ID = Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IBluetoothAudioSink::drmscheme, INTERFACE_ID = Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR] [[iterator]]
 //   - class Exchange::IBluetoothAudioSink
 //   - class Exchange::IBluetoothAudioSink::IControl
 //   - class Exchange::IBluetoothAudioSink::ICallback
@@ -26,7 +26,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance303876B6 interface stub definitions
+    // RPC::IIteratorTypeInstance_e72b511ea54f28f1 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IBluetoothAudioSink::audiocodec&) = 0
@@ -37,7 +37,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IBluetoothAudioSink::audiocodec Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstance303876B6StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_e72b511ea54f28f1StubMethods[] = {
         // (0) virtual bool Next(Exchange::IBluetoothAudioSink::audiocodec&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -128,10 +128,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IBluetoothAudioSink::audiocodec>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance303876B6StubMethods
+    }; // RPCIteratorTypeInstance_e72b511ea54f28f1StubMethods
 
     //
-    // RPC::IIteratorTypeInstance111F200C interface stub definitions
+    // RPC::IIteratorTypeInstance_4b577833009e86f7 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IBluetoothAudioSink::drmscheme&) = 0
@@ -142,7 +142,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IBluetoothAudioSink::drmscheme Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstance111F200CStubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_4b577833009e86f7StubMethods[] = {
         // (0) virtual bool Next(Exchange::IBluetoothAudioSink::drmscheme&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -233,7 +233,7 @@ namespace ProxyStubs {
             writer.Number<Exchange::IBluetoothAudioSink::drmscheme>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance111F200CStubMethods
+    }; // RPCIteratorTypeInstance_4b577833009e86f7StubMethods
 
     //
     // Exchange::IBluetoothAudioSink interface stub definitions
@@ -253,7 +253,7 @@ namespace ProxyStubs {
     //  (11) virtual uint32_t Stream(Exchange::IBluetoothAudioSink::StreamProperties&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeBluetoothAudioSinkStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeBluetoothAudioSinkStubMethods[] = {
         // (0) virtual uint32_t Callback(Exchange::IBluetoothAudioSink::ICallback*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -261,14 +261,13 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id callbackImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _callbackInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IBluetoothAudioSink::ICallback* _callback = nullptr;
-            ProxyStub::UnknownProxy* callbackProxy = nullptr;
-            if (callbackImplementation != 0) {
-                callbackProxy = RPC::Administrator::Instance().ProxyInstance(channel, callbackImplementation, false, _callback);
-
-                ASSERT((_callback != nullptr) && (callbackProxy != nullptr));
+            Exchange::IBluetoothAudioSink::ICallback* _callback{};
+            ProxyStub::UnknownProxy* _callbackProxy__ = nullptr;
+            if (_callbackInstanceId__ != 0) {
+                _callbackProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _callbackInstanceId__, false, _callback);
+                ASSERT((_callback != nullptr) && (_callbackProxy__ != nullptr));
             }
 
             uint32_t result = implementation->Callback(_callback);
@@ -276,8 +275,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (callbackProxy != nullptr) {
-                RPC::Administrator::Instance().Release(callbackProxy, message->Response());
+            if (_callbackProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_callbackProxy__, message->Response());
             }
         },
 
@@ -466,7 +465,7 @@ namespace ProxyStubs {
     //  (4) virtual uint32_t Delay(uint32_t&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeBluetoothAudioSinkControlStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeBluetoothAudioSinkControlStubMethods[] = {
         // (0) virtual uint32_t Acquire(const string&, const Exchange::IBluetoothAudioSink::IControl::Format&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -553,7 +552,7 @@ namespace ProxyStubs {
     //  (0) virtual void Updated() = 0
     //
 
-    ProxyStub::MethodHandler ExchangeBluetoothAudioSinkCallbackStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeBluetoothAudioSinkCallbackStubMethods[] = {
         // (0) virtual void Updated() = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -570,7 +569,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance303876B6 interface proxy definitions
+    // RPC::IIteratorTypeInstance_e72b511ea54f28f1 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IBluetoothAudioSink::audiocodec&) = 0
@@ -581,62 +580,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IBluetoothAudioSink::audiocodec Current() const = 0
     //
 
-    class RPCIteratorTypeInstance303876B6Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>> {
+    class RPCIteratorTypeInstance_e72b511ea54f28f1Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>> {
     public:
-        RPCIteratorTypeInstance303876B6Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_e72b511ea54f28f1Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IBluetoothAudioSink::audiocodec& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IBluetoothAudioSink::audiocodec& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -646,47 +635,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IBluetoothAudioSink::audiocodec Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IBluetoothAudioSink::audiocodec result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance303876B6Proxy
+    }; // class RPCIteratorTypeInstance_e72b511ea54f28f1Proxy
 
     //
-    // RPC::IIteratorTypeInstance111F200C interface proxy definitions
+    // RPC::IIteratorTypeInstance_4b577833009e86f7 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IBluetoothAudioSink::drmscheme&) = 0
@@ -697,62 +698,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IBluetoothAudioSink::drmscheme Current() const = 0
     //
 
-    class RPCIteratorTypeInstance111F200CProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>> {
+    class RPCIteratorTypeInstance_4b577833009e86f7Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>> {
     public:
-        RPCIteratorTypeInstance111F200CProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_4b577833009e86f7Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IBluetoothAudioSink::drmscheme& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IBluetoothAudioSink::drmscheme& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -762,44 +753,56 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IBluetoothAudioSink::drmscheme Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IBluetoothAudioSink::drmscheme result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance111F200CProxy
+    }; // class RPCIteratorTypeInstance_4b577833009e86f7Proxy
 
     //
     // Exchange::IBluetoothAudioSink interface proxy definitions
@@ -826,7 +829,213 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Callback(Exchange::IBluetoothAudioSink::ICallback* _callback) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Assign(const string& _address) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_address);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Revoke() override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Latency(const int16_t _latency) override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<int16_t>(_latency);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Latency(int16_t& _latency) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _latency = reader.Number<int16_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t State(Exchange::IBluetoothAudioSink::state& _sinkState) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(5));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _sinkState = reader.Number<Exchange::IBluetoothAudioSink::state>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Type(Exchange::IBluetoothAudioSink::devicetype& _type) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(6));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _type = reader.Number<Exchange::IBluetoothAudioSink::devicetype>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SupportedCodecs(Exchange::IBluetoothAudioSink::IAudioCodecIterator*& _codecs) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(7));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _codecs = reinterpret_cast<Exchange::IBluetoothAudioSink::IAudioCodecIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IBluetoothAudioSink::IAudioCodecIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SupportedDRMs(Exchange::IBluetoothAudioSink::IDRMSchemeIterator*& _drms) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(8));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _drms = reinterpret_cast<Exchange::IBluetoothAudioSink::IDRMSchemeIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IBluetoothAudioSink::IDRMSchemeIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Codec(Exchange::IBluetoothAudioSink::CodecProperties& _properties) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(9));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _properties.Codec = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
+                _properties.Settings = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t DRM(Exchange::IBluetoothAudioSink::DRMProperties& _properties) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(10));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _properties.DRM = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
+                _properties.Settings = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Stream(Exchange::IBluetoothAudioSink::StreamProperties& _properties) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(11));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _properties.SampleRate = reader.Number<uint32_t>();
+                _properties.BitRate = reader.Number<uint32_t>();
+                _properties.Channels = reader.Number<uint8_t>();
+                _properties.Resolution = reader.Number<uint8_t>();
+                _properties.IsResampling = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -842,227 +1051,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        uint32_t Callback(Exchange::IBluetoothAudioSink::ICallback* _callback) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Assign(const string& _address) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_address));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Revoke() override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Latency(const int16_t _latency) override
-        {
-            IPCMessage message(BaseClass::Message(3));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<int16_t>(_latency);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Latency(int16_t& _latency) const override
-        {
-            IPCMessage message(BaseClass::Message(4));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _latency = reader.Number<int16_t>();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t State(Exchange::IBluetoothAudioSink::state& _sinkState) const override
-        {
-            IPCMessage message(BaseClass::Message(5));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _sinkState = reader.Number<Exchange::IBluetoothAudioSink::state>();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Type(Exchange::IBluetoothAudioSink::devicetype& _type) const override
-        {
-            IPCMessage message(BaseClass::Message(6));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _type = reader.Number<Exchange::IBluetoothAudioSink::devicetype>();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SupportedCodecs(Exchange::IBluetoothAudioSink::IAudioCodecIterator*& _codecs) const override
-        {
-            IPCMessage message(BaseClass::Message(7));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _codecs = reinterpret_cast<Exchange::IBluetoothAudioSink::IAudioCodecIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IBluetoothAudioSink::IAudioCodecIterator::ID));
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SupportedDRMs(Exchange::IBluetoothAudioSink::IDRMSchemeIterator*& _drms) const override
-        {
-            IPCMessage message(BaseClass::Message(8));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _drms = reinterpret_cast<Exchange::IBluetoothAudioSink::IDRMSchemeIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IBluetoothAudioSink::IDRMSchemeIterator::ID));
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Codec(Exchange::IBluetoothAudioSink::CodecProperties& _properties) const override
-        {
-            IPCMessage message(BaseClass::Message(9));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _properties.Codec = reader.Number<Exchange::IBluetoothAudioSink::audiocodec>();
-                    _properties.Settings = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t DRM(Exchange::IBluetoothAudioSink::DRMProperties& _properties) const override
-        {
-            IPCMessage message(BaseClass::Message(10));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _properties.DRM = reader.Number<Exchange::IBluetoothAudioSink::drmscheme>();
-                    _properties.Settings = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Stream(Exchange::IBluetoothAudioSink::StreamProperties& _properties) const override
-        {
-            IPCMessage message(BaseClass::Message(11));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _properties.SampleRate = reader.Number<uint32_t>();
-                    _properties.BitRate = reader.Number<uint32_t>();
-                    _properties.Channels = reader.Number<uint8_t>();
-                    _properties.Resolution = reader.Number<uint8_t>();
-                    _properties.IsResampling = reader.Boolean();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
         }
 
     }; // class ExchangeBluetoothAudioSinkProxy
@@ -1085,30 +1073,12 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         uint32_t Acquire(const string& _connector, const Exchange::IBluetoothAudioSink::IControl::Format& _format) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_connector));
+            writer.Text(_connector);
             writer.Number<uint32_t>(_format.SampleRate);
             writer.Number<uint16_t>(_format.FrameRate);
             writer.Number<uint8_t>(_format.Resolution);
@@ -1116,66 +1086,86 @@ namespace ProxyStubs {
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Relinquish() override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Speed(const int8_t _speed) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<int8_t>(_speed);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Time(uint32_t& _position) const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _position = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _position = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Delay(uint32_t& _delay) const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _delay = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _delay = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
@@ -1196,27 +1186,9 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         void Updated() override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             UnknownProxyType::Invoke(message);
         }
@@ -1232,8 +1204,8 @@ namespace ProxyStubs {
 
     namespace {
 
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>, RPCIteratorTypeInstance303876B6StubMethods> RPCIteratorTypeInstance303876B6Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>, RPCIteratorTypeInstance111F200CStubMethods> RPCIteratorTypeInstance111F200CStub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>, RPCIteratorTypeInstance_e72b511ea54f28f1StubMethods> RPCIteratorTypeInstance_e72b511ea54f28f1Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>, RPCIteratorTypeInstance_4b577833009e86f7StubMethods> RPCIteratorTypeInstance_4b577833009e86f7Stub;
         typedef ProxyStub::UnknownStubType<Exchange::IBluetoothAudioSink, ExchangeBluetoothAudioSinkStubMethods> ExchangeBluetoothAudioSinkStub;
         typedef ProxyStub::UnknownStubType<Exchange::IBluetoothAudioSink::IControl, ExchangeBluetoothAudioSinkControlStubMethods> ExchangeBluetoothAudioSinkControlStub;
         typedef ProxyStub::UnknownStubType<Exchange::IBluetoothAudioSink::ICallback, ExchangeBluetoothAudioSinkCallbackStubMethods> ExchangeBluetoothAudioSinkCallbackStub;
@@ -1242,8 +1214,8 @@ namespace ProxyStubs {
         public:
             Instantiation()
             {
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>, RPCIteratorTypeInstance303876B6Proxy, RPCIteratorTypeInstance303876B6Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>, RPCIteratorTypeInstance111F200CProxy, RPCIteratorTypeInstance111F200CStub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>, RPCIteratorTypeInstance_e72b511ea54f28f1Proxy, RPCIteratorTypeInstance_e72b511ea54f28f1Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>, RPCIteratorTypeInstance_4b577833009e86f7Proxy, RPCIteratorTypeInstance_4b577833009e86f7Stub>();
                 RPC::Administrator::Instance().Announce<Exchange::IBluetoothAudioSink, ExchangeBluetoothAudioSinkProxy, ExchangeBluetoothAudioSinkStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IBluetoothAudioSink::IControl, ExchangeBluetoothAudioSinkControlProxy, ExchangeBluetoothAudioSinkControlStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IBluetoothAudioSink::ICallback, ExchangeBluetoothAudioSinkCallbackProxy, ExchangeBluetoothAudioSinkCallbackStub>();

@@ -2,6 +2,7 @@
 // generated automatically from "ITextToSpeech.h"
 //
 // implements COM-RPC proxy stubs for:
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = string, INTERFACE_ID = RPC::ID_STRINGITERATOR] [[iterator]]
 //   - class Exchange::ITextToSpeech
 //   - class Exchange::ITextToSpeech::INotification
 //
@@ -21,6 +22,111 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
     // STUBS
     // -----------------------------------------------------------------
+
+    //
+    // RPC::IIteratorTypeInstance_bd6e04b8d151c1f7 interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual bool Next(string&) = 0
+    //  (1) virtual bool Previous(string&) = 0
+    //  (2) virtual void Reset(const uint32_t) = 0
+    //  (3) virtual bool IsValid() const = 0
+    //  (4) virtual uint32_t Count() const = 0
+    //  (5) virtual string Current() const = 0
+    //
+
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_bd6e04b8d151c1f7StubMethods[] = {
+        // (0) virtual bool Next(string&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            string _info{};
+
+            bool result = implementation->Next(_info);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+            writer.Text(_info);
+        },
+
+        // (1) virtual bool Previous(string&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            string _info{};
+
+            bool result = implementation->Previous(_info);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+            writer.Text(_info);
+        },
+
+        // (2) virtual void Reset(const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
+            interface* implementation = reinterpret_cast<interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const uint32_t _position = reader.Number<uint32_t>();
+
+            implementation->Reset(_position);
+        },
+
+        // (3) virtual bool IsValid() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            bool result = implementation->IsValid();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Boolean(result);
+        },
+
+        // (4) virtual uint32_t Count() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            uint32_t result = implementation->Count();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<uint32_t>(result);
+        },
+
+        // (5) virtual string Current() const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            using interface = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
+
+            const interface* implementation = reinterpret_cast<const interface*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            string result = implementation->Current();
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Text(result);
+        }
+        , nullptr
+    }; // RPCIteratorTypeInstance_bd6e04b8d151c1f7StubMethods
 
     //
     // Exchange::ITextToSpeech interface stub definitions
@@ -43,7 +149,7 @@ namespace ProxyStubs {
     //  (14) virtual uint32_t GetSpeechState(const uint32_t, Exchange::ITextToSpeech::SpeechState&) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeTextToSpeechStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeTextToSpeechStubMethods[] = {
         // (0) virtual void Register(Exchange::ITextToSpeech::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -51,20 +157,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id sinkImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::ITextToSpeech::INotification* _sink = nullptr;
-            ProxyStub::UnknownProxy* sinkProxy = nullptr;
-            if (sinkImplementation != 0) {
-                sinkProxy = RPC::Administrator::Instance().ProxyInstance(channel, sinkImplementation, false, _sink);
-
-                ASSERT((_sink != nullptr) && (sinkProxy != nullptr));
+            Exchange::ITextToSpeech::INotification* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
             }
 
             implementation->Register(_sink);
 
-            if (sinkProxy != nullptr) {
-                RPC::Administrator::Instance().Release(sinkProxy, message->Response());
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
             }
         },
 
@@ -75,20 +180,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id sinkImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::ITextToSpeech::INotification* _sink = nullptr;
-            ProxyStub::UnknownProxy* sinkProxy = nullptr;
-            if (sinkImplementation != 0) {
-                sinkProxy = RPC::Administrator::Instance().ProxyInstance(channel, sinkImplementation, false, _sink);
-
-                ASSERT((_sink != nullptr) && (sinkProxy != nullptr));
+            Exchange::ITextToSpeech::INotification* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
             }
 
             implementation->Unregister(_sink);
 
-            if (sinkProxy != nullptr) {
-                RPC::Administrator::Instance().Release(sinkProxy, message->Response());
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
             }
         },
 
@@ -341,7 +445,7 @@ namespace ProxyStubs {
     //  (9) virtual void SpeechComplete(const uint32_t) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeTextToSpeechNotificationStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeTextToSpeechNotificationStubMethods[] = {
         // (0) virtual void Enabled(const bool) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -469,6 +573,124 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
+    // RPC::IIteratorTypeInstance_bd6e04b8d151c1f7 interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual bool Next(string&) = 0
+    //  (1) virtual bool Previous(string&) = 0
+    //  (2) virtual void Reset(const uint32_t) = 0
+    //  (3) virtual bool IsValid() const = 0
+    //  (4) virtual uint32_t Count() const = 0
+    //  (5) virtual string Current() const = 0
+    //
+
+    class RPCIteratorTypeInstance_bd6e04b8d151c1f7Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>> {
+    public:
+        RPCIteratorTypeInstance_bd6e04b8d151c1f7Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        bool Next(string& _info) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            bool result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        bool Previous(string& _info) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            bool result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        void Reset(const uint32_t _position) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_position);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+        bool IsValid() const override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            bool result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Count() const override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        string Current() const override
+        {
+            IPCMessage message(UnknownProxyType::Message(5));
+
+            string result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+    }; // class RPCIteratorTypeInstance_bd6e04b8d151c1f7Proxy
+
+    //
     // Exchange::ITextToSpeech interface proxy definitions
     //
     // Methods:
@@ -496,7 +718,318 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        void Register(Exchange::ITextToSpeech::INotification* _sink) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void Unregister(Exchange::ITextToSpeech::INotification* _sink) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        uint32_t Enable(const bool _enable) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_enable);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Enable(bool& _enable) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _enable = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t SetConfiguration(const Exchange::ITextToSpeech::Configuration& _config, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_config.ttsEndPoint);
+            writer.Text(_config.ttsEndPointSecured);
+            writer.Text(_config.language);
+            writer.Text(_config.voice);
+            writer.Text(_config.speechRate);
+            writer.Number<uint8_t>(_config.volume);
+            writer.Number<uint8_t>(_config.rate);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t SetFallbackText(const string _scenario, const string _value) override
+        {
+            IPCMessage message(UnknownProxyType::Message(5));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_scenario);
+            writer.Text(_value);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t SetAPIKey(const string _apikey) override
+        {
+            IPCMessage message(UnknownProxyType::Message(6));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_apikey);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t SetPrimaryVolDuck(const uint8_t _prim) override
+        {
+            IPCMessage message(UnknownProxyType::Message(7));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint8_t>(_prim);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t GetConfiguration(Exchange::ITextToSpeech::Configuration& _config) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(8));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _config.ttsEndPoint = reader.Text();
+                _config.ttsEndPointSecured = reader.Text();
+                _config.language = reader.Text();
+                _config.voice = reader.Text();
+                _config.speechRate = reader.Text();
+                _config.volume = reader.Number<uint8_t>();
+                _config.rate = reader.Number<uint8_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t ListVoices(const string _language, RPC::IStringIterator*& _voices) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(9));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_language);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _voices = reinterpret_cast<RPC::IStringIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), RPC::IStringIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Speak(const string _text, uint32_t& _speechid, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
+        {
+            IPCMessage message(UnknownProxyType::Message(10));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_text);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _speechid = reader.Number<uint32_t>();
+                _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Cancel(const uint32_t _speechid) override
+        {
+            IPCMessage message(UnknownProxyType::Message(11));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_speechid);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Pause(const uint32_t _speechid, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
+        {
+            IPCMessage message(UnknownProxyType::Message(12));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_speechid);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Resume(const uint32_t _speechid, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
+        {
+            IPCMessage message(UnknownProxyType::Message(13));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_speechid);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t GetSpeechState(const uint32_t _speechid, Exchange::ITextToSpeech::SpeechState& _state) override
+        {
+            IPCMessage message(UnknownProxyType::Message(14));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_speechid);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _state = reader.Number<Exchange::ITextToSpeech::SpeechState>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -510,256 +1043,6 @@ namespace ProxyStubs {
                 result = UnknownProxyType::Complete(implementation, id, how);
                 if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
             }
-
-            return (result);
-        }
-
-        void Register(Exchange::ITextToSpeech::INotification* _sink) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        void Unregister(Exchange::ITextToSpeech::INotification* _sink) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        uint32_t Enable(const bool _enable) override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Boolean(_enable);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            return (result);
-        }
-
-        uint32_t Enable(bool& _enable) const override
-        {
-            IPCMessage message(BaseClass::Message(3));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _enable = reader.Boolean();
-
-            return (result);
-        }
-
-        uint32_t SetConfiguration(const Exchange::ITextToSpeech::Configuration& _config, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
-        {
-            IPCMessage message(BaseClass::Message(4));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_config.ttsEndPoint);
-            writer.Text(_config.ttsEndPointSecured);
-            writer.Text(_config.language);
-            writer.Text(_config.voice);
-            writer.Text(_config.speechRate);
-            writer.Number<uint8_t>(_config.volume);
-            writer.Number<uint8_t>(_config.rate);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
-
-            return (result);
-        }
-
-        uint32_t SetFallbackText(const string _scenario, const string _value) override
-        {
-            IPCMessage message(BaseClass::Message(5));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_scenario);
-            writer.Text(_value);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            return (result);
-        }
-
-        uint32_t SetAPIKey(const string _apikey) override
-        {
-            IPCMessage message(BaseClass::Message(6));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_apikey);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            return (result);
-        }
-
-        uint32_t SetPrimaryVolDuck(const uint8_t _prim) override
-        {
-            IPCMessage message(BaseClass::Message(7));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint8_t>(_prim);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            return (result);
-        }
-
-        uint32_t GetConfiguration(Exchange::ITextToSpeech::Configuration& _config) const override
-        {
-            IPCMessage message(BaseClass::Message(8));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _config.ttsEndPoint = reader.Text();
-            _config.ttsEndPointSecured = reader.Text();
-            _config.language = reader.Text();
-            _config.voice = reader.Text();
-            _config.speechRate = reader.Text();
-            _config.volume = reader.Number<uint8_t>();
-            _config.rate = reader.Number<uint8_t>();
-
-            return (result);
-        }
-
-        uint32_t ListVoices(const string _language, RPC::IStringIterator*& _voices) const override
-        {
-            IPCMessage message(BaseClass::Message(9));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_language);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _voices = reinterpret_cast<RPC::IStringIterator*>(Interface(reader.Number<Core::instance_id>(), RPC::IStringIterator::ID));
-
-            return (result);
-        }
-
-        uint32_t Speak(const string _text, uint32_t& _speechid, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
-        {
-            IPCMessage message(BaseClass::Message(10));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_text);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _speechid = reader.Number<uint32_t>();
-            _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
-
-            return (result);
-        }
-
-        uint32_t Cancel(const uint32_t _speechid) override
-        {
-            IPCMessage message(BaseClass::Message(11));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_speechid);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            return (result);
-        }
-
-        uint32_t Pause(const uint32_t _speechid, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
-        {
-            IPCMessage message(BaseClass::Message(12));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_speechid);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
-
-            return (result);
-        }
-
-        uint32_t Resume(const uint32_t _speechid, Exchange::ITextToSpeech::TTSErrorDetail& _status) override
-        {
-            IPCMessage message(BaseClass::Message(13));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_speechid);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _status = reader.Number<Exchange::ITextToSpeech::TTSErrorDetail>();
-
-            return (result);
-        }
-
-        uint32_t GetSpeechState(const uint32_t _speechid, Exchange::ITextToSpeech::SpeechState& _state) override
-        {
-            IPCMessage message(BaseClass::Message(14));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_speechid);
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _state = reader.Number<Exchange::ITextToSpeech::SpeechState>();
 
             return (result);
         }
@@ -789,27 +1072,9 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         void Enabled(const bool _state) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Boolean(_state);
@@ -819,7 +1084,7 @@ namespace ProxyStubs {
 
         void VoiceChanged(const string _voice) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Text(_voice);
@@ -829,7 +1094,7 @@ namespace ProxyStubs {
 
         void WillSpeak(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -839,7 +1104,7 @@ namespace ProxyStubs {
 
         void SpeechStart(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -849,7 +1114,7 @@ namespace ProxyStubs {
 
         void SpeechPause(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -859,7 +1124,7 @@ namespace ProxyStubs {
 
         void SpeechResume(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -869,7 +1134,7 @@ namespace ProxyStubs {
 
         void SpeechInterrupted(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(6));
+            IPCMessage message(UnknownProxyType::Message(6));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -879,7 +1144,7 @@ namespace ProxyStubs {
 
         void NetworkError(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(7));
+            IPCMessage message(UnknownProxyType::Message(7));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -889,7 +1154,7 @@ namespace ProxyStubs {
 
         void PlaybackError(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(8));
+            IPCMessage message(UnknownProxyType::Message(8));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -899,7 +1164,7 @@ namespace ProxyStubs {
 
         void SpeechComplete(const uint32_t _speechid) override
         {
-            IPCMessage message(BaseClass::Message(9));
+            IPCMessage message(UnknownProxyType::Message(9));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_speechid);
@@ -918,6 +1183,7 @@ namespace ProxyStubs {
 
     namespace {
 
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>, RPCIteratorTypeInstance_bd6e04b8d151c1f7StubMethods> RPCIteratorTypeInstance_bd6e04b8d151c1f7Stub;
         typedef ProxyStub::UnknownStubType<Exchange::ITextToSpeech, ExchangeTextToSpeechStubMethods> ExchangeTextToSpeechStub;
         typedef ProxyStub::UnknownStubType<Exchange::ITextToSpeech::INotification, ExchangeTextToSpeechNotificationStubMethods> ExchangeTextToSpeechNotificationStub;
 
@@ -925,11 +1191,13 @@ namespace ProxyStubs {
         public:
             Instantiation()
             {
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>, RPCIteratorTypeInstance_bd6e04b8d151c1f7Proxy, RPCIteratorTypeInstance_bd6e04b8d151c1f7Stub>();
                 RPC::Administrator::Instance().Announce<Exchange::ITextToSpeech, ExchangeTextToSpeechProxy, ExchangeTextToSpeechStub>();
                 RPC::Administrator::Instance().Announce<Exchange::ITextToSpeech::INotification, ExchangeTextToSpeechNotificationProxy, ExchangeTextToSpeechNotificationStub>();
             }
             ~Instantiation()
             {
+                RPC::Administrator::Instance().Recall<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>();
                 RPC::Administrator::Instance().Recall<Exchange::ITextToSpeech>();
                 RPC::Administrator::Instance().Recall<Exchange::ITextToSpeech::INotification>();
             }

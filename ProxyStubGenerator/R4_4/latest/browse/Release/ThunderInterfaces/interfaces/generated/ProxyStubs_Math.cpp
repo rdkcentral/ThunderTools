@@ -29,7 +29,7 @@ namespace ProxyStubs {
     //  (1) virtual uint32_t Sub(const uint16_t, const uint16_t, uint16_t&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeMathStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeMathStubMethods[] = {
         // (0) virtual uint32_t Add(const uint16_t, const uint16_t, uint16_t&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -89,27 +89,9 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         uint32_t Add(const uint16_t _A, const uint16_t _B, uint16_t& _sum) const override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint16_t>(_A);
@@ -119,11 +101,9 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _sum = reader.Number<uint16_t>();
-                }
+                _sum = reader.Number<uint16_t>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -131,7 +111,7 @@ namespace ProxyStubs {
 
         uint32_t Sub(const uint16_t _A, const uint16_t _B, uint16_t& _sum) const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint16_t>(_A);
@@ -141,11 +121,9 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _sum = reader.Number<uint16_t>();
-                }
+                _sum = reader.Number<uint16_t>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);

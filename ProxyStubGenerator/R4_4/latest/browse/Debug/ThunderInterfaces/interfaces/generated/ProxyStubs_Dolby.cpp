@@ -35,7 +35,7 @@ namespace ProxyStubs {
     //  (6) virtual uint32_t Mode(Exchange::Dolby::IOutput::Type&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeDolbyOutputStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeDolbyOutputStubMethods[] = {
         // (0) virtual uint32_t Register(Exchange::Dolby::IOutput::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -43,23 +43,22 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id parameter_8bbfec37Implementation = reader.Number<Core::instance_id>();
+            Core::instance_id _parameter_1InstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::Dolby::IOutput::INotification* _parameter_8bbfec37 = nullptr;
-            ProxyStub::UnknownProxy* parameter_8bbfec37Proxy = nullptr;
-            if (parameter_8bbfec37Implementation != 0) {
-                parameter_8bbfec37Proxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_8bbfec37Implementation, false, _parameter_8bbfec37);
-
-                ASSERT((_parameter_8bbfec37 != nullptr) && (parameter_8bbfec37Proxy != nullptr));
+            Exchange::Dolby::IOutput::INotification* _parameter_1{};
+            ProxyStub::UnknownProxy* _parameter_1Proxy__ = nullptr;
+            if (_parameter_1InstanceId__ != 0) {
+                _parameter_1Proxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _parameter_1InstanceId__, false, _parameter_1);
+                ASSERT((_parameter_1 != nullptr) && (_parameter_1Proxy__ != nullptr));
             }
 
-            uint32_t result = implementation->Register(_parameter_8bbfec37);
+            uint32_t result = implementation->Register(_parameter_1);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (parameter_8bbfec37Proxy != nullptr) {
-                RPC::Administrator::Instance().Release(parameter_8bbfec37Proxy, message->Response());
+            if (_parameter_1Proxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_parameter_1Proxy__, message->Response());
             }
         },
 
@@ -70,23 +69,22 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id parameter_472bb635Implementation = reader.Number<Core::instance_id>();
+            Core::instance_id _parameter_1InstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::Dolby::IOutput::INotification* _parameter_472bb635 = nullptr;
-            ProxyStub::UnknownProxy* parameter_472bb635Proxy = nullptr;
-            if (parameter_472bb635Implementation != 0) {
-                parameter_472bb635Proxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_472bb635Implementation, false, _parameter_472bb635);
-
-                ASSERT((_parameter_472bb635 != nullptr) && (parameter_472bb635Proxy != nullptr));
+            Exchange::Dolby::IOutput::INotification* _parameter_1{};
+            ProxyStub::UnknownProxy* _parameter_1Proxy__ = nullptr;
+            if (_parameter_1InstanceId__ != 0) {
+                _parameter_1Proxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _parameter_1InstanceId__, false, _parameter_1);
+                ASSERT((_parameter_1 != nullptr) && (_parameter_1Proxy__ != nullptr));
             }
 
-            uint32_t result = implementation->Unregister(_parameter_472bb635);
+            uint32_t result = implementation->Unregister(_parameter_1);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (parameter_472bb635Proxy != nullptr) {
-                RPC::Administrator::Instance().Release(parameter_472bb635Proxy, message->Response());
+            if (_parameter_1Proxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_parameter_1Proxy__, message->Response());
             }
         },
 
@@ -174,7 +172,7 @@ namespace ProxyStubs {
     //  (0) virtual void AudioModeChanged(const Exchange::Dolby::IOutput::SoundModes, const bool) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeDolbyOutputNotificationStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeDolbyOutputNotificationStubMethods[] = {
         // (0) virtual void AudioModeChanged(const Exchange::Dolby::IOutput::SoundModes, const bool) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -214,7 +212,132 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Register(Exchange::Dolby::IOutput::INotification* _parameter_1) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_1));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Unregister(Exchange::Dolby::IOutput::INotification* _parameter_1) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_1));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t AtmosMetadata(bool& _supported) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _supported = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SoundMode(Exchange::Dolby::IOutput::SoundModes& _mode) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _mode = reader.Number<Exchange::Dolby::IOutput::SoundModes>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t EnableAtmosOutput(const bool _enable) override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_enable);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Mode(const Exchange::Dolby::IOutput::Type& _mode) override
+        {
+            IPCMessage message(UnknownProxyType::Message(5));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Exchange::Dolby::IOutput::Type>(_mode);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Mode(Exchange::Dolby::IOutput::Type& _mode) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(6));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _mode = reader.Number<Exchange::Dolby::IOutput::Type>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -230,136 +353,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        uint32_t Register(Exchange::Dolby::IOutput::INotification* _parameter_8bbfec37) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_8bbfec37));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Unregister(Exchange::Dolby::IOutput::INotification* _parameter_472bb635) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_472bb635));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t AtmosMetadata(bool& _supported) const override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _supported = reader.Boolean();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SoundMode(Exchange::Dolby::IOutput::SoundModes& _mode) const override
-        {
-            IPCMessage message(BaseClass::Message(3));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _mode = reader.Number<Exchange::Dolby::IOutput::SoundModes>();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t EnableAtmosOutput(const bool _enable) override
-        {
-            IPCMessage message(BaseClass::Message(4));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Boolean(_enable);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Mode(const Exchange::Dolby::IOutput::Type& _mode) override
-        {
-            IPCMessage message(BaseClass::Message(5));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Exchange::Dolby::IOutput::Type>(static_cast<const Exchange::Dolby::IOutput::Type&>(_mode));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Mode(Exchange::Dolby::IOutput::Type& _mode) const override
-        {
-            IPCMessage message(BaseClass::Message(6));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _mode = reader.Number<Exchange::Dolby::IOutput::Type>();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
         }
 
     }; // class ExchangeDolbyOutputProxy
@@ -378,27 +371,9 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         void AudioModeChanged(const Exchange::Dolby::IOutput::SoundModes _mode, const bool _enabled) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::Dolby::IOutput::SoundModes>(_mode);
