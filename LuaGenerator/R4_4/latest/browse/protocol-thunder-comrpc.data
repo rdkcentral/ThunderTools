@@ -1,0 +1,304 @@
+-- Interfaces definition data file
+-- Generated automatically. DO NOT EDIT
+
+INTERFACES, METHODS, ENUMS, Type = ...
+
+--  ICOM.h
+INTERFACES[5] = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>"
+METHODS[5] = {
+    [3] = { name = "Next", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.STRING } } }, 
+    [4] = { name = "Previous", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.STRING } } }, 
+    [5] = { name = "Reset", params = {  { name = "position", type = Type.UINT32 } } }, 
+    [6] = { name = "IsValid", retvals = {  { type = Type.BOOL } } }, 
+    [7] = { name = "Count", retvals = {  { type = Type.UINT32 } } }, 
+    [8] = { name = "Current", retvals = {  { type = Type.STRING } } } 
+}
+
+INTERFACES[6] = "RPC::IIteratorType<uint32_t, RPC::ID_VALUEITERATOR>"
+METHODS[6] = {
+    [3] = { name = "Next", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.UINT32 } } }, 
+    [4] = { name = "Previous", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.UINT32 } } }, 
+    [5] = { name = "Reset", params = {  { name = "position", type = Type.UINT32 } } }, 
+    [6] = { name = "IsValid", retvals = {  { type = Type.BOOL } } }, 
+    [7] = { name = "Count", retvals = {  { type = Type.UINT32 } } }, 
+    [8] = { name = "Current", retvals = {  { type = Type.UINT32 } } } 
+}
+
+INTERFACES[1] = "RPC::IRemoteConnection"
+METHODS[1] = {
+    [3] = { name = "Id", retvals = {  { type = Type.UINT32 } } }, 
+    [4] = { name = "RemoteId", retvals = {  { type = Type.UINT32 } } }, 
+    [5] = { name = "Acquire", retvals = {  { type = Type.OBJECT, interface_param = 3 } }, params = {  { name = "waitTime", type = Type.UINT32 },  { name = "className", type = Type.STRING },  { name = "interfaceId", type = Type.INTERFACE },  { name = "version", type = Type.UINT32 } } }, 
+    [6] = { name = "Terminate" }, 
+    [7] = { name = "Launch", retvals = {  { type = Type.UINT32 } } }, 
+    [8] = { name = "PostMortem" } 
+}
+
+INTERFACES[2] = "RPC::IRemoteConnection::INotification"
+METHODS[2] = {
+    [3] = { name = "Activated", params = {  { type = Type.OBJECT, class = "RPC::IRemoteConnection" } } }, 
+    [4] = { name = "Deactivated", params = {  { type = Type.OBJECT, class = "RPC::IRemoteConnection" } } }, 
+    [5] = { name = "Terminated", params = {  { type = Type.OBJECT, class = "RPC::IRemoteConnection" } } } 
+}
+
+--  IController.h
+INTERFACES[14] = "Exchange::Controller::ISystemManagement"
+METHODS[14] = {
+    [3] = { name = "Reboot", retvals = {  { type = Type.HRESULT } } }, 
+    [4] = { name = "Delete", retvals = {  { type = Type.HRESULT } }, params = {  { name = "path", type = Type.STRING } } }, 
+    [5] = { name = "Clone", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } }, params = {  { name = "callsign", type = Type.STRING },  { name = "newcallsign", type = Type.STRING } } }, 
+    [6] = { name = "Environment", retvals = {  { type = Type.HRESULT },  { name = "environment", type = Type.STRING } }, params = {  { name = "index", type = Type.STRING } } } 
+}
+
+INTERFACES[9] = "Exchange::Controller::IDiscovery"
+METHODS[9] = {
+    [3] = { name = "StartDiscovery", retvals = {  { type = Type.HRESULT } }, params = {  { name = "ttl", type = Type.UINT8 } } }, 
+    [4] = { name = "DiscoveryResults", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } } } 
+}
+
+INTERFACES[8] = "Exchange::Controller::IConfiguration"
+METHODS[8] = {
+    [3] = { name = "Persist", retvals = {  { type = Type.HRESULT } } }, 
+    [4] = { name = "Configuration", retvals = {  { type = Type.HRESULT },  { name = "configuration", type = Type.STRING } }, params = {  { name = "callsign", type = Type.STRING } } }, 
+    [5] = { name = "Configuration", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING },  { name = "configuration", type = Type.STRING } } } 
+}
+
+INTERFACES[11] = "Exchange::Controller::ILifeTime"
+METHODS[11] = {
+    [3] = { name = "Register", retvals = {  { type = Type.HRESULT } }, params = {  { name = "sink", type = Type.OBJECT, class = "Exchange::Controller::ILifeTime::INotification" } } }, 
+    [4] = { name = "Unregister", retvals = {  { type = Type.HRESULT } }, params = {  { name = "sink", type = Type.OBJECT, class = "Exchange::Controller::ILifeTime::INotification" } } }, 
+    [5] = { name = "Activate", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING } } }, 
+    [6] = { name = "Deactivate", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING } } }, 
+    [7] = { name = "Unavailable", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING } } }, 
+    [8] = { name = "Hibernate", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING },  { name = "timeout", type = Type.HRESULT } } }, 
+    [9] = { name = "Suspend", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING } } }, 
+    [10] = { name = "Resume", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callsign", type = Type.STRING } } } 
+}
+
+INTERFACES[12] = "Exchange::Controller::ILifeTime::INotification"
+METHODS[12] = {
+    [3] = { name = "StateChange", params = {  { name = "callsign", type = Type.STRING },  { name = "state", type = Type.ENUMU8, enum = "PluginHost::IShell::state" },  { name = "reason", type = Type.ENUMU8, enum = "PluginHost::IShell::reason" } } } 
+}
+
+INTERFACES[13] = "Exchange::Controller::IMetadata"
+METHODS[13] = {
+    [3] = { name = "Proxies", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } } }, 
+    [4] = { name = "Status", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } }, params = {  { name = "index", type = Type.STRING } } }, 
+    [5] = { name = "Links", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } } }, 
+    [6] = { name = "ProcessInfo", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } } }, 
+    [7] = { name = "Subsystems", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } } }, 
+    [8] = { name = "Version", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } } }, 
+    [9] = { name = "CallStack", retvals = {  { type = Type.HRESULT },  { name = "callstack", type = Type.STRING } }, params = {  { name = "index", type = Type.STRING } } } 
+}
+
+--  IControllerDeprecated.h
+INTERFACES[32] = "PluginHost::IController"
+METHODS[32] = {
+    [3] = { name = "Persist", retvals = {  { type = Type.UINT32 } } }, 
+    [4] = { name = "Delete", retvals = {  { type = Type.UINT32 } }, params = {  { name = "path", type = Type.STRING } } }, 
+    [5] = { name = "Reboot", retvals = {  { type = Type.UINT32 } } }, 
+    [6] = { name = "Environment", retvals = {  { type = Type.UINT32 },  { name = "environment", type = Type.STRING } }, params = {  { name = "index", type = Type.STRING } } }, 
+    [7] = { name = "Configuration", retvals = {  { type = Type.UINT32 },  { name = "configuration", type = Type.STRING } }, params = {  { name = "callsign", type = Type.STRING } } }, 
+    [8] = { name = "Configuration", retvals = {  { type = Type.UINT32 } }, params = {  { name = "callsign", type = Type.STRING },  { name = "configuration", type = Type.STRING } } }, 
+    [9] = { name = "Clone", retvals = {  { type = Type.UINT32 } }, params = {  { name = "basecallsign", type = Type.STRING },  { name = "newcallsign", type = Type.STRING } } } 
+}
+
+--  IPlugin.h
+INTERFACES[33] = "PluginHost::IPlugin"
+METHODS[33] = {
+    [3] = { name = "Initialize", retvals = {  { type = Type.STRING } }, params = {  { name = "shell", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "Deinitialize", params = {  { name = "shell", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [5] = { name = "Information", retvals = {  { type = Type.STRING } } } 
+}
+
+INTERFACES[34] = "PluginHost::IPlugin::INotification"
+METHODS[34] = {
+    [3] = { name = "Activated", params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "Deactivated", params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [5] = { name = "Unavailable", params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
+}
+
+INTERFACES[43] = "PluginHost::IPlugin::ILifeTime"
+METHODS[43] = {
+    [3] = { name = "Initialize", params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "Deinitialized", params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
+}
+
+INTERFACES[44] = "PluginHost::ICompositPlugin"
+METHODS[44] = {
+    [3] = { name = "Register", retvals = {  { type = Type.UINT32 } }, params = {  { type = Type.OBJECT, class = "PluginHost::ICompositPlugin::INotification" } } }, 
+    [4] = { name = "Unregister", retvals = {  { type = Type.UINT32 } }, params = {  { type = Type.OBJECT, class = "PluginHost::ICompositPlugin::INotification" } } } 
+}
+
+INTERFACES[45] = "PluginHost::ICompositPlugin::INotification"
+METHODS[45] = {
+    [3] = { name = "Activated", retvals = {  { type = Type.UINT32 } }, params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "Deactivated", retvals = {  { type = Type.UINT32 } }, params = {  { name = "callsign", type = Type.STRING },  { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
+}
+
+INTERFACES[42] = "PluginHost::IAuthenticate"
+METHODS[42] = {
+    [3] = { name = "CreateToken", retvals = {  { type = Type.HRESULT },  { name = "token", type = Type.STRING } }, params = {  { name = "buffer", type = Type.BUFFER16, length_param = "length" } } }, 
+    [4] = { name = "Officer", retvals = {  { type = Type.OBJECT, class = "PluginHost::ISecurity" } }, params = {  { name = "token", type = Type.STRING } } } 
+}
+
+--  IShell.h
+INTERFACES[48] = "PluginHost::IShell"
+METHODS[48] = {
+    [3] = { name = "EnableWebServer", params = {  { name = "URLPath", type = Type.STRING },  { name = "fileSystemPath", type = Type.STRING } } }, 
+    [4] = { name = "DisableWebServer" }, 
+    [5] = { name = "Model", retvals = {  { type = Type.STRING } } }, 
+    [6] = { name = "Background", retvals = {  { type = Type.BOOL } } }, 
+    [7] = { name = "Accessor", retvals = {  { type = Type.STRING } } }, 
+    [8] = { name = "WebPrefix", retvals = {  { type = Type.STRING } } }, 
+    [9] = { name = "Locator", retvals = {  { type = Type.STRING } } }, 
+    [10] = { name = "ClassName", retvals = {  { type = Type.STRING } } }, 
+    [11] = { name = "Versions", retvals = {  { type = Type.STRING } } }, 
+    [12] = { name = "Callsign", retvals = {  { type = Type.STRING } } }, 
+    [13] = { name = "PersistentPath", retvals = {  { type = Type.STRING } } }, 
+    [14] = { name = "VolatilePath", retvals = {  { type = Type.STRING } } }, 
+    [15] = { name = "DataPath", retvals = {  { type = Type.STRING } } }, 
+    [16] = { name = "ProxyStubPath", retvals = {  { type = Type.STRING } } }, 
+    [17] = { name = "SystemPath", retvals = {  { type = Type.STRING } } }, 
+    [18] = { name = "PluginPath", retvals = {  { type = Type.STRING } } }, 
+    [19] = { name = "SystemRootPath", retvals = {  { type = Type.STRING } } }, 
+    [20] = { name = "SystemRootPath", retvals = {  { type = Type.HRESULT } }, params = {  { name = "systemRootPath", type = Type.STRING } } }, 
+    [21] = { name = "Startup", retvals = {  { type = Type.ENUMU8, enum = "PluginHost::IShell::startup" } } }, 
+    [22] = { name = "Startup", retvals = {  { type = Type.HRESULT } }, params = {  { name = "value", type = Type.ENUMU8, enum = "PluginHost::IShell::startup" } } }, 
+    [23] = { name = "Substitute", retvals = {  { type = Type.STRING } }, params = {  { name = "input", type = Type.STRING } } }, 
+    [24] = { name = "Resumed", retvals = {  { type = Type.BOOL } } }, 
+    [25] = { name = "Resumed", retvals = {  { type = Type.HRESULT } }, params = {  { name = "value", type = Type.BOOL } } }, 
+    [26] = { name = "HashKey", retvals = {  { type = Type.STRING } } }, 
+    [27] = { name = "ConfigLine", retvals = {  { type = Type.STRING } } }, 
+    [28] = { name = "ConfigLine", retvals = {  { type = Type.HRESULT } }, params = {  { name = "config", type = Type.STRING } } }, 
+    [29] = { name = "Metadata", retvals = {  { type = Type.HRESULT },  { name = "info", type = Type.STRING } } }, 
+    [30] = { name = "IsSupported", retvals = {  { type = Type.BOOL } }, params = {  { name = "version", type = Type.UINT8 } } }, 
+    [31] = { name = "SubSystems", retvals = {  { type = Type.OBJECT, class = "PluginHost::ISubSystem" } } }, 
+    [32] = { name = "Notify", params = {  { name = "message", type = Type.STRING } } }, 
+    [33] = { name = "Register", params = {  { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" } } }, 
+    [34] = { name = "Unregister", params = {  { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" } } }, 
+    [35] = { name = "State", retvals = {  { type = Type.ENUMU8, enum = "PluginHost::IShell::state" } } }, 
+    [36] = { name = "QueryInterfaceByCallsign", retvals = {  { type = Type.OBJECT, interface_param = 1 } }, params = {  { name = "id", type = Type.INTERFACE },  { name = "name", type = Type.STRING } } }, 
+    [37] = { name = "Activate", retvals = {  { type = Type.HRESULT } }, params = {  { type = Type.ENUMU8, enum = "PluginHost::IShell::reason" } } }, 
+    [38] = { name = "Deactivate", retvals = {  { type = Type.HRESULT } }, params = {  { type = Type.ENUMU8, enum = "PluginHost::IShell::reason" } } }, 
+    [39] = { name = "Unavailable", retvals = {  { type = Type.HRESULT } }, params = {  { type = Type.ENUMU8, enum = "PluginHost::IShell::reason" } } }, 
+    [40] = { name = "Hibernate", retvals = {  { type = Type.HRESULT } }, params = {  { name = "timeout", type = Type.UINT32 } } }, 
+    [41] = { name = "Reason", retvals = {  { type = Type.ENUMU8, enum = "PluginHost::IShell::reason" } } }, 
+    [42] = { name = "Submit", retvals = {  { type = Type.UINT32 } }, params = {  { name = "Id", type = Type.UINT32 } } }, 
+    [43] = { name = "COMLink", retvals = {  { type = Type.OBJECT, class = "PluginHost::IShell::ICOMLink" } } } 
+}
+
+--  IStateControl.h
+INTERFACES[49] = "PluginHost::IStateControl"
+METHODS[49] = {
+    [3] = { name = "Configure", retvals = {  { type = Type.HRESULT } }, params = {  { name = "framework", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "State", retvals = {  { type = Type.ENUMU16, enum = "PluginHost::IStateControl::state" } } }, 
+    [5] = { name = "Request", retvals = {  { type = Type.HRESULT } }, params = {  { name = "state", type = Type.ENUMU16, enum = "PluginHost::IStateControl::command" } } }, 
+    [6] = { name = "Register", params = {  { name = "notification", type = Type.OBJECT, class = "PluginHost::IStateControl::INotification" } } }, 
+    [7] = { name = "Unregister", params = {  { name = "notification", type = Type.OBJECT, class = "PluginHost::IStateControl::INotification" } } } 
+}
+
+INTERFACES[50] = "PluginHost::IStateControl::INotification"
+METHODS[50] = {
+    [3] = { name = "StateChange", params = {  { name = "state", type = Type.ENUMU16, enum = "PluginHost::IStateControl::state" } } } 
+}
+
+--  ISubSystem.h
+INTERFACES[62] = "PluginHost::IMetadata"
+METHODS[62] = {
+    [3] = { name = "BuildTreeHash", retvals = {  { type = Type.STRING } } }, 
+    [4] = { name = "Major", retvals = {  { type = Type.UINT8 } } }, 
+    [5] = { name = "Minor", retvals = {  { type = Type.UINT8 } } }, 
+    [6] = { name = "Patch", retvals = {  { type = Type.UINT8 } } } 
+}
+
+INTERFACES[51] = "PluginHost::ISubSystem"
+METHODS[51] = {
+    [3] = { name = "Register", params = {  { name = "notification", type = Type.OBJECT, class = "PluginHost::ISubSystem::INotification" } } }, 
+    [4] = { name = "Unregister", params = {  { name = "notification", type = Type.OBJECT, class = "PluginHost::ISubSystem::INotification" } } }, 
+    [5] = { name = "Set", params = {  { name = "type", type = Type.ENUMU32, enum = "PluginHost::ISubSystem::subsystem" },  { name = "information", type = Type.OBJECT, class = "Core::IUnknown" } } }, 
+    [6] = { name = "Get", retvals = {  { type = Type.OBJECT, class = "Core::IUnknown" } }, params = {  { name = "type", type = Type.ENUMU32, enum = "PluginHost::ISubSystem::subsystem" } } }, 
+    [7] = { name = "IsActive", retvals = {  { type = Type.BOOL } }, params = {  { name = "type", type = Type.ENUMU32, enum = "PluginHost::ISubSystem::subsystem" } } }, 
+    [8] = { name = "BuildTreeHash", retvals = {  { type = Type.STRING } } }, 
+    [9] = { name = "Version", retvals = {  { type = Type.STRING } } } 
+}
+
+INTERFACES[52] = "PluginHost::ISubSystem::INotification"
+METHODS[52] = {
+    [3] = { name = "Updated" } 
+}
+
+INTERFACES[57] = "PluginHost::ISubSystem::ISecurity"
+METHODS[57] = {
+    [3] = { name = "Callsign", retvals = {  { type = Type.STRING } } } 
+}
+
+INTERFACES[53] = "PluginHost::ISubSystem::IInternet"
+METHODS[53] = {
+    [3] = { name = "PublicIPAddress", retvals = {  { type = Type.STRING } } }, 
+    [4] = { name = "NetworkType", retvals = {  { type = Type.ENUMU8, enum = "PluginHost::ISubSystem::IInternet::network_type" } } } 
+}
+
+INTERFACES[54] = "PluginHost::ISubSystem::ILocation"
+METHODS[54] = {
+    [3] = { name = "TimeZone", retvals = {  { type = Type.STRING } } }, 
+    [4] = { name = "Country", retvals = {  { type = Type.STRING } } }, 
+    [5] = { name = "Region", retvals = {  { type = Type.STRING } } }, 
+    [6] = { name = "City", retvals = {  { type = Type.STRING } } }, 
+    [7] = { name = "Latitude", retvals = {  { type = Type.INT32 } } }, 
+    [8] = { name = "Longitude", retvals = {  { type = Type.INT32 } } } 
+}
+
+INTERFACES[55] = "PluginHost::ISubSystem::IIdentifier"
+METHODS[55] = {
+    [3] = { name = "Identifier", retvals = {  { type = Type.UINT8 },  { name = "buffer", type = Type.BUFFER8, length_param = "length" } }, params = {  { name = "length", type = Type.UINT8 } } }, 
+    [4] = { name = "Architecture", retvals = {  { type = Type.STRING } } }, 
+    [5] = { name = "Chipset", retvals = {  { type = Type.STRING } } }, 
+    [6] = { name = "FirmwareVersion", retvals = {  { type = Type.STRING } } } 
+}
+
+INTERFACES[56] = "PluginHost::ISubSystem::ITime"
+METHODS[56] = {
+    [3] = { name = "TimeSync", retvals = {  { type = Type.UINT64 } } } 
+}
+
+INTERFACES[58] = "PluginHost::ISubSystem::IProvisioning"
+METHODS[58] = {
+    [3] = { name = "Storage", retvals = {  { type = Type.STRING } } }, 
+    [4] = { name = "Next", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.STRING } } }, 
+    [5] = { name = "Previous", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.STRING } } }, 
+    [6] = { name = "Reset", params = {  { name = "position", type = Type.UINT32 } } }, 
+    [7] = { name = "IsValid", retvals = {  { type = Type.BOOL } } }, 
+    [8] = { name = "Count", retvals = {  { type = Type.UINT32 } } }, 
+    [9] = { name = "Current", retvals = {  { type = Type.STRING } } } 
+}
+
+INTERFACES[59] = "PluginHost::ISubSystem::IDecryption"
+METHODS[59] = {
+    [3] = { name = "Next", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.STRING } } }, 
+    [4] = { name = "Previous", retvals = {  { type = Type.BOOL },  { name = "info", type = Type.STRING } } }, 
+    [5] = { name = "Reset", params = {  { name = "position", type = Type.UINT32 } } }, 
+    [6] = { name = "IsValid", retvals = {  { type = Type.BOOL } } }, 
+    [7] = { name = "Count", retvals = {  { type = Type.UINT32 } } }, 
+    [8] = { name = "Current", retvals = {  { type = Type.STRING } } } 
+}
+
+--  IDispatcher.h
+INTERFACES[38] = "PluginHost::IDispatcher"
+METHODS[38] = {
+    [3] = { name = "Validate", retvals = {  { type = Type.HRESULT } }, params = {  { name = "token", type = Type.STRING },  { name = "method", type = Type.STRING },  { name = "paramaters", type = Type.STRING } } }, 
+    [4] = { name = "Invoke", retvals = {  { type = Type.HRESULT },  { name = "response", type = Type.STRING } }, params = {  { name = "callback", type = Type.OBJECT, class = "PluginHost::IDispatcher::ICallback" },  { name = "channelId", type = Type.UINT32 },  { name = "id", type = Type.UINT32 },  { name = "token", type = Type.STRING },  { name = "method", type = Type.STRING },  { name = "parameters", type = Type.STRING } } }, 
+    [5] = { name = "Revoke", retvals = {  { type = Type.HRESULT } }, params = {  { name = "callback", type = Type.OBJECT, class = "PluginHost::IDispatcher::ICallback" } } }, 
+    [6] = { name = "Local", retvals = {  { type = Type.OBJECT, class = "PluginHost::ILocalDispatcher" } } } 
+}
+
+INTERFACES[46] = "PluginHost::IDispatcher::ICallback"
+METHODS[46] = {
+    [3] = { name = "Event", retvals = {  { type = Type.HRESULT } }, params = {  { name = "event", type = Type.STRING },  { name = "parameters", type = Type.STRING } } }, 
+    [4] = { name = "Error", retvals = {  { type = Type.HRESULT } }, params = {  { name = "channel", type = Type.UINT32 },  { name = "id", type = Type.UINT32 },  { name = "code", type = Type.UINT32 },  { name = "message", type = Type.STRING } } }, 
+    [5] = { name = "Response", retvals = {  { type = Type.HRESULT } }, params = {  { name = "channel", type = Type.UINT32 },  { name = "id", type = Type.UINT32 },  { name = "response", type = Type.STRING } } }, 
+    [6] = { name = "Subscribe", retvals = {  { type = Type.HRESULT } }, params = {  { name = "channel", type = Type.UINT32 },  { name = "event", type = Type.STRING },  { name = "designator", type = Type.STRING } } }, 
+    [7] = { name = "Unsubscribe", retvals = {  { type = Type.HRESULT } }, params = {  { name = "channel", type = Type.UINT32 },  { name = "event", type = Type.STRING },  { name = "designator", type = Type.STRING } } } 
+}
+
+--  IAVNClient.h
