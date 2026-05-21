@@ -3,10 +3,10 @@ name: ProxyStubGenerator Checks
 on:
   workflow_dispatch:
     inputs:
-      seed_tag_baseline:
-        description: 'Seed the fixed tag baseline (run this once from tag R4.4.4)'
-        type: boolean
-        default: false
+      tag_to_seed:
+        description: 'Tag to seed as a named baseline, e.g. R4.4.4 (leave empty for normal run)'
+        type: string
+        default: ''
   push:
     branches: [ R4_4 ]
     paths:
@@ -30,6 +30,8 @@ concurrency:
 jobs:
   Thunder:
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
+    with:
+      thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
 
   ThunderInterfaces:
     needs: Thunder
@@ -169,6 +171,8 @@ jobs:
         shell: bash
         env:
           TOOL_NAME: "ProxyStubGenerator"
+          PR_BODY: ${{ github.event.pull_request.body }}
+          TAG_TO_SEED: ${{ inputs.tag_to_seed }}
         run: |
           set -euo pipefail
 
@@ -199,7 +203,14 @@ jobs:
 
           # ----- PR-only: diff vs gh-pages baseline -----
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/tag_raw"
+            DIFF_TAG=$(printf '%s' "$PR_BODY" | grep -oP '(?<=\[Diff:)[^\]]+' | head -1 || true)
+            if [[ -n "$DIFF_TAG" ]]; then
+              BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/tag_${DIFF_TAG}_raw"
+              echo "Using tag baseline: $DIFF_TAG"
+            else
+              BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/tag_raw"
+              echo "Using default tag baseline"
+            fi
             mkdir -p diffs "site/$RUN_DIR/diff"
 
             if [[ -d "$BASELINE_ROOT" ]]; then
@@ -209,12 +220,22 @@ jobs:
                   -- "$BASELINE_ROOT" "generated" \
                   > "diffs/combined.diff" || true
             else
-               mkdir empty_dir
-               git diff --no-index -U5 \
-                  --src-prefix=baseline/ \
-                  --dst-prefix=generated/ \
-                  -- "empty_dir" "generated" \
-                  > "diffs/combined.diff" || true
+               if [[ -n "$DIFF_TAG" ]]; then
+                 # A specific tag was requested but has not been seeded yet.
+                 echo "::warning::Baseline for tag '$DIFF_TAG' not found at $BASELINE_ROOT. Run the workflow with tag_to_seed=$DIFF_TAG first."
+                 mkdir -p "site/$RUN_DIR/diff"
+                 echo "<h1>Baseline not found</h1><p>The baseline for tag <code>$DIFF_TAG</code> has not been seeded yet.</p><p>A maintainer needs to run this workflow with <code>tag_to_seed=$DIFF_TAG</code> first.</p>" > "site/$RUN_DIR/diff/index.html"
+                 echo "has_diff=false" >> "$GITHUB_OUTPUT"
+                 # Skip the rest of the diff section
+               else
+                 # Default baseline not seeded yet — diff against empty (shows everything as new).
+                 mkdir empty_dir
+                 git diff --no-index -U5 \
+                    --src-prefix=baseline/ \
+                    --dst-prefix=generated/ \
+                    -- "empty_dir" "generated" \
+                    > "diffs/combined.diff" || true
+               fi
             fi
 
             if [[ -s "diffs/combined.diff" ]]; then
@@ -336,12 +357,12 @@ jobs:
             mkdir -p "site/R4_4/latest_raw"
             cp -r generated/* "site/R4_4/latest_raw/"
 
-            # ----- Seed Fixed Tag Baseline (only when manually requested from tag R4.4.4) -----
-            if [[ "${{ inputs.seed_tag_baseline }}" == "true" ]]; then
-              echo "Seeding fixed tag baseline into R4_4/tag_raw..."
-              rm -rf "site/R4_4/tag_raw"
-              mkdir -p "site/R4_4/tag_raw"
-              cp -r generated/* "site/R4_4/tag_raw/"
+            # ----- Seed Named Tag Baseline (only when manually requested) -----
+            if [[ -n "$TAG_TO_SEED" ]]; then
+              echo "Seeding tag baseline for ${TAG_TO_SEED} into R4_4/tag_${TAG_TO_SEED}_raw..."
+              rm -rf "site/R4_4/tag_${TAG_TO_SEED}_raw"
+              mkdir -p "site/R4_4/tag_${TAG_TO_SEED}_raw"
+              cp -r generated/* "site/R4_4/tag_${TAG_TO_SEED}_raw/"
               echo "Tag baseline seeded."
             fi
 
