@@ -31,7 +31,7 @@ namespace ProxyStubs {
     //  (2) virtual Exchange::IWebPA::IWebPAClient* Client(const string&) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeWebPAStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeWebPAStubMethods[] = {
         // (0) virtual uint32_t Initialize(PluginHost::IShell*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -39,23 +39,22 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id parameter_8541ccd2Implementation = reader.Number<Core::instance_id>();
+            Core::instance_id _parameter_1InstanceId__ = reader.Number<Core::instance_id>();
 
-            PluginHost::IShell* _parameter_8541ccd2 = nullptr;
-            ProxyStub::UnknownProxy* parameter_8541ccd2Proxy = nullptr;
-            if (parameter_8541ccd2Implementation != 0) {
-                parameter_8541ccd2Proxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_8541ccd2Implementation, false, _parameter_8541ccd2);
-
-                ASSERT((_parameter_8541ccd2 != nullptr) && (parameter_8541ccd2Proxy != nullptr));
+            PluginHost::IShell* _parameter_1{};
+            ProxyStub::UnknownProxy* _parameter_1Proxy__ = nullptr;
+            if (_parameter_1InstanceId__ != 0) {
+                _parameter_1Proxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _parameter_1InstanceId__, false, _parameter_1);
+                ASSERT((_parameter_1 != nullptr) && (_parameter_1Proxy__ != nullptr));
             }
 
-            uint32_t result = implementation->Initialize(_parameter_8541ccd2);
+            uint32_t result = implementation->Initialize(_parameter_1);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (parameter_8541ccd2Proxy != nullptr) {
-                RPC::Administrator::Instance().Release(parameter_8541ccd2Proxy, message->Response());
+            if (_parameter_1Proxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_parameter_1Proxy__, message->Response());
             }
         },
 
@@ -66,20 +65,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id parameter_8fa5233eImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _parameter_1InstanceId__ = reader.Number<Core::instance_id>();
 
-            PluginHost::IShell* _parameter_8fa5233e = nullptr;
-            ProxyStub::UnknownProxy* parameter_8fa5233eProxy = nullptr;
-            if (parameter_8fa5233eImplementation != 0) {
-                parameter_8fa5233eProxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_8fa5233eImplementation, false, _parameter_8fa5233e);
-
-                ASSERT((_parameter_8fa5233e != nullptr) && (parameter_8fa5233eProxy != nullptr));
+            PluginHost::IShell* _parameter_1{};
+            ProxyStub::UnknownProxy* _parameter_1Proxy__ = nullptr;
+            if (_parameter_1InstanceId__ != 0) {
+                _parameter_1Proxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _parameter_1InstanceId__, false, _parameter_1);
+                ASSERT((_parameter_1 != nullptr) && (_parameter_1Proxy__ != nullptr));
             }
 
-            implementation->Deinitialize(_parameter_8fa5233e);
+            implementation->Deinitialize(_parameter_1);
 
-            if (parameter_8fa5233eProxy != nullptr) {
-                RPC::Administrator::Instance().Release(parameter_8fa5233eProxy, message->Response());
+            if (_parameter_1Proxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_parameter_1Proxy__, message->Response());
             }
         },
 
@@ -110,7 +108,7 @@ namespace ProxyStubs {
     //  (1) virtual uint32_t Launch() = 0
     //
 
-    ProxyStub::MethodHandler ExchangeWebPAWebPAClientStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeWebPAWebPAClientStubMethods[] = {
         // (0) virtual uint32_t Configure(PluginHost::IShell*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -118,23 +116,22 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id parameter_a24fd42bImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _parameter_1InstanceId__ = reader.Number<Core::instance_id>();
 
-            PluginHost::IShell* _parameter_a24fd42b = nullptr;
-            ProxyStub::UnknownProxy* parameter_a24fd42bProxy = nullptr;
-            if (parameter_a24fd42bImplementation != 0) {
-                parameter_a24fd42bProxy = RPC::Administrator::Instance().ProxyInstance(channel, parameter_a24fd42bImplementation, false, _parameter_a24fd42b);
-
-                ASSERT((_parameter_a24fd42b != nullptr) && (parameter_a24fd42bProxy != nullptr));
+            PluginHost::IShell* _parameter_1{};
+            ProxyStub::UnknownProxy* _parameter_1Proxy__ = nullptr;
+            if (_parameter_1InstanceId__ != 0) {
+                _parameter_1Proxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _parameter_1InstanceId__, false, _parameter_1);
+                ASSERT((_parameter_1 != nullptr) && (_parameter_1Proxy__ != nullptr));
             }
 
-            uint32_t result = implementation->Configure(_parameter_a24fd42b);
+            uint32_t result = implementation->Configure(_parameter_1);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (parameter_a24fd42bProxy != nullptr) {
-                RPC::Administrator::Instance().Release(parameter_a24fd42bProxy, message->Response());
+            if (_parameter_1Proxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_parameter_1Proxy__, message->Response());
             }
         },
 
@@ -172,7 +169,67 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Initialize(PluginHost::IShell* _parameter_1) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_1));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        void Deinitialize(PluginHost::IShell* _parameter_1) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_1));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        Exchange::IWebPA::IWebPAClient* Client(const string& _name) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_name);
+
+            Exchange::IWebPA::IWebPAClient* result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reinterpret_cast<Exchange::IWebPA::IWebPAClient*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IWebPA::IWebPAClient::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -186,53 +243,6 @@ namespace ProxyStubs {
                 result = UnknownProxyType::Complete(implementation, id, how);
                 if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
             }
-
-            return (result);
-        }
-
-        uint32_t Initialize(PluginHost::IShell* _parameter_8541ccd2) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_8541ccd2));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            Complete(reader);
-
-            return (result);
-        }
-
-        void Deinitialize(PluginHost::IShell* _parameter_8fa5233e) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_8fa5233e));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        Exchange::IWebPA::IWebPAClient* Client(const string& _name) override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_name));
-
-            Exchange::IWebPA::IWebPAClient* result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reinterpret_cast<Exchange::IWebPA::IWebPAClient*>(Interface(reader.Number<Core::instance_id>(), Exchange::IWebPA::IWebPAClient::ID));
 
             return (result);
         }
@@ -254,7 +264,47 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Configure(PluginHost::IShell* _parameter_1) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_1));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Launch() override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -268,37 +318,6 @@ namespace ProxyStubs {
                 result = UnknownProxyType::Complete(implementation, id, how);
                 if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
             }
-
-            return (result);
-        }
-
-        uint32_t Configure(PluginHost::IShell* _parameter_a24fd42b) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_parameter_a24fd42b));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            Complete(reader);
-
-            return (result);
-        }
-
-        uint32_t Launch() override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
 
             return (result);
         }

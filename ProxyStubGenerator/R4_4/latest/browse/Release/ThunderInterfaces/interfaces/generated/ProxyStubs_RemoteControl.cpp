@@ -30,7 +30,7 @@ namespace ProxyStubs {
     //  (1) virtual void UnregisterEvents(Exchange::IRemoteControl::INotification*) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeRemoteControlStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeRemoteControlStubMethods[] = {
         // (0) virtual void RegisterEvents(Exchange::IRemoteControl::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -38,20 +38,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id sinkImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IRemoteControl::INotification* _sink = nullptr;
-            ProxyStub::UnknownProxy* sinkProxy = nullptr;
-            if (sinkImplementation != 0) {
-                sinkProxy = RPC::Administrator::Instance().ProxyInstance(channel, sinkImplementation, false, _sink);
-
-                ASSERT((_sink != nullptr) && (sinkProxy != nullptr));
+            Exchange::IRemoteControl::INotification* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
             }
 
             implementation->RegisterEvents(_sink);
 
-            if (sinkProxy != nullptr) {
-                RPC::Administrator::Instance().Release(sinkProxy, message->Response());
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
             }
         },
 
@@ -62,20 +61,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id sinkImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IRemoteControl::INotification* _sink = nullptr;
-            ProxyStub::UnknownProxy* sinkProxy = nullptr;
-            if (sinkImplementation != 0) {
-                sinkProxy = RPC::Administrator::Instance().ProxyInstance(channel, sinkImplementation, false, _sink);
-
-                ASSERT((_sink != nullptr) && (sinkProxy != nullptr));
+            Exchange::IRemoteControl::INotification* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
             }
 
             implementation->UnregisterEvents(_sink);
 
-            if (sinkProxy != nullptr) {
-                RPC::Administrator::Instance().Release(sinkProxy, message->Response());
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
             }
         }
         , nullptr
@@ -88,7 +86,7 @@ namespace ProxyStubs {
     //  (0) virtual void Event(const string&, const uint32_t) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeRemoteControlNotificationStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeRemoteControlNotificationStubMethods[] = {
         // (0) virtual void Event(const string&, const uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -123,7 +121,42 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        void RegisterEvents(Exchange::IRemoteControl::INotification* _sink) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void UnregisterEvents(Exchange::IRemoteControl::INotification* _sink) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -139,32 +172,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        void RegisterEvents(Exchange::IRemoteControl::INotification* _sink) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        void UnregisterEvents(Exchange::IRemoteControl::INotification* _sink) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
         }
 
     }; // class ExchangeRemoteControlProxy
@@ -183,30 +190,12 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         void Event(const string& _producer, const uint32_t _event) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_producer));
+            writer.Text(_producer);
             writer.Number<uint32_t>(_event);
 
             UnknownProxyType::Invoke(message);

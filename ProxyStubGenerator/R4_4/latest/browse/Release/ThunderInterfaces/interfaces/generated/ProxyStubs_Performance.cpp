@@ -30,7 +30,7 @@ namespace ProxyStubs {
     //  (2) virtual uint32_t Exchange(uint16_t&, uint8_t*, const uint16_t) = 0
     //
 
-    ProxyStub::MethodHandler ExchangePerformanceStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangePerformanceStubMethods[] = {
         // (0) virtual uint32_t Send(const uint16_t, const uint8_t*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -39,10 +39,10 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _buffer{};
-            const uint16_t bufferLen = reader.LockBuffer<uint16_t>(_buffer);
-            reader.UnlockBuffer(bufferLen);
+            const uint16_t _sendSize = reader.LockBuffer<uint16_t>(_buffer);
+            reader.UnlockBuffer(_sendSize);
 
-            uint32_t result = implementation->Send(bufferLen, _buffer);
+            uint32_t result = implementation->Send(_sendSize, _buffer);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
@@ -60,7 +60,8 @@ namespace ProxyStubs {
             uint8_t* _buffer{};
 
             if (_bufferSize != 0) {
-                _buffer = static_cast<uint8_t*>(ALLOCA(_bufferSize));
+                _buffer = static_cast<uint8_t*>(ALLOCA(_bufferSize * sizeof(uint8_t)));
+                ASSERT(_buffer != nullptr);
             }
 
             uint32_t result = implementation->Receive(_bufferSize, _buffer);
@@ -79,32 +80,30 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             uint8_t* _buffer{};
-            uint16_t bufferLen = reader.LockBuffer<uint16_t>(const_cast<const uint8_t*&>(_buffer));
-            reader.UnlockBuffer(bufferLen);
+            uint16_t _bufferSize = reader.LockBuffer<uint16_t>(const_cast<const uint8_t*&>(_buffer));
+            reader.UnlockBuffer(_bufferSize);
             const uint16_t _maxBufferSize = reader.Number<uint16_t>();
 
             if (_maxBufferSize != 0) {
-                if (_maxBufferSize > bufferLen) {
+                if (_maxBufferSize > _bufferSize) {
                     void* tempBuffer{};
 
-                    tempBuffer = static_cast<uint8_t*>(ALLOCA(_maxBufferSize));
+                    tempBuffer = static_cast<uint8_t*>(ALLOCA(_maxBufferSize * sizeof(uint8_t)));
+                    ASSERT(tempBuffer != nullptr);
 
                     if (tempBuffer != nullptr) {
-                        ::memcpy(tempBuffer, _buffer, bufferLen);
+                        ::memcpy(tempBuffer, _buffer, _bufferSize);
                     }
 
                     _buffer = static_cast<uint8_t*>(tempBuffer);
                 }
-
-
-                ASSERT(_buffer != nullptr);
             }
 
-            uint32_t result = implementation->Exchange(bufferLen, _buffer, _maxBufferSize);
+            uint32_t result = implementation->Exchange(_bufferSize, _buffer, _maxBufferSize);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
-            writer.Buffer<uint16_t>(bufferLen, _buffer);
+            writer.Buffer<uint16_t>(_bufferSize, _buffer);
         }
         , nullptr
     }; // ExchangePerformanceStubMethods
@@ -129,72 +128,66 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Send(const uint16_t _sendSize, const uint8_t* _buffer) override
         {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
-        uint32_t Send(const uint16_t bufferLen, const uint8_t* _buffer) override
-        {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint16_t>(bufferLen, _buffer);
+            writer.Buffer<uint16_t>(_sendSize, _buffer);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Receive(uint16_t& _bufferSize, uint8_t* _buffer) const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint16_t>(_bufferSize);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            reader.Buffer<uint16_t>(_bufferSize, _buffer);
-            _bufferSize = reader.Number<uint16_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                reader.Buffer<uint16_t>(_bufferSize, _buffer);
+                _bufferSize = reader.Number<uint16_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-        uint32_t Exchange(uint16_t& bufferLen, uint8_t* _buffer, const uint16_t _maxBufferSize) override
+        uint32_t Exchange(uint16_t& _bufferSize, uint8_t* _buffer, const uint16_t _maxBufferSize) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint16_t>(bufferLen, _buffer);
+            writer.Buffer<uint16_t>(_bufferSize, _buffer);
             writer.Number<uint16_t>(_maxBufferSize);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            bufferLen = reader.Buffer<uint16_t>(_maxBufferSize, _buffer);
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _bufferSize = reader.Buffer<uint16_t>(_maxBufferSize, _buffer);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }

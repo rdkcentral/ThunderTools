@@ -2,7 +2,7 @@
 // generated automatically from "IMessageControl.h"
 //
 // implements COM-RPC proxy stubs for:
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IMessageControl::Control, INTERFACE_ID = Exchange::ID_MESSAGE_CONTROL_ITERATOR]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IMessageControl::Control, INTERFACE_ID = Exchange::ID_MESSAGE_CONTROL_ITERATOR] [[iterator]]
 //   - class Exchange::IMessageControl
 //
 
@@ -23,7 +23,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance505C6C09 interface stub definitions
+    // RPC::IIteratorTypeInstance_675a6ff7e5671893 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IMessageControl::Control&) = 0
@@ -34,7 +34,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IMessageControl::Control Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstance505C6C09StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_675a6ff7e5671893StubMethods[] = {
         // (0) virtual bool Next(Exchange::IMessageControl::Control&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -134,7 +134,7 @@ namespace ProxyStubs {
             writer.Boolean(result.enabled);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance505C6C09StubMethods
+    }; // RPCIteratorTypeInstance_675a6ff7e5671893StubMethods
 
     //
     // Exchange::IMessageControl interface stub definitions
@@ -144,7 +144,7 @@ namespace ProxyStubs {
     //  (1) virtual uint32_t Controls(Exchange::IMessageControl::IControlIterator*&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeMessageControlStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeMessageControlStubMethods[] = {
         // (0) virtual uint32_t Enable(const Exchange::IMessageControl::messagetype, const string&, const string&, const bool) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -187,7 +187,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance505C6C09 interface proxy definitions
+    // RPC::IIteratorTypeInstance_675a6ff7e5671893 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IMessageControl::Control&) = 0
@@ -198,68 +198,58 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IMessageControl::Control Current() const = 0
     //
 
-    class RPCIteratorTypeInstance505C6C09Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>> {
+    class RPCIteratorTypeInstance_675a6ff7e5671893Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>> {
     public:
-        RPCIteratorTypeInstance505C6C09Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_675a6ff7e5671893Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IMessageControl::Control& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info.type = reader.Number<Exchange::IMessageControl::messagetype>();
-            _info.category = reader.Text();
-            _info.module = reader.Text();
-            _info.enabled = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info.type = reader.Number<Exchange::IMessageControl::messagetype>();
+                _info.category = reader.Text();
+                _info.module = reader.Text();
+                _info.enabled = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IMessageControl::Control& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info.type = reader.Number<Exchange::IMessageControl::messagetype>();
-            _info.category = reader.Text();
-            _info.module = reader.Text();
-            _info.enabled = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info.type = reader.Number<Exchange::IMessageControl::messagetype>();
+                _info.category = reader.Text();
+                _info.module = reader.Text();
+                _info.enabled = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -269,47 +259,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IMessageControl::Control Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IMessageControl::Control result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result.type = reader.Number<Exchange::IMessageControl::messagetype>();
-            result.category = reader.Text();
-            result.module = reader.Text();
-            result.enabled = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result.type = reader.Number<Exchange::IMessageControl::messagetype>();
+                result.category = reader.Text();
+                result.module = reader.Text();
+                result.enabled = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance505C6C09Proxy
+    }; // class RPCIteratorTypeInstance_675a6ff7e5671893Proxy
 
     //
     // Exchange::IMessageControl interface proxy definitions
@@ -326,32 +328,14 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         uint32_t Enable(const Exchange::IMessageControl::messagetype _type, const string& _category, const string& _module, const bool _enabled) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IMessageControl::messagetype>(_type);
-            writer.Text(static_cast<const string&>(_category));
-            writer.Text(static_cast<const string&>(_module));
+            writer.Text(_category);
+            writer.Text(_module);
             writer.Boolean(_enabled);
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
@@ -359,7 +343,7 @@ namespace ProxyStubs {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -367,17 +351,15 @@ namespace ProxyStubs {
 
         uint32_t Controls(Exchange::IMessageControl::IControlIterator*& _control) const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _control = reinterpret_cast<Exchange::IMessageControl::IControlIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IMessageControl::IControlIterator::ID));
-                }
+                _control = reinterpret_cast<Exchange::IMessageControl::IControlIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IMessageControl::IControlIterator::ID));
             } else {
-                hresult |= COM_ERROR;
+                ASSERT((hresult & COM_ERROR) != 0);
             }
 
             return (hresult);
@@ -394,14 +376,14 @@ namespace ProxyStubs {
 
     namespace {
 
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>, RPCIteratorTypeInstance505C6C09StubMethods> RPCIteratorTypeInstance505C6C09Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>, RPCIteratorTypeInstance_675a6ff7e5671893StubMethods> RPCIteratorTypeInstance_675a6ff7e5671893Stub;
         typedef ProxyStub::UnknownStubType<Exchange::IMessageControl, ExchangeMessageControlStubMethods> ExchangeMessageControlStub;
 
         static class Instantiation {
         public:
             Instantiation()
             {
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>, RPCIteratorTypeInstance505C6C09Proxy, RPCIteratorTypeInstance505C6C09Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>, RPCIteratorTypeInstance_675a6ff7e5671893Proxy, RPCIteratorTypeInstance_675a6ff7e5671893Stub>();
                 RPC::Administrator::Instance().Announce<Exchange::IMessageControl, ExchangeMessageControlProxy, ExchangeMessageControlStub>();
             }
             ~Instantiation()

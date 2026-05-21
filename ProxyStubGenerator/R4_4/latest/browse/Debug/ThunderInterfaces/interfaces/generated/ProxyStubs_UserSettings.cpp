@@ -44,7 +44,7 @@ namespace ProxyStubs {
     //  (15) virtual uint32_t GetPrivacyMode(string&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeUserSettingsStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeUserSettingsStubMethods[] = {
         // (0) virtual uint32_t Register(Exchange::IUserSettings::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -52,14 +52,13 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id notificationImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _notificationInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IUserSettings::INotification* _notification = nullptr;
-            ProxyStub::UnknownProxy* notificationProxy = nullptr;
-            if (notificationImplementation != 0) {
-                notificationProxy = RPC::Administrator::Instance().ProxyInstance(channel, notificationImplementation, false, _notification);
-
-                ASSERT((_notification != nullptr) && (notificationProxy != nullptr));
+            Exchange::IUserSettings::INotification* _notification{};
+            ProxyStub::UnknownProxy* _notificationProxy__ = nullptr;
+            if (_notificationInstanceId__ != 0) {
+                _notificationProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _notificationInstanceId__, false, _notification);
+                ASSERT((_notification != nullptr) && (_notificationProxy__ != nullptr));
             }
 
             uint32_t result = implementation->Register(_notification);
@@ -67,8 +66,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (notificationProxy != nullptr) {
-                RPC::Administrator::Instance().Release(notificationProxy, message->Response());
+            if (_notificationProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_notificationProxy__, message->Response());
             }
         },
 
@@ -79,14 +78,13 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id notificationImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _notificationInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IUserSettings::INotification* _notification = nullptr;
-            ProxyStub::UnknownProxy* notificationProxy = nullptr;
-            if (notificationImplementation != 0) {
-                notificationProxy = RPC::Administrator::Instance().ProxyInstance(channel, notificationImplementation, false, _notification);
-
-                ASSERT((_notification != nullptr) && (notificationProxy != nullptr));
+            Exchange::IUserSettings::INotification* _notification{};
+            ProxyStub::UnknownProxy* _notificationProxy__ = nullptr;
+            if (_notificationInstanceId__ != 0) {
+                _notificationProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _notificationInstanceId__, false, _notification);
+                ASSERT((_notification != nullptr) && (_notificationProxy__ != nullptr));
             }
 
             uint32_t result = implementation->Unregister(_notification);
@@ -94,8 +92,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (notificationProxy != nullptr) {
-                RPC::Administrator::Instance().Release(notificationProxy, message->Response());
+            if (_notificationProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_notificationProxy__, message->Response());
             }
         },
 
@@ -324,7 +322,7 @@ namespace ProxyStubs {
     //  (6) virtual void OnPrivacyModeChanged(const string&) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeUserSettingsNotificationStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeUserSettingsNotificationStubMethods[] = {
         // (0) virtual void OnAudioDescriptionChanged(const bool) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -444,7 +442,286 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Register(Exchange::IUserSettings::INotification* _notification) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_notification));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Unregister(Exchange::IUserSettings::INotification* _notification) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_notification));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetAudioDescription(const bool _enabled) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_enabled);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetAudioDescription(bool& _enabled) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _enabled = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetPreferredAudioLanguages(const string& _preferredLanguages) override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_preferredLanguages);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetPreferredAudioLanguages(string& _preferredLanguages) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(5));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _preferredLanguages = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetPresentationLanguage(const string& _presentationLanguages) override
+        {
+            IPCMessage message(UnknownProxyType::Message(6));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_presentationLanguages);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetPresentationLanguage(string& _presentationLanguages) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(7));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _presentationLanguages = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetCaptions(const bool _enabled) override
+        {
+            IPCMessage message(UnknownProxyType::Message(8));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_enabled);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetCaptions(bool& _enabled) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(9));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _enabled = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetPreferredCaptionsLanguages(const string& _preferredLanguages) override
+        {
+            IPCMessage message(UnknownProxyType::Message(10));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_preferredLanguages);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetPreferredCaptionsLanguages(string& _preferredLanguages) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(11));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _preferredLanguages = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetPreferredClosedCaptionService(const string& _service) override
+        {
+            IPCMessage message(UnknownProxyType::Message(12));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_service);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetPreferredClosedCaptionService(string& _service) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(13));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _service = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t SetPrivacyMode(const string& _privacyMode) override
+        {
+            IPCMessage message(UnknownProxyType::Message(14));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_privacyMode);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        uint32_t GetPrivacyMode(string& _privacyMode) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(15));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                _privacyMode = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -460,298 +737,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        uint32_t Register(Exchange::IUserSettings::INotification* _notification) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_notification));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Unregister(Exchange::IUserSettings::INotification* _notification) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_notification));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                Complete(reader);
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetAudioDescription(const bool _enabled) override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Boolean(_enabled);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetAudioDescription(bool& _enabled) const override
-        {
-            IPCMessage message(BaseClass::Message(3));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _enabled = reader.Boolean();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetPreferredAudioLanguages(const string& _preferredLanguages) override
-        {
-            IPCMessage message(BaseClass::Message(4));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_preferredLanguages));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetPreferredAudioLanguages(string& _preferredLanguages) const override
-        {
-            IPCMessage message(BaseClass::Message(5));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _preferredLanguages = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetPresentationLanguage(const string& _presentationLanguages) override
-        {
-            IPCMessage message(BaseClass::Message(6));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_presentationLanguages));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetPresentationLanguage(string& _presentationLanguages) const override
-        {
-            IPCMessage message(BaseClass::Message(7));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _presentationLanguages = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetCaptions(const bool _enabled) override
-        {
-            IPCMessage message(BaseClass::Message(8));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Boolean(_enabled);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetCaptions(bool& _enabled) const override
-        {
-            IPCMessage message(BaseClass::Message(9));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _enabled = reader.Boolean();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetPreferredCaptionsLanguages(const string& _preferredLanguages) override
-        {
-            IPCMessage message(BaseClass::Message(10));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_preferredLanguages));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetPreferredCaptionsLanguages(string& _preferredLanguages) const override
-        {
-            IPCMessage message(BaseClass::Message(11));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _preferredLanguages = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetPreferredClosedCaptionService(const string& _service) override
-        {
-            IPCMessage message(BaseClass::Message(12));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_service));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetPreferredClosedCaptionService(string& _service) const override
-        {
-            IPCMessage message(BaseClass::Message(13));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _service = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t SetPrivacyMode(const string& _privacyMode) override
-        {
-            IPCMessage message(BaseClass::Message(14));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_privacyMode));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
-        }
-
-        uint32_t GetPrivacyMode(string& _privacyMode) const override
-        {
-            IPCMessage message(BaseClass::Message(15));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                if ((hresult & COM_ERROR) == 0) {
-                    _privacyMode = reader.Text();
-                }
-            } else {
-                hresult |= COM_ERROR;
-            }
-
-            return (hresult);
         }
 
     }; // class ExchangeUserSettingsProxy
@@ -776,27 +761,9 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         void OnAudioDescriptionChanged(const bool _enabled) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Boolean(_enabled);
@@ -806,27 +773,27 @@ namespace ProxyStubs {
 
         void OnPreferredAudioLanguagesChanged(const string& _preferredLanguages) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_preferredLanguages));
+            writer.Text(_preferredLanguages);
 
             UnknownProxyType::Invoke(message);
         }
 
         void OnPresentationLanguageChanged(const string& _presentationLanguages) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_presentationLanguages));
+            writer.Text(_presentationLanguages);
 
             UnknownProxyType::Invoke(message);
         }
 
         void OnCaptionsChanged(const bool _enabled) override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Boolean(_enabled);
@@ -836,30 +803,30 @@ namespace ProxyStubs {
 
         void OnPreferredCaptionsLanguagesChanged(const string& _preferredLanguages) override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_preferredLanguages));
+            writer.Text(_preferredLanguages);
 
             UnknownProxyType::Invoke(message);
         }
 
         void OnPreferredClosedCaptionServiceChanged(const string& _service) override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_service));
+            writer.Text(_service);
 
             UnknownProxyType::Invoke(message);
         }
 
         void OnPrivacyModeChanged(const string& _privacyMode) override
         {
-            IPCMessage message(BaseClass::Message(6));
+            IPCMessage message(UnknownProxyType::Message(6));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_privacyMode));
+            writer.Text(_privacyMode);
 
             UnknownProxyType::Invoke(message);
         }

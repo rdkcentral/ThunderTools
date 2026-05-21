@@ -31,7 +31,7 @@ namespace ProxyStubs {
     //  (2) virtual void SystemCommand(const string&) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeNetflixStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeNetflixStubMethods[] = {
         // (0) virtual void Register(Exchange::INetflix::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -39,20 +39,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id netflixImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _netflixInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::INetflix::INotification* _netflix = nullptr;
-            ProxyStub::UnknownProxy* netflixProxy = nullptr;
-            if (netflixImplementation != 0) {
-                netflixProxy = RPC::Administrator::Instance().ProxyInstance(channel, netflixImplementation, false, _netflix);
-
-                ASSERT((_netflix != nullptr) && (netflixProxy != nullptr));
+            Exchange::INetflix::INotification* _netflix{};
+            ProxyStub::UnknownProxy* _netflixProxy__ = nullptr;
+            if (_netflixInstanceId__ != 0) {
+                _netflixProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _netflixInstanceId__, false, _netflix);
+                ASSERT((_netflix != nullptr) && (_netflixProxy__ != nullptr));
             }
 
             implementation->Register(_netflix);
 
-            if (netflixProxy != nullptr) {
-                RPC::Administrator::Instance().Release(netflixProxy, message->Response());
+            if (_netflixProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_netflixProxy__, message->Response());
             }
         },
 
@@ -63,20 +62,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id netflixImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _netflixInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::INetflix::INotification* _netflix = nullptr;
-            ProxyStub::UnknownProxy* netflixProxy = nullptr;
-            if (netflixImplementation != 0) {
-                netflixProxy = RPC::Administrator::Instance().ProxyInstance(channel, netflixImplementation, false, _netflix);
-
-                ASSERT((_netflix != nullptr) && (netflixProxy != nullptr));
+            Exchange::INetflix::INotification* _netflix{};
+            ProxyStub::UnknownProxy* _netflixProxy__ = nullptr;
+            if (_netflixInstanceId__ != 0) {
+                _netflixProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _netflixInstanceId__, false, _netflix);
+                ASSERT((_netflix != nullptr) && (_netflixProxy__ != nullptr));
             }
 
             implementation->Unregister(_netflix);
 
-            if (netflixProxy != nullptr) {
-                RPC::Administrator::Instance().Release(netflixProxy, message->Response());
+            if (_netflixProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_netflixProxy__, message->Response());
             }
         },
 
@@ -102,7 +100,7 @@ namespace ProxyStubs {
     //  (1) virtual void Exit(const uint32_t) = 0
     //
 
-    ProxyStub::MethodHandler ExchangeNetflixNotificationStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeNetflixNotificationStubMethods[] = {
         // (0) virtual void StateChange(const Exchange::INetflix::state) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -149,7 +147,52 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        void Register(Exchange::INetflix::INotification* _netflix) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_netflix));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void Unregister(Exchange::INetflix::INotification* _netflix) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_netflix));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void SystemCommand(const string& _command) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_command);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -165,42 +208,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        void Register(Exchange::INetflix::INotification* _netflix) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_netflix));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        void Unregister(Exchange::INetflix::INotification* _netflix) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_netflix));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        void SystemCommand(const string& _command) override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_command));
-
-            UnknownProxyType::Invoke(message);
         }
 
     }; // class ExchangeNetflixProxy
@@ -220,27 +227,9 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         void StateChange(const Exchange::INetflix::state _state) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::INetflix::state>(_state);
@@ -250,7 +239,7 @@ namespace ProxyStubs {
 
         void Exit(const uint32_t _exitCode) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_exitCode);

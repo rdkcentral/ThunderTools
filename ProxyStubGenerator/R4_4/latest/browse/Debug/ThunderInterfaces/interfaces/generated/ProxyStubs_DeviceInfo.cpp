@@ -2,12 +2,12 @@
 // generated automatically from "IDeviceInfo.h"
 //
 // implements COM-RPC proxy stubs for:
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDeviceAudioCapabilities::AudioOutput, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDeviceAudioCapabilities::AudioCapability, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDeviceAudioCapabilities::MS12Capability, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDeviceAudioCapabilities::MS12Profile, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDeviceVideoCapabilities::VideoOutput, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IDeviceVideoCapabilities::ScreenResolution, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IDeviceAudioCapabilities::AudioOutput, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IDeviceAudioCapabilities::AudioCapability, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IDeviceAudioCapabilities::MS12Capability, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IDeviceAudioCapabilities::MS12Profile, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IDeviceVideoCapabilities::VideoOutput, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IDeviceVideoCapabilities::ScreenResolution, INTERFACE_ID = Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION] [[iterator]]
 //   - class Exchange::IDeviceInfo
 //   - class Exchange::IDeviceAudioCapabilities
 //   - class Exchange::IDeviceVideoCapabilities
@@ -30,7 +30,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance3EF633B6 interface stub definitions
+    // RPC::IIteratorTypeInstance_c05b33a2ffea23f6 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::AudioOutput&) = 0
@@ -41,7 +41,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::AudioOutput Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstance3EF633B6StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_c05b33a2ffea23f6StubMethods[] = {
         // (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::AudioOutput&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -132,10 +132,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance3EF633B6StubMethods
+    }; // RPCIteratorTypeInstance_c05b33a2ffea23f6StubMethods
 
     //
-    // RPC::IIteratorTypeInstance4AB73D39 interface stub definitions
+    // RPC::IIteratorTypeInstance_47f9365de0b38ac1 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::AudioCapability&) = 0
@@ -146,7 +146,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::AudioCapability Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstance4AB73D39StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_47f9365de0b38ac1StubMethods[] = {
         // (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::AudioCapability&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -237,10 +237,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance4AB73D39StubMethods
+    }; // RPCIteratorTypeInstance_47f9365de0b38ac1StubMethods
 
     //
-    // RPC::IIteratorTypeInstanceDA4976A7 interface stub definitions
+    // RPC::IIteratorTypeInstance_ed3acc81bd14fad7 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::MS12Capability&) = 0
@@ -251,7 +251,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::MS12Capability Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstanceDA4976A7StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_ed3acc81bd14fad7StubMethods[] = {
         // (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::MS12Capability&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -342,10 +342,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstanceDA4976A7StubMethods
+    }; // RPCIteratorTypeInstance_ed3acc81bd14fad7StubMethods
 
     //
-    // RPC::IIteratorTypeInstance9DDA55CE interface stub definitions
+    // RPC::IIteratorTypeInstance_291157d7989c288e interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::MS12Profile&) = 0
@@ -356,7 +356,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::MS12Profile Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstance9DDA55CEStubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_291157d7989c288eStubMethods[] = {
         // (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::MS12Profile&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -447,10 +447,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance9DDA55CEStubMethods
+    }; // RPCIteratorTypeInstance_291157d7989c288eStubMethods
 
     //
-    // RPC::IIteratorTypeInstanceABF6ED22 interface stub definitions
+    // RPC::IIteratorTypeInstance_0abf4e195a83835b interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceVideoCapabilities::VideoOutput&) = 0
@@ -461,7 +461,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceVideoCapabilities::VideoOutput Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstanceABF6ED22StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_0abf4e195a83835bStubMethods[] = {
         // (0) virtual bool Next(Exchange::IDeviceVideoCapabilities::VideoOutput&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -552,10 +552,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstanceABF6ED22StubMethods
+    }; // RPCIteratorTypeInstance_0abf4e195a83835bStubMethods
 
     //
-    // RPC::IIteratorTypeInstanceAD2E8B65 interface stub definitions
+    // RPC::IIteratorTypeInstance_848ec395838dfece interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceVideoCapabilities::ScreenResolution&) = 0
@@ -566,7 +566,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceVideoCapabilities::ScreenResolution Current() const = 0
     //
 
-    ProxyStub::MethodHandler RPCIteratorTypeInstanceAD2E8B65StubMethods[] = {
+    static ProxyStub::MethodHandler RPCIteratorTypeInstance_848ec395838dfeceStubMethods[] = {
         // (0) virtual bool Next(Exchange::IDeviceVideoCapabilities::ScreenResolution&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -657,7 +657,7 @@ namespace ProxyStubs {
             writer.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstanceAD2E8B65StubMethods
+    }; // RPCIteratorTypeInstance_848ec395838dfeceStubMethods
 
     //
     // Exchange::IDeviceInfo interface stub definitions
@@ -675,7 +675,7 @@ namespace ProxyStubs {
     //  (9) virtual uint32_t DistributorId(string&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeDeviceInfoStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeDeviceInfoStubMethods[] = {
         // (0) virtual uint32_t Configure(const PluginHost::IShell*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -683,14 +683,13 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id serviceImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _serviceInstanceId__ = reader.Number<Core::instance_id>();
 
-            PluginHost::IShell* _service = nullptr;
-            ProxyStub::UnknownProxy* serviceProxy = nullptr;
-            if (serviceImplementation != 0) {
-                serviceProxy = RPC::Administrator::Instance().ProxyInstance(channel, serviceImplementation, false, _service);
-
-                ASSERT((_service != nullptr) && (serviceProxy != nullptr));
+            const PluginHost::IShell* _service{};
+            ProxyStub::UnknownProxy* _serviceProxy__ = nullptr;
+            if (_serviceInstanceId__ != 0) {
+                _serviceProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _serviceInstanceId__, false, _service);
+                ASSERT((_service != nullptr) && (_serviceProxy__ != nullptr));
             }
 
             uint32_t result = implementation->Configure(_service);
@@ -698,8 +697,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (serviceProxy != nullptr) {
-                RPC::Administrator::Instance().Release(serviceProxy, message->Response());
+            if (_serviceProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_serviceProxy__, message->Response());
             }
         },
 
@@ -850,7 +849,7 @@ namespace ProxyStubs {
     //  (3) virtual uint32_t MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeDeviceAudioCapabilitiesStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeDeviceAudioCapabilitiesStubMethods[] = {
         // (0) virtual uint32_t AudioOutputs(Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -944,7 +943,7 @@ namespace ProxyStubs {
     //  (7) virtual uint32_t CEC(bool&) const = 0
     //
 
-    ProxyStub::MethodHandler ExchangeDeviceVideoCapabilitiesStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangeDeviceVideoCapabilitiesStubMethods[] = {
         // (0) virtual uint32_t VideoOutputs(Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -1085,7 +1084,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance3EF633B6 interface proxy definitions
+    // RPC::IIteratorTypeInstance_c05b33a2ffea23f6 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::AudioOutput&) = 0
@@ -1096,62 +1095,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::AudioOutput Current() const = 0
     //
 
-    class RPCIteratorTypeInstance3EF633B6Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>> {
+    class RPCIteratorTypeInstance_c05b33a2ffea23f6Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>> {
     public:
-        RPCIteratorTypeInstance3EF633B6Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_c05b33a2ffea23f6Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IDeviceAudioCapabilities::AudioOutput& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IDeviceAudioCapabilities::AudioOutput& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -1161,47 +1150,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IDeviceAudioCapabilities::AudioOutput Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IDeviceAudioCapabilities::AudioOutput result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance3EF633B6Proxy
+    }; // class RPCIteratorTypeInstance_c05b33a2ffea23f6Proxy
 
     //
-    // RPC::IIteratorTypeInstance4AB73D39 interface proxy definitions
+    // RPC::IIteratorTypeInstance_47f9365de0b38ac1 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::AudioCapability&) = 0
@@ -1212,62 +1213,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::AudioCapability Current() const = 0
     //
 
-    class RPCIteratorTypeInstance4AB73D39Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioCapability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY>> {
+    class RPCIteratorTypeInstance_47f9365de0b38ac1Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioCapability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY>> {
     public:
-        RPCIteratorTypeInstance4AB73D39Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_47f9365de0b38ac1Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IDeviceAudioCapabilities::AudioCapability& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IDeviceAudioCapabilities::AudioCapability& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -1277,47 +1268,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IDeviceAudioCapabilities::AudioCapability Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IDeviceAudioCapabilities::AudioCapability result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IDeviceAudioCapabilities::AudioCapability>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance4AB73D39Proxy
+    }; // class RPCIteratorTypeInstance_47f9365de0b38ac1Proxy
 
     //
-    // RPC::IIteratorTypeInstanceDA4976A7 interface proxy definitions
+    // RPC::IIteratorTypeInstance_ed3acc81bd14fad7 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::MS12Capability&) = 0
@@ -1328,62 +1331,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::MS12Capability Current() const = 0
     //
 
-    class RPCIteratorTypeInstanceDA4976A7Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Capability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY>> {
+    class RPCIteratorTypeInstance_ed3acc81bd14fad7Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Capability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY>> {
     public:
-        RPCIteratorTypeInstanceDA4976A7Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_ed3acc81bd14fad7Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IDeviceAudioCapabilities::MS12Capability& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IDeviceAudioCapabilities::MS12Capability& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -1393,47 +1386,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IDeviceAudioCapabilities::MS12Capability Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IDeviceAudioCapabilities::MS12Capability result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Capability>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstanceDA4976A7Proxy
+    }; // class RPCIteratorTypeInstance_ed3acc81bd14fad7Proxy
 
     //
-    // RPC::IIteratorTypeInstance9DDA55CE interface proxy definitions
+    // RPC::IIteratorTypeInstance_291157d7989c288e interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceAudioCapabilities::MS12Profile&) = 0
@@ -1444,62 +1449,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceAudioCapabilities::MS12Profile Current() const = 0
     //
 
-    class RPCIteratorTypeInstance9DDA55CEProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Profile, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE>> {
+    class RPCIteratorTypeInstance_291157d7989c288eProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Profile, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE>> {
     public:
-        RPCIteratorTypeInstance9DDA55CEProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_291157d7989c288eProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IDeviceAudioCapabilities::MS12Profile& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IDeviceAudioCapabilities::MS12Profile& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -1509,47 +1504,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IDeviceAudioCapabilities::MS12Profile Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IDeviceAudioCapabilities::MS12Profile result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IDeviceAudioCapabilities::MS12Profile>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance9DDA55CEProxy
+    }; // class RPCIteratorTypeInstance_291157d7989c288eProxy
 
     //
-    // RPC::IIteratorTypeInstanceABF6ED22 interface proxy definitions
+    // RPC::IIteratorTypeInstance_0abf4e195a83835b interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceVideoCapabilities::VideoOutput&) = 0
@@ -1560,62 +1567,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceVideoCapabilities::VideoOutput Current() const = 0
     //
 
-    class RPCIteratorTypeInstanceABF6ED22Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::VideoOutput, Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT>> {
+    class RPCIteratorTypeInstance_0abf4e195a83835bProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::VideoOutput, Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT>> {
     public:
-        RPCIteratorTypeInstanceABF6ED22Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_0abf4e195a83835bProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IDeviceVideoCapabilities::VideoOutput& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IDeviceVideoCapabilities::VideoOutput& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -1625,47 +1622,59 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IDeviceVideoCapabilities::VideoOutput Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IDeviceVideoCapabilities::VideoOutput result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstanceABF6ED22Proxy
+    }; // class RPCIteratorTypeInstance_0abf4e195a83835bProxy
 
     //
-    // RPC::IIteratorTypeInstanceAD2E8B65 interface proxy definitions
+    // RPC::IIteratorTypeInstance_848ec395838dfece interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IDeviceVideoCapabilities::ScreenResolution&) = 0
@@ -1676,62 +1685,52 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IDeviceVideoCapabilities::ScreenResolution Current() const = 0
     //
 
-    class RPCIteratorTypeInstanceAD2E8B65Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::ScreenResolution, Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION>> {
+    class RPCIteratorTypeInstance_848ec395838dfeceProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::ScreenResolution, Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION>> {
     public:
-        RPCIteratorTypeInstanceAD2E8B65Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance_848ec395838dfeceProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         bool Next(Exchange::IDeviceVideoCapabilities::ScreenResolution& _info) override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         bool Previous(Exchange::IDeviceVideoCapabilities::ScreenResolution& _info) override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
-            _info = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+                _info = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -1741,44 +1740,56 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             bool result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         Exchange::IDeviceVideoCapabilities::ScreenResolution Current() const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             Exchange::IDeviceVideoCapabilities::ScreenResolution result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstanceAD2E8B65Proxy
+    }; // class RPCIteratorTypeInstance_848ec395838dfeceProxy
 
     //
     // Exchange::IDeviceInfo interface proxy definitions
@@ -1803,7 +1814,192 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        uint32_t Configure(const PluginHost::IShell* _service) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_service));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t SerialNumber(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Sku(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Make(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t ModelName(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t ModelYear(uint16_t& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(5));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Number<uint16_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t FriendlyName(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(6));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t DeviceType(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(7));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t PlatformName(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(8));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t DistributorId(string& _value) const override
+        {
+            IPCMessage message(UnknownProxyType::Message(9));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -1817,150 +2013,6 @@ namespace ProxyStubs {
                 result = UnknownProxyType::Complete(implementation, id, how);
                 if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
             }
-
-            return (result);
-        }
-
-        uint32_t Configure(const PluginHost::IShell* _service) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_service));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            Complete(reader);
-
-            return (result);
-        }
-
-        uint32_t SerialNumber(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t Sku(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t Make(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(3));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t ModelName(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(4));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t ModelYear(uint16_t& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(5));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Number<uint16_t>();
-
-            return (result);
-        }
-
-        uint32_t FriendlyName(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(6));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t DeviceType(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(7));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t PlatformName(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(8));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
-
-            return (result);
-        }
-
-        uint32_t DistributorId(string& _value) const override
-        {
-            IPCMessage message(BaseClass::Message(9));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _value = reader.Text();
 
             return (result);
         }
@@ -1984,85 +2036,83 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         uint32_t AudioOutputs(Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*& _audioOutputs) const override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _audioOutputs = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IAudioOutputIterator::ID));
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _audioOutputs = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IAudioOutputIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IAudioOutputIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t AudioCapabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput _audioOutput, Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*& _audioCapabilities) const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>(_audioOutput);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _audioCapabilities = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator::ID));
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _audioCapabilities = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IAudioCapabilityIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t MS12Capabilities(const Exchange::IDeviceAudioCapabilities::AudioOutput _audioOutput, Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*& _ms12Capabilities) const override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>(_audioOutput);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _ms12Capabilities = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator::ID));
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _ms12Capabilities = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IMS12CapabilityIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t MS12AudioProfiles(const Exchange::IDeviceAudioCapabilities::AudioOutput _audioOutput, Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*& _ms12Profiles) const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IDeviceAudioCapabilities::AudioOutput>(_audioOutput);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _ms12Profiles = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator::ID));
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _ms12Profiles = reinterpret_cast<Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceAudioCapabilities::IMS12ProfileIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
@@ -2090,141 +2140,155 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         uint32_t VideoOutputs(Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*& _videoOutputs) const override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _videoOutputs = reinterpret_cast<Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceVideoCapabilities::IVideoOutputIterator::ID));
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _videoOutputs = reinterpret_cast<Exchange::IDeviceVideoCapabilities::IVideoOutputIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceVideoCapabilities::IVideoOutputIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t DefaultResolution(const Exchange::IDeviceVideoCapabilities::VideoOutput _videoOutput, Exchange::IDeviceVideoCapabilities::ScreenResolution& _defaultResolution) const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>(_videoOutput);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _defaultResolution = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _defaultResolution = reader.Number<Exchange::IDeviceVideoCapabilities::ScreenResolution>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Resolutions(const Exchange::IDeviceVideoCapabilities::VideoOutput _videoOutput, Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator*& _resolutions) const override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>(_videoOutput);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _resolutions = reinterpret_cast<Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator::ID));
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _resolutions = reinterpret_cast<Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IDeviceVideoCapabilities::IScreenResolutionIterator::ID));
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Hdcp(const Exchange::IDeviceVideoCapabilities::VideoOutput _videoOutput, Exchange::IDeviceVideoCapabilities::CopyProtection& _hdcpVersion) const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Exchange::IDeviceVideoCapabilities::VideoOutput>(_videoOutput);
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _hdcpVersion = reader.Number<Exchange::IDeviceVideoCapabilities::CopyProtection>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _hdcpVersion = reader.Number<Exchange::IDeviceVideoCapabilities::CopyProtection>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t HostEDID(string& _edid) const override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _edid = reader.Text();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _edid = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t HDR(bool& _supportsHDR) const override
         {
-            IPCMessage message(BaseClass::Message(5));
+            IPCMessage message(UnknownProxyType::Message(5));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _supportsHDR = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _supportsHDR = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Atmos(bool& _supportsAtmos) const override
         {
-            IPCMessage message(BaseClass::Message(6));
+            IPCMessage message(UnknownProxyType::Message(6));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _supportsAtmos = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _supportsAtmos = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t CEC(bool& _supportsCEC) const override
         {
-            IPCMessage message(BaseClass::Message(7));
+            IPCMessage message(UnknownProxyType::Message(7));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-            _supportsCEC = reader.Boolean();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+                _supportsCEC = reader.Boolean();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
@@ -2240,12 +2304,12 @@ namespace ProxyStubs {
 
     namespace {
 
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>, RPCIteratorTypeInstance3EF633B6StubMethods> RPCIteratorTypeInstance3EF633B6Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioCapability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY>, RPCIteratorTypeInstance4AB73D39StubMethods> RPCIteratorTypeInstance4AB73D39Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Capability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY>, RPCIteratorTypeInstanceDA4976A7StubMethods> RPCIteratorTypeInstanceDA4976A7Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Profile, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE>, RPCIteratorTypeInstance9DDA55CEStubMethods> RPCIteratorTypeInstance9DDA55CEStub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::VideoOutput, Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT>, RPCIteratorTypeInstanceABF6ED22StubMethods> RPCIteratorTypeInstanceABF6ED22Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::ScreenResolution, Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION>, RPCIteratorTypeInstanceAD2E8B65StubMethods> RPCIteratorTypeInstanceAD2E8B65Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>, RPCIteratorTypeInstance_c05b33a2ffea23f6StubMethods> RPCIteratorTypeInstance_c05b33a2ffea23f6Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioCapability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY>, RPCIteratorTypeInstance_47f9365de0b38ac1StubMethods> RPCIteratorTypeInstance_47f9365de0b38ac1Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Capability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY>, RPCIteratorTypeInstance_ed3acc81bd14fad7StubMethods> RPCIteratorTypeInstance_ed3acc81bd14fad7Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Profile, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE>, RPCIteratorTypeInstance_291157d7989c288eStubMethods> RPCIteratorTypeInstance_291157d7989c288eStub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::VideoOutput, Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT>, RPCIteratorTypeInstance_0abf4e195a83835bStubMethods> RPCIteratorTypeInstance_0abf4e195a83835bStub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::ScreenResolution, Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION>, RPCIteratorTypeInstance_848ec395838dfeceStubMethods> RPCIteratorTypeInstance_848ec395838dfeceStub;
         typedef ProxyStub::UnknownStubType<Exchange::IDeviceInfo, ExchangeDeviceInfoStubMethods> ExchangeDeviceInfoStub;
         typedef ProxyStub::UnknownStubType<Exchange::IDeviceAudioCapabilities, ExchangeDeviceAudioCapabilitiesStubMethods> ExchangeDeviceAudioCapabilitiesStub;
         typedef ProxyStub::UnknownStubType<Exchange::IDeviceVideoCapabilities, ExchangeDeviceVideoCapabilitiesStubMethods> ExchangeDeviceVideoCapabilitiesStub;
@@ -2254,12 +2318,12 @@ namespace ProxyStubs {
         public:
             Instantiation()
             {
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>, RPCIteratorTypeInstance3EF633B6Proxy, RPCIteratorTypeInstance3EF633B6Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioCapability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY>, RPCIteratorTypeInstance4AB73D39Proxy, RPCIteratorTypeInstance4AB73D39Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Capability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY>, RPCIteratorTypeInstanceDA4976A7Proxy, RPCIteratorTypeInstanceDA4976A7Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Profile, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE>, RPCIteratorTypeInstance9DDA55CEProxy, RPCIteratorTypeInstance9DDA55CEStub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::VideoOutput, Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT>, RPCIteratorTypeInstanceABF6ED22Proxy, RPCIteratorTypeInstanceABF6ED22Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::ScreenResolution, Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION>, RPCIteratorTypeInstanceAD2E8B65Proxy, RPCIteratorTypeInstanceAD2E8B65Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>, RPCIteratorTypeInstance_c05b33a2ffea23f6Proxy, RPCIteratorTypeInstance_c05b33a2ffea23f6Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioCapability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_CAPABILITY>, RPCIteratorTypeInstance_47f9365de0b38ac1Proxy, RPCIteratorTypeInstance_47f9365de0b38ac1Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Capability, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_CAPABILITY>, RPCIteratorTypeInstance_ed3acc81bd14fad7Proxy, RPCIteratorTypeInstance_ed3acc81bd14fad7Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::MS12Profile, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_MS12_PROFILE>, RPCIteratorTypeInstance_291157d7989c288eProxy, RPCIteratorTypeInstance_291157d7989c288eStub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::VideoOutput, Exchange::ID_DEVICE_CAPABILITIES_VIDEO_OUTPUT>, RPCIteratorTypeInstance_0abf4e195a83835bProxy, RPCIteratorTypeInstance_0abf4e195a83835bStub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IDeviceVideoCapabilities::ScreenResolution, Exchange::ID_DEVICE_CAPABILITIES_RESOLUTION>, RPCIteratorTypeInstance_848ec395838dfeceProxy, RPCIteratorTypeInstance_848ec395838dfeceStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IDeviceInfo, ExchangeDeviceInfoProxy, ExchangeDeviceInfoStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IDeviceAudioCapabilities, ExchangeDeviceAudioCapabilitiesProxy, ExchangeDeviceAudioCapabilitiesStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IDeviceVideoCapabilities, ExchangeDeviceVideoCapabilitiesProxy, ExchangeDeviceVideoCapabilitiesStub>();

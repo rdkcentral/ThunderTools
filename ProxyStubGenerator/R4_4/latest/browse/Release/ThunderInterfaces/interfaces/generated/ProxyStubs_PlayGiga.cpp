@@ -28,7 +28,7 @@ namespace ProxyStubs {
     //  (0) virtual void Launch(const string&, const string&) = 0
     //
 
-    ProxyStub::MethodHandler ExchangePlayGigaStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangePlayGigaStubMethods[] = {
         // (0) virtual void Launch(const string&, const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -36,10 +36,10 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const string _parameter_d58b8694 = reader.Text();
-            const string _parameter_92d9f359 = reader.Text();
+            const string _parameter_1 = reader.Text();
+            const string _parameter_2 = reader.Text();
 
-            implementation->Launch(static_cast<const string&>(_parameter_d58b8694), static_cast<const string&>(_parameter_92d9f359));
+            implementation->Launch(static_cast<const string&>(_parameter_1), static_cast<const string&>(_parameter_2));
         }
         , nullptr
     }; // ExchangePlayGigaStubMethods
@@ -62,31 +62,13 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        void Launch(const string& _parameter_1, const string& _parameter_2) override
         {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
-        void Launch(const string& _parameter_d58b8694, const string& _parameter_92d9f359) override
-        {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_parameter_d58b8694));
-            writer.Text(static_cast<const string&>(_parameter_92d9f359));
+            writer.Text(_parameter_1);
+            writer.Text(_parameter_2);
 
             UnknownProxyType::Invoke(message);
         }

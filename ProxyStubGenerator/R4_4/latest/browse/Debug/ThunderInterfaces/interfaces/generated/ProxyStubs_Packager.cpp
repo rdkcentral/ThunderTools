@@ -35,7 +35,7 @@ namespace ProxyStubs {
     //  (4) virtual uint32_t SynchronizeRepository() = 0
     //
 
-    ProxyStub::MethodHandler ExchangePackagerStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangePackagerStubMethods[] = {
         // (0) virtual void Register(Exchange::IPackager::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -43,20 +43,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id observerImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _observerInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IPackager::INotification* _observer = nullptr;
-            ProxyStub::UnknownProxy* observerProxy = nullptr;
-            if (observerImplementation != 0) {
-                observerProxy = RPC::Administrator::Instance().ProxyInstance(channel, observerImplementation, false, _observer);
-
-                ASSERT((_observer != nullptr) && (observerProxy != nullptr));
+            Exchange::IPackager::INotification* _observer{};
+            ProxyStub::UnknownProxy* _observerProxy__ = nullptr;
+            if (_observerInstanceId__ != 0) {
+                _observerProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _observerInstanceId__, false, _observer);
+                ASSERT((_observer != nullptr) && (_observerProxy__ != nullptr));
             }
 
             implementation->Register(_observer);
 
-            if (observerProxy != nullptr) {
-                RPC::Administrator::Instance().Release(observerProxy, message->Response());
+            if (_observerProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_observerProxy__, message->Response());
             }
         },
 
@@ -67,20 +66,19 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id observerImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _observerInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IPackager::INotification* _observer = nullptr;
-            ProxyStub::UnknownProxy* observerProxy = nullptr;
-            if (observerImplementation != 0) {
-                observerProxy = RPC::Administrator::Instance().ProxyInstance(channel, observerImplementation, false, _observer);
-
-                ASSERT((_observer != nullptr) && (observerProxy != nullptr));
+            const Exchange::IPackager::INotification* _observer{};
+            ProxyStub::UnknownProxy* _observerProxy__ = nullptr;
+            if (_observerInstanceId__ != 0) {
+                _observerProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _observerInstanceId__, false, _observer);
+                ASSERT((_observer != nullptr) && (_observerProxy__ != nullptr));
             }
 
             implementation->Unregister(_observer);
 
-            if (observerProxy != nullptr) {
-                RPC::Administrator::Instance().Release(observerProxy, message->Response());
+            if (_observerProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_observerProxy__, message->Response());
             }
         },
 
@@ -91,14 +89,13 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id serviceImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _serviceInstanceId__ = reader.Number<Core::instance_id>();
 
-            PluginHost::IShell* _service = nullptr;
-            ProxyStub::UnknownProxy* serviceProxy = nullptr;
-            if (serviceImplementation != 0) {
-                serviceProxy = RPC::Administrator::Instance().ProxyInstance(channel, serviceImplementation, false, _service);
-
-                ASSERT((_service != nullptr) && (serviceProxy != nullptr));
+            PluginHost::IShell* _service{};
+            ProxyStub::UnknownProxy* _serviceProxy__ = nullptr;
+            if (_serviceInstanceId__ != 0) {
+                _serviceProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _serviceInstanceId__, false, _service);
+                ASSERT((_service != nullptr) && (_serviceProxy__ != nullptr));
             }
 
             uint32_t result = implementation->Configure(_service);
@@ -106,8 +103,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (serviceProxy != nullptr) {
-                RPC::Administrator::Instance().Release(serviceProxy, message->Response());
+            if (_serviceProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_serviceProxy__, message->Response());
             }
         },
 
@@ -153,7 +150,7 @@ namespace ProxyStubs {
     //  (4) virtual uint32_t Abort() = 0
     //
 
-    ProxyStub::MethodHandler ExchangePackagerInstallationInfoStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangePackagerInstallationInfoStubMethods[] = {
         // (0) virtual Exchange::IPackager::state State() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -225,7 +222,7 @@ namespace ProxyStubs {
     //  (2) virtual string Architecture() const = 0
     //
 
-    ProxyStub::MethodHandler ExchangePackagerPackageInfoStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangePackagerPackageInfoStubMethods[] = {
         // (0) virtual string Name() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -272,7 +269,7 @@ namespace ProxyStubs {
     //  (1) virtual void RepositorySynchronize(uint32_t) = 0
     //
 
-    ProxyStub::MethodHandler ExchangePackagerNotificationStubMethods[] = {
+    static ProxyStub::MethodHandler ExchangePackagerNotificationStubMethods[] = {
         // (0) virtual void StateChange(Exchange::IPackager::IPackageInfo*, Exchange::IPackager::IInstallationInfo*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -280,31 +277,29 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            const Core::instance_id packageImplementation = reader.Number<Core::instance_id>();
-            const Core::instance_id installImplementation = reader.Number<Core::instance_id>();
+            Core::instance_id _packageInstanceId__ = reader.Number<Core::instance_id>();
+            Core::instance_id _installInstanceId__ = reader.Number<Core::instance_id>();
 
-            Exchange::IPackager::IPackageInfo* _package = nullptr;
-            ProxyStub::UnknownProxy* packageProxy = nullptr;
-            if (packageImplementation != 0) {
-                packageProxy = RPC::Administrator::Instance().ProxyInstance(channel, packageImplementation, false, _package);
-
-                ASSERT((_package != nullptr) && (packageProxy != nullptr));
+            Exchange::IPackager::IPackageInfo* _package{};
+            ProxyStub::UnknownProxy* _packageProxy__ = nullptr;
+            if (_packageInstanceId__ != 0) {
+                _packageProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _packageInstanceId__, false, _package);
+                ASSERT((_package != nullptr) && (_packageProxy__ != nullptr));
             }
-            Exchange::IPackager::IInstallationInfo* _install = nullptr;
-            ProxyStub::UnknownProxy* installProxy = nullptr;
-            if (installImplementation != 0) {
-                installProxy = RPC::Administrator::Instance().ProxyInstance(channel, installImplementation, false, _install);
-
-                ASSERT((_install != nullptr) && (installProxy != nullptr));
+            Exchange::IPackager::IInstallationInfo* _install{};
+            ProxyStub::UnknownProxy* _installProxy__ = nullptr;
+            if (_installInstanceId__ != 0) {
+                _installProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _installInstanceId__, false, _install);
+                ASSERT((_install != nullptr) && (_installProxy__ != nullptr));
             }
 
             implementation->StateChange(_package, _install);
 
-            if (packageProxy != nullptr) {
-                RPC::Administrator::Instance().Release(packageProxy, message->Response());
+            if (_packageProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_packageProxy__, message->Response());
             }
-            if (installProxy != nullptr) {
-                RPC::Administrator::Instance().Release(installProxy, message->Response());
+            if (_installProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_installProxy__, message->Response());
             }
         },
 
@@ -344,7 +339,103 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        void Register(Exchange::IPackager::INotification* _observer) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_observer));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void Unregister(const Exchange::IPackager::INotification* _observer) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_observer));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        uint32_t Configure(PluginHost::IShell* _service) override
+        {
+            IPCMessage message(UnknownProxyType::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_service));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t Install(const string& _name, const string& _version, const string& _arch) override
+        {
+            IPCMessage message(UnknownProxyType::Message(3));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_name);
+            writer.Text(_version);
+            writer.Text(_arch);
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+        uint32_t SynchronizeRepository() override
+        {
+            IPCMessage message(UnknownProxyType::Message(4));
+
+            uint32_t result{};
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (result);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -358,81 +449,6 @@ namespace ProxyStubs {
                 result = UnknownProxyType::Complete(implementation, id, how);
                 if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
             }
-
-            return (result);
-        }
-
-        void Register(Exchange::IPackager::INotification* _observer) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_observer));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        void Unregister(const Exchange::IPackager::INotification* _observer) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_observer));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        uint32_t Configure(PluginHost::IShell* _service) override
-        {
-            IPCMessage message(BaseClass::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_service));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            Complete(reader);
-
-            return (result);
-        }
-
-        uint32_t Install(const string& _name, const string& _version, const string& _arch) override
-        {
-            IPCMessage message(BaseClass::Message(3));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(static_cast<const string&>(_name));
-            writer.Text(static_cast<const string&>(_version));
-            writer.Text(static_cast<const string&>(_arch));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
-
-            return (result);
-        }
-
-        uint32_t SynchronizeRepository() override
-        {
-            IPCMessage message(BaseClass::Message(4));
-
-            uint32_t result{};
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
 
             return (result);
         }
@@ -457,85 +473,87 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         Exchange::IPackager::state State() const override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             Exchange::IPackager::state result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<Exchange::IPackager::state>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<Exchange::IPackager::state>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint8_t Progress() const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             uint8_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint8_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint8_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         string AppName() const override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             string result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Text();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t ErrorCode() const override
         {
-            IPCMessage message(BaseClass::Message(3));
+            IPCMessage message(UnknownProxyType::Message(3));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         uint32_t Abort() override
         {
-            IPCMessage message(BaseClass::Message(4));
+            IPCMessage message(UnknownProxyType::Message(4));
 
             uint32_t result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Number<uint32_t>();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Number<uint32_t>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
@@ -558,59 +576,53 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
-        {
-            uint32_t result = Core::ERROR_NONE;
-
-            while (reader.HasData() == true) {
-                const Core::instance_id implementation = reader.Number<Core::instance_id>();
-                ASSERT(implementation != 0);
-
-                const uint32_t id = reader.Number<uint32_t>();
-                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
-
-                result = UnknownProxyType::Complete(implementation, id, how);
-                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
-            }
-
-            return (result);
-        }
-
         string Name() const override
         {
-            IPCMessage message(BaseClass::Message(0));
+            IPCMessage message(UnknownProxyType::Message(0));
 
             string result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Text();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         string Version() const override
         {
-            IPCMessage message(BaseClass::Message(1));
+            IPCMessage message(UnknownProxyType::Message(1));
 
             string result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Text();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
 
         string Architecture() const override
         {
-            IPCMessage message(BaseClass::Message(2));
+            IPCMessage message(UnknownProxyType::Message(2));
 
             string result{};
 
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-            result = reader.Text();
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                result = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
 
             return (result);
         }
@@ -632,7 +644,36 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        void StateChange(Exchange::IPackager::IPackageInfo* _package, Exchange::IPackager::IInstallationInfo* _install) override
+        {
+            IPCMessage message(UnknownProxyType::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_package));
+            writer.Number<Core::instance_id>(RPC::instance_cast(_install));
+
+            const Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void RepositorySynchronize(uint32_t _status) override
+        {
+            IPCMessage message(UnknownProxyType::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_status);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -648,30 +689,6 @@ namespace ProxyStubs {
             }
 
             return (result);
-        }
-
-        void StateChange(Exchange::IPackager::IPackageInfo* _package, Exchange::IPackager::IInstallationInfo* _install) override
-        {
-            IPCMessage message(BaseClass::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_package));
-            writer.Number<Core::instance_id>(RPC::instance_cast(_install));
-
-            UnknownProxyType::Invoke(message);
-            RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-            Complete(reader);
-        }
-
-        void RepositorySynchronize(uint32_t _status) override
-        {
-            IPCMessage message(BaseClass::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_status);
-
-            UnknownProxyType::Invoke(message);
         }
 
     }; // class ExchangePackagerNotificationProxy
