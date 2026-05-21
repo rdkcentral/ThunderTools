@@ -184,6 +184,9 @@ jobs:
 
   publish_pages:
     runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
     needs: [ prepare, generate ]
 
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
