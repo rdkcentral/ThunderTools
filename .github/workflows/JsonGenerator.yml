@@ -2,6 +2,11 @@ name: JsonGenerator Checks
 
 on:
   workflow_dispatch:
+    inputs:
+      seed_tag_baseline:
+        description: 'Seed the fixed tag baseline (run this once from tag R4.4.4)'
+        type: boolean
+        default: false
   push:
     branches: [ R4_4 ]
     paths:
@@ -184,7 +189,7 @@ jobs:
 
           # ----- PR-only: diff vs gh-pages baseline -----
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/latest_raw"
+            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/tag_raw"
             mkdir -p diffs "site/$RUN_DIR/diff"
 
             if [[ -d "$BASELINE_ROOT" ]]; then
@@ -300,21 +305,30 @@ jobs:
           (site_root / "index.html").write_text(wrap_page("JsonGenerator Results", main_body, ""), encoding="utf-8")
           PY
 
-          # ----- R4_4 Push: Update Baseline -----
+          # ----- R4_4 Push: Update Browsable Latest -----
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            echo "Updating R4_4 baseline..."
+            echo "Updating R4_4 latest browsable copy..."
 
             # ----- Update Browsable Site -----
             rm -rf "site/R4_4/latest"
             mkdir -p "site/R4_4/latest"
             cp -a "site/$RUN_DIR"/* "site/R4_4/latest/"
 
-            # ----- Update Raw Baseline -----
+            # ----- Update Raw Latest (for browsing only, not used for diffs) -----
             rm -rf "site/R4_4/latest_raw"
             mkdir -p "site/R4_4/latest_raw"
             cp -r generated/* "site/R4_4/latest_raw/"
 
-            echo "Baseline updated."
+            # ----- Seed Fixed Tag Baseline (only when manually requested from tag R4.4.4) -----
+            if [[ "${{ inputs.seed_tag_baseline }}" == "true" ]]; then
+              echo "Seeding fixed tag baseline into R4_4/tag_raw..."
+              rm -rf "site/R4_4/tag_raw"
+              mkdir -p "site/R4_4/tag_raw"
+              cp -r generated/* "site/R4_4/tag_raw/"
+              echo "Tag baseline seeded."
+            fi
+
+            echo "Done."
           fi
 
       - name: Deploy to gh-pages
