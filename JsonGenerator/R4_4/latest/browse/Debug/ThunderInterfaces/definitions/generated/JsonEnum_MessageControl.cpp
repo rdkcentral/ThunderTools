@@ -1,4 +1,4 @@
-// Enumeration code for MessageControl API JSON-RPC API.
+// Enumeration code for MessageControl API.
 // Generated automatically from 'IMessageControl.h'.
 
 #include <core/Enumerate.h>

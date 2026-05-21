@@ -1,4 +1,4 @@
-// C++ classes for Security Agent API JSON-RPC API.
+// C++ types for Security Agent API.
 // Generated automatically from 'SecurityAgent.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,6 +10,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace SecurityAgent {
 
@@ -24,13 +26,19 @@ namespace JsonData {
                 Add(_T("token"), &Token);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             CreatetokenResultInfo(const CreatetokenResultInfo&) = delete;
+            CreatetokenResultInfo(CreatetokenResultInfo&&) noexcept  = delete;
+
             CreatetokenResultInfo& operator=(const CreatetokenResultInfo&) = delete;
+            CreatetokenResultInfo& operator=(CreatetokenResultInfo&&) noexcept  = delete;
+
+            ~CreatetokenResultInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Token.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Token; // Signed JsonWeb token
@@ -49,13 +57,19 @@ namespace JsonData {
                 Add(_T("hash"), &Hash);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             CreatetokenParamsData(const CreatetokenParamsData&) = delete;
+            CreatetokenParamsData(CreatetokenParamsData&&) noexcept  = delete;
+
             CreatetokenParamsData& operator=(const CreatetokenParamsData&) = delete;
+            CreatetokenParamsData& operator=(CreatetokenParamsData&&) noexcept  = delete;
+
+            ~CreatetokenParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Url.IsSet() == true) && (User.IsSet() == true) && (Hash.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Url; // Url of application origin
@@ -71,19 +85,27 @@ namespace JsonData {
                 Add(_T("valid"), &Valid);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ValidateResultData(const ValidateResultData&) = delete;
+            ValidateResultData(ValidateResultData&&) noexcept  = delete;
+
             ValidateResultData& operator=(const ValidateResultData&) = delete;
+            ValidateResultData& operator=(ValidateResultData&&) noexcept  = delete;
+
+            ~ValidateResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Valid.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Valid; // Tells whether token is signature is correct
         }; // class ValidateResultData
 
     } // namespace SecurityAgent
+
+    POP_WARNING()
 
 } // namespace JsonData
 

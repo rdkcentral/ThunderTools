@@ -1,4 +1,4 @@
-// C++ classes for WebBrowser API JSON-RPC API.
+// C++ types for WebBrowser API.
 // Generated automatically from 'IBrowser.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace WebBrowser {
 
@@ -25,13 +27,19 @@ namespace JsonData {
                 Add(_T("url"), &URL);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             LoadFailedParamsData(const LoadFailedParamsData&) = delete;
+            LoadFailedParamsData(LoadFailedParamsData&&) noexcept  = delete;
+
             LoadFailedParamsData& operator=(const LoadFailedParamsData&) = delete;
+            LoadFailedParamsData& operator=(LoadFailedParamsData&&) noexcept  = delete;
+
+            ~LoadFailedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (URL.IsSet() == true);
+            }
 
         public:
             Core::JSON::String URL; // The URL that has been failed to load
@@ -46,13 +54,19 @@ namespace JsonData {
                 Add(_T("httpstatus"), &Httpstatus);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             LoadFinishedParamsData(const LoadFinishedParamsData&) = delete;
+            LoadFinishedParamsData(LoadFinishedParamsData&&) noexcept  = delete;
+
             LoadFinishedParamsData& operator=(const LoadFinishedParamsData&) = delete;
+            LoadFinishedParamsData& operator=(LoadFinishedParamsData&&) noexcept  = delete;
+
+            ~LoadFinishedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((URL.IsSet() == true) && (Httpstatus.IsSet() == true));
+            }
 
         public:
             Core::JSON::String URL; // The URL that has been loaded
@@ -68,13 +82,19 @@ namespace JsonData {
                 Add(_T("loaded"), &Loaded);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             URLChangeParamsData(const URLChangeParamsData&) = delete;
+            URLChangeParamsData(URLChangeParamsData&&) noexcept  = delete;
+
             URLChangeParamsData& operator=(const URLChangeParamsData&) = delete;
+            URLChangeParamsData& operator=(URLChangeParamsData&&) noexcept  = delete;
+
+            ~URLChangeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((URL.IsSet() == true) && (Loaded.IsSet() == true));
+            }
 
         public:
             Core::JSON::String URL; // The URL that has been loaded or requested
@@ -89,19 +109,27 @@ namespace JsonData {
                 Add(_T("hidden"), &Hidden);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             VisibilityChangeParamsData(const VisibilityChangeParamsData&) = delete;
+            VisibilityChangeParamsData(VisibilityChangeParamsData&&) noexcept  = delete;
+
             VisibilityChangeParamsData& operator=(const VisibilityChangeParamsData&) = delete;
+            VisibilityChangeParamsData& operator=(VisibilityChangeParamsData&&) noexcept  = delete;
+
+            ~VisibilityChangeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Hidden.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Hidden; // hidden (true) or visible (false)
         }; // class VisibilityChangeParamsData
 
     } // namespace WebBrowser
+
+    POP_WARNING()
 
 } // namespace JsonData
 

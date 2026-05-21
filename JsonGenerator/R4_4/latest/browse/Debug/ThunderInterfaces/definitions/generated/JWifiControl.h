@@ -1,7 +1,6 @@
 // Generated automatically from 'IWifiControl.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_WifiControl.h"
 #include <interfaces/IWifiControl.h>
@@ -20,224 +19,262 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IWifiControl* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IWifiControl* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JWifiControl"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JWifiControl"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'scan' - Trigger Scanning
-            _module_.Register<void, void>(_T("scan"), 
-                [_impl_]() -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, void>(_T("scan"),
+                [_implementation__]() -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    _errorCode = _impl_->Scan();
+                    _errorCode__ = _implementation__->Scan();
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Method: 'abortscan' - Abort Currentlt running scan
-            _module_.Register<void, void>(_T("abortscan"), 
-                [_impl_]() -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, void>(_T("abortscan"),
+                [_implementation__]() -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    _errorCode = _impl_->AbortScan();
+                    _errorCode__ = _implementation__->AbortScan();
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Method: 'connect' - Connect device to requested SSID
-            _module_.Register<JsonData::WifiControl::ConnectParamsInfo, void>(_T("connect"), 
-                [_impl_](const JsonData::WifiControl::ConnectParamsInfo& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::WifiControl::ConnectParamsInfo, void>(_T("connect"),
+                [_implementation__](const JsonData::WifiControl::ConnectParamsInfo& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const string _configSSID{params.ConfigSSID};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const string _configSSID_{params.ConfigSSID};
 
-                    _errorCode = _impl_->Connect(_configSSID);
+                        _errorCode__ = _implementation__->Connect(_configSSID_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Method: 'disconnect' - Disconnect device from requested SSID
-            _module_.Register<JsonData::WifiControl::ConnectParamsInfo, void>(_T("disconnect"), 
-                [_impl_](const JsonData::WifiControl::ConnectParamsInfo& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::WifiControl::ConnectParamsInfo, void>(_T("disconnect"),
+                [_implementation__](const JsonData::WifiControl::ConnectParamsInfo& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const string _configSSID{params.ConfigSSID};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const string _configSSID_{params.ConfigSSID};
 
-                    _errorCode = _impl_->Disconnect(_configSSID);
+                        _errorCode__ = _implementation__->Disconnect(_configSSID_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Method: 'status' - Status of current device, like which SSID is connected and it is in scanning state or not
-            _module_.Register<void, JsonData::WifiControl::StatusResultData>(_T("status"), 
-                [_impl_](JsonData::WifiControl::StatusResultData& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, JsonData::WifiControl::StatusResultData>(_T("status"),
+                [_implementation__](JsonData::WifiControl::StatusResultData& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    string _connectedSsid{};
-                    bool _isScanning{};
+                    string _connectedSsid_{};
+                    bool _isScanning_{};
 
-                    _errorCode = _impl_->Status(_connectedSsid, _isScanning);
+                    _errorCode__ = _implementation__->Status(_connectedSsid_, _isScanning_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
-                        result.ConnectedSsid = _connectedSsid;
-                        result.IsScanning = _isScanning;
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.ConnectedSsid = _connectedSsid_;
+                        result.IsScanning = _isScanning_;
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Property: 'networks' - Provides available networks information (r/o)
-            _module_.Register<void, Core::JSON::ArrayType<JsonData::WifiControl::NetworkInfoData>>(_T("networks"), 
-                [_impl_](Core::JSON::ArrayType<JsonData::WifiControl::NetworkInfoData>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<JsonData::WifiControl::NetworkInfoData>>(_T("networks"),
+                [_implementation__](Core::JSON::ArrayType<JsonData::WifiControl::NetworkInfoData>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    ::WPEFramework::RPC::IIteratorType<IWifiControl::NetworkInfo, ID_WIFICONTROL_NETWORK_INFO_ITERATOR>* _result{};
+                    ::WPEFramework::RPC::IIteratorType<IWifiControl::NetworkInfo, ID_WIFICONTROL_NETWORK_INFO_ITERATOR>* _result_{};
 
-                    _errorCode = _impl_->Networks(_result);
+                    _errorCode__ = _implementation__->Networks(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Set(true);
 
-                        if (_result != nullptr) {
-                            Exchange::IWifiControl::NetworkInfo _resultItem_{};
-                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
-                            _result->Release();
+                        if (_result_ != nullptr) {
+                            Exchange::IWifiControl::NetworkInfo _resultItem__{};
+                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                            _result_->Release();
                         }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Indexed Property: 'securities' - Provides security method of requested SSID (r/o)
-            _module_.Register<void, Core::JSON::ArrayType<JsonData::WifiControl::SecurityInfoData>, std::function<uint32_t(const string&,
-                     Core::JSON::ArrayType<JsonData::WifiControl::SecurityInfoData>&)>>(_T("securities"), 
-                [_impl_](const string& _index_, Core::JSON::ArrayType<JsonData::WifiControl::SecurityInfoData>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<JsonData::WifiControl::SecurityInfoData>, std::function<uint32_t(const string&, Core::JSON::ArrayType<JsonData::WifiControl::SecurityInfoData>&)>>(_T("securities"),
+                [_implementation__](const string& ssid, Core::JSON::ArrayType<JsonData::WifiControl::SecurityInfoData>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    ::WPEFramework::RPC::IIteratorType<IWifiControl::SecurityInfo, ID_WIFICONTROL_SECURITY_INFO_ITERATOR>* _result{};
+                    if (ssid.empty() == true) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
 
-                    _errorCode = _impl_->Securities(_index_, _result);
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        ::WPEFramework::RPC::IIteratorType<IWifiControl::SecurityInfo, ID_WIFICONTROL_SECURITY_INFO_ITERATOR>* _result_{};
 
-                    if (_errorCode == Core::ERROR_NONE) {
+                        _errorCode__ = _implementation__->Securities(ssid, _result_);
 
-                        if (_result != nullptr) {
-                            Exchange::IWifiControl::SecurityInfo _resultItem_{};
-                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
-                            _result->Release();
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result.Set(true);
+
+                            if (_result_ != nullptr) {
+                                Exchange::IWifiControl::SecurityInfo _resultItem__{};
+                                while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                                _result_->Release();
+                            }
                         }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Property: 'configs' - Provides configs list (r/o)
-            _module_.Register<void, Core::JSON::ArrayType<Core::JSON::String>>(_T("configs"), 
-                [_impl_](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::String>>(_T("configs"),
+                [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    ::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result{};
+                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
 
-                    _errorCode = _impl_->Configs(_result);
+                    _errorCode__ = _implementation__->Configs(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Set(true);
 
-                        if (_result != nullptr) {
-                            string _resultItem_{};
-                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
-                            _result->Release();
+                        if (_result_ != nullptr) {
+                            string _resultItem__{};
+                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                            _result_->Release();
                         }
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Indexed Property: 'config' - Provide config details for requested SSID
-            _module_.Register<JsonData::WifiControl::ConfigData, JsonData::WifiControl::ConfigInfoInfo, std::function<uint32_t(const string&,
-                     const JsonData::WifiControl::ConfigData&, JsonData::WifiControl::ConfigInfoInfo&)>>(_T("config"), 
-                [_impl_](const string& _index_, const JsonData::WifiControl::ConfigData& params, JsonData::WifiControl::ConfigInfoInfo& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::WifiControl::ConfigData, JsonData::WifiControl::ConfigInfoInfo, std::function<uint32_t(const string&, const JsonData::WifiControl::ConfigData&, JsonData::WifiControl::ConfigInfoInfo&)>>(_T("config"),
+                [_implementation__](const string& ssid, const JsonData::WifiControl::ConfigData& params, JsonData::WifiControl::ConfigInfoInfo& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    if (params.IsSet() == false) {
-                        // property get
-                        Exchange::IWifiControl::ConfigInfo _result{};
-
-                        _errorCode = (static_cast<const IWifiControl*>(_impl_))->Config(_index_, _result);
-
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                        }
-
-                    } else {
-                        // property set
-                        const Exchange::IWifiControl::ConfigInfo _value(params.Value);
-
-                        _errorCode = _impl_->Config(_index_, _value);
-
-                        // result.Null(true);
+                    if (ssid.empty() == true) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
-                    return (_errorCode);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+
+                        if (params.IsSet() == false) {
+                            Exchange::IWifiControl::ConfigInfo _result_{};
+
+                            _errorCode__ = (static_cast<const IWifiControl*>(_implementation__))->Config(ssid, _result_);
+
+                            if (_errorCode__ == Core::ERROR_NONE) {
+                                result.Set(true);
+                                result = _result_;
+                            }
+                        }
+                        else {
+
+                            if (params.IsDataValid() == false) {
+                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            }
+                            else {
+                                const Exchange::IWifiControl::ConfigInfo _value_(params.Value);
+
+                                _errorCode__ = _implementation__->Config(ssid, _value_);
+
+                            }
+
+                            result.Null(true);
+                        }
+                    }
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("scan"));
-            _module_.Unregister(_T("abortscan"));
-            _module_.Unregister(_T("connect"));
-            _module_.Unregister(_T("disconnect"));
-            _module_.Unregister(_T("status"));
-            _module_.Unregister(_T("networks"));
-            _module_.Unregister(_T("securities"));
-            _module_.Unregister(_T("configs"));
-            _module_.Unregister(_T("config"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("scan"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("abortscan"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("connect"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("disconnect"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("status"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("networks"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("securities"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("configs"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("config"));
         }
 
         namespace Event {
 
             // Event: 'networkchange' - Notifies that Network were added, removed or modified
-            static void NetworkChange(const JSONRPC& _module_)
+            template<typename MODULE>
+            static void NetworkChange(const MODULE& module_, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("networkchange"));
+                module_.Notify(_T("networkchange"), sendIfMethod_);
             }
 
             // Event: 'connectionchange' - Notifies that wifi connection changes
-            static void ConnectionChange(const JSONRPC& _module_, const JsonData::WifiControl::ConnectionChangeParamsData& params)
+            template<typename MODULE>
+            static void ConnectionChange(const MODULE& module_, const JsonData::WifiControl::ConnectionChangeParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("connectionchange"), params);
+                module_.Notify(_T("connectionchange"), params, sendIfMethod_);
             }
 
             // Event: 'connectionchange' - Notifies that wifi connection changes
-            static void ConnectionChange(const JSONRPC& _module_, const Core::JSON::String& ssid)
+            template<typename MODULE>
+            static void ConnectionChange(const MODULE& module_, const Core::JSON::String& ssid, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::WifiControl::ConnectionChangeParamsData _params_;
-                _params_.Ssid = ssid;
+                JsonData::WifiControl::ConnectionChangeParamsData params_;
+                params_.Ssid = ssid;
 
-                ConnectionChange(_module_, _params_);
+                ConnectionChange(module_, params_, sendIfMethod_);
             }
 
             // Event: 'connectionchange' - Notifies that wifi connection changes
-            static void ConnectionChange(const JSONRPC& _module_, const string& ssid)
+            template<typename MODULE>
+            static void ConnectionChange(const MODULE& module_, const string& ssid, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::WifiControl::ConnectionChangeParamsData _params_;
-                _params_.Ssid = ssid;
+                JsonData::WifiControl::ConnectionChangeParamsData params_;
+                params_.Ssid = ssid;
 
-                ConnectionChange(_module_, _params_);
+                ConnectionChange(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JWifiControl

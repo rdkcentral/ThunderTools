@@ -1,4 +1,4 @@
-// Enumeration code for Application API JSON-RPC API.
+// Enumeration code for Application API.
 // Generated automatically from 'IApplication.h'.
 
 #include <core/Enumerate.h>

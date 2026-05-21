@@ -1,4 +1,4 @@
-// RemoteControl JSON-RPC API
+// RemoteControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

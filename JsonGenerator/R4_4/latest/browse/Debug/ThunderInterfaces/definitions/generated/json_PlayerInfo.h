@@ -1,4 +1,4 @@
-// PlayerInfo JSON-RPC API
+// PlayerInfo API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

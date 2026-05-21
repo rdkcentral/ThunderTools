@@ -1,4 +1,4 @@
-// IWifiControl JSON-RPC API
+// IWifiControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

@@ -1,4 +1,4 @@
-// Monitor JSON-RPC API
+// Monitor API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

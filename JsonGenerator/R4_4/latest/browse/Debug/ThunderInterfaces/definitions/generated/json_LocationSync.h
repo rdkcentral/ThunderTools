@@ -1,4 +1,4 @@
-// LocationSync JSON-RPC API
+// LocationSync API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

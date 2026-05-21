@@ -1,7 +1,6 @@
 // Generated automatically from 'IApplication.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_Application.h"
 #include <interfaces/IApplication.h>
@@ -20,172 +19,183 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IApplication* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IApplication* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JApplication"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JApplication"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'reset' - Resets application data
-            _module_.Register<Core::JSON::EnumType<Exchange::IApplication::resettype>, void>(_T("reset"), 
-                [_impl_](const Core::JSON::EnumType<Exchange::IApplication::resettype>& type) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::IApplication::resettype>, void>(_T("reset"),
+                [_implementation__](const Core::JSON::EnumType<Exchange::IApplication::resettype>& type) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const Exchange::IApplication::resettype _type{type};
+                    if (type.IsSet() == false) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const Exchange::IApplication::resettype _type_{type};
 
-                    _errorCode = _impl_->Reset(_type);
+                        _errorCode__ = _implementation__->Reset(_type_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Property: 'identifier' - Application-specific identification string (r/o)
-            _module_.Register<void, Core::JSON::String>(_T("identifier"), 
-                [_impl_](Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("identifier"),
+                [_implementation__](Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // read-only property get
-                    string _result{};
+                    string _result_{};
 
-                    _errorCode = _impl_->Identifier(_result);
+                    _errorCode__ = _implementation__->Identifier(_result_);
 
-                    if (_errorCode == Core::ERROR_NONE) {
-                        result = _result;
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result = _result_;
                     }
 
-                    return (_errorCode);
+                    return (_errorCode__);
                 });
 
             // Property: 'contentlink' - URI of the associated application-specific content (w/o)
-            _module_.Register<Core::JSON::String, void>(_T("contentlink"), 
-                [_impl_](const Core::JSON::String& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, void>(_T("contentlink"),
+                [_implementation__](const Core::JSON::String& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    // write-only property set
-                    const string _params{params};
+                    if (params.IsSet() == false) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const string _params_{params};
 
-                    _errorCode = _impl_->ContentLink(_params);
+                        _errorCode__ = _implementation__->ContentLink(_params_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Property: 'launchpoint' - Application launching point
-            _module_.Register<Core::JSON::EnumType<Exchange::IApplication::launchpointtype>,
-                     Core::JSON::EnumType<Exchange::IApplication::launchpointtype>>(_T("launchpoint"), 
-                [_impl_](const Core::JSON::EnumType<Exchange::IApplication::launchpointtype>& params,
-                         Core::JSON::EnumType<Exchange::IApplication::launchpointtype>& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::IApplication::launchpointtype>, Core::JSON::EnumType<Exchange::IApplication::launchpointtype>>(_T("launchpoint"),
+                [_implementation__](const Core::JSON::EnumType<Exchange::IApplication::launchpointtype>& params, Core::JSON::EnumType<Exchange::IApplication::launchpointtype>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        Exchange::IApplication::launchpointtype _result{};
+                        Exchange::IApplication::launchpointtype _result_{};
 
-                        _errorCode = (static_cast<const IApplication*>(_impl_))->LaunchPoint(_result);
+                        _errorCode__ = (static_cast<const IApplication*>(_implementation__))->LaunchPoint(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const Exchange::IApplication::launchpointtype _params_{params};
 
-                    } else {
-                        // property set
-                        const Exchange::IApplication::launchpointtype _params{params};
-
-                        _errorCode = _impl_->LaunchPoint(_params);
+                        _errorCode__ = _implementation__->LaunchPoint(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
             // Property: 'visible' - Current application visibility
-            _module_.Register<Core::JSON::Boolean, Core::JSON::Boolean>(_T("visible"), 
-                [_impl_](const Core::JSON::Boolean& params, Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, Core::JSON::Boolean>(_T("visible"),
+                [_implementation__](const Core::JSON::Boolean& params, Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        bool _result{};
+                        bool _result_{};
 
-                        _errorCode = (static_cast<const IApplication*>(_impl_))->Visible(_result);
+                        _errorCode__ = (static_cast<const IApplication*>(_implementation__))->Visible(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const bool _params_{params};
 
-                    } else {
-                        // property set
-                        const bool _params{params};
-
-                        _errorCode = _impl_->Visible(_params);
+                        _errorCode__ = _implementation__->Visible(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
             // Property: 'language' - Current application user interface language
-            _module_.Register<Core::JSON::String, Core::JSON::String>(_T("language"), 
-                [_impl_](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, Core::JSON::String>(_T("language"),
+                [_implementation__](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = (static_cast<const IApplication*>(_impl_))->Language(_result);
+                        _errorCode__ = (static_cast<const IApplication*>(_implementation__))->Language(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const string _params_{params};
 
-                    } else {
-                        // property set
-                        const string _params{params};
-
-                        _errorCode = _impl_->Language(_params);
+                        _errorCode__ = _implementation__->Language(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("reset"));
-            _module_.Unregister(_T("identifier"));
-            _module_.Unregister(_T("contentlink"));
-            _module_.Unregister(_T("launchpoint"));
-            _module_.Unregister(_T("visible"));
-            _module_.Unregister(_T("language"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("reset"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("identifier"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("contentlink"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("launchpoint"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("visible"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("language"));
         }
 
         namespace Event {
 
             // Event: 'visibilitychange' - Application visibility changes
-            static void VisibilityChange(const JSONRPC& _module_, const Core::JSON::Boolean& hidden)
+            template<typename MODULE>
+            static void VisibilityChange(const MODULE& module_, const Core::JSON::Boolean& hidden, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("visibilitychange"), hidden);
+                module_.Notify(_T("visibilitychange"), hidden, sendIfMethod_);
             }
 
             // Event: 'visibilitychange' - Application visibility changes
-            static void VisibilityChange(const JSONRPC& _module_, const bool& hidden)
+            template<typename MODULE>
+            static void VisibilityChange(const MODULE& module_, const bool hidden, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                Core::JSON::Boolean _params_;
-                _params_ = hidden;
+                Core::JSON::Boolean params_;
+                params_ = hidden;
 
-                VisibilityChange(_module_, _params_);
+                VisibilityChange(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JApplication

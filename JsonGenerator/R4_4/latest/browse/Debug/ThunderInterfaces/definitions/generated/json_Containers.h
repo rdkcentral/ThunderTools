@@ -1,4 +1,4 @@
-// Containers JSON-RPC API
+// Containers API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

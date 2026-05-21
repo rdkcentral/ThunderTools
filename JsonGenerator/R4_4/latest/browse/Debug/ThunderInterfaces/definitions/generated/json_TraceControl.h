@@ -1,4 +1,4 @@
-// TraceControl JSON-RPC API
+// TraceControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

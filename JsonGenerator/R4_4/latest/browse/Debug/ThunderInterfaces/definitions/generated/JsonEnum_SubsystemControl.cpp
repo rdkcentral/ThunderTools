@@ -1,4 +1,4 @@
-// Enumeration code for Subsystem Control API JSON-RPC API.
+// Enumeration code for Subsystem Control API.
 // Generated automatically from 'SubsystemControl.json'.
 
 #include <core/Enumerate.h>

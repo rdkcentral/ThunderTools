@@ -1,4 +1,4 @@
-// TimeSync JSON-RPC API
+// TimeSync API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

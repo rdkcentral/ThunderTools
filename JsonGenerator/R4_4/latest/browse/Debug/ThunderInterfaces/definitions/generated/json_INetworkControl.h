@@ -1,4 +1,4 @@
-// INetworkControl JSON-RPC API
+// INetworkControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

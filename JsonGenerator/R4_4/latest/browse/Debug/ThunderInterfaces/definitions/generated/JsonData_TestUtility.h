@@ -1,4 +1,4 @@
-// C++ classes for Test Utility API JSON-RPC API.
+// C++ types for Test Utility API.
 // Generated automatically from 'TestUtility.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace TestUtility {
 
@@ -46,6 +48,15 @@ namespace JsonData {
                 _Init();
             }
 
+            InputInfo(InputInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Name(std::move(_other.Name))
+                , Type(std::move(_other.Type))
+                , Comment(std::move(_other.Comment))
+            {
+                _Init();
+            }
+
             InputInfo& operator=(const InputInfo& _rhs)
             {
                 Name = _rhs.Name;
@@ -54,9 +65,20 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            InputInfo& operator=(InputInfo&& _rhs) noexcept
             {
-                return (true);
+                Name = std::move(_rhs.Name);
+                Type = std::move(_rhs.Type);
+                Comment = std::move(_rhs.Comment);
+                return (*this);
+            }
+
+            ~InputInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Name.IsSet() == true) && (Type.IsSet() == true) && (Comment.IsSet() == true));
             }
 
         private:
@@ -84,13 +106,19 @@ namespace JsonData {
                 Add(_T("description"), &Description);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DescriptionData(const DescriptionData&) = delete;
+            DescriptionData(DescriptionData&&) noexcept  = delete;
+
             DescriptionData& operator=(const DescriptionData&) = delete;
+            DescriptionData& operator=(DescriptionData&&) noexcept  = delete;
+
+            ~DescriptionData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Description.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Description; // Test command description
@@ -105,13 +133,19 @@ namespace JsonData {
                 Add(_T("output"), &Output);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ParametersData(const ParametersData&) = delete;
+            ParametersData(ParametersData&&) noexcept  = delete;
+
             ParametersData& operator=(const ParametersData&) = delete;
+            ParametersData& operator=(ParametersData&&) noexcept  = delete;
+
+            ~ParametersData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Output.IsSet() == true) && (Output.IsDataValid() == true));
+            }
 
         public:
             Core::JSON::ArrayType<InputInfo> Input;
@@ -128,13 +162,19 @@ namespace JsonData {
                 Add(_T("count"), &Count);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             RuncrashParamsData(const RuncrashParamsData&) = delete;
+            RuncrashParamsData(RuncrashParamsData&&) noexcept  = delete;
+
             RuncrashParamsData& operator=(const RuncrashParamsData&) = delete;
+            RuncrashParamsData& operator=(RuncrashParamsData&&) noexcept  = delete;
+
+            ~RuncrashParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Command.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Command; // Test command name
@@ -151,13 +191,19 @@ namespace JsonData {
                 Add(_T("size"), &Size);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             RunmemoryParamsData(const RunmemoryParamsData&) = delete;
+            RunmemoryParamsData(RunmemoryParamsData&&) noexcept  = delete;
+
             RunmemoryParamsData& operator=(const RunmemoryParamsData&) = delete;
+            RunmemoryParamsData& operator=(RunmemoryParamsData&&) noexcept  = delete;
+
+            ~RunmemoryParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Command.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Command; // Test command name
@@ -174,13 +220,19 @@ namespace JsonData {
                 Add(_T("resident"), &Resident);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             RunmemoryResultData(const RunmemoryResultData&) = delete;
+            RunmemoryResultData(RunmemoryResultData&&) noexcept  = delete;
+
             RunmemoryResultData& operator=(const RunmemoryResultData&) = delete;
+            RunmemoryResultData& operator=(RunmemoryResultData&&) noexcept  = delete;
+
+            ~RunmemoryResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Allocated.IsSet() == true) && (Size.IsSet() == true) && (Resident.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 Allocated; // Already allocated memory in KB
@@ -189,6 +241,8 @@ namespace JsonData {
         }; // class RunmemoryResultData
 
     } // namespace TestUtility
+
+    POP_WARNING()
 
 } // namespace JsonData
 

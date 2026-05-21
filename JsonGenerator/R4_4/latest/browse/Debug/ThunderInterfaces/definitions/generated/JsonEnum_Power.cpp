@@ -1,4 +1,4 @@
-// Enumeration code for Power API JSON-RPC API.
+// Enumeration code for Power API.
 // Generated automatically from 'Power.json'.
 
 #include <core/Enumerate.h>

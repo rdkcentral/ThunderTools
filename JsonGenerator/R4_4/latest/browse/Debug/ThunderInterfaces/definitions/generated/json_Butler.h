@@ -1,4 +1,4 @@
-// Butler JSON-RPC API
+// Butler API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

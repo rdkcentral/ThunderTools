@@ -1,7 +1,6 @@
 // Generated automatically from 'IZigWave.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_ZigWave.h"
 #include <interfaces/IZigWave.h>
@@ -20,147 +19,199 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IZigWave* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IZigWave* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JZigWave"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JZigWave"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'bind' - Bind the *out* from the soure to the *in* of the destination
-            _module_.Register<JsonData::ZigWave::BindParamsInfo, void>(_T("bind"), 
-                [_impl_](const JsonData::ZigWave::BindParamsInfo& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::ZigWave::BindParamsInfo, void>(_T("bind"),
+                [_implementation__](const JsonData::ZigWave::BindParamsInfo& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const uint32_t _source{params.Source};
-                    const uint32_t _destination{params.Destination};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const uint32_t _source_{params.Source};
+                        const uint32_t _destination_{params.Destination};
 
-                    _errorCode = _impl_->Bind(_source, _destination);
+                        _errorCode__ = _implementation__->Bind(_source_, _destination_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Method: 'unbind' - Unbind the *out* from the soure to the *in* of the destination
-            _module_.Register<JsonData::ZigWave::BindParamsInfo, void>(_T("unbind"), 
-                [_impl_](const JsonData::ZigWave::BindParamsInfo& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::ZigWave::BindParamsInfo, void>(_T("unbind"),
+                [_implementation__](const JsonData::ZigWave::BindParamsInfo& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const uint32_t _source{params.Source};
-                    const uint32_t _destination{params.Destination};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const uint32_t _source_{params.Source};
+                        const uint32_t _destination_{params.Destination};
 
-                    _errorCode = _impl_->Unbind(_source, _destination);
+                        _errorCode__ = _implementation__->Unbind(_source_, _destination_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Indexed Property: 'permutable' - To allow new devices to the network, the controller should be placed into an accepting mode
-            _module_.Register<JsonData::ZigWave::PermutableInfo, Core::JSON::Boolean, std::function<uint32_t(const string&,
-                     const JsonData::ZigWave::PermutableInfo&, Core::JSON::Boolean&)>>(_T("permutable"), 
-                [_impl_](const string& _index_, const JsonData::ZigWave::PermutableInfo& params, Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::ZigWave::PermutableInfo, Core::JSON::Boolean, std::function<uint32_t(const string&, const JsonData::ZigWave::PermutableInfo&, Core::JSON::Boolean&)>>(_T("permutable"),
+                [_implementation__](const string& address, const JsonData::ZigWave::PermutableInfo& params, Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    uint32_t _indexConverted_{};
+                    uint32_t _addressConv__{};
 
-                    if ((_index_.empty() == true) || (Core::FromString(_index_, _indexConverted_) == false)) {
-                        _errorCode = Core::ERROR_UNKNOWN_KEY;
-                        result.Null(true);
-                    } else {
+                    if (address.empty() == true) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const bool _addressConvResult__ = Core::FromString(address, _addressConv__);
+
+                        if (_addressConvResult__ == false) {
+                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        }
+                    }
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+
                         if (params.IsSet() == false) {
-                            // property get
-                            bool _result{};
+                            bool _result_{};
 
-                            _errorCode = (static_cast<const IZigWave*>(_impl_))->Permutable(_indexConverted_, _result);
+                            _errorCode__ = (static_cast<const IZigWave*>(_implementation__))->Permutable(_addressConv__, _result_);
 
-                            if (_errorCode == Core::ERROR_NONE) {
-                                result = _result;
+                            if (_errorCode__ == Core::ERROR_NONE) {
+                                result = _result_;
                             }
+                        }
+                        else {
 
-                        } else {
-                            // property set
-                            const bool _value{params.Value};
+                            if (params.IsDataValid() == false) {
+                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            }
+                            else {
+                                const bool _value_{params.Value};
 
-                            _errorCode = _impl_->Permutable(_indexConverted_, _value);
+                                _errorCode__ = _implementation__->Permutable(_addressConv__, _value_);
+
+                            }
 
                             result.Null(true);
                         }
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
             // Indexed Property: 'accept' - To allow new devices to the network, the controller should be placed into an accepting mode
-            _module_.Register<JsonData::ZigWave::PermutableInfo, Core::JSON::Boolean, std::function<uint32_t(const string&,
-                     const JsonData::ZigWave::PermutableInfo&, Core::JSON::Boolean&)>>(_T("accept"), 
-                [_impl_](const string& _index_, const JsonData::ZigWave::PermutableInfo& params, Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::ZigWave::PermutableInfo, Core::JSON::Boolean, std::function<uint32_t(const string&, const JsonData::ZigWave::PermutableInfo&, Core::JSON::Boolean&)>>(_T("accept"),
+                [_implementation__](const string& address, const JsonData::ZigWave::PermutableInfo& params, Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    uint32_t _indexConverted_{};
+                    uint32_t _addressConv__{};
 
-                    if ((_index_.empty() == true) || (Core::FromString(_index_, _indexConverted_) == false)) {
-                        _errorCode = Core::ERROR_UNKNOWN_KEY;
-                        result.Null(true);
-                    } else {
+                    if (address.empty() == true) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const bool _addressConvResult__ = Core::FromString(address, _addressConv__);
+
+                        if (_addressConvResult__ == false) {
+                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        }
+                    }
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+
                         if (params.IsSet() == false) {
-                            // property get
-                            bool _result{};
+                            bool _result_{};
 
-                            _errorCode = (static_cast<const IZigWave*>(_impl_))->Permutable(_indexConverted_, _result);
+                            _errorCode__ = (static_cast<const IZigWave*>(_implementation__))->Permutable(_addressConv__, _result_);
 
-                            if (_errorCode == Core::ERROR_NONE) {
-                                result = _result;
+                            if (_errorCode__ == Core::ERROR_NONE) {
+                                result = _result_;
                             }
+                        }
+                        else {
 
-                        } else {
-                            // property set
-                            const bool _value{params.Value};
+                            if (params.IsDataValid() == false) {
+                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            }
+                            else {
+                                const bool _value_{params.Value};
 
-                            _errorCode = _impl_->Permutable(_indexConverted_, _value);
+                                _errorCode__ = _implementation__->Permutable(_addressConv__, _value_);
+
+                            }
 
                             result.Null(true);
                         }
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
             // Indexed Property: 'device' - To allow new devices to the network, the controller should be placed into an accepting mode (r/o)
-            _module_.Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("device"), 
-                [_impl_](const string& _index_, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("device"),
+                [_implementation__](const string& id, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    uint32_t _indexConverted_{};
+                    uint32_t _idConv__{};
 
-                    if ((_index_.empty() == true) || (Core::FromString(_index_, _indexConverted_) == false)) {
-                        _errorCode = Core::ERROR_UNKNOWN_KEY;
-                    } else {
-                        // read-only property get
-                        string _result{};
-
-                        _errorCode = _impl_->Device(_indexConverted_, _result);
-
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
-                        }
-
+                    if (id.empty() == true) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
-                    return (_errorCode);
+                    else {
+                        const bool _idConvResult__ = Core::FromString(id, _idConv__);
+
+                        if (_idConvResult__ == false) {
+                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        }
+                    }
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        string _result_{};
+
+                        _errorCode__ = _implementation__->Device(_idConv__, _result_);
+
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
+                        }
+                    }
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("bind"));
-            _module_.Unregister(_T("unbind"));
-            _module_.Unregister(_T("permutable"));
-            _module_.Unregister(_T("accept"));
-            _module_.Unregister(_T("device"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("bind"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("unbind"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("permutable"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("accept"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("device"));
         }
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JZigWave

@@ -1,7 +1,6 @@
 // Generated automatically from 'IAVSClient.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_AVSController.h"
 #include <interfaces/IAVSClient.h>
@@ -20,70 +19,88 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IAVSController* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IAVSController* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JAVSController"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JAVSController"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'mute' - Mutes the audio output of AVS
-            _module_.Register<Core::JSON::Boolean, void>(_T("mute"), 
-                [_impl_](const Core::JSON::Boolean& muted) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, void>(_T("mute"),
+                [_implementation__](const Core::JSON::Boolean& muted) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const bool _muted{muted};
+                    if (muted.IsSet() == false) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const bool _muted_{muted};
 
-                    _errorCode = _impl_->Mute(_muted);
+                        _errorCode__ = _implementation__->Mute(_muted_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Method: 'record' - Starts or stops the voice recording, skipping keyword detection
-            _module_.Register<Core::JSON::Boolean, void>(_T("record"), 
-                [_impl_](const Core::JSON::Boolean& started) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, void>(_T("record"),
+                [_implementation__](const Core::JSON::Boolean& started) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const bool _started{started};
+                    if (started.IsSet() == false) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const bool _started_{started};
 
-                    _errorCode = _impl_->Record(_started);
+                        _errorCode__ = _implementation__->Record(_started_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("mute"));
-            _module_.Unregister(_T("record"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("mute"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("record"));
         }
 
         namespace Event {
 
             // Event: 'dialoguestatechange' - notifies about dialogue state changes
-            static void DialogueStateChange(const JSONRPC& _module_, const Core::JSON::EnumType<Exchange::IAVSController::INotification::dialoguestate>& state)
+            template<typename MODULE>
+            static void DialogueStateChange(const MODULE& module_, const Core::JSON::EnumType<Exchange::IAVSController::INotification::dialoguestate>& state, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("dialoguestatechange"), state);
+                module_.Notify(_T("dialoguestatechange"), state, sendIfMethod_);
             }
 
             // Event: 'dialoguestatechange' - notifies about dialogue state changes
-            static void DialogueStateChange(const JSONRPC& _module_, const Exchange::IAVSController::INotification::dialoguestate& state)
+            template<typename MODULE>
+            static void DialogueStateChange(const MODULE& module_, const IAVSController::INotification::dialoguestate state, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                Core::JSON::EnumType<Exchange::IAVSController::INotification::dialoguestate> _params_;
-                _params_ = state;
+                Core::JSON::EnumType<Exchange::IAVSController::INotification::dialoguestate> params_;
+                params_ = state;
 
-                DialogueStateChange(_module_, _params_);
+                DialogueStateChange(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JAVSController

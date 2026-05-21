@@ -1,4 +1,4 @@
-// C++ classes for PertsistentStore API JSON-RPC API.
+// C++ types for PertsistentStore API.
 // Generated automatically from 'PersistentStore.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace PersistentStore {
 
@@ -36,13 +38,19 @@ namespace JsonData {
                 Add(_T("scope"), &Scope);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DeleteKeyParamsInfo(const DeleteKeyParamsInfo&) = delete;
+            DeleteKeyParamsInfo(DeleteKeyParamsInfo&&) noexcept  = delete;
+
             DeleteKeyParamsInfo& operator=(const DeleteKeyParamsInfo&) = delete;
+            DeleteKeyParamsInfo& operator=(DeleteKeyParamsInfo&&) noexcept  = delete;
+
+            ~DeleteKeyParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Namespace.IsSet() == true) && (Key.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Namespace; // Deletes a key from the specified namespace
@@ -58,13 +66,19 @@ namespace JsonData {
                 Add(_T("success"), &Success);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DeleteKeyResultInfo(const DeleteKeyResultInfo&) = delete;
+            DeleteKeyResultInfo(DeleteKeyResultInfo&&) noexcept  = delete;
+
             DeleteKeyResultInfo& operator=(const DeleteKeyResultInfo&) = delete;
+            DeleteKeyResultInfo& operator=(DeleteKeyResultInfo&&) noexcept  = delete;
+
+            ~DeleteKeyResultInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Success.IsSet() == true);
+            }
 
         public:
             Core::JSON::Boolean Success; // Deletes a key from the specified namespace
@@ -79,13 +93,19 @@ namespace JsonData {
                 Add(_T("scope"), &Scope);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DeleteNamespaceParamsInfo(const DeleteNamespaceParamsInfo&) = delete;
+            DeleteNamespaceParamsInfo(DeleteNamespaceParamsInfo&&) noexcept  = delete;
+
             DeleteNamespaceParamsInfo& operator=(const DeleteNamespaceParamsInfo&) = delete;
+            DeleteNamespaceParamsInfo& operator=(DeleteNamespaceParamsInfo&&) noexcept  = delete;
+
+            ~DeleteNamespaceParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Namespace.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Namespace; // Deletes the specified namespace
@@ -100,13 +120,19 @@ namespace JsonData {
                 Add(_T("scope"), &Scope);
             }
 
-            bool IsValid() const
+            GetNamespacesParamsInfo(const GetNamespacesParamsInfo&) = delete;
+            GetNamespacesParamsInfo(GetNamespacesParamsInfo&&) noexcept  = delete;
+
+            GetNamespacesParamsInfo& operator=(const GetNamespacesParamsInfo&) = delete;
+            GetNamespacesParamsInfo& operator=(GetNamespacesParamsInfo&&) noexcept  = delete;
+
+            ~GetNamespacesParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
             {
                 return (true);
             }
-
-            GetNamespacesParamsInfo(const GetNamespacesParamsInfo&) = delete;
-            GetNamespacesParamsInfo& operator=(const GetNamespacesParamsInfo&) = delete;
 
         public:
             Core::JSON::EnumType<ScopeType> Scope; // Returns the namespaces
@@ -124,13 +150,19 @@ namespace JsonData {
                 Add(_T("success"), &Success);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GetKeysResultData(const GetKeysResultData&) = delete;
+            GetKeysResultData(GetKeysResultData&&) noexcept  = delete;
+
             GetKeysResultData& operator=(const GetKeysResultData&) = delete;
+            GetKeysResultData& operator=(GetKeysResultData&&) noexcept  = delete;
+
+            ~GetKeysResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Keys.IsSet() == true) && (Success.IsSet() == true));
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::String> Keys; // Returns the keys that are stored in the specified namespace
@@ -145,13 +177,19 @@ namespace JsonData {
                 Add(_T("storageLimit"), &StorageLimit);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GetNamespaceStorageLimitResultData(const GetNamespaceStorageLimitResultData&) = delete;
+            GetNamespaceStorageLimitResultData(GetNamespaceStorageLimitResultData&&) noexcept  = delete;
+
             GetNamespaceStorageLimitResultData& operator=(const GetNamespaceStorageLimitResultData&) = delete;
+            GetNamespaceStorageLimitResultData& operator=(GetNamespaceStorageLimitResultData&&) noexcept  = delete;
+
+            ~GetNamespaceStorageLimitResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (StorageLimit.IsSet() == true);
+            }
 
         public:
             Core::JSON::DecUInt32 StorageLimit; // Returns the storage limit for a given namespace
@@ -166,13 +204,19 @@ namespace JsonData {
                 Add(_T("success"), &Success);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GetNamespacesResultData(const GetNamespacesResultData&) = delete;
+            GetNamespacesResultData(GetNamespacesResultData&&) noexcept  = delete;
+
             GetNamespacesResultData& operator=(const GetNamespacesResultData&) = delete;
+            GetNamespacesResultData& operator=(GetNamespacesResultData&&) noexcept  = delete;
+
+            ~GetNamespacesResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Namespaces.IsSet() == true) && (Success.IsSet() == true));
+            }
 
         public:
             Core::JSON::ArrayType<Core::JSON::String> Namespaces; // Returns the namespaces
@@ -197,6 +241,14 @@ namespace JsonData {
                     _Init();
                 }
 
+                StorageListDataElem(StorageListDataElem&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Namespace(std::move(_other.Namespace))
+                    , Size(std::move(_other.Size))
+                {
+                    _Init();
+                }
+
                 StorageListDataElem& operator=(const StorageListDataElem& _rhs)
                 {
                     Namespace = _rhs.Namespace;
@@ -204,9 +256,19 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                StorageListDataElem& operator=(StorageListDataElem&& _rhs) noexcept
                 {
-                    return (true);
+                    Namespace = std::move(_rhs.Namespace);
+                    Size = std::move(_rhs.Size);
+                    return (*this);
+                }
+
+                ~StorageListDataElem() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Namespace.IsSet() == true) && (Size.IsSet() == true));
                 }
 
             private:
@@ -227,13 +289,19 @@ namespace JsonData {
                 Add(_T("storageList"), &StorageList);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GetStorageSizesResultData(const GetStorageSizesResultData&) = delete;
+            GetStorageSizesResultData(GetStorageSizesResultData&&) noexcept  = delete;
+
             GetStorageSizesResultData& operator=(const GetStorageSizesResultData&) = delete;
+            GetStorageSizesResultData& operator=(GetStorageSizesResultData&&) noexcept  = delete;
+
+            ~GetStorageSizesResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (StorageList.IsSet() == true);
+            }
 
         public:
             Core::JSON::ArrayType<GetStorageSizesResultData::StorageListDataElem> StorageList; // Returns the size occupied by each namespace
@@ -249,13 +317,19 @@ namespace JsonData {
                 Add(_T("ttl"), &Ttl);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GetValueResultData(const GetValueResultData&) = delete;
+            GetValueResultData(GetValueResultData&&) noexcept  = delete;
+
             GetValueResultData& operator=(const GetValueResultData&) = delete;
+            GetValueResultData& operator=(GetValueResultData&&) noexcept  = delete;
+
+            ~GetValueResultData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Value.IsSet() == true) && (Success.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Value; // Returns the value of a key from the specified namespace
@@ -274,13 +348,19 @@ namespace JsonData {
                 Add(_T("scope"), &Scope);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             OnValueChangedParamsData(const OnValueChangedParamsData&) = delete;
+            OnValueChangedParamsData(OnValueChangedParamsData&&) noexcept  = delete;
+
             OnValueChangedParamsData& operator=(const OnValueChangedParamsData&) = delete;
+            OnValueChangedParamsData& operator=(OnValueChangedParamsData&&) noexcept  = delete;
+
+            ~OnValueChangedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Namespace.IsSet() == true) && (Key.IsSet() == true) && (Value.IsSet() == true) && (Scope.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Namespace; // Triggered whenever any of the values stored are changed using setValue
@@ -299,13 +379,19 @@ namespace JsonData {
                 Add(_T("scope"), &Scope);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SetNamespaceStorageLimitParamsData(const SetNamespaceStorageLimitParamsData&) = delete;
+            SetNamespaceStorageLimitParamsData(SetNamespaceStorageLimitParamsData&&) noexcept  = delete;
+
             SetNamespaceStorageLimitParamsData& operator=(const SetNamespaceStorageLimitParamsData&) = delete;
+            SetNamespaceStorageLimitParamsData& operator=(SetNamespaceStorageLimitParamsData&&) noexcept  = delete;
+
+            ~SetNamespaceStorageLimitParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Namespace.IsSet() == true) && (StorageLimit.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Namespace; // Sets the storage limit for a given namespace
@@ -325,13 +411,19 @@ namespace JsonData {
                 Add(_T("ttl"), &Ttl);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SetValueParamsData(const SetValueParamsData&) = delete;
+            SetValueParamsData(SetValueParamsData&&) noexcept  = delete;
+
             SetValueParamsData& operator=(const SetValueParamsData&) = delete;
+            SetValueParamsData& operator=(SetValueParamsData&&) noexcept  = delete;
+
+            ~SetValueParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Namespace.IsSet() == true) && (Key.IsSet() == true) && (Value.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Namespace; // Sets the value of a key in the the specified namespace
@@ -342,6 +434,8 @@ namespace JsonData {
         }; // class SetValueParamsData
 
     } // namespace PersistentStore
+
+    POP_WARNING()
 
 } // namespace JsonData
 

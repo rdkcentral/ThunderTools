@@ -1,4 +1,4 @@
-// Enumeration code for Firmware Control API JSON-RPC API.
+// Enumeration code for Firmware Control API.
 // Generated automatically from 'FirmwareControl.json'.
 
 #include <core/Enumerate.h>

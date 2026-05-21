@@ -1,4 +1,4 @@
-// Enumeration code for Test Utility API JSON-RPC API.
+// Enumeration code for Test Utility API.
 // Generated automatically from 'TestUtility.json'.
 
 #include <core/Enumerate.h>

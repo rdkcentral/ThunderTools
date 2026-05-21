@@ -1,4 +1,4 @@
-// IBrowser JSON-RPC API
+// IBrowser API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

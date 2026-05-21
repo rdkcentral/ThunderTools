@@ -1,4 +1,4 @@
-// C++ classes for Bluetooth Control API JSON-RPC API.
+// C++ types for Bluetooth Control API.
 // Generated automatically from 'BluetoothControl.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -12,6 +12,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace BluetoothControl {
 
@@ -49,6 +51,14 @@ namespace JsonData {
                 _Init();
             }
 
+            ConnectParamsInfo(ConnectParamsInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Address(std::move(_other.Address))
+                , Type(std::move(_other.Type))
+            {
+                _Init();
+            }
+
             ConnectParamsInfo& operator=(const ConnectParamsInfo& _rhs)
             {
                 Address = _rhs.Address;
@@ -56,9 +66,19 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            ConnectParamsInfo& operator=(ConnectParamsInfo&& _rhs) noexcept
             {
-                return (true);
+                Address = std::move(_rhs.Address);
+                Type = std::move(_rhs.Type);
+                return (*this);
+            }
+
+            ~ConnectParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Address.IsSet() == true);
             }
 
         private:
@@ -88,13 +108,19 @@ namespace JsonData {
                 Add(_T("paired"), &Paired);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DeviceData(const DeviceData&) = delete;
+            DeviceData(DeviceData&&) noexcept  = delete;
+
             DeviceData& operator=(const DeviceData&) = delete;
+            DeviceData& operator=(DeviceData&&) noexcept  = delete;
+
+            ~DeviceData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Address.IsSet() == true) && (Type.IsSet() == true) && (Connected.IsSet() == true) && (Paired.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -115,13 +141,19 @@ namespace JsonData {
                 Add(_T("type"), &Type);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             StopdiscoverableParamsInfo(const StopdiscoverableParamsInfo&) = delete;
+            StopdiscoverableParamsInfo(StopdiscoverableParamsInfo&&) noexcept  = delete;
+
             StopdiscoverableParamsInfo& operator=(const StopdiscoverableParamsInfo&) = delete;
+            StopdiscoverableParamsInfo& operator=(StopdiscoverableParamsInfo&&) noexcept  = delete;
+
+            ~StopdiscoverableParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Type.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<scantype> Type; // Discoverable type
@@ -153,13 +185,19 @@ namespace JsonData {
                 Add(_T("shortname"), &Shortname);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             AdapterData(const AdapterData&) = delete;
+            AdapterData(AdapterData&&) noexcept  = delete;
+
             AdapterData& operator=(const AdapterData&) = delete;
+            AdapterData& operator=(AdapterData&&) noexcept  = delete;
+
+            ~AdapterData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Id.IsSet() == true) && (Interface.IsSet() == true) && (Address.IsSet() == true) && (Type.IsSet() == true) && (Version.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt16 Id; // Interface ID number
@@ -183,13 +221,19 @@ namespace JsonData {
                 Add(_T("iscorrect"), &Iscorrect);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ConfirmpasskeyParamsData(const ConfirmpasskeyParamsData&) = delete;
+            ConfirmpasskeyParamsData(ConfirmpasskeyParamsData&&) noexcept  = delete;
+
             ConfirmpasskeyParamsData& operator=(const ConfirmpasskeyParamsData&) = delete;
+            ConfirmpasskeyParamsData& operator=(ConfirmpasskeyParamsData&&) noexcept  = delete;
+
+            ~ConfirmpasskeyParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Address.IsSet() == true) && (Type.IsSet() == true) && (Iscorrect.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -227,13 +271,19 @@ namespace JsonData {
                 Add(_T("disconnectreason"), &Disconnectreason);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DevicestatechangeParamsData(const DevicestatechangeParamsData&) = delete;
+            DevicestatechangeParamsData(DevicestatechangeParamsData&&) noexcept  = delete;
+
             DevicestatechangeParamsData& operator=(const DevicestatechangeParamsData&) = delete;
+            DevicestatechangeParamsData& operator=(DevicestatechangeParamsData&&) noexcept  = delete;
+
+            ~DevicestatechangeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Address.IsSet() == true) && (Type.IsSet() == true) && (State.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -252,13 +302,19 @@ namespace JsonData {
                 Add(_T("connectable"), &Connectable);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DiscoverablestartedParamsData(const DiscoverablestartedParamsData&) = delete;
+            DiscoverablestartedParamsData(DiscoverablestartedParamsData&&) noexcept  = delete;
+
             DiscoverablestartedParamsData& operator=(const DiscoverablestartedParamsData&) = delete;
+            DiscoverablestartedParamsData& operator=(DiscoverablestartedParamsData&&) noexcept  = delete;
+
+            ~DiscoverablestartedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Type.IsSet() == true) && (Mode.IsSet() == true));
+            }
 
         public:
             Core::JSON::EnumType<scantype> Type; // Discoverable type
@@ -277,13 +333,19 @@ namespace JsonData {
                 Add(_T("timeout"), &Timeout);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             PairParamsData(const PairParamsData&) = delete;
+            PairParamsData(PairParamsData&&) noexcept  = delete;
+
             PairParamsData& operator=(const PairParamsData&) = delete;
+            PairParamsData& operator=(PairParamsData&&) noexcept  = delete;
+
+            ~PairParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Address.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -302,13 +364,19 @@ namespace JsonData {
                 Add(_T("secret"), &Secret);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             PasskeyconfirmrequestParamsData(const PasskeyconfirmrequestParamsData&) = delete;
+            PasskeyconfirmrequestParamsData(PasskeyconfirmrequestParamsData&&) noexcept  = delete;
+
             PasskeyconfirmrequestParamsData& operator=(const PasskeyconfirmrequestParamsData&) = delete;
+            PasskeyconfirmrequestParamsData& operator=(PasskeyconfirmrequestParamsData&&) noexcept  = delete;
+
+            ~PasskeyconfirmrequestParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Address.IsSet() == true) && (Type.IsSet() == true) && (Secret.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -326,13 +394,19 @@ namespace JsonData {
                 Add(_T("secret"), &Secret);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ProvidepincodeParamsData(const ProvidepincodeParamsData&) = delete;
+            ProvidepincodeParamsData(ProvidepincodeParamsData&&) noexcept  = delete;
+
             ProvidepincodeParamsData& operator=(const ProvidepincodeParamsData&) = delete;
+            ProvidepincodeParamsData& operator=(ProvidepincodeParamsData&&) noexcept  = delete;
+
+            ~ProvidepincodeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Address.IsSet() == true) && (Type.IsSet() == true) && (Secret.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -350,13 +424,19 @@ namespace JsonData {
                 Add(_T("secret"), &Secret);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ProvidepasskeyParamsData(const ProvidepasskeyParamsData&) = delete;
+            ProvidepasskeyParamsData(ProvidepasskeyParamsData&&) noexcept  = delete;
+
             ProvidepasskeyParamsData& operator=(const ProvidepasskeyParamsData&) = delete;
+            ProvidepasskeyParamsData& operator=(ProvidepasskeyParamsData&&) noexcept  = delete;
+
+            ~ProvidepasskeyParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Address.IsSet() == true) && (Type.IsSet() == true) && (Secret.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -375,13 +455,19 @@ namespace JsonData {
                 Add(_T("duration"), &Duration);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ScanParamsData(const ScanParamsData&) = delete;
+            ScanParamsData(ScanParamsData&&) noexcept  = delete;
+
             ScanParamsData& operator=(const ScanParamsData&) = delete;
+            ScanParamsData& operator=(ScanParamsData&&) noexcept  = delete;
+
+            ~ScanParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Type.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<scantype> Type; // Scan type
@@ -399,13 +485,19 @@ namespace JsonData {
                 Add(_T("mode"), &Mode);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ScanstartedParamsData(const ScanstartedParamsData&) = delete;
+            ScanstartedParamsData(ScanstartedParamsData&&) noexcept  = delete;
+
             ScanstartedParamsData& operator=(const ScanstartedParamsData&) = delete;
+            ScanstartedParamsData& operator=(ScanstartedParamsData&&) noexcept  = delete;
+
+            ~ScanstartedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Type.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<scantype> Type; // Scan type
@@ -423,13 +515,19 @@ namespace JsonData {
                 Add(_T("duration"), &Duration);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SetdiscoverableParamsData(const SetdiscoverableParamsData&) = delete;
+            SetdiscoverableParamsData(SetdiscoverableParamsData&&) noexcept  = delete;
+
             SetdiscoverableParamsData& operator=(const SetdiscoverableParamsData&) = delete;
+            SetdiscoverableParamsData& operator=(SetdiscoverableParamsData&&) noexcept  = delete;
+
+            ~SetdiscoverableParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Type.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<scantype> Type; // Discoverable type
@@ -439,6 +537,8 @@ namespace JsonData {
         }; // class SetdiscoverableParamsData
 
     } // namespace BluetoothControl
+
+    POP_WARNING()
 
 } // namespace JsonData
 

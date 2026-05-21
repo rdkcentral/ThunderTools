@@ -1,4 +1,4 @@
-// IDisplayInfo JSON-RPC API
+// IDisplayInfo API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

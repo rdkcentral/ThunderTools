@@ -1,4 +1,4 @@
-// OCDM JSON-RPC API
+// OCDM API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

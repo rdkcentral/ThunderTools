@@ -1,7 +1,6 @@
 // Generated automatically from 'ITimeZone.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include <interfaces/ITimeZone.h>
 
@@ -19,71 +18,76 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, ITimeZone* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, ITimeZone* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JTimeZone"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JTimeZone"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'timezone' - TimeZone for system
-            _module_.Register<Core::JSON::String, Core::JSON::String>(_T("timezone"), 
-                [_impl_](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, Core::JSON::String>(_T("timezone"),
+                [_implementation__](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        // property get
-                        string _result{};
+                        string _result_{};
 
-                        _errorCode = (static_cast<const ITimeZone*>(_impl_))->TimeZone(_result);
+                        _errorCode__ = (static_cast<const ITimeZone*>(_implementation__))->TimeZone(_result_);
 
-                        if (_errorCode == Core::ERROR_NONE) {
-                            result = _result;
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result = _result_;
                         }
+                    }
+                    else {
+                        const string _params_{params};
 
-                    } else {
-                        // property set
-                        const string _params{params};
-
-                        _errorCode = _impl_->TimeZone(_params);
+                        _errorCode__ = _implementation__->TimeZone(_params_);
 
                         result.Null(true);
                     }
-                    return (_errorCode);
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("timezone"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("timezone"));
         }
 
         namespace Event {
 
             // Event: 'timezonechanged' - TimeZone was set for the system
-            static void TimeZoneChanged(const JSONRPC& _module_, const Core::JSON::String& timeZone)
+            template<typename MODULE>
+            static void TimeZoneChanged(const MODULE& module_, const Core::JSON::String& timeZone, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("timezonechanged"), timeZone);
+                module_.Notify(_T("timezonechanged"), timeZone, sendIfMethod_);
             }
 
             // Event: 'timezonechanged' - TimeZone was set for the system
-            static void TimeZoneChanged(const JSONRPC& _module_, const string& timeZone)
+            template<typename MODULE>
+            static void TimeZoneChanged(const MODULE& module_, const string& timeZone, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                Core::JSON::String _params_;
-                _params_ = timeZone;
+                Core::JSON::String params_;
+                params_ = timeZone;
 
-                TimeZoneChanged(_module_, _params_);
+                TimeZoneChanged(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JTimeZone

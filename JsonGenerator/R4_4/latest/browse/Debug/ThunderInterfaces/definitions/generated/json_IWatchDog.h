@@ -1,4 +1,4 @@
-// IWatchDog JSON-RPC API
+// IWatchDog API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

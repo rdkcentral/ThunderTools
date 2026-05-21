@@ -1,7 +1,6 @@
 // Generated automatically from 'PlayerInfo.json'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_PlayerInfo.h"
 
@@ -18,6 +17,7 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
+
     } // namespace JPlayerInfo
 
 } // namespace Exchange

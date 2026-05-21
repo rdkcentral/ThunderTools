@@ -1,4 +1,4 @@
-// C++ classes for DTV API JSON-RPC API.
+// C++ types for DTV API.
 // Generated automatically from 'DTV.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace DTV {
 
@@ -177,13 +179,19 @@ namespace JsonData {
                 Add(_T("modulation"), &Modulation);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DvbctuningparamsInfo(const DvbctuningparamsInfo&) = delete;
+            DvbctuningparamsInfo(DvbctuningparamsInfo&&) noexcept  = delete;
+
             DvbctuningparamsInfo& operator=(const DvbctuningparamsInfo&) = delete;
+            DvbctuningparamsInfo& operator=(DvbctuningparamsInfo&&) noexcept  = delete;
+
+            ~DvbctuningparamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Frequency.IsSet() == true) && (Symbolrate.IsSet() == true) && (Modulation.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 Frequency;
@@ -205,13 +213,19 @@ namespace JsonData {
                 Add(_T("dvbs2"), &Dvbs2);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DvbstuningparamsInfo(const DvbstuningparamsInfo&) = delete;
+            DvbstuningparamsInfo(DvbstuningparamsInfo&&) noexcept  = delete;
+
             DvbstuningparamsInfo& operator=(const DvbstuningparamsInfo&) = delete;
+            DvbstuningparamsInfo& operator=(DvbstuningparamsInfo&&) noexcept  = delete;
+
+            ~DvbstuningparamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Satellite.IsSet() == true) && (Frequency.IsSet() == true) && (Polarity.IsSet() == true) && (Symbolrate.IsSet() == true) && (Fec.IsSet() == true) && (Modulation.IsSet() == true) && (Dvbs2.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Satellite;
@@ -235,13 +249,19 @@ namespace JsonData {
                 Add(_T("plpid"), &Plpid);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             DvbttuningparamsInfo(const DvbttuningparamsInfo&) = delete;
+            DvbttuningparamsInfo(DvbttuningparamsInfo&&) noexcept  = delete;
+
             DvbttuningparamsInfo& operator=(const DvbttuningparamsInfo&) = delete;
+            DvbttuningparamsInfo& operator=(DvbttuningparamsInfo&&) noexcept  = delete;
+
+            ~DvbttuningparamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Frequency.IsSet() == true) && (Bandwidth.IsSet() == true) && (Mode.IsSet() == true) && (Dvbt2.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 Frequency;
@@ -275,6 +295,22 @@ namespace JsonData {
                 _Init();
             }
 
+            EiteventInfo(EiteventInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Name(std::move(_other.Name))
+                , Starttime(std::move(_other.Starttime))
+                , Duration(std::move(_other.Duration))
+                , Eventid(std::move(_other.Eventid))
+                , Shortdescription(std::move(_other.Shortdescription))
+                , Hassubtitles(std::move(_other.Hassubtitles))
+                , Hasaudiodescription(std::move(_other.Hasaudiodescription))
+                , Parentalrating(std::move(_other.Parentalrating))
+                , Contentdata(std::move(_other.Contentdata))
+                , Hasextendedinfo(std::move(_other.Hasextendedinfo))
+            {
+                _Init();
+            }
+
             EiteventInfo& operator=(const EiteventInfo& _rhs)
             {
                 Name = _rhs.Name;
@@ -290,9 +326,27 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            EiteventInfo& operator=(EiteventInfo&& _rhs) noexcept
             {
-                return (true);
+                Name = std::move(_rhs.Name);
+                Starttime = std::move(_rhs.Starttime);
+                Duration = std::move(_rhs.Duration);
+                Eventid = std::move(_rhs.Eventid);
+                Shortdescription = std::move(_rhs.Shortdescription);
+                Hassubtitles = std::move(_rhs.Hassubtitles);
+                Hasaudiodescription = std::move(_rhs.Hasaudiodescription);
+                Parentalrating = std::move(_rhs.Parentalrating);
+                Contentdata = std::move(_rhs.Contentdata);
+                Hasextendedinfo = std::move(_rhs.Hasextendedinfo);
+                return (*this);
+            }
+
+            ~EiteventInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Name.IsSet() == true) && (Starttime.IsSet() == true) && (Duration.IsSet() == true) && (Eventid.IsSet() == true) && (Shortdescription.IsSet() == true) && (Hassubtitles.IsSet() == true) && (Hasaudiodescription.IsSet() == true) && (Parentalrating.IsSet() == true) && (Contentdata.IsSet() == true) && (Hasextendedinfo.IsSet() == true));
             }
 
         private:
@@ -351,6 +405,26 @@ namespace JsonData {
                 _Init();
             }
 
+            LnbsettingsInfo(LnbsettingsInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Name(std::move(_other.Name))
+                , Type(std::move(_other.Type))
+                , Power(std::move(_other.Power))
+                , Diseqc_tone(std::move(_other.Diseqc_tone))
+                , Diseqc_cswitch(std::move(_other.Diseqc_cswitch))
+                , Is22k(std::move(_other.Is22k))
+                , Is12v(std::move(_other.Is12v))
+                , Ispulseposition(std::move(_other.Ispulseposition))
+                , Isdiseqcposition(std::move(_other.Isdiseqcposition))
+                , Issmatv(std::move(_other.Issmatv))
+                , Diseqcrepeats(std::move(_other.Diseqcrepeats))
+                , U_switch(std::move(_other.U_switch))
+                , Unicablechannel(std::move(_other.Unicablechannel))
+                , Unicablefreq(std::move(_other.Unicablefreq))
+            {
+                _Init();
+            }
+
             LnbsettingsInfo& operator=(const LnbsettingsInfo& _rhs)
             {
                 Name = _rhs.Name;
@@ -366,13 +440,37 @@ namespace JsonData {
                 Diseqcrepeats = _rhs.Diseqcrepeats;
                 U_switch = _rhs.U_switch;
                 Unicablechannel = _rhs.Unicablechannel;
-                Unicablefreq = _rhs.Unicablefreq;
+                if (_rhs.Unicablefreq != 0) {
+                    Unicablefreq = _rhs.Unicablefreq;
+                }
                 return (*this);
             }
 
-            bool IsValid() const
+            LnbsettingsInfo& operator=(LnbsettingsInfo&& _rhs) noexcept
             {
-                return (true);
+                Name = std::move(_rhs.Name);
+                Type = std::move(_rhs.Type);
+                Power = std::move(_rhs.Power);
+                Diseqc_tone = std::move(_rhs.Diseqc_tone);
+                Diseqc_cswitch = std::move(_rhs.Diseqc_cswitch);
+                Is22k = std::move(_rhs.Is22k);
+                Is12v = std::move(_rhs.Is12v);
+                Ispulseposition = std::move(_rhs.Ispulseposition);
+                Isdiseqcposition = std::move(_rhs.Isdiseqcposition);
+                Issmatv = std::move(_rhs.Issmatv);
+                Diseqcrepeats = std::move(_rhs.Diseqcrepeats);
+                U_switch = std::move(_rhs.U_switch);
+                Unicablechannel = std::move(_rhs.Unicablechannel);
+                Unicablefreq = std::move(_rhs.Unicablefreq);
+                return (*this);
+            }
+
+            ~LnbsettingsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Name.IsSet() == true) && (Type.IsSet() == true) && (Power.IsSet() == true) && (Diseqc_tone.IsSet() == true) && (Diseqc_cswitch.IsSet() == true) && (Is22k.IsSet() == true) && (Is12v.IsSet() == true) && (Ispulseposition.IsSet() == true) && (Isdiseqcposition.IsSet() == true) && (Issmatv.IsSet() == true) && (Diseqcrepeats.IsSet() == true) && (U_switch.IsSet() == true) && (Unicablechannel.IsSet() == true));
             }
 
         private:
@@ -428,6 +526,15 @@ namespace JsonData {
                 _Init();
             }
 
+            SatellitesettingsInfo(SatellitesettingsInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Name(std::move(_other.Name))
+                , Longitude(std::move(_other.Longitude))
+                , Lnb(std::move(_other.Lnb))
+            {
+                _Init();
+            }
+
             SatellitesettingsInfo& operator=(const SatellitesettingsInfo& _rhs)
             {
                 Name = _rhs.Name;
@@ -436,9 +543,20 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            SatellitesettingsInfo& operator=(SatellitesettingsInfo&& _rhs) noexcept
             {
-                return (true);
+                Name = std::move(_rhs.Name);
+                Longitude = std::move(_rhs.Longitude);
+                Lnb = std::move(_rhs.Lnb);
+                return (*this);
+            }
+
+            ~SatellitesettingsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Name.IsSet() == true) && (Longitude.IsSet() == true) && (Lnb.IsSet() == true));
             }
 
         private:
@@ -451,8 +569,7 @@ namespace JsonData {
 
         public:
             Core::JSON::String Name;
-            Core::JSON::DecSInt16 Longitude; // Longitudinal location of the satellite in 1/10ths of a degree,
-                    //  with an east coordinate given as a positive value and a west coordinate as negative. Astra 28.2E would be defined as 282 and Eutelsat 5.0W would be -50.
+            Core::JSON::DecSInt16 Longitude; // Longitudinal location of the satellite in 1/10ths of a degree, with an east coordinate given as a positive value and a west coordinate as negative. Astra 28.2E would be defined as 282 and Eutelsat 5.0W would be -50.
             Core::JSON::String Lnb;
         }; // class SatellitesettingsInfo
 
@@ -480,6 +597,22 @@ namespace JsonData {
                 _Init();
             }
 
+            ServiceInfo(ServiceInfo&& _other) noexcept
+                : Core::JSON::Container()
+                , Fullname(std::move(_other.Fullname))
+                , Shortname(std::move(_other.Shortname))
+                , Dvburi(std::move(_other.Dvburi))
+                , Servicetype(std::move(_other.Servicetype))
+                , Lcn(std::move(_other.Lcn))
+                , Scrambled(std::move(_other.Scrambled))
+                , Hascadescriptor(std::move(_other.Hascadescriptor))
+                , Hidden(std::move(_other.Hidden))
+                , Selectable(std::move(_other.Selectable))
+                , Runningstatus(std::move(_other.Runningstatus))
+            {
+                _Init();
+            }
+
             ServiceInfo& operator=(const ServiceInfo& _rhs)
             {
                 Fullname = _rhs.Fullname;
@@ -495,9 +628,27 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            ServiceInfo& operator=(ServiceInfo&& _rhs) noexcept
             {
-                return (true);
+                Fullname = std::move(_rhs.Fullname);
+                Shortname = std::move(_rhs.Shortname);
+                Dvburi = std::move(_rhs.Dvburi);
+                Servicetype = std::move(_rhs.Servicetype);
+                Lcn = std::move(_rhs.Lcn);
+                Scrambled = std::move(_rhs.Scrambled);
+                Hascadescriptor = std::move(_rhs.Hascadescriptor);
+                Hidden = std::move(_rhs.Hidden);
+                Selectable = std::move(_rhs.Selectable);
+                Runningstatus = std::move(_rhs.Runningstatus);
+                return (*this);
+            }
+
+            ~ServiceInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Fullname.IsSet() == true) && (Shortname.IsSet() == true) && (Dvburi.IsSet() == true) && (Servicetype.IsSet() == true) && (Lcn.IsSet() == true) && (Scrambled.IsSet() == true) && (Hascadescriptor.IsSet() == true) && (Hidden.IsSet() == true) && (Selectable.IsSet() == true) && (Runningstatus.IsSet() == true));
             }
 
         private:
@@ -537,13 +688,19 @@ namespace JsonData {
                 Add(_T("service"), &Service);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ServiceupdatedParamsInfo(const ServiceupdatedParamsInfo&) = delete;
+            ServiceupdatedParamsInfo(ServiceupdatedParamsInfo&&) noexcept  = delete;
+
             ServiceupdatedParamsInfo& operator=(const ServiceupdatedParamsInfo&) = delete;
+            ServiceupdatedParamsInfo& operator=(ServiceupdatedParamsInfo&&) noexcept  = delete;
+
+            ~ServiceupdatedParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Eventtype.IsSet() == true) && ((Service.IsSet() == true) && (Service.IsDataValid() == true)));
+            }
 
         public:
             Core::JSON::EnumType<EventtypeType> Eventtype;
@@ -565,13 +722,19 @@ namespace JsonData {
                 Add(_T("dvbttuningparams"), &Dvbttuningparams);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             TransportInfo(const TransportInfo&) = delete;
+            TransportInfo(TransportInfo&&) noexcept  = delete;
+
             TransportInfo& operator=(const TransportInfo&) = delete;
+            TransportInfo& operator=(TransportInfo&&) noexcept  = delete;
+
+            ~TransportInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Tunertype.IsSet() == true) && (Originalnetworkid.IsSet() == true) && (Transportid.IsSet() == true) && (Strength.IsSet() == true) && (Quality.IsSet() == true) && ((Dvbctuningparams.IsSet() == false) || (Dvbctuningparams.IsDataValid() == true)) && ((Dvbstuningparams.IsSet() == false) || (Dvbstuningparams.IsDataValid() == true)) && ((Dvbttuningparams.IsSet() == false) || (Dvbttuningparams.IsDataValid() == true)));
+            }
 
         public:
             Core::JSON::EnumType<TunertypeType> Tunertype;
@@ -603,6 +766,14 @@ namespace JsonData {
                 _Init();
             }
 
+            CountryconfigData(CountryconfigData&& _other) noexcept
+                : Core::JSON::Container()
+                , Name(std::move(_other.Name))
+                , Code(std::move(_other.Code))
+            {
+                _Init();
+            }
+
             CountryconfigData& operator=(const CountryconfigData& _rhs)
             {
                 Name = _rhs.Name;
@@ -610,9 +781,19 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            CountryconfigData& operator=(CountryconfigData&& _rhs) noexcept
             {
-                return (true);
+                Name = std::move(_rhs.Name);
+                Code = std::move(_rhs.Code);
+                return (*this);
+            }
+
+            ~CountryconfigData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Name.IsSet() == true) && (Code.IsSet() == true));
             }
 
         private:
@@ -637,13 +818,19 @@ namespace JsonData {
                 Add(_T("event"), &Event);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             EventchangedParamsData(const EventchangedParamsData&) = delete;
+            EventchangedParamsData(EventchangedParamsData&&) noexcept  = delete;
+
             EventchangedParamsData& operator=(const EventchangedParamsData&) = delete;
+            EventchangedParamsData& operator=(EventchangedParamsData&&) noexcept  = delete;
+
+            ~EventchangedParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Eventtype.IsSet() == true) && ((Service.IsSet() == true) && (Service.IsDataValid() == true)) && ((Event.IsSet() == true) && (Event.IsDataValid() == true)));
+            }
 
         public:
             Core::JSON::EnumType<EventtypeType> Eventtype;
@@ -669,6 +856,14 @@ namespace JsonData {
                     _Init();
                 }
 
+                ExtendedeventitemData(ExtendedeventitemData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Description(std::move(_other.Description))
+                    , Item(std::move(_other.Item))
+                {
+                    _Init();
+                }
+
                 ExtendedeventitemData& operator=(const ExtendedeventitemData& _rhs)
                 {
                     Description = _rhs.Description;
@@ -676,9 +871,19 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                ExtendedeventitemData& operator=(ExtendedeventitemData&& _rhs) noexcept
                 {
-                    return (true);
+                    Description = std::move(_rhs.Description);
+                    Item = std::move(_rhs.Item);
+                    return (*this);
+                }
+
+                ~ExtendedeventitemData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Description.IsSet() == true) && (Item.IsSet() == true));
                 }
 
             private:
@@ -700,13 +905,19 @@ namespace JsonData {
                 Add(_T("items"), &Items);
             }
 
-            bool IsValid() const
+            ExtendedeventinfoData(const ExtendedeventinfoData&) = delete;
+            ExtendedeventinfoData(ExtendedeventinfoData&&) noexcept  = delete;
+
+            ExtendedeventinfoData& operator=(const ExtendedeventinfoData&) = delete;
+            ExtendedeventinfoData& operator=(ExtendedeventinfoData&&) noexcept  = delete;
+
+            ~ExtendedeventinfoData() = default;
+
+        public:
+            bool IsDataValid() const
             {
                 return (true);
             }
-
-            ExtendedeventinfoData(const ExtendedeventinfoData&) = delete;
-            ExtendedeventinfoData& operator=(const ExtendedeventinfoData&) = delete;
 
         public:
             Core::JSON::String Description;
@@ -722,13 +933,19 @@ namespace JsonData {
                 Add(_T("savechanges"), &Savechanges);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             FinishServiceSearchParamsData(const FinishServiceSearchParamsData&) = delete;
+            FinishServiceSearchParamsData(FinishServiceSearchParamsData&&) noexcept  = delete;
+
             FinishServiceSearchParamsData& operator=(const FinishServiceSearchParamsData&) = delete;
+            FinishServiceSearchParamsData& operator=(FinishServiceSearchParamsData&&) noexcept  = delete;
+
+            ~FinishServiceSearchParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Tunertype.IsSet() == true) && (Savechanges.IsSet() == true));
+            }
 
         public:
             Core::JSON::EnumType<TunertypeType> Tunertype;
@@ -744,13 +961,19 @@ namespace JsonData {
                 Add(_T("next"), &Next);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             NowNextEventsData(const NowNextEventsData&) = delete;
+            NowNextEventsData(NowNextEventsData&&) noexcept  = delete;
+
             NowNextEventsData& operator=(const NowNextEventsData&) = delete;
+            NowNextEventsData& operator=(NowNextEventsData&&) noexcept  = delete;
+
+            ~NowNextEventsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (((Now.IsSet() == false) || (Now.IsDataValid() == true)) && ((Next.IsSet() == false) || (Next.IsDataValid() == true)));
+            }
 
         public:
             EiteventInfo Now;
@@ -769,13 +992,19 @@ namespace JsonData {
                 Add(_T("transport"), &Transport);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SearchstatusParamsData(const SearchstatusParamsData&) = delete;
+            SearchstatusParamsData(SearchstatusParamsData&&) noexcept  = delete;
+
             SearchstatusParamsData& operator=(const SearchstatusParamsData&) = delete;
+            SearchstatusParamsData& operator=(SearchstatusParamsData&&) noexcept  = delete;
+
+            ~SearchstatusParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Handle.IsSet() == true) && (Eventtype.IsSet() == true) && (Finished.IsSet() == true) && (Progress.IsSet() == true) && ((Transport.IsSet() == false) || (Transport.IsDataValid() == true)));
+            }
 
         public:
             Core::JSON::DecUInt32 Handle;
@@ -830,6 +1059,16 @@ namespace JsonData {
                     _Init();
                 }
 
+                AudioData(AudioData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Codec(std::move(_other.Codec))
+                    , Language(std::move(_other.Language))
+                    , Type(std::move(_other.Type))
+                    , Mode(std::move(_other.Mode))
+                {
+                    _Init();
+                }
+
                 AudioData& operator=(const AudioData& _rhs)
                 {
                     Codec = _rhs.Codec;
@@ -839,9 +1078,21 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                AudioData& operator=(AudioData&& _rhs) noexcept
                 {
-                    return (true);
+                    Codec = std::move(_rhs.Codec);
+                    Language = std::move(_rhs.Language);
+                    Type = std::move(_rhs.Type);
+                    Mode = std::move(_rhs.Mode);
+                    return (*this);
+                }
+
+                ~AudioData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Language.IsSet() == true) && (Type.IsSet() == true) && (Mode.IsSet() == true));
                 }
 
             private:
@@ -875,15 +1126,31 @@ namespace JsonData {
                     _Init();
                 }
 
+                CodecData(CodecData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Codec(std::move(_other.Codec))
+                {
+                    _Init();
+                }
+
                 CodecData& operator=(const CodecData& _rhs)
                 {
                     Codec = _rhs.Codec;
                     return (*this);
                 }
 
-                bool IsValid() const
+                CodecData& operator=(CodecData&& _rhs) noexcept
                 {
-                    return (true);
+                    Codec = std::move(_rhs.Codec);
+                    return (*this);
+                }
+
+                ~CodecData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return (Codec.IsSet() == true);
                 }
 
             private:
@@ -927,6 +1194,16 @@ namespace JsonData {
                     _Init();
                 }
 
+                SubtitlesData(SubtitlesData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Language(std::move(_other.Language))
+                    , Format(std::move(_other.Format))
+                    , Compositionpage(std::move(_other.Compositionpage))
+                    , Ancillarypage(std::move(_other.Ancillarypage))
+                {
+                    _Init();
+                }
+
                 SubtitlesData& operator=(const SubtitlesData& _rhs)
                 {
                     Language = _rhs.Language;
@@ -936,9 +1213,21 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                SubtitlesData& operator=(SubtitlesData&& _rhs) noexcept
                 {
-                    return (true);
+                    Language = std::move(_rhs.Language);
+                    Format = std::move(_rhs.Format);
+                    Compositionpage = std::move(_rhs.Compositionpage);
+                    Ancillarypage = std::move(_rhs.Ancillarypage);
+                    return (*this);
+                }
+
+                ~SubtitlesData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Language.IsSet() == true) && (Format.IsSet() == true) && (Compositionpage.IsSet() == true) && (Ancillarypage.IsSet() == true));
                 }
 
             private:
@@ -975,6 +1264,16 @@ namespace JsonData {
                     _Init();
                 }
 
+                TeletextData(TeletextData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Language(std::move(_other.Language))
+                    , Type(std::move(_other.Type))
+                    , Magazine(std::move(_other.Magazine))
+                    , Page(std::move(_other.Page))
+                {
+                    _Init();
+                }
+
                 TeletextData& operator=(const TeletextData& _rhs)
                 {
                     Language = _rhs.Language;
@@ -984,9 +1283,21 @@ namespace JsonData {
                     return (*this);
                 }
 
-                bool IsValid() const
+                TeletextData& operator=(TeletextData&& _rhs) noexcept
                 {
-                    return (true);
+                    Language = std::move(_rhs.Language);
+                    Type = std::move(_rhs.Type);
+                    Magazine = std::move(_rhs.Magazine);
+                    Page = std::move(_rhs.Page);
+                    return (*this);
+                }
+
+                ~TeletextData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Language.IsSet() == true) && (Type.IsSet() == true) && (Magazine.IsSet() == true) && (Page.IsSet() == true));
                 }
 
             private:
@@ -1024,6 +1335,19 @@ namespace JsonData {
                 _Init();
             }
 
+            ComponentData(ComponentData&& _other) noexcept
+                : Core::JSON::Container()
+                , Type(std::move(_other.Type))
+                , Tags(std::move(_other.Tags))
+                , Pid(std::move(_other.Pid))
+                , Video(std::move(_other.Video))
+                , Audio(std::move(_other.Audio))
+                , Subtitles(std::move(_other.Subtitles))
+                , Teletext(std::move(_other.Teletext))
+            {
+                _Init();
+            }
+
             ComponentData& operator=(const ComponentData& _rhs)
             {
                 Type = _rhs.Type;
@@ -1036,9 +1360,24 @@ namespace JsonData {
                 return (*this);
             }
 
-            bool IsValid() const
+            ComponentData& operator=(ComponentData&& _rhs) noexcept
             {
-                return (true);
+                Type = std::move(_rhs.Type);
+                Tags = std::move(_rhs.Tags);
+                Pid = std::move(_rhs.Pid);
+                Video = std::move(_rhs.Video);
+                Audio = std::move(_rhs.Audio);
+                Subtitles = std::move(_rhs.Subtitles);
+                Teletext = std::move(_rhs.Teletext);
+                return (*this);
+            }
+
+            ~ComponentData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Type.IsSet() == true) && (Pid.IsSet() == true) && ((Video.IsSet() == false) || (Video.IsDataValid() == true)) && ((Audio.IsSet() == false) || (Audio.IsDataValid() == true)) && ((Subtitles.IsSet() == false) || (Subtitles.IsDataValid() == true)) && ((Teletext.IsSet() == false) || (Teletext.IsDataValid() == true)));
             }
 
         private:
@@ -1073,13 +1412,19 @@ namespace JsonData {
                 Add(_T("quality"), &Quality);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             SignalInfoData(const SignalInfoData&) = delete;
+            SignalInfoData(SignalInfoData&&) noexcept  = delete;
+
             SignalInfoData& operator=(const SignalInfoData&) = delete;
+            SignalInfoData& operator=(SignalInfoData&&) noexcept  = delete;
+
+            ~SignalInfoData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Locked.IsSet() == true) && (Strength.IsSet() == true) && (Quality.IsSet() == true));
+            }
 
         public:
             Core::JSON::Boolean Locked;
@@ -1097,13 +1442,19 @@ namespace JsonData {
                 Add(_T("monitoronly"), &Monitoronly);
             }
 
-            bool IsValid() const
+            StartPlayingParamsData(const StartPlayingParamsData&) = delete;
+            StartPlayingParamsData(StartPlayingParamsData&&) noexcept  = delete;
+
+            StartPlayingParamsData& operator=(const StartPlayingParamsData&) = delete;
+            StartPlayingParamsData& operator=(StartPlayingParamsData&&) noexcept  = delete;
+
+            ~StartPlayingParamsData() = default;
+
+        public:
+            bool IsDataValid() const
             {
                 return (true);
             }
-
-            StartPlayingParamsData(const StartPlayingParamsData&) = delete;
-            StartPlayingParamsData& operator=(const StartPlayingParamsData&) = delete;
 
         public:
             Core::JSON::String Dvburi;
@@ -1130,13 +1481,19 @@ namespace JsonData {
                 Add(_T("dvbttuningparams"), &Dvbttuningparams);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             StartServiceSearchParamsData(const StartServiceSearchParamsData&) = delete;
+            StartServiceSearchParamsData(StartServiceSearchParamsData&&) noexcept  = delete;
+
             StartServiceSearchParamsData& operator=(const StartServiceSearchParamsData&) = delete;
+            StartServiceSearchParamsData& operator=(StartServiceSearchParamsData&&) noexcept  = delete;
+
+            ~StartServiceSearchParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Tunertype.IsSet() == true) && (Searchtype.IsSet() == true) && (Retune.IsSet() == true) && (Usetuningparams.IsSet() == true) && ((Dvbstuningparams.IsSet() == false) || (Dvbstuningparams.IsDataValid() == true)) && ((Dvbctuningparams.IsSet() == false) || (Dvbctuningparams.IsDataValid() == true)) && ((Dvbttuningparams.IsSet() == false) || (Dvbttuningparams.IsDataValid() == true)));
+            }
 
         public:
             Core::JSON::EnumType<TunertypeType> Tunertype;
@@ -1160,13 +1517,19 @@ namespace JsonData {
                 Add(_T("lcn"), &Lcn);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             StatusData(const StatusData&) = delete;
+            StatusData(StatusData&&) noexcept  = delete;
+
             StatusData& operator=(const StatusData&) = delete;
+            StatusData& operator=(StatusData&&) noexcept  = delete;
+
+            ~StatusData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Tuner.IsSet() == true) && (Demux.IsSet() == true) && (Pmtpid.IsSet() == true) && (Dvburi.IsSet() == true) && (Lcn.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt8 Tuner;
@@ -1177,6 +1540,8 @@ namespace JsonData {
         }; // class StatusData
 
     } // namespace DTV
+
+    POP_WARNING()
 
 } // namespace JsonData
 

@@ -1,4 +1,4 @@
-// C++ classes for NetworkTools API JSON-RPC API.
+// C++ types for NetworkTools API.
 // Generated automatically from 'INetworkTools.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace NetworkTools {
 
@@ -27,13 +29,19 @@ namespace JsonData {
                 Add(_T("count"), &Count);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             PingParamsData(const PingParamsData&) = delete;
+            PingParamsData(PingParamsData&&) noexcept  = delete;
+
             PingParamsData& operator=(const PingParamsData&) = delete;
+            PingParamsData& operator=(PingParamsData&&) noexcept  = delete;
+
+            ~PingParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Destination.IsSet() == true) && (TimeOutInSeconds.IsSet() == true) && (Count.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Destination; // Ping the given destination with ICMP packages.
@@ -50,13 +58,19 @@ namespace JsonData {
                 Add(_T("metadata"), &Metadata);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ReportParamsData(const ReportParamsData&) = delete;
+            ReportParamsData(ReportParamsData&&) noexcept  = delete;
+
             ReportParamsData& operator=(const ReportParamsData&) = delete;
+            ReportParamsData& operator=(ReportParamsData&&) noexcept  = delete;
+
+            ~ReportParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Source.IsSet() == true) && (Metadata.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Source; // is the NodeId of the system that send the metadta presented in the next field.
@@ -72,13 +86,19 @@ namespace JsonData {
                 Add(_T("timeoutinseconds"), &TimeOutInSeconds);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             TraceRouteParamsData(const TraceRouteParamsData&) = delete;
+            TraceRouteParamsData(TraceRouteParamsData&&) noexcept  = delete;
+
             TraceRouteParamsData& operator=(const TraceRouteParamsData&) = delete;
+            TraceRouteParamsData& operator=(TraceRouteParamsData&&) noexcept  = delete;
+
+            ~TraceRouteParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Destination.IsSet() == true) && (TimeOutInSeconds.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Destination; // TraceRoute to the given destination with ICMP packages.
@@ -86,6 +106,8 @@ namespace JsonData {
         }; // class TraceRouteParamsData
 
     } // namespace NetworkTools
+
+    POP_WARNING()
 
 } // namespace JsonData
 

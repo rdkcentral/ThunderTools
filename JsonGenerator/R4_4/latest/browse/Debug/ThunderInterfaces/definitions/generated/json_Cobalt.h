@@ -1,4 +1,4 @@
-// Cobalt JSON-RPC API
+// Cobalt API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

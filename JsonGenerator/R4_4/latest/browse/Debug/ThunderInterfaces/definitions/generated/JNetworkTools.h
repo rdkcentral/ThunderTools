@@ -1,7 +1,6 @@
 // Generated automatically from 'INetworkTools.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_NetworkTools.h"
 #include <interfaces/INetworkTools.h>
@@ -20,84 +19,103 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, INetworkTools* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, INetworkTools* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JNetworkTools"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JNetworkTools"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'ping' - Ping the given destination with ICMP packages
-            _module_.Register<JsonData::NetworkTools::PingParamsData, void>(_T("ping"), 
-                [_impl_](const JsonData::NetworkTools::PingParamsData& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::NetworkTools::PingParamsData, void>(_T("ping"),
+                [_implementation__](const JsonData::NetworkTools::PingParamsData& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const string _destination{params.Destination};
-                    const uint16_t _timeOutInSeconds{params.TimeOutInSeconds};
-                    const uint16_t _count{params.Count};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const string _destination_{params.Destination};
+                        const uint16_t _timeOutInSeconds_{params.TimeOutInSeconds};
+                        const uint16_t _count_{params.Count};
 
-                    _errorCode = _impl_->Ping(_destination, _timeOutInSeconds, _count);
+                        _errorCode__ = _implementation__->Ping(_destination_, _timeOutInSeconds_, _count_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
             // Method: 'traceroute' - TraceRoute to the given destination with ICMP packages
-            _module_.Register<JsonData::NetworkTools::TraceRouteParamsData, void>(_T("traceroute"), 
-                [_impl_](const JsonData::NetworkTools::TraceRouteParamsData& params) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<JsonData::NetworkTools::TraceRouteParamsData, void>(_T("traceroute"),
+                [_implementation__](const JsonData::NetworkTools::TraceRouteParamsData& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const string _destination{params.Destination};
-                    const uint16_t _timeOutInSeconds{params.TimeOutInSeconds};
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const string _destination_{params.Destination};
+                        const uint16_t _timeOutInSeconds_{params.TimeOutInSeconds};
 
-                    _errorCode = _impl_->TraceRoute(_destination, _timeOutInSeconds);
+                        _errorCode__ = _implementation__->TraceRoute(_destination_, _timeOutInSeconds_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("ping"));
-            _module_.Unregister(_T("traceroute"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("ping"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("traceroute"));
         }
 
         namespace Event {
 
             // Event: 'report' - Signals an message from a given host
-            static void Report(const JSONRPC& _module_, const JsonData::NetworkTools::ReportParamsData& params)
+            template<typename MODULE>
+            static void Report(const MODULE& module_, const JsonData::NetworkTools::ReportParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("report"), params);
+                module_.Notify(_T("report"), params, sendIfMethod_);
             }
 
             // Event: 'report' - Signals an message from a given host
-            static void Report(const JSONRPC& _module_, const Core::JSON::String& source, const Core::JSON::String& metadata)
+            template<typename MODULE>
+            static void Report(const MODULE& module_, const Core::JSON::String& source, const Core::JSON::String& metadata, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::NetworkTools::ReportParamsData _params_;
-                _params_.Source = source;
-                _params_.Metadata = metadata;
+                JsonData::NetworkTools::ReportParamsData params_;
+                params_.Source = source;
+                params_.Metadata = metadata;
 
-                Report(_module_, _params_);
+                Report(module_, params_, sendIfMethod_);
             }
 
             // Event: 'report' - Signals an message from a given host
-            static void Report(const JSONRPC& _module_, const string& source, const string& metadata)
+            template<typename MODULE>
+            static void Report(const MODULE& module_, const string& source, const string& metadata, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                JsonData::NetworkTools::ReportParamsData _params_;
-                _params_.Source = source;
-                _params_.Metadata = metadata;
+                JsonData::NetworkTools::ReportParamsData params_;
+                params_.Source = source;
+                params_.Metadata = metadata;
 
-                Report(_module_, _params_);
+                Report(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JNetworkTools

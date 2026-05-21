@@ -1,4 +1,4 @@
-// C++ classes for Compositor API JSON-RPC API.
+// C++ types for Compositor API.
 // Generated automatically from 'Compositor.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Compositor {
 
@@ -56,13 +58,19 @@ namespace JsonData {
                 Add(_T("client"), &Client);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             PutontopParamsInfo(const PutontopParamsInfo&) = delete;
+            PutontopParamsInfo(PutontopParamsInfo&&) noexcept  = delete;
+
             PutontopParamsInfo& operator=(const PutontopParamsInfo&) = delete;
+            PutontopParamsInfo& operator=(PutontopParamsInfo&&) noexcept  = delete;
+
+            ~PutontopParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Client.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Client; // Client name
@@ -82,13 +90,19 @@ namespace JsonData {
                 Add(_T("height"), &Height);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             GeometryData(const GeometryData&) = delete;
+            GeometryData(GeometryData&&) noexcept  = delete;
+
             GeometryData& operator=(const GeometryData&) = delete;
+            GeometryData& operator=(GeometryData&&) noexcept  = delete;
+
+            ~GeometryData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((X.IsSet() == true) && (Y.IsSet() == true) && (Width.IsSet() == true) && (Height.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 X; // Horizontal coordinate of the surface
@@ -106,13 +120,19 @@ namespace JsonData {
                 Add(_T("relative"), &Relative);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             PutbelowParamsData(const PutbelowParamsData&) = delete;
+            PutbelowParamsData(PutbelowParamsData&&) noexcept  = delete;
+
             PutbelowParamsData& operator=(const PutbelowParamsData&) = delete;
+            PutbelowParamsData& operator=(PutbelowParamsData&&) noexcept  = delete;
+
+            ~PutbelowParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Client.IsSet() == true) && (Relative.IsSet() == true));
+            }
 
         public:
             Core::JSON::String Client; // Client name to change z-order position
@@ -120,6 +140,8 @@ namespace JsonData {
         }; // class PutbelowParamsData
 
     } // namespace Compositor
+
+    POP_WARNING()
 
 } // namespace JsonData
 

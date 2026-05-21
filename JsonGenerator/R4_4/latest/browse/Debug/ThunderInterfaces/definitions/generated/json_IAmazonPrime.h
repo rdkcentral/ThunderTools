@@ -1,4 +1,4 @@
-// IAmazonPrime JSON-RPC API
+// IAmazonPrime API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

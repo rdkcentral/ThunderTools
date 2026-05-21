@@ -1,4 +1,4 @@
-// Streamer JSON-RPC API
+// Streamer API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

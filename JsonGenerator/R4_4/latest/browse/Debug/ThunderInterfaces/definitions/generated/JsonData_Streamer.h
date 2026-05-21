@@ -1,4 +1,4 @@
-// C++ classes for Streamer API JSON-RPC API.
+// C++ types for Streamer API.
 // Generated automatically from 'Streamer.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Streamer {
 
@@ -60,13 +62,19 @@ namespace JsonData {
                 Add(_T("id"), &Id);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             IdInfo(const IdInfo&) = delete;
+            IdInfo(IdInfo&&) noexcept  = delete;
+
             IdInfo& operator=(const IdInfo&) = delete;
+            IdInfo& operator=(IdInfo&&) noexcept  = delete;
+
+            ~IdInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Id.IsSet() == true);
+            }
 
         public:
             Core::JSON::DecUInt8 Id; // Stream ID
@@ -80,13 +88,19 @@ namespace JsonData {
                 Add(_T("code"), &Code);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             StreamParamsInfo(const StreamParamsInfo&) = delete;
+            StreamParamsInfo(StreamParamsInfo&&) noexcept  = delete;
+
             StreamParamsInfo& operator=(const StreamParamsInfo&) = delete;
+            StreamParamsInfo& operator=(StreamParamsInfo&&) noexcept  = delete;
+
+            ~StreamParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Code.IsSet() == true);
+            }
 
         public:
             Core::JSON::DecUInt32 Code; // Implementation-specific incident code
@@ -103,13 +117,19 @@ namespace JsonData {
                 Add(_T("type"), &Type);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             CreateParamsData(const CreateParamsData&) = delete;
+            CreateParamsData(CreateParamsData&&) noexcept  = delete;
+
             CreateParamsData& operator=(const CreateParamsData&) = delete;
+            CreateParamsData& operator=(CreateParamsData&&) noexcept  = delete;
+
+            ~CreateParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Type.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<StreamType> Type; // Stream type
@@ -139,15 +159,31 @@ namespace JsonData {
                 _Init();
             }
 
+            StreamelementData(StreamelementData&& _other) noexcept
+                : Core::JSON::Container()
+                , Type(std::move(_other.Type))
+            {
+                _Init();
+            }
+
             StreamelementData& operator=(const StreamelementData& _rhs)
             {
                 Type = _rhs.Type;
                 return (*this);
             }
 
-            bool IsValid() const
+            StreamelementData& operator=(StreamelementData&& _rhs) noexcept
             {
-                return (true);
+                Type = std::move(_rhs.Type);
+                return (*this);
+            }
+
+            ~StreamelementData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Type.IsSet() == true);
             }
 
         private:
@@ -169,13 +205,19 @@ namespace JsonData {
                 Add(_T("location"), &Location);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             LoadParamsData(const LoadParamsData&) = delete;
+            LoadParamsData(LoadParamsData&&) noexcept  = delete;
+
             LoadParamsData& operator=(const LoadParamsData&) = delete;
+            LoadParamsData& operator=(LoadParamsData&&) noexcept  = delete;
+
+            ~LoadParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Id.IsSet() == true) && (Location.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt8 Id; // Stream ID
@@ -190,13 +232,19 @@ namespace JsonData {
                 Add(_T("state"), &State);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             StatechangeParamsData(const StatechangeParamsData&) = delete;
+            StatechangeParamsData(StatechangeParamsData&&) noexcept  = delete;
+
             StatechangeParamsData& operator=(const StatechangeParamsData&) = delete;
+            StatechangeParamsData& operator=(StatechangeParamsData&&) noexcept  = delete;
+
+            ~StatechangeParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (State.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<StateType> State; // Stream state
@@ -210,13 +258,19 @@ namespace JsonData {
                 Add(_T("time"), &Time);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             TimeupdateParamsData(const TimeupdateParamsData&) = delete;
+            TimeupdateParamsData(TimeupdateParamsData&&) noexcept  = delete;
+
             TimeupdateParamsData& operator=(const TimeupdateParamsData&) = delete;
+            TimeupdateParamsData& operator=(TimeupdateParamsData&&) noexcept  = delete;
+
+            ~TimeupdateParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Time.IsSet() == true);
+            }
 
         public:
             Core::JSON::DecUInt64 Time; // Stream position in miliseconds
@@ -233,13 +287,19 @@ namespace JsonData {
                 Add(_T("height"), &Height);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             WindowData(const WindowData&) = delete;
+            WindowData(WindowData&&) noexcept  = delete;
+
             WindowData& operator=(const WindowData&) = delete;
+            WindowData& operator=(WindowData&&) noexcept  = delete;
+
+            ~WindowData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((X.IsSet() == true) && (Y.IsSet() == true) && (Width.IsSet() == true) && (Height.IsSet() == true));
+            }
 
         public:
             Core::JSON::DecUInt32 X; // Horizontal position of the window (in pixels)
@@ -249,6 +309,8 @@ namespace JsonData {
         }; // class WindowData
 
     } // namespace Streamer
+
+    POP_WARNING()
 
 } // namespace JsonData
 

@@ -1,4 +1,4 @@
-// FirmwareControl JSON-RPC API
+// FirmwareControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

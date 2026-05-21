@@ -1,4 +1,4 @@
-// DeviceIdentification JSON-RPC API
+// DeviceIdentification API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

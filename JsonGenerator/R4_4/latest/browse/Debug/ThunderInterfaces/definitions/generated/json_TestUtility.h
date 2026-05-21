@@ -1,4 +1,4 @@
-// TestUtility JSON-RPC API
+// TestUtility API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

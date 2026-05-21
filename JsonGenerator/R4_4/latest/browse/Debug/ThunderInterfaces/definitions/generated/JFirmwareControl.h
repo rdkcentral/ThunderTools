@@ -1,7 +1,6 @@
 // Generated automatically from 'FirmwareControl.json'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include "JsonData_FirmwareControl.h"
 
@@ -18,6 +17,7 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
+
     } // namespace JFirmwareControl
 
 } // namespace Exchange

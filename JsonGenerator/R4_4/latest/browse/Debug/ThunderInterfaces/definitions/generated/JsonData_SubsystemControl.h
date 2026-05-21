@@ -1,4 +1,4 @@
-// C++ classes for Subsystem Control API JSON-RPC API.
+// C++ types for Subsystem Control API.
 // Generated automatically from 'SubsystemControl.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,6 +11,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace SubsystemControl {
 
@@ -48,13 +50,19 @@ namespace JsonData {
                 Add(_T("configuration"), &Configuration);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ActivateParamsData(const ActivateParamsData&) = delete;
+            ActivateParamsData(ActivateParamsData&&) noexcept  = delete;
+
             ActivateParamsData& operator=(const ActivateParamsData&) = delete;
+            ActivateParamsData& operator=(ActivateParamsData&&) noexcept  = delete;
+
+            ~ActivateParamsData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (System.IsSet() == true);
+            }
 
         public:
             Core::JSON::EnumType<SubsystemType> System; // Subsystem to activate
@@ -62,6 +70,8 @@ namespace JsonData {
         }; // class ActivateParamsData
 
     } // namespace SubsystemControl
+
+    POP_WARNING()
 
 } // namespace JsonData
 

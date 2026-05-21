@@ -1,4 +1,4 @@
-// Enumeration code for DIAL Server API JSON-RPC API.
+// Enumeration code for DIAL Server API.
 // Generated automatically from 'DIALServer.json'.
 
 #include <core/Enumerate.h>

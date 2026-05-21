@@ -1,4 +1,4 @@
-// Enumeration code for Display Info API JSON-RPC API.
+// Enumeration code for Display Info API.
 // Generated automatically from 'DisplayInfo.json'.
 
 #include <core/Enumerate.h>

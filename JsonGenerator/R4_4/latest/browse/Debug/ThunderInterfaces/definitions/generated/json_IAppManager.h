@@ -1,4 +1,4 @@
-// IAppManager JSON-RPC API
+// IAppManager API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

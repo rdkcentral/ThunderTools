@@ -1,4 +1,4 @@
-// IAVSClient JSON-RPC API
+// IAVSClient API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

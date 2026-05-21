@@ -1,4 +1,4 @@
-// IZigWave JSON-RPC API
+// IZigWave API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

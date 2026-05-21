@@ -1,4 +1,4 @@
-// C++ classes for DHCP Server API JSON-RPC API.
+// C++ types for DHCP Server API.
 // Generated automatically from 'DHCPServer.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,6 +10,8 @@
 namespace WPEFramework {
 
 namespace JsonData {
+
+    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace DHCPServer {
 
@@ -24,13 +26,19 @@ namespace JsonData {
                 Add(_T("interface"), &Interface);
             }
 
-            bool IsValid() const
-            {
-                return (true);
-            }
-
             ActivateParamsInfo(const ActivateParamsInfo&) = delete;
+            ActivateParamsInfo(ActivateParamsInfo&&) noexcept  = delete;
+
             ActivateParamsInfo& operator=(const ActivateParamsInfo&) = delete;
+            ActivateParamsInfo& operator=(ActivateParamsInfo&&) noexcept  = delete;
+
+            ~ActivateParamsInfo() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return (Interface.IsSet() == true);
+            }
 
         public:
             Core::JSON::String Interface; // Network interface name
@@ -58,17 +66,39 @@ namespace JsonData {
                     _Init();
                 }
 
+                LeaseData(LeaseData&& _other) noexcept
+                    : Core::JSON::Container()
+                    , Name(std::move(_other.Name))
+                    , Ip(std::move(_other.Ip))
+                    , Expires(std::move(_other.Expires))
+                {
+                    _Init();
+                }
+
                 LeaseData& operator=(const LeaseData& _rhs)
                 {
                     Name = _rhs.Name;
                     Ip = _rhs.Ip;
-                    Expires = _rhs.Expires;
+                    if (_rhs.Expires.Value().empty() == false) {
+                        Expires = _rhs.Expires;
+                    }
                     return (*this);
                 }
 
-                bool IsValid() const
+                LeaseData& operator=(LeaseData&& _rhs) noexcept
                 {
-                    return (true);
+                    Name = std::move(_rhs.Name);
+                    Ip = std::move(_rhs.Ip);
+                    Expires = std::move(_rhs.Expires);
+                    return (*this);
+                }
+
+                ~LeaseData() = default;
+
+            public:
+                bool IsDataValid() const
+                {
+                    return ((Name.IsSet() == true) && (Ip.IsSet() == true));
                 }
 
             private:
@@ -103,20 +133,52 @@ namespace JsonData {
                 _Init();
             }
 
+            ServerData(ServerData&& _other) noexcept
+                : Core::JSON::Container()
+                , Interface(std::move(_other.Interface))
+                , Active(std::move(_other.Active))
+                , Begin(std::move(_other.Begin))
+                , End(std::move(_other.End))
+                , Router(std::move(_other.Router))
+                , Leases(std::move(_other.Leases))
+            {
+                _Init();
+            }
+
             ServerData& operator=(const ServerData& _rhs)
             {
                 Interface = _rhs.Interface;
                 Active = _rhs.Active;
-                Begin = _rhs.Begin;
-                End = _rhs.End;
-                Router = _rhs.Router;
+                if (_rhs.Begin.Value().empty() == false) {
+                    Begin = _rhs.Begin;
+                }
+                if (_rhs.End.Value().empty() == false) {
+                    End = _rhs.End;
+                }
+                if (_rhs.Router.Value().empty() == false) {
+                    Router = _rhs.Router;
+                }
                 Leases = _rhs.Leases;
                 return (*this);
             }
 
-            bool IsValid() const
+            ServerData& operator=(ServerData&& _rhs) noexcept
             {
-                return (true);
+                Interface = std::move(_rhs.Interface);
+                Active = std::move(_rhs.Active);
+                Begin = std::move(_rhs.Begin);
+                End = std::move(_rhs.End);
+                Router = std::move(_rhs.Router);
+                Leases = std::move(_rhs.Leases);
+                return (*this);
+            }
+
+            ~ServerData() = default;
+
+        public:
+            bool IsDataValid() const
+            {
+                return ((Interface.IsSet() == true) && (Active.IsSet() == true));
             }
 
         private:
@@ -140,6 +202,8 @@ namespace JsonData {
         }; // class ServerData
 
     } // namespace DHCPServer
+
+    POP_WARNING()
 
 } // namespace JsonData
 

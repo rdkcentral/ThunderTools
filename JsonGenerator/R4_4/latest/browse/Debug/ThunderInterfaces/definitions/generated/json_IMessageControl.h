@@ -1,4 +1,4 @@
-// IMessageControl JSON-RPC API
+// IMessageControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

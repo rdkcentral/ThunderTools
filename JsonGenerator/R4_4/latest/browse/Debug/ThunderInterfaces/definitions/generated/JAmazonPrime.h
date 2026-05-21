@@ -1,7 +1,6 @@
 // Generated automatically from 'IAmazonPrime.h'. DO NOT EDIT.
 
 #pragma once
-
 #include "Module.h"
 #include <interfaces/IAmazonPrime.h>
 
@@ -19,57 +18,69 @@ namespace Exchange {
 
         } // namespace Version
 
-        using JSONRPC = PluginHost::JSONRPC;
-
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
+        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
+        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        static void Register(JSONRPC& _module_, IAmazonPrime* _impl_)
+        template<typename MODULE>
+        static void Register(MODULE& _module__, IAmazonPrime* _implementation__)
         {
-            ASSERT(_impl_ != nullptr);
+            ASSERT(_implementation__ != nullptr);
 
-            _module_.RegisterVersion(_T("JAmazonPrime"), Version::Major, Version::Minor, Version::Patch);
+            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JAmazonPrime"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'send' - Send a message over the message bus to ignition
-            _module_.Register<Core::JSON::String, void>(_T("send"), 
-                [_impl_](const Core::JSON::String& message) -> uint32_t {
-                    uint32_t _errorCode = Core::ERROR_NONE;
+            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, void>(_T("send"),
+                [_implementation__](const Core::JSON::String& message) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    const string _message{message};
+                    if (message.IsSet() == false) {
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        const string _message_{message};
 
-                    _errorCode = _impl_->Send(_message);
+                        _errorCode__ = _implementation__->Send(_message_);
 
-                    return (_errorCode);
+                    }
+
+                    return (_errorCode__);
                 });
 
         }
 
-        static void Unregister(JSONRPC& _module_)
+        template<typename MODULE>
+        static void Unregister(MODULE& _module__)
         {
             // Unregister methods and properties...
-            _module_.Unregister(_T("send"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("send"));
         }
 
         namespace Event {
 
             // Event: 'receive' - Receive a message from the generic message bus
-            static void Receive(const JSONRPC& _module_, const Core::JSON::String& message)
+            template<typename MODULE>
+            static void Receive(const MODULE& module_, const Core::JSON::String& message, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                _module_.Notify(_T("receive"), message);
+                module_.Notify(_T("receive"), message, sendIfMethod_);
             }
 
             // Event: 'receive' - Receive a message from the generic message bus
-            static void Receive(const JSONRPC& _module_, const string& message)
+            template<typename MODULE>
+            static void Receive(const MODULE& module_, const string& message, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                Core::JSON::String _params_;
-                _params_ = message;
+                Core::JSON::String params_;
+                params_ = message;
 
-                Receive(_module_, _params_);
+                Receive(module_, params_, sendIfMethod_);
             }
 
         } // namespace Event
 
+        POP_WARNING()
+        POP_WARNING()
         POP_WARNING()
 
     } // namespace JAmazonPrime

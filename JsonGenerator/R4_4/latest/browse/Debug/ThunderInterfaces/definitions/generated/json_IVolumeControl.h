@@ -1,4 +1,4 @@
-// IVolumeControl JSON-RPC API
+// IVolumeControl API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once
