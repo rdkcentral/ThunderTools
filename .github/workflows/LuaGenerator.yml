@@ -157,6 +157,7 @@ jobs:
           touch site/.nojekyll
 
           # ----- PR-only: diff vs gh-pages baseline -----
+          DIFF_TAG=""
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             DIFF_TAG=$(printf '%s' "$PR_BODY" | grep -oP '(?<=\[Diff:)[^\]]+' | head -1 || true)
             if [[ -n "$DIFF_TAG" ]]; then
@@ -212,7 +213,12 @@ jobs:
           cp -r generated/* "site/$RUN_DIR/browse/"
 
           # ----- Generate Site with Python -----
-          RUN_DIR="$RUN_DIR" HAS_DIFF="$HAS_DIFF" python - <<'PY'
+          if [[ -n "$DIFF_TAG" ]]; then
+            DIFF_LABEL="$DIFF_TAG"
+          else
+            DIFF_LABEL="R4_4 (latest)"
+          fi
+          RUN_DIR="$RUN_DIR" HAS_DIFF="$HAS_DIFF" DIFF_LABEL="$DIFF_LABEL" python - <<'PY'
           import os
           from pathlib import Path
           import html
@@ -285,7 +291,7 @@ jobs:
             <li><a href='./browse/index.html'>Browse Generated Files</a></li>
           """
           if has_diff:
-              main_body += "<li><a href='./diff/index.html'>View Diff vs R4_4</a></li>"
+              main_body += f"<li><a href='./diff/index.html'>View Diff vs {html.escape(os.environ.get('DIFF_LABEL', 'R4_4'))}</a></li>"
 
           main_body += "</ul>"
           (site_root / "index.html").write_text(wrap_page("LuaGenerator Results", main_body, ""), encoding="utf-8")
