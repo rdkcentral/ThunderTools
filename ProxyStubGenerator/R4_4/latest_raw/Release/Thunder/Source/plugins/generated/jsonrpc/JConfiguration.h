@@ -18,88 +18,76 @@ namespace Exchange {
 
             } // namespace Version
 
+            using JSONRPC = PluginHost::JSONRPC;
+
             PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-            PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-            PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-            template<typename MODULE>
-            static void Register(MODULE& _module__, IConfiguration* _implementation__)
+            static void Register(JSONRPC& _module_, IConfiguration* _impl_)
             {
-                ASSERT(_implementation__ != nullptr);
+                ASSERT(_impl_ != nullptr);
 
-                _module__.PluginHost::JSONRPC::RegisterVersion(_T("JConfiguration"), Version::Major, Version::Minor, Version::Patch);
+                _module_.RegisterVersion(_T("JConfiguration"), Version::Major, Version::Minor, Version::Patch);
 
                 // Register methods and properties...
 
                 // Method: 'persist' - Stores the configuration to persistent memory
-                _module__.PluginHost::JSONRPC::Register<void, void>(_T("persist"),
-                    [_implementation__]() -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, void>(_T("persist"), 
+                    [_impl_]() -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        _errorCode__ = _implementation__->Persist();
+                        _errorCode = _impl_->Persist();
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'storeconfig' - Stores the configuration to persistent memory
-                _module__.PluginHost::JSONRPC::Register<void, void>(_T("storeconfig"),
-                    [_implementation__]() -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, void>(_T("storeconfig"), 
+                    [_impl_]() -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        _errorCode__ = _implementation__->Persist();
+                        _errorCode = _impl_->Persist();
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Indexed Property: 'configuration' - Provides configuration value of a request service
-                _module__.PluginHost::JSONRPC::Register<Core::JSON::String, Core::JSON::String, std::function<uint32_t(const string&, const Core::JSON::String&, Core::JSON::String&)>>(_T("configuration"),
-                    [_implementation__](const string& callsign, const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<Core::JSON::String, Core::JSON::String, std::function<uint32_t(const string&, const Core::JSON::String&,
+                         Core::JSON::String&)>>(_T("configuration"), 
+                    [_impl_](const string& _index_, const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if (callsign.empty() == true) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
+                        if (params.IsSet() == false) {
+                            // property get
+                            string _result{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
+                            _errorCode = (static_cast<const IConfiguration*>(_impl_))->Configuration(_index_, _result);
 
-                            if (params.IsSet() == false) {
-                                string _result_{};
-
-                                _errorCode__ = (static_cast<const IConfiguration*>(_implementation__))->Configuration(callsign, _result_);
-
-                                if (_errorCode__ == Core::ERROR_NONE) {
-
-                                    if (_result_.empty() == false) {
-                                        result = _result_;
-                                        result.SetQuoted(false);
-                                    }
-                                }
+                            if (_errorCode == Core::ERROR_NONE) {
+                                result = _result;
+                                result.SetQuoted(false);
                             }
-                            else {
-                                const string _params_{params};
 
-                                _errorCode__ = _implementation__->Configuration(callsign, _params_);
+                        } else {
+                            // property set
+                            const string _params{params};
 
-                                result.Null(true);
-                            }
+                            _errorCode = _impl_->Configuration(_index_, _params);
+
+                            result.Null(true);
                         }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
             }
 
-            template<typename MODULE>
-            static void Unregister(MODULE& _module__)
+            static void Unregister(JSONRPC& _module_)
             {
                 // Unregister methods and properties...
-                _module__.PluginHost::JSONRPC::Unregister(_T("persist"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("storeconfig"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("configuration"));
+                _module_.Unregister(_T("persist"));
+                _module_.Unregister(_T("storeconfig"));
+                _module_.Unregister(_T("configuration"));
             }
 
-            POP_WARNING()
-            POP_WARNING()
             POP_WARNING()
 
         } // namespace JConfiguration

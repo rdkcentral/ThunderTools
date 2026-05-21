@@ -1,4 +1,4 @@
-// C++ types for LifeTime API.
+// C++ classes for LifeTime API JSON-RPC API.
 // Generated automatically from 'IController.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace LifeTime {
 
@@ -26,19 +24,13 @@ namespace JsonData {
                 Add(_T("callsign"), &Callsign);
             }
 
-            ActivateParamsInfo(const ActivateParamsInfo&) = delete;
-            ActivateParamsInfo(ActivateParamsInfo&&) noexcept  = delete;
-
-            ActivateParamsInfo& operator=(const ActivateParamsInfo&) = delete;
-            ActivateParamsInfo& operator=(ActivateParamsInfo&&) noexcept  = delete;
-
-            ~ActivateParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Callsign.IsSet() == true);
+                return (true);
             }
+
+            ActivateParamsInfo(const ActivateParamsInfo&) = delete;
+            ActivateParamsInfo& operator=(const ActivateParamsInfo&) = delete;
 
         public:
             Core::JSON::String Callsign; // Activate a plugin, i.e. move from Deactivated, via Activating to Activated state
@@ -56,19 +48,13 @@ namespace JsonData {
                 Add(_T("timeout"), &Timeout);
             }
 
-            HibernateParamsData(const HibernateParamsData&) = delete;
-            HibernateParamsData(HibernateParamsData&&) noexcept  = delete;
-
-            HibernateParamsData& operator=(const HibernateParamsData&) = delete;
-            HibernateParamsData& operator=(HibernateParamsData&&) noexcept  = delete;
-
-            ~HibernateParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Callsign.IsSet() == true) && (Timeout.IsSet() == true));
+                return (true);
             }
+
+            HibernateParamsData(const HibernateParamsData&) = delete;
+            HibernateParamsData& operator=(const HibernateParamsData&) = delete;
 
         public:
             Core::JSON::String Callsign; // Set a plugin in Hibernate state
@@ -85,19 +71,13 @@ namespace JsonData {
                 Add(_T("reason"), &Reason);
             }
 
-            StateChangeParamsData(const StateChangeParamsData&) = delete;
-            StateChangeParamsData(StateChangeParamsData&&) noexcept  = delete;
-
-            StateChangeParamsData& operator=(const StateChangeParamsData&) = delete;
-            StateChangeParamsData& operator=(StateChangeParamsData&&) noexcept  = delete;
-
-            ~StateChangeParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Callsign.IsSet() == true) && (State.IsSet() == true) && (Reason.IsSet() == true));
+                return (true);
             }
+
+            StateChangeParamsData(const StateChangeParamsData&) = delete;
+            StateChangeParamsData& operator=(const StateChangeParamsData&) = delete;
 
         public:
             Core::JSON::String Callsign; // Notifies a plugin state change
@@ -106,8 +86,6 @@ namespace JsonData {
         }; // class StateChangeParamsData
 
     } // namespace LifeTime
-
-    POP_WARNING()
 
 } // namespace JsonData
 

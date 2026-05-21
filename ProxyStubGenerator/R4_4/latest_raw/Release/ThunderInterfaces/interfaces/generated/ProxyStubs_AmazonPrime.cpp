@@ -31,7 +31,7 @@ namespace ProxyStubs {
     //  (2) virtual uint32_t Send(const string&) = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeAmazonPrimeStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeAmazonPrimeStubMethods[] = {
         // (0) virtual void Register(Exchange::IAmazonPrime::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -39,19 +39,20 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            Core::instance_id _ignitionInstanceId__ = reader.Number<Core::instance_id>();
+            const Core::instance_id ignitionImplementation = reader.Number<Core::instance_id>();
 
-            Exchange::IAmazonPrime::INotification* _ignition{};
-            ProxyStub::UnknownProxy* _ignitionProxy__ = nullptr;
-            if (_ignitionInstanceId__ != 0) {
-                _ignitionProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _ignitionInstanceId__, false, _ignition);
-                ASSERT((_ignition != nullptr) && (_ignitionProxy__ != nullptr));
+            Exchange::IAmazonPrime::INotification* _ignition = nullptr;
+            ProxyStub::UnknownProxy* ignitionProxy = nullptr;
+            if (ignitionImplementation != 0) {
+                ignitionProxy = RPC::Administrator::Instance().ProxyInstance(channel, ignitionImplementation, false, _ignition);
+
+                ASSERT((_ignition != nullptr) && (ignitionProxy != nullptr));
             }
 
             implementation->Register(_ignition);
 
-            if (_ignitionProxy__ != nullptr) {
-                RPC::Administrator::Instance().Release(_ignitionProxy__, message->Response());
+            if (ignitionProxy != nullptr) {
+                RPC::Administrator::Instance().Release(ignitionProxy, message->Response());
             }
         },
 
@@ -62,19 +63,20 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            Core::instance_id _ignitionInstanceId__ = reader.Number<Core::instance_id>();
+            const Core::instance_id ignitionImplementation = reader.Number<Core::instance_id>();
 
-            Exchange::IAmazonPrime::INotification* _ignition{};
-            ProxyStub::UnknownProxy* _ignitionProxy__ = nullptr;
-            if (_ignitionInstanceId__ != 0) {
-                _ignitionProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _ignitionInstanceId__, false, _ignition);
-                ASSERT((_ignition != nullptr) && (_ignitionProxy__ != nullptr));
+            Exchange::IAmazonPrime::INotification* _ignition = nullptr;
+            ProxyStub::UnknownProxy* ignitionProxy = nullptr;
+            if (ignitionImplementation != 0) {
+                ignitionProxy = RPC::Administrator::Instance().ProxyInstance(channel, ignitionImplementation, false, _ignition);
+
+                ASSERT((_ignition != nullptr) && (ignitionProxy != nullptr));
             }
 
             implementation->Unregister(_ignition);
 
-            if (_ignitionProxy__ != nullptr) {
-                RPC::Administrator::Instance().Release(_ignitionProxy__, message->Response());
+            if (ignitionProxy != nullptr) {
+                RPC::Administrator::Instance().Release(ignitionProxy, message->Response());
             }
         },
 
@@ -102,7 +104,7 @@ namespace ProxyStubs {
     //  (0) virtual void Receive(const string&) = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeAmazonPrimeNotificationStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeAmazonPrimeNotificationStubMethods[] = {
         // (0) virtual void Receive(const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -137,60 +139,7 @@ namespace ProxyStubs {
         {
         }
 
-        void Register(Exchange::IAmazonPrime::INotification* _ignition) override
-        {
-            IPCMessage message(UnknownProxyType::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_ignition));
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-                _Complete(reader);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-        }
-
-        void Unregister(Exchange::IAmazonPrime::INotification* _ignition) override
-        {
-            IPCMessage message(UnknownProxyType::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_ignition));
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-                _Complete(reader);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-        }
-
-        uint32_t Send(const string& _message) override
-        {
-            IPCMessage message(UnknownProxyType::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_message);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-    private:
-        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -206,6 +155,50 @@ namespace ProxyStubs {
             }
 
             return (result);
+        }
+
+        void Register(Exchange::IAmazonPrime::INotification* _ignition) override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_ignition));
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+            Complete(reader);
+        }
+
+        void Unregister(Exchange::IAmazonPrime::INotification* _ignition) override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_ignition));
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+            Complete(reader);
+        }
+
+        uint32_t Send(const string& _message) override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_message));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
         }
 
     }; // class ExchangeAmazonPrimeProxy
@@ -224,12 +217,30 @@ namespace ProxyStubs {
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         void Receive(const string& _message) override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_message);
+            writer.Text(static_cast<const string&>(_message));
 
             UnknownProxyType::Invoke(message);
         }

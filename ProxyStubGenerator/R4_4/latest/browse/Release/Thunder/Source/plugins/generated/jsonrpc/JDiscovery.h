@@ -18,69 +18,57 @@ namespace Exchange {
 
             } // namespace Version
 
+            using JSONRPC = PluginHost::JSONRPC;
+
             PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-            PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-            PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-            template<typename MODULE>
-            static void Register(MODULE& _module__, IDiscovery* _implementation__)
+            static void Register(JSONRPC& _module_, IDiscovery* _impl_)
             {
-                ASSERT(_implementation__ != nullptr);
+                ASSERT(_impl_ != nullptr);
 
-                _module__.PluginHost::JSONRPC::RegisterVersion(_T("JDiscovery"), Version::Major, Version::Minor, Version::Patch);
+                _module_.RegisterVersion(_T("JDiscovery"), Version::Major, Version::Minor, Version::Patch);
 
                 // Register methods and properties...
 
                 // Method: 'startdiscovery' - Starts the network discovery
-                _module__.PluginHost::JSONRPC::Register<JsonData::Discovery::StartDiscoveryParamsData, void>(_T("startdiscovery"),
-                    [_implementation__](const JsonData::Discovery::StartDiscoveryParamsData& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::Discovery::StartDiscoveryParamsData, void>(_T("startdiscovery"), 
+                    [_impl_](const JsonData::Discovery::StartDiscoveryParamsData& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == true) && (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const uint8_t _ttl_{params.Ttl};
+                        const uint8_t _ttl{params.Ttl};
 
-                            _errorCode__ = _implementation__->StartDiscovery(_ttl_);
+                        _errorCode = _impl_->StartDiscovery(_ttl);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'discoveryresults' - Provides SSDP network discovery results (r/o)
-                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("discoveryresults"),
-                    [_implementation__](Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, Core::JSON::String>(_T("discoveryresults"), 
+                    [_impl_](Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        string _result_{};
+                        // read-only property get
+                        string _result{};
 
-                        _errorCode__ = _implementation__->DiscoveryResults(_result_);
+                        _errorCode = _impl_->DiscoveryResults(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-
-                            if (_result_.empty() == false) {
-                                result = _result_;
-                                result.SetQuoted(false);
-                            }
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
+                            result.SetQuoted(false);
                         }
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
             }
 
-            template<typename MODULE>
-            static void Unregister(MODULE& _module__)
+            static void Unregister(JSONRPC& _module_)
             {
                 // Unregister methods and properties...
-                _module__.PluginHost::JSONRPC::Unregister(_T("startdiscovery"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("discoveryresults"));
+                _module_.Unregister(_T("startdiscovery"));
+                _module_.Unregister(_T("discoveryresults"));
             }
 
-            POP_WARNING()
-            POP_WARNING()
             POP_WARNING()
 
         } // namespace JDiscovery

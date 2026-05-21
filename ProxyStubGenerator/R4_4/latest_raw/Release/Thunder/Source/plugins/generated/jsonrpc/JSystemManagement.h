@@ -18,117 +18,98 @@ namespace Exchange {
 
             } // namespace Version
 
+            using JSONRPC = PluginHost::JSONRPC;
+
             PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-            PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-            PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-            template<typename MODULE>
-            static void Register(MODULE& _module__, ISystemManagement* _implementation__)
+            static void Register(JSONRPC& _module_, ISystemManagement* _impl_)
             {
-                ASSERT(_implementation__ != nullptr);
+                ASSERT(_impl_ != nullptr);
 
-                _module__.PluginHost::JSONRPC::RegisterVersion(_T("JSystemManagement"), Version::Major, Version::Minor, Version::Patch);
+                _module_.RegisterVersion(_T("JSystemManagement"), Version::Major, Version::Minor, Version::Patch);
 
                 // Register methods and properties...
 
                 // Method: 'reboot' - Reboot the device
-                _module__.PluginHost::JSONRPC::Register<void, void>(_T("reboot"),
-                    [_implementation__]() -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, void>(_T("reboot"), 
+                    [_impl_]() -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        _errorCode__ = _implementation__->Reboot();
+                        _errorCode = _impl_->Reboot();
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'harakiri' - Reboot the device
-                _module__.PluginHost::JSONRPC::Register<void, void>(_T("harakiri"),
-                    [_implementation__]() -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, void>(_T("harakiri"), 
+                    [_impl_]() -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        _errorCode__ = _implementation__->Reboot();
+                        _errorCode = _impl_->Reboot();
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'delete' - Removes contents of a directory from the persistent storage
-                _module__.PluginHost::JSONRPC::Register<JsonData::SystemManagement::DeleteParamsData, void>(_T("delete"),
-                    [_implementation__](const JsonData::SystemManagement::DeleteParamsData& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::SystemManagement::DeleteParamsData, void>(_T("delete"), 
+                    [_impl_](const JsonData::SystemManagement::DeleteParamsData& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _path_{params.Path};
+                        const string _path{params.Path};
 
-                            _errorCode__ = _implementation__->Delete(_path_);
+                        _errorCode = _impl_->Delete(_path);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'clone' - Create a clone of given plugin to requested new callsign
-                _module__.PluginHost::JSONRPC::Register<JsonData::SystemManagement::CloneParamsData, Core::JSON::String>(_T("clone"),
-                    [_implementation__](const JsonData::SystemManagement::CloneParamsData& params, Core::JSON::String& response) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::SystemManagement::CloneParamsData, Core::JSON::String>(_T("clone"), 
+                    [_impl_](const JsonData::SystemManagement::CloneParamsData& params, Core::JSON::String& response) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
-                            const string _newcallsign_{params.Newcallsign};
-                            string _response_{};
+                        const string _callsign{params.Callsign};
+                        const string _newcallsign{params.Newcallsign};
+                        string _response{};
 
-                            _errorCode__ = _implementation__->Clone(_callsign_, _newcallsign_, _response_);
+                        _errorCode = _impl_->Clone(_callsign, _newcallsign, _response);
 
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                response = _response_;
-                            }
+                        if (_errorCode == Core::ERROR_NONE) {
+                            response = _response;
                         }
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Indexed Property: 'environment' - Provides the value of request environment variable (r/o)
-                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("environment"),
-                    [_implementation__](const string& index, Core::JSON::String& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, Core::JSON::String, std::function<uint32_t(const string&, Core::JSON::String&)>>(_T("environment"), 
+                    [_impl_](const string& _index_, Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if (index.empty() == true) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        // read-only property get
+                        string _result{};
+
+                        _errorCode = _impl_->Environment(_index_, _result);
+
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
+                            result.SetQuoted(false);
                         }
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            string _result_{};
-
-                            _errorCode__ = _implementation__->Environment(index, _result_);
-
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result = _result_;
-                            }
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
             }
 
-            template<typename MODULE>
-            static void Unregister(MODULE& _module__)
+            static void Unregister(JSONRPC& _module_)
             {
                 // Unregister methods and properties...
-                _module__.PluginHost::JSONRPC::Unregister(_T("reboot"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("harakiri"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("delete"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("clone"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("environment"));
+                _module_.Unregister(_T("reboot"));
+                _module_.Unregister(_T("harakiri"));
+                _module_.Unregister(_T("delete"));
+                _module_.Unregister(_T("clone"));
+                _module_.Unregister(_T("environment"));
             }
 
-            POP_WARNING()
-            POP_WARNING()
             POP_WARNING()
 
         } // namespace JSystemManagement

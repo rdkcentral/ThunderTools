@@ -18,179 +18,138 @@ namespace Exchange {
 
             } // namespace Version
 
+            using JSONRPC = PluginHost::JSONRPC;
+
             PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-            PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-            PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-            template<typename MODULE>
-            static void Register(MODULE& _module__, ILifeTime* _implementation__)
+            static void Register(JSONRPC& _module_, ILifeTime* _impl_)
             {
-                ASSERT(_implementation__ != nullptr);
+                ASSERT(_impl_ != nullptr);
 
-                _module__.PluginHost::JSONRPC::RegisterVersion(_T("JLifeTime"), Version::Major, Version::Minor, Version::Patch);
+                _module_.RegisterVersion(_T("JLifeTime"), Version::Major, Version::Minor, Version::Patch);
 
                 // Register methods and properties...
 
                 // Method: 'activate' - Activate a plugin, i
-                _module__.PluginHost::JSONRPC::Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("activate"),
-                    [_implementation__](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("activate"), 
+                    [_impl_](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
+                        const string _callsign{params.Callsign};
 
-                            _errorCode__ = _implementation__->Activate(_callsign_);
+                        _errorCode = _impl_->Activate(_callsign);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'deactivate' - Deactivate a plugin, i
-                _module__.PluginHost::JSONRPC::Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("deactivate"),
-                    [_implementation__](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("deactivate"), 
+                    [_impl_](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
+                        const string _callsign{params.Callsign};
 
-                            _errorCode__ = _implementation__->Deactivate(_callsign_);
+                        _errorCode = _impl_->Deactivate(_callsign);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'unavailable' - Set a plugin unavailable for interaction
-                _module__.PluginHost::JSONRPC::Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("unavailable"),
-                    [_implementation__](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("unavailable"), 
+                    [_impl_](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
+                        const string _callsign{params.Callsign};
 
-                            _errorCode__ = _implementation__->Unavailable(_callsign_);
+                        _errorCode = _impl_->Unavailable(_callsign);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'hibernate' - Set a plugin in Hibernate state
-                _module__.PluginHost::JSONRPC::Register<JsonData::LifeTime::HibernateParamsData, void>(_T("hibernate"),
-                    [_implementation__](const JsonData::LifeTime::HibernateParamsData& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::LifeTime::HibernateParamsData, void>(_T("hibernate"), 
+                    [_impl_](const JsonData::LifeTime::HibernateParamsData& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
-                            const uint32_t _timeout_{params.Timeout};
+                        const string _callsign{params.Callsign};
+                        const uint32_t _timeout{params.Timeout};
 
-                            _errorCode__ = _implementation__->Hibernate(_callsign_, _timeout_);
+                        _errorCode = _impl_->Hibernate(_callsign, _timeout);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'suspend' - Suspend a plugin
-                _module__.PluginHost::JSONRPC::Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("suspend"),
-                    [_implementation__](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("suspend"), 
+                    [_impl_](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
+                        const string _callsign{params.Callsign};
 
-                            _errorCode__ = _implementation__->Suspend(_callsign_);
+                        _errorCode = _impl_->Suspend(_callsign);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Method: 'resume' - Resumes a plugin
-                _module__.PluginHost::JSONRPC::Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("resume"),
-                    [_implementation__](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<JsonData::LifeTime::ActivateParamsInfo, void>(_T("resume"), 
+                    [_impl_](const JsonData::LifeTime::ActivateParamsInfo& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _callsign_{params.Callsign};
+                        const string _callsign{params.Callsign};
 
-                            _errorCode__ = _implementation__->Resume(_callsign_);
+                        _errorCode = _impl_->Resume(_callsign);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
             }
 
-            template<typename MODULE>
-            static void Unregister(MODULE& _module__)
+            static void Unregister(JSONRPC& _module_)
             {
                 // Unregister methods and properties...
-                _module__.PluginHost::JSONRPC::Unregister(_T("activate"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("deactivate"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("unavailable"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("hibernate"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("suspend"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("resume"));
+                _module_.Unregister(_T("activate"));
+                _module_.Unregister(_T("deactivate"));
+                _module_.Unregister(_T("unavailable"));
+                _module_.Unregister(_T("hibernate"));
+                _module_.Unregister(_T("suspend"));
+                _module_.Unregister(_T("resume"));
             }
 
             namespace Event {
 
                 // Event: 'statechange' - Notifies a plugin state change
-                template<typename MODULE>
-                static void StateChange(const MODULE& module_, const JsonData::LifeTime::StateChangeParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+                static void StateChange(const JSONRPC& _module_, const JsonData::LifeTime::StateChangeParamsData& params)
                 {
-                    module_.Notify(_T("statechange"), params, sendIfMethod_);
+                    _module_.Notify(_T("statechange"), params);
                 }
 
                 // Event: 'statechange' - Notifies a plugin state change
-                template<typename MODULE>
-                static void StateChange(const MODULE& module_, const Core::JSON::String& callsign, const Core::JSON::EnumType<PluginHost::IShell::state>& state, const Core::JSON::EnumType<PluginHost::IShell::reason>& reason, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+                static void StateChange(const JSONRPC& _module_, const Core::JSON::String& callsign,
+                         const Core::JSON::EnumType<PluginHost::IShell::state>& state, const Core::JSON::EnumType<PluginHost::IShell::reason>& reason)
                 {
-                    JsonData::LifeTime::StateChangeParamsData params_;
-                    params_.Callsign = callsign;
-                    params_.State = state;
-                    params_.Reason = reason;
+                    JsonData::LifeTime::StateChangeParamsData _params_;
+                    _params_.Callsign = callsign;
+                    _params_.State = state;
+                    _params_.Reason = reason;
 
-                    StateChange(module_, params_, sendIfMethod_);
+                    StateChange(_module_, _params_);
                 }
 
                 // Event: 'statechange' - Notifies a plugin state change
-                template<typename MODULE>
-                static void StateChange(const MODULE& module_, const string& callsign, const PluginHost::IShell::state& state, const PluginHost::IShell::reason& reason, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+                static void StateChange(const JSONRPC& _module_, const string& callsign, const PluginHost::IShell::state& state,
+                         const PluginHost::IShell::reason& reason)
                 {
-                    JsonData::LifeTime::StateChangeParamsData params_;
-                    params_.Callsign = callsign;
-                    params_.State = state;
-                    params_.Reason = reason;
+                    JsonData::LifeTime::StateChangeParamsData _params_;
+                    _params_.Callsign = callsign;
+                    _params_.State = state;
+                    _params_.Reason = reason;
 
-                    StateChange(module_, params_, sendIfMethod_);
+                    StateChange(_module_, _params_);
                 }
 
             } // namespace Event
 
-            POP_WARNING()
-            POP_WARNING()
             POP_WARNING()
 
         } // namespace JLifeTime

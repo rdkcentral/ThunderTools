@@ -1,4 +1,4 @@
-// Enumeration code for LifeTime API.
+// Enumeration code for LifeTime API JSON-RPC API.
 // Generated automatically from 'IController.h'.
 
 #include <core/Enumerate.h>

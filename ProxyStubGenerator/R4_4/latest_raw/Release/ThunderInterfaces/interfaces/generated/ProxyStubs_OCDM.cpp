@@ -43,7 +43,7 @@ namespace ProxyStubs {
     //  (12) virtual void Revoke(Exchange::ISession::ICallback*) = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeSessionStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeSessionStubMethods[] = {
         // (0) virtual Exchange::OCDM_RESULT Load() = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -64,10 +64,10 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _keyMessage{};
-            const uint16_t _keyLength = reader.LockBuffer<uint16_t>(_keyMessage);
-            reader.UnlockBuffer(_keyLength);
+            const uint16_t keyMessageLen = reader.LockBuffer<uint16_t>(_keyMessage);
+            reader.UnlockBuffer(keyMessageLen);
 
-            implementation->Update(_keyMessage, _keyLength);
+            implementation->Update(_keyMessage, keyMessageLen);
         },
 
         // (2) virtual Exchange::OCDM_RESULT Remove() = 0
@@ -107,8 +107,7 @@ namespace ProxyStubs {
 
             if (_bufferSize != 0) {
                 ASSERT(_bufferSize <= 0x1000000);
-                _buffer = static_cast<uint8_t*>(ALLOCA(_bufferSize * sizeof(uint8_t)));
-                ASSERT(_buffer != nullptr);
+                _buffer = static_cast<uint8_t*>(ALLOCA(_bufferSize));
             }
 
             Exchange::OCDM_RESULT result = implementation->Metricdata(_bufferSize, _buffer);
@@ -139,10 +138,10 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _keyID{};
-            const uint8_t _keyIDLength = reader.LockBuffer<uint8_t>(_keyID);
-            reader.UnlockBuffer(_keyIDLength);
+            const uint8_t keyIDLen = reader.LockBuffer<uint8_t>(_keyID);
+            reader.UnlockBuffer(keyIDLen);
 
-            Exchange::ISession::KeyStatus result = implementation->Status(_keyID, _keyIDLength);
+            Exchange::ISession::KeyStatus result = implementation->Status(_keyID, keyIDLen);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::ISession::KeyStatus>(result);
@@ -212,19 +211,20 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            Core::instance_id _callbackInstanceId__ = reader.Number<Core::instance_id>();
+            const Core::instance_id callbackImplementation = reader.Number<Core::instance_id>();
 
-            Exchange::ISession::ICallback* _callback{};
-            ProxyStub::UnknownProxy* _callbackProxy__ = nullptr;
-            if (_callbackInstanceId__ != 0) {
-                _callbackProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _callbackInstanceId__, false, _callback);
-                ASSERT((_callback != nullptr) && (_callbackProxy__ != nullptr));
+            Exchange::ISession::ICallback* _callback = nullptr;
+            ProxyStub::UnknownProxy* callbackProxy = nullptr;
+            if (callbackImplementation != 0) {
+                callbackProxy = RPC::Administrator::Instance().ProxyInstance(channel, callbackImplementation, false, _callback);
+
+                ASSERT((_callback != nullptr) && (callbackProxy != nullptr));
             }
 
             implementation->Revoke(_callback);
 
-            if (_callbackProxy__ != nullptr) {
-                RPC::Administrator::Instance().Release(_callbackProxy__, message->Response());
+            if (callbackProxy != nullptr) {
+                RPC::Administrator::Instance().Release(callbackProxy, message->Response());
             }
         }
         , nullptr
@@ -240,7 +240,7 @@ namespace ProxyStubs {
     //  (3) virtual void OnKeyStatusesUpdated() const = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeSessionCallbackStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeSessionCallbackStubMethods[] = {
         // (0) virtual void OnKeyMessage(const uint8_t*, const uint16_t, const std::string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -249,11 +249,11 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _keyMessage{};
-            const uint16_t _keyLength = reader.LockBuffer<uint16_t>(_keyMessage);
-            reader.UnlockBuffer(_keyLength);
+            const uint16_t keyMessageLen = reader.LockBuffer<uint16_t>(_keyMessage);
+            reader.UnlockBuffer(keyMessageLen);
             const std::string _URL = reader.Text();
 
-            implementation->OnKeyMessage(_keyMessage, _keyLength, static_cast<const std::string&>(_URL));
+            implementation->OnKeyMessage(_keyMessage, keyMessageLen, static_cast<const std::string&>(_URL));
         },
 
         // (1) virtual void OnError(const int16_t, const Exchange::OCDM_RESULT, const std::string&) = 0
@@ -278,11 +278,11 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _keyID{};
-            const uint8_t _keyIDLength = reader.LockBuffer<uint8_t>(_keyID);
-            reader.UnlockBuffer(_keyIDLength);
+            const uint8_t keyIDLen = reader.LockBuffer<uint8_t>(_keyID);
+            reader.UnlockBuffer(keyIDLen);
             const Exchange::ISession::KeyStatus _status = reader.Number<Exchange::ISession::KeyStatus>();
 
-            implementation->OnKeyStatusUpdate(_keyID, _keyIDLength, _status);
+            implementation->OnKeyStatusUpdate(_keyID, keyIDLen, _status);
         },
 
         // (3) virtual void OnKeyStatusesUpdated() const = 0
@@ -310,7 +310,7 @@ namespace ProxyStubs {
     //  (7) virtual Exchange::OCDM_RESULT CleanDecryptContext() = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeSessionExtStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeSessionExtStubMethods[] = {
         // (0) virtual uint32_t SessionIdExt() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -343,10 +343,10 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _drmHeader{};
-            uint16_t _drmHeaderLength = reader.LockBuffer<uint16_t>(_drmHeader);
-            reader.UnlockBuffer(_drmHeaderLength);
+            uint16_t drmHeaderLen = reader.LockBuffer<uint16_t>(_drmHeader);
+            reader.UnlockBuffer(drmHeaderLen);
 
-            Exchange::OCDM_RESULT result = implementation->SetDrmHeader(_drmHeader, _drmHeaderLength);
+            Exchange::OCDM_RESULT result = implementation->SetDrmHeader(_drmHeader, drmHeaderLen);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
@@ -365,8 +365,7 @@ namespace ProxyStubs {
             uint8_t* _challenge{};
 
             if (_challengeSize != 0) {
-                _challenge = static_cast<uint8_t*>(ALLOCA(_challengeSize * sizeof(uint8_t)));
-                ASSERT(_challenge != nullptr);
+                _challenge = static_cast<uint8_t*>(ALLOCA(_challengeSize));
             }
 
             Exchange::OCDM_RESULT result = implementation->GetChallengeDataExt(_challenge, _challengeSize, _isLDL);
@@ -397,19 +396,20 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _licenseData{};
-            uint16_t _licenseDataSize = reader.LockBuffer<uint16_t>(_licenseData);
-            reader.UnlockBuffer(_licenseDataSize);
+            uint16_t licenseDataLen = reader.LockBuffer<uint16_t>(_licenseData);
+            reader.UnlockBuffer(licenseDataLen);
 
             uint8_t* _secureStopId{};
 
-            _secureStopId = static_cast<uint8_t*>(ALLOCA(16 * sizeof(uint8_t)));
-            ASSERT(_secureStopId != nullptr);
+            if (16 != 0) {
+                _secureStopId = static_cast<uint8_t*>(ALLOCA(16));
+            }
 
-            Exchange::OCDM_RESULT result = implementation->StoreLicenseData(_licenseData, _licenseDataSize, _secureStopId);
+            Exchange::OCDM_RESULT result = implementation->StoreLicenseData(_licenseData, licenseDataLen, _secureStopId);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
-            writer.Copy(16, _secureStopId);
+            writer.Buffer<uint8_t>(16, _secureStopId);
         },
 
         // (6) virtual Exchange::OCDM_RESULT SelectKeyId(const uint8_t, const uint8_t*) = 0
@@ -420,10 +420,10 @@ namespace ProxyStubs {
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const uint8_t* _keyId{};
-            const uint8_t _keyLength = reader.LockBuffer<uint8_t>(_keyId);
-            reader.UnlockBuffer(_keyLength);
+            const uint8_t keyIdLen = reader.LockBuffer<uint8_t>(_keyId);
+            reader.UnlockBuffer(keyIdLen);
 
-            Exchange::OCDM_RESULT result = implementation->SelectKeyId(_keyLength, _keyId);
+            Exchange::OCDM_RESULT result = implementation->SelectKeyId(keyIdLen, _keyId);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
@@ -467,7 +467,7 @@ namespace ProxyStubs {
     //  (17) virtual Exchange::OCDM_RESULT GetSecureStoreHash(const std::string&, uint8_t*, uint16_t) = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeAccessorOCDMStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeAccessorOCDMStubMethods[] = {
         // (0) virtual bool IsTypeSupported(const std::string&, const std::string&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -516,8 +516,7 @@ namespace ProxyStubs {
 
             if (_bufferSize != 0) {
                 ASSERT(_bufferSize <= 0x1000000);
-                _buffer = static_cast<uint8_t*>(ALLOCA(_bufferSize * sizeof(uint8_t)));
-                ASSERT(_buffer != nullptr);
+                _buffer = static_cast<uint8_t*>(ALLOCA(_bufferSize));
             }
 
             Exchange::OCDM_RESULT result = implementation->Metricdata(static_cast<const std::string&>(_keySystem), _bufferSize, _buffer);
@@ -539,32 +538,33 @@ namespace ProxyStubs {
             const int32_t _licenseType = reader.Number<int32_t>();
             const std::string _initDataType = reader.Text();
             const uint8_t* _initData{};
-            const uint16_t _initDataLength = reader.LockBuffer<uint16_t>(_initData);
-            reader.UnlockBuffer(_initDataLength);
+            const uint16_t initDataLen = reader.LockBuffer<uint16_t>(_initData);
+            reader.UnlockBuffer(initDataLen);
             const uint8_t* _CDMData{};
-            const uint16_t _CDMDataLength = reader.LockBuffer<uint16_t>(_CDMData);
-            reader.UnlockBuffer(_CDMDataLength);
-            Core::instance_id _callbackInstanceId__ = reader.Number<Core::instance_id>();
+            const uint16_t CDMDataLen = reader.LockBuffer<uint16_t>(_CDMData);
+            reader.UnlockBuffer(CDMDataLen);
+            const Core::instance_id callbackImplementation = reader.Number<Core::instance_id>();
 
             std::string _sessionId{};
             Exchange::ISession* _session{};
 
-            Exchange::ISession::ICallback* _callback{};
-            ProxyStub::UnknownProxy* _callbackProxy__ = nullptr;
-            if (_callbackInstanceId__ != 0) {
-                _callbackProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _callbackInstanceId__, false, _callback);
-                ASSERT((_callback != nullptr) && (_callbackProxy__ != nullptr));
+            Exchange::ISession::ICallback* _callback = nullptr;
+            ProxyStub::UnknownProxy* callbackProxy = nullptr;
+            if (callbackImplementation != 0) {
+                callbackProxy = RPC::Administrator::Instance().ProxyInstance(channel, callbackImplementation, false, _callback);
+
+                ASSERT((_callback != nullptr) && (callbackProxy != nullptr));
             }
 
-            Exchange::OCDM_RESULT result = implementation->CreateSession(static_cast<const string&>(_keySystem), _licenseType, static_cast<const std::string&>(_initDataType), _initData, _initDataLength, _CDMData, _CDMDataLength, _callback, _sessionId, _session);
+            Exchange::OCDM_RESULT result = implementation->CreateSession(static_cast<const string&>(_keySystem), _licenseType, static_cast<const std::string&>(_initDataType), _initData, initDataLen, _CDMData, CDMDataLen, _callback, _sessionId, _session);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
             writer.Text(_sessionId);
             writer.Number<Core::instance_id>(RPC::instance_cast(_session));
 
-            if (_callbackProxy__ != nullptr) {
-                RPC::Administrator::Instance().Release(_callbackProxy__, message->Response());
+            if (callbackProxy != nullptr) {
+                RPC::Administrator::Instance().Release(callbackProxy, message->Response());
             }
 
             RPC::Administrator::Instance().RegisterInterface(channel, _session);
@@ -579,10 +579,10 @@ namespace ProxyStubs {
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const string _keySystem = reader.Text();
             const uint8_t* _serverCertificate{};
-            const uint16_t _serverCertificateLength = reader.LockBuffer<uint16_t>(_serverCertificate);
-            reader.UnlockBuffer(_serverCertificateLength);
+            const uint16_t serverCertificateLen = reader.LockBuffer<uint16_t>(_serverCertificate);
+            reader.UnlockBuffer(serverCertificateLen);
 
-            Exchange::OCDM_RESULT result = implementation->SetServerCertificate(static_cast<const string&>(_keySystem), _serverCertificate, _serverCertificateLength);
+            Exchange::OCDM_RESULT result = implementation->SetServerCertificate(static_cast<const string&>(_keySystem), _serverCertificate, serverCertificateLen);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
@@ -693,8 +693,7 @@ namespace ProxyStubs {
             uint8_t* _ids{};
 
             if (_idsLength != 0) {
-                _ids = static_cast<uint8_t*>(ALLOCA(_idsLength * sizeof(uint8_t)));
-                ASSERT(_ids != nullptr);
+                _ids = static_cast<uint8_t*>(ALLOCA(_idsLength));
             }
 
             Exchange::OCDM_RESULT result = implementation->GetSecureStopIds(static_cast<const std::string&>(_keySystem), _ids, _idsLength, _count);
@@ -714,18 +713,17 @@ namespace ProxyStubs {
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const std::string _keySystem = reader.Text();
             const uint8_t* _sessionID{};
-            uint16_t _sessionIDLength = reader.LockBuffer<uint16_t>(_sessionID);
-            reader.UnlockBuffer(_sessionIDLength);
+            uint16_t sessionIDLen = reader.LockBuffer<uint16_t>(_sessionID);
+            reader.UnlockBuffer(sessionIDLen);
             uint16_t _rawSize = reader.Number<uint16_t>();
 
             uint8_t* _rawData{};
 
             if (_rawSize != 0) {
-                _rawData = static_cast<uint8_t*>(ALLOCA(_rawSize * sizeof(uint8_t)));
-                ASSERT(_rawData != nullptr);
+                _rawData = static_cast<uint8_t*>(ALLOCA(_rawSize));
             }
 
-            Exchange::OCDM_RESULT result = implementation->GetSecureStop(static_cast<const std::string&>(_keySystem), _sessionID, _sessionIDLength, _rawData, _rawSize);
+            Exchange::OCDM_RESULT result = implementation->GetSecureStop(static_cast<const std::string&>(_keySystem), _sessionID, sessionIDLen, _rawData, _rawSize);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
@@ -742,13 +740,13 @@ namespace ProxyStubs {
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
             const std::string _keySystem = reader.Text();
             const uint8_t* _sessionID{};
-            uint16_t _sessionIDLength = reader.LockBuffer<uint16_t>(_sessionID);
-            reader.UnlockBuffer(_sessionIDLength);
+            uint16_t sessionIDLen = reader.LockBuffer<uint16_t>(_sessionID);
+            reader.UnlockBuffer(sessionIDLen);
             const uint8_t* _serverResponse{};
-            uint16_t _serverResponseLength = reader.LockBuffer<uint16_t>(_serverResponse);
-            reader.UnlockBuffer(_serverResponseLength);
+            uint16_t serverResponseLen = reader.LockBuffer<uint16_t>(_serverResponse);
+            reader.UnlockBuffer(serverResponseLen);
 
-            Exchange::OCDM_RESULT result = implementation->CommitSecureStop(static_cast<const std::string&>(_keySystem), _sessionID, _sessionIDLength, _serverResponse, _serverResponseLength);
+            Exchange::OCDM_RESULT result = implementation->CommitSecureStop(static_cast<const std::string&>(_keySystem), _sessionID, sessionIDLen, _serverResponse, serverResponseLen);
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Exchange::OCDM_RESULT>(result);
@@ -797,8 +795,7 @@ namespace ProxyStubs {
             uint8_t* _keyStoreHash{};
 
             if (_keyStoreHashLength != 0) {
-                _keyStoreHash = static_cast<uint8_t*>(ALLOCA(_keyStoreHashLength * sizeof(uint8_t)));
-                ASSERT(_keyStoreHash != nullptr);
+                _keyStoreHash = static_cast<uint8_t*>(ALLOCA(_keyStoreHashLength));
             }
 
             Exchange::OCDM_RESULT result = implementation->GetKeyStoreHash(static_cast<const std::string&>(_keySystem), _keyStoreHash, _keyStoreHashLength);
@@ -821,8 +818,7 @@ namespace ProxyStubs {
             uint8_t* _secureStoreHash{};
 
             if (_secureStoreHashLength != 0) {
-                _secureStoreHash = static_cast<uint8_t*>(ALLOCA(_secureStoreHashLength * sizeof(uint8_t)));
-                ASSERT(_secureStoreHash != nullptr);
+                _secureStoreHash = static_cast<uint8_t*>(ALLOCA(_secureStoreHashLength));
             }
 
             Exchange::OCDM_RESULT result = implementation->GetSecureStoreHash(static_cast<const std::string&>(_keySystem), _secureStoreHash, _secureStoreHashLength);
@@ -864,211 +860,7 @@ namespace ProxyStubs {
         {
         }
 
-        Exchange::OCDM_RESULT Load() override
-        {
-            IPCMessage message(UnknownProxyType::Message(0));
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        void Update(const uint8_t* _keyMessage, const uint16_t _keyLength) override
-        {
-            IPCMessage message(UnknownProxyType::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint16_t>(_keyLength, _keyMessage);
-
-            UnknownProxyType::Invoke(message);
-        }
-
-        Exchange::OCDM_RESULT Remove() override
-        {
-            IPCMessage message(UnknownProxyType::Message(2));
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        std::string Metadata() const override
-        {
-            IPCMessage message(UnknownProxyType::Message(3));
-
-            std::string result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT Metricdata(uint32_t& _bufferSize, uint8_t* _buffer) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(4));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_bufferSize);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint32_t>(_bufferSize, _buffer);
-                _bufferSize = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::ISession::KeyStatus Status() const override
-        {
-            IPCMessage message(UnknownProxyType::Message(5));
-
-            Exchange::ISession::KeyStatus result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::ISession::KeyStatus>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::ISession::KeyStatus Status(const uint8_t* _keyID, const uint8_t _keyIDLength) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(6));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint8_t>(_keyIDLength, _keyID);
-
-            Exchange::ISession::KeyStatus result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::ISession::KeyStatus>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT CreateSessionBuffer(string& _bufferID) override
-        {
-            IPCMessage message(UnknownProxyType::Message(7));
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                _bufferID = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        std::string BufferId() const override
-        {
-            IPCMessage message(UnknownProxyType::Message(8));
-
-            std::string result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        std::string SessionId() const override
-        {
-            IPCMessage message(UnknownProxyType::Message(9));
-
-            std::string result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        void Close() override
-        {
-            IPCMessage message(UnknownProxyType::Message(10));
-
-            UnknownProxyType::Invoke(message);
-        }
-
-        void ResetOutputProtection() override
-        {
-            IPCMessage message(UnknownProxyType::Message(11));
-
-            UnknownProxyType::Invoke(message);
-        }
-
-        void Revoke(Exchange::ISession::ICallback* _callback) override
-        {
-            IPCMessage message(UnknownProxyType::Message(12));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-
-                _Complete(reader);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-        }
-
-    private:
-        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -1084,6 +876,169 @@ namespace ProxyStubs {
             }
 
             return (result);
+        }
+
+        Exchange::OCDM_RESULT Load() override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        void Update(const uint8_t* _keyMessage, const uint16_t keyMessageLen) override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Buffer<uint16_t>(keyMessageLen, _keyMessage);
+
+            UnknownProxyType::Invoke(message);
+        }
+
+        Exchange::OCDM_RESULT Remove() override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        std::string Metadata() const override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            std::string result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Text();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT Metricdata(uint32_t& _bufferSize, uint8_t* _buffer) const override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<uint32_t>(_bufferSize);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint32_t>(_bufferSize, _buffer);
+            _bufferSize = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        Exchange::ISession::KeyStatus Status() const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            Exchange::ISession::KeyStatus result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::ISession::KeyStatus>();
+
+            return (result);
+        }
+
+        Exchange::ISession::KeyStatus Status(const uint8_t* _keyID, const uint8_t keyIDLen) const override
+        {
+            IPCMessage message(BaseClass::Message(6));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Buffer<uint8_t>(keyIDLen, _keyID);
+
+            Exchange::ISession::KeyStatus result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::ISession::KeyStatus>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT CreateSessionBuffer(string& _bufferID) override
+        {
+            IPCMessage message(BaseClass::Message(7));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            _bufferID = reader.Text();
+
+            return (result);
+        }
+
+        std::string BufferId() const override
+        {
+            IPCMessage message(BaseClass::Message(8));
+
+            std::string result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Text();
+
+            return (result);
+        }
+
+        std::string SessionId() const override
+        {
+            IPCMessage message(BaseClass::Message(9));
+
+            std::string result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Text();
+
+            return (result);
+        }
+
+        void Close() override
+        {
+            IPCMessage message(BaseClass::Message(10));
+
+            UnknownProxyType::Invoke(message);
+        }
+
+        void ResetOutputProtection() override
+        {
+            IPCMessage message(BaseClass::Message(11));
+
+            UnknownProxyType::Invoke(message);
+        }
+
+        void Revoke(Exchange::ISession::ICallback* _callback) override
+        {
+            IPCMessage message(BaseClass::Message(12));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+            Complete(reader);
         }
 
     }; // class ExchangeSessionProxy
@@ -1105,35 +1060,53 @@ namespace ProxyStubs {
         {
         }
 
-        void OnKeyMessage(const uint8_t* _keyMessage, const uint16_t _keyLength, const std::string& _URL) override
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+        void OnKeyMessage(const uint8_t* _keyMessage, const uint16_t keyMessageLen, const std::string& _URL) override
+        {
+            IPCMessage message(BaseClass::Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint16_t>(_keyLength, _keyMessage);
-            writer.Text(_URL);
+            writer.Buffer<uint16_t>(keyMessageLen, _keyMessage);
+            writer.Text(static_cast<const std::string&>(_URL));
 
             UnknownProxyType::Invoke(message);
         }
 
         void OnError(const int16_t _error, const Exchange::OCDM_RESULT _sysError, const std::string& _errorMessage) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<int16_t>(_error);
             writer.Number<Exchange::OCDM_RESULT>(_sysError);
-            writer.Text(_errorMessage);
+            writer.Text(static_cast<const std::string&>(_errorMessage));
 
             UnknownProxyType::Invoke(message);
         }
 
-        void OnKeyStatusUpdate(const uint8_t* _keyID, const uint8_t _keyIDLength, const Exchange::ISession::KeyStatus _status) override
+        void OnKeyStatusUpdate(const uint8_t* _keyID, const uint8_t keyIDLen, const Exchange::ISession::KeyStatus _status) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint8_t>(_keyIDLength, _keyID);
+            writer.Buffer<uint8_t>(keyIDLen, _keyID);
             writer.Number<Exchange::ISession::KeyStatus>(_status);
 
             UnknownProxyType::Invoke(message);
@@ -1141,7 +1114,7 @@ namespace ProxyStubs {
 
         void OnKeyStatusesUpdated() const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             UnknownProxyType::Invoke(message);
         }
@@ -1169,63 +1142,69 @@ namespace ProxyStubs {
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         uint32_t SessionIdExt() const override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             uint32_t result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
 
             return (result);
         }
 
         std::string BufferIdExt() const override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             std::string result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Text();
 
             return (result);
         }
 
-        Exchange::OCDM_RESULT SetDrmHeader(const uint8_t* _drmHeader, uint16_t _drmHeaderLength) override
+        Exchange::OCDM_RESULT SetDrmHeader(const uint8_t* _drmHeader, uint16_t drmHeaderLen) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint16_t>(_drmHeaderLength, _drmHeader);
+            writer.Buffer<uint16_t>(drmHeaderLen, _drmHeader);
 
             Exchange::OCDM_RESULT result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
 
             return (result);
         }
 
         Exchange::OCDM_RESULT GetChallengeDataExt(uint8_t* _challenge, uint16_t& _challengeSize, uint32_t _isLDL) override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint16_t>(_challengeSize);
@@ -1233,90 +1212,70 @@ namespace ProxyStubs {
 
             Exchange::OCDM_RESULT result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint16_t>(_challengeSize, _challenge);
-                _challengeSize = reader.Number<uint16_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint16_t>(_challengeSize, _challenge);
+            _challengeSize = reader.Number<uint16_t>();
 
             return (result);
         }
 
         Exchange::OCDM_RESULT CancelChallengeDataExt() override
         {
-            IPCMessage message(UnknownProxyType::Message(4));
+            IPCMessage message(BaseClass::Message(4));
 
             Exchange::OCDM_RESULT result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
 
             return (result);
         }
 
-        Exchange::OCDM_RESULT StoreLicenseData(const uint8_t* _licenseData, uint16_t _licenseDataSize, uint8_t* _secureStopId) override
+        Exchange::OCDM_RESULT StoreLicenseData(const uint8_t* _licenseData, uint16_t licenseDataLen, uint8_t* _secureStopId) override
         {
-            IPCMessage message(UnknownProxyType::Message(5));
+            IPCMessage message(BaseClass::Message(5));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint16_t>(_licenseDataSize, _licenseData);
+            writer.Buffer<uint16_t>(licenseDataLen, _licenseData);
 
             Exchange::OCDM_RESULT result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Copy(16, _secureStopId);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint8_t>(16, _secureStopId);
 
             return (result);
         }
 
-        Exchange::OCDM_RESULT SelectKeyId(const uint8_t _keyLength, const uint8_t* _keyId) override
+        Exchange::OCDM_RESULT SelectKeyId(const uint8_t keyIdLen, const uint8_t* _keyId) override
         {
-            IPCMessage message(UnknownProxyType::Message(6));
+            IPCMessage message(BaseClass::Message(6));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Buffer<uint8_t>(_keyLength, _keyId);
+            writer.Buffer<uint8_t>(keyIdLen, _keyId);
 
             Exchange::OCDM_RESULT result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
 
             return (result);
         }
 
         Exchange::OCDM_RESULT CleanDecryptContext() override
         {
-            IPCMessage message(UnknownProxyType::Message(7));
+            IPCMessage message(BaseClass::Message(7));
 
             Exchange::OCDM_RESULT result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
 
             return (result);
         }
@@ -1354,398 +1313,7 @@ namespace ProxyStubs {
         {
         }
 
-        bool IsTypeSupported(const std::string& _keySystem, const std::string& _mimeType) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Text(_mimeType);
-
-            bool result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT Metadata(const std::string& _keySystem, std::string& _metadata) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                _metadata = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT Metricdata(const std::string& _keySystem, uint32_t& _bufferSize, uint8_t* _buffer) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(2));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Number<uint32_t>(_bufferSize);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint32_t>(_bufferSize, _buffer);
-                _bufferSize = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT CreateSession(const string& _keySystem, const int32_t _licenseType, const std::string& _initDataType, const uint8_t* _initData, const uint16_t _initDataLength, const uint8_t* _CDMData, const uint16_t _CDMDataLength, Exchange::ISession::ICallback* _callback, std::string& _sessionId, Exchange::ISession*& _session) override
-        {
-            IPCMessage message(UnknownProxyType::Message(3));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Number<int32_t>(_licenseType);
-            writer.Text(_initDataType);
-            writer.Buffer<uint16_t>(_initDataLength, _initData);
-            writer.Buffer<uint16_t>(_CDMDataLength, _CDMData);
-            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                _sessionId = reader.Text();
-                _session = reinterpret_cast<Exchange::ISession*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::ISession::ID));
-
-                _Complete(reader);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT SetServerCertificate(const string& _keySystem, const uint8_t* _serverCertificate, const uint16_t _serverCertificateLength) override
-        {
-            IPCMessage message(UnknownProxyType::Message(4));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Buffer<uint16_t>(_serverCertificateLength, _serverCertificate);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        uint64_t GetDrmSystemTime(const std::string& _keySystem) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(5));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            uint64_t result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint64_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        std::string GetVersionExt(const std::string& _keySystem) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(6));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            std::string result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        uint32_t GetLdlSessionLimit(const std::string& _keySystem) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(7));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            uint32_t result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        bool IsSecureStopEnabled(const std::string& _keySystem) override
-        {
-            IPCMessage message(UnknownProxyType::Message(8));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            bool result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT EnableSecureStop(const std::string& _keySystem, bool _enable) override
-        {
-            IPCMessage message(UnknownProxyType::Message(9));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Boolean(_enable);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        uint32_t ResetSecureStops(const std::string& _keySystem) override
-        {
-            IPCMessage message(UnknownProxyType::Message(10));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            uint32_t result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT GetSecureStopIds(const std::string& _keySystem, uint8_t* _ids, uint16_t _idsLength, uint32_t& _count) override
-        {
-            IPCMessage message(UnknownProxyType::Message(11));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Number<uint16_t>(_idsLength);
-            writer.Number<uint32_t>(_count);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint16_t>(_idsLength, _ids);
-                _count = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT GetSecureStop(const std::string& _keySystem, const uint8_t* _sessionID, uint16_t _sessionIDLength, uint8_t* _rawData, uint16_t& _rawSize) override
-        {
-            IPCMessage message(UnknownProxyType::Message(12));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Buffer<uint16_t>(_sessionIDLength, _sessionID);
-            writer.Number<uint16_t>(_rawSize);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint16_t>(_rawSize, _rawData);
-                _rawSize = reader.Number<uint16_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT CommitSecureStop(const std::string& _keySystem, const uint8_t* _sessionID, uint16_t _sessionIDLength, const uint8_t* _serverResponse, uint16_t _serverResponseLength) override
-        {
-            IPCMessage message(UnknownProxyType::Message(13));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Buffer<uint16_t>(_sessionIDLength, _sessionID);
-            writer.Buffer<uint16_t>(_serverResponseLength, _serverResponse);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT DeleteKeyStore(const std::string& _keySystem) override
-        {
-            IPCMessage message(UnknownProxyType::Message(14));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT DeleteSecureStore(const std::string& _keySystem) override
-        {
-            IPCMessage message(UnknownProxyType::Message(15));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT GetKeyStoreHash(const std::string& _keySystem, uint8_t* _keyStoreHash, uint16_t _keyStoreHashLength) override
-        {
-            IPCMessage message(UnknownProxyType::Message(16));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Number<uint16_t>(_keyStoreHashLength);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint16_t>(_keyStoreHashLength, _keyStoreHash);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-        Exchange::OCDM_RESULT GetSecureStoreHash(const std::string& _keySystem, uint8_t* _secureStoreHash, uint16_t _secureStoreHashLength) override
-        {
-            IPCMessage message(UnknownProxyType::Message(17));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_keySystem);
-            writer.Number<uint16_t>(_secureStoreHashLength);
-
-            Exchange::OCDM_RESULT result{};
-
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::OCDM_RESULT>();
-                reader.Buffer<uint16_t>(_secureStoreHashLength, _secureStoreHash);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (result);
-        }
-
-    private:
-        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -1759,6 +1327,324 @@ namespace ProxyStubs {
                 result = UnknownProxyType::Complete(implementation, id, how);
                 if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
             }
+
+            return (result);
+        }
+
+        bool IsTypeSupported(const std::string& _keySystem, const std::string& _mimeType) const override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Text(static_cast<const std::string&>(_mimeType));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT Metadata(const std::string& _keySystem, std::string& _metadata) const override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            _metadata = reader.Text();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT Metricdata(const std::string& _keySystem, uint32_t& _bufferSize, uint8_t* _buffer) const override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Number<uint32_t>(_bufferSize);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint32_t>(_bufferSize, _buffer);
+            _bufferSize = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT CreateSession(const string& _keySystem, const int32_t _licenseType, const std::string& _initDataType, const uint8_t* _initData, const uint16_t initDataLen, const uint8_t* _CDMData, const uint16_t CDMDataLen, Exchange::ISession::ICallback* _callback, std::string& _sessionId, Exchange::ISession*& _session) override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_keySystem));
+            writer.Number<int32_t>(_licenseType);
+            writer.Text(static_cast<const std::string&>(_initDataType));
+            writer.Buffer<uint16_t>(initDataLen, _initData);
+            writer.Buffer<uint16_t>(CDMDataLen, _CDMData);
+            writer.Number<Core::instance_id>(RPC::instance_cast(_callback));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            _sessionId = reader.Text();
+            _session = reinterpret_cast<Exchange::ISession*>(Interface(reader.Number<Core::instance_id>(), Exchange::ISession::ID));
+
+            Complete(reader);
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT SetServerCertificate(const string& _keySystem, const uint8_t* _serverCertificate, const uint16_t serverCertificateLen) override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_keySystem));
+            writer.Buffer<uint16_t>(serverCertificateLen, _serverCertificate);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        uint64_t GetDrmSystemTime(const std::string& _keySystem) const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            uint64_t result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint64_t>();
+
+            return (result);
+        }
+
+        std::string GetVersionExt(const std::string& _keySystem) const override
+        {
+            IPCMessage message(BaseClass::Message(6));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            std::string result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Text();
+
+            return (result);
+        }
+
+        uint32_t GetLdlSessionLimit(const std::string& _keySystem) const override
+        {
+            IPCMessage message(BaseClass::Message(7));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            uint32_t result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        bool IsSecureStopEnabled(const std::string& _keySystem) override
+        {
+            IPCMessage message(BaseClass::Message(8));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            bool result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT EnableSecureStop(const std::string& _keySystem, bool _enable) override
+        {
+            IPCMessage message(BaseClass::Message(9));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Boolean(_enable);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        uint32_t ResetSecureStops(const std::string& _keySystem) override
+        {
+            IPCMessage message(BaseClass::Message(10));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            uint32_t result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT GetSecureStopIds(const std::string& _keySystem, uint8_t* _ids, uint16_t _idsLength, uint32_t& _count) override
+        {
+            IPCMessage message(BaseClass::Message(11));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Number<uint16_t>(_idsLength);
+            writer.Number<uint32_t>(_count);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint16_t>(_idsLength, _ids);
+            _count = reader.Number<uint32_t>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT GetSecureStop(const std::string& _keySystem, const uint8_t* _sessionID, uint16_t sessionIDLen, uint8_t* _rawData, uint16_t& _rawSize) override
+        {
+            IPCMessage message(BaseClass::Message(12));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Buffer<uint16_t>(sessionIDLen, _sessionID);
+            writer.Number<uint16_t>(_rawSize);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint16_t>(_rawSize, _rawData);
+            _rawSize = reader.Number<uint16_t>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT CommitSecureStop(const std::string& _keySystem, const uint8_t* _sessionID, uint16_t sessionIDLen, const uint8_t* _serverResponse, uint16_t serverResponseLen) override
+        {
+            IPCMessage message(BaseClass::Message(13));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Buffer<uint16_t>(sessionIDLen, _sessionID);
+            writer.Buffer<uint16_t>(serverResponseLen, _serverResponse);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT DeleteKeyStore(const std::string& _keySystem) override
+        {
+            IPCMessage message(BaseClass::Message(14));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT DeleteSecureStore(const std::string& _keySystem) override
+        {
+            IPCMessage message(BaseClass::Message(15));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT GetKeyStoreHash(const std::string& _keySystem, uint8_t* _keyStoreHash, uint16_t _keyStoreHashLength) override
+        {
+            IPCMessage message(BaseClass::Message(16));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Number<uint16_t>(_keyStoreHashLength);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint16_t>(_keyStoreHashLength, _keyStoreHash);
+
+            return (result);
+        }
+
+        Exchange::OCDM_RESULT GetSecureStoreHash(const std::string& _keySystem, uint8_t* _secureStoreHash, uint16_t _secureStoreHashLength) override
+        {
+            IPCMessage message(BaseClass::Message(17));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const std::string&>(_keySystem));
+            writer.Number<uint16_t>(_secureStoreHashLength);
+
+            Exchange::OCDM_RESULT result{};
+
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::OCDM_RESULT>();
+            reader.Buffer<uint16_t>(_secureStoreHashLength, _secureStoreHash);
 
             return (result);
         }

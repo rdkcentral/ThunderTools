@@ -1,4 +1,4 @@
-// C++ types for SystemManagement API.
+// C++ classes for SystemManagement API JSON-RPC API.
 // Generated automatically from 'IController.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace SystemManagement {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("newcallsign"), &Newcallsign);
             }
 
-            CloneParamsData(const CloneParamsData&) = delete;
-            CloneParamsData(CloneParamsData&&) noexcept  = delete;
-
-            CloneParamsData& operator=(const CloneParamsData&) = delete;
-            CloneParamsData& operator=(CloneParamsData&&) noexcept  = delete;
-
-            ~CloneParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Callsign.IsSet() == true) && (Newcallsign.IsSet() == true));
+                return (true);
             }
+
+            CloneParamsData(const CloneParamsData&) = delete;
+            CloneParamsData& operator=(const CloneParamsData&) = delete;
 
         public:
             Core::JSON::String Callsign; // Create a clone of given plugin to requested new callsign
@@ -54,27 +46,19 @@ namespace JsonData {
                 Add(_T("path"), &Path);
             }
 
-            DeleteParamsData(const DeleteParamsData&) = delete;
-            DeleteParamsData(DeleteParamsData&&) noexcept  = delete;
-
-            DeleteParamsData& operator=(const DeleteParamsData&) = delete;
-            DeleteParamsData& operator=(DeleteParamsData&&) noexcept  = delete;
-
-            ~DeleteParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Path.IsSet() == true);
+                return (true);
             }
+
+            DeleteParamsData(const DeleteParamsData&) = delete;
+            DeleteParamsData& operator=(const DeleteParamsData&) = delete;
 
         public:
             Core::JSON::String Path; // Removes contents of a directory from the persistent storage.
         }; // class DeleteParamsData
 
     } // namespace SystemManagement
-
-    POP_WARNING()
 
 } // namespace JsonData
 

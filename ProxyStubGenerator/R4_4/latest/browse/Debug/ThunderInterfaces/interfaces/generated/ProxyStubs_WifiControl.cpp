@@ -2,9 +2,9 @@
 // generated automatically from "IWifiControl.h"
 //
 // implements COM-RPC proxy stubs for:
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IWifiControl::SecurityInfo, INTERFACE_ID = Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR] [[iterator]]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IWifiControl::NetworkInfo, INTERFACE_ID = Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR] [[iterator]]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = string, INTERFACE_ID = RPC::ID_STRINGITERATOR] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IWifiControl::SecurityInfo, INTERFACE_ID = Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IWifiControl::NetworkInfo, INTERFACE_ID = Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = string, INTERFACE_ID = RPC::ID_STRINGITERATOR]
 //   - class Exchange::IWifiControl
 //   - class Exchange::IWifiControl::INotification
 //
@@ -26,7 +26,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance_c46f4bc0bed3f7fd interface stub definitions
+    // RPC::IIteratorTypeInstance7EF8DD26 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IWifiControl::SecurityInfo&) = 0
@@ -37,7 +37,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IWifiControl::SecurityInfo Current() const = 0
     //
 
-    static ProxyStub::MethodHandler RPCIteratorTypeInstance_c46f4bc0bed3f7fdStubMethods[] = {
+    ProxyStub::MethodHandler RPCIteratorTypeInstance7EF8DD26StubMethods[] = {
         // (0) virtual bool Next(Exchange::IWifiControl::SecurityInfo&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -131,10 +131,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IWifiControl::SecurityInfo::Key>(result.keys);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance_c46f4bc0bed3f7fdStubMethods
+    }; // RPCIteratorTypeInstance7EF8DD26StubMethods
 
     //
-    // RPC::IIteratorTypeInstance_7ed557741e4e75e2 interface stub definitions
+    // RPC::IIteratorTypeInstance2926998A interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IWifiControl::NetworkInfo&) = 0
@@ -145,7 +145,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IWifiControl::NetworkInfo Current() const = 0
     //
 
-    static ProxyStub::MethodHandler RPCIteratorTypeInstance_7ed557741e4e75e2StubMethods[] = {
+    ProxyStub::MethodHandler RPCIteratorTypeInstance2926998AStubMethods[] = {
         // (0) virtual bool Next(Exchange::IWifiControl::NetworkInfo&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -248,10 +248,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IWifiControl::Security>(result.security);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance_7ed557741e4e75e2StubMethods
+    }; // RPCIteratorTypeInstance2926998AStubMethods
 
     //
-    // RPC::IIteratorTypeInstance_b3acff3685df4032 interface stub definitions
+    // RPC::IIteratorTypeInstanceBD0DE7AC interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(string&) = 0
@@ -262,7 +262,7 @@ namespace ProxyStubs {
     //  (5) virtual string Current() const = 0
     //
 
-    static ProxyStub::MethodHandler RPCIteratorTypeInstance_b3acff3685df4032StubMethods[] = {
+    ProxyStub::MethodHandler RPCIteratorTypeInstanceBD0DE7ACStubMethods[] = {
         // (0) virtual bool Next(string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -353,7 +353,7 @@ namespace ProxyStubs {
             writer.Text(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance_b3acff3685df4032StubMethods
+    }; // RPCIteratorTypeInstanceBD0DE7ACStubMethods
 
     //
     // Exchange::IWifiControl interface stub definitions
@@ -373,7 +373,7 @@ namespace ProxyStubs {
     //  (11) virtual uint32_t Status(string&, bool&) const = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeWifiControlStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeWifiControlStubMethods[] = {
         // (0) virtual uint32_t Register(Exchange::IWifiControl::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -381,13 +381,14 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+            const Core::instance_id sinkImplementation = reader.Number<Core::instance_id>();
 
-            Exchange::IWifiControl::INotification* _sink{};
-            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
-            if (_sinkInstanceId__ != 0) {
-                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
-                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+            Exchange::IWifiControl::INotification* _sink = nullptr;
+            ProxyStub::UnknownProxy* sinkProxy = nullptr;
+            if (sinkImplementation != 0) {
+                sinkProxy = RPC::Administrator::Instance().ProxyInstance(channel, sinkImplementation, false, _sink);
+
+                ASSERT((_sink != nullptr) && (sinkProxy != nullptr));
             }
 
             uint32_t result = implementation->Register(_sink);
@@ -395,8 +396,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (_sinkProxy__ != nullptr) {
-                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+            if (sinkProxy != nullptr) {
+                RPC::Administrator::Instance().Release(sinkProxy, message->Response());
             }
         },
 
@@ -407,13 +408,14 @@ namespace ProxyStubs {
             ASSERT(implementation != nullptr);
 
             RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+            const Core::instance_id sinkImplementation = reader.Number<Core::instance_id>();
 
-            Exchange::IWifiControl::INotification* _sink{};
-            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
-            if (_sinkInstanceId__ != 0) {
-                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
-                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+            Exchange::IWifiControl::INotification* _sink = nullptr;
+            ProxyStub::UnknownProxy* sinkProxy = nullptr;
+            if (sinkImplementation != 0) {
+                sinkProxy = RPC::Administrator::Instance().ProxyInstance(channel, sinkImplementation, false, _sink);
+
+                ASSERT((_sink != nullptr) && (sinkProxy != nullptr));
             }
 
             uint32_t result = implementation->Unregister(_sink);
@@ -421,8 +423,8 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<uint32_t>(result);
 
-            if (_sinkProxy__ != nullptr) {
-                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+            if (sinkProxy != nullptr) {
+                RPC::Administrator::Instance().Release(sinkProxy, message->Response());
             }
         },
 
@@ -608,7 +610,7 @@ namespace ProxyStubs {
     //  (1) virtual void ConnectionChange(const string&) = 0
     //
 
-    static ProxyStub::MethodHandler ExchangeWifiControlNotificationStubMethods[] = {
+    ProxyStub::MethodHandler ExchangeWifiControlNotificationStubMethods[] = {
         // (0) virtual void NetworkChange() = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -637,7 +639,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance_c46f4bc0bed3f7fd interface proxy definitions
+    // RPC::IIteratorTypeInstance7EF8DD26 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IWifiControl::SecurityInfo&) = 0
@@ -648,54 +650,64 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IWifiControl::SecurityInfo Current() const = 0
     //
 
-    class RPCIteratorTypeInstance_c46f4bc0bed3f7fdProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>> {
+    class RPCIteratorTypeInstance7EF8DD26Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>> {
     public:
-        RPCIteratorTypeInstance_c46f4bc0bed3f7fdProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance7EF8DD26Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         bool Next(Exchange::IWifiControl::SecurityInfo& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info.method = reader.Number<Exchange::IWifiControl::Security>();
-                _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info.method = reader.Number<Exchange::IWifiControl::Security>();
+            _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
 
             return (result);
         }
 
         bool Previous(Exchange::IWifiControl::SecurityInfo& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info.method = reader.Number<Exchange::IWifiControl::Security>();
-                _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info.method = reader.Number<Exchange::IWifiControl::Security>();
+            _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -705,60 +717,48 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(UnknownProxyType::Message(4));
+            IPCMessage message(BaseClass::Message(4));
 
             uint32_t result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
 
             return (result);
         }
 
         Exchange::IWifiControl::SecurityInfo Current() const override
         {
-            IPCMessage message(UnknownProxyType::Message(5));
+            IPCMessage message(BaseClass::Message(5));
 
             Exchange::IWifiControl::SecurityInfo result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result.method = reader.Number<Exchange::IWifiControl::Security>();
-                result.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result.method = reader.Number<Exchange::IWifiControl::Security>();
+            result.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance_c46f4bc0bed3f7fdProxy
+    }; // class RPCIteratorTypeInstance7EF8DD26Proxy
 
     //
-    // RPC::IIteratorTypeInstance_7ed557741e4e75e2 interface proxy definitions
+    // RPC::IIteratorTypeInstance2926998A interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IWifiControl::NetworkInfo&) = 0
@@ -769,60 +769,70 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IWifiControl::NetworkInfo Current() const = 0
     //
 
-    class RPCIteratorTypeInstance_7ed557741e4e75e2Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>> {
+    class RPCIteratorTypeInstance2926998AProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>> {
     public:
-        RPCIteratorTypeInstance_7ed557741e4e75e2Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance2926998AProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         bool Next(Exchange::IWifiControl::NetworkInfo& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info.ssid = reader.Text();
-                _info.bssid = reader.Number<uint64_t>();
-                _info.frequency = reader.Number<uint32_t>();
-                _info.signal = reader.Number<int32_t>();
-                _info.security = reader.Number<Exchange::IWifiControl::Security>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info.ssid = reader.Text();
+            _info.bssid = reader.Number<uint64_t>();
+            _info.frequency = reader.Number<uint32_t>();
+            _info.signal = reader.Number<int32_t>();
+            _info.security = reader.Number<Exchange::IWifiControl::Security>();
 
             return (result);
         }
 
         bool Previous(Exchange::IWifiControl::NetworkInfo& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info.ssid = reader.Text();
-                _info.bssid = reader.Number<uint64_t>();
-                _info.frequency = reader.Number<uint32_t>();
-                _info.signal = reader.Number<int32_t>();
-                _info.security = reader.Number<Exchange::IWifiControl::Security>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info.ssid = reader.Text();
+            _info.bssid = reader.Number<uint64_t>();
+            _info.frequency = reader.Number<uint32_t>();
+            _info.signal = reader.Number<int32_t>();
+            _info.security = reader.Number<Exchange::IWifiControl::Security>();
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -832,63 +842,51 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(UnknownProxyType::Message(4));
+            IPCMessage message(BaseClass::Message(4));
 
             uint32_t result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
 
             return (result);
         }
 
         Exchange::IWifiControl::NetworkInfo Current() const override
         {
-            IPCMessage message(UnknownProxyType::Message(5));
+            IPCMessage message(BaseClass::Message(5));
 
             Exchange::IWifiControl::NetworkInfo result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result.ssid = reader.Text();
-                result.bssid = reader.Number<uint64_t>();
-                result.frequency = reader.Number<uint32_t>();
-                result.signal = reader.Number<int32_t>();
-                result.security = reader.Number<Exchange::IWifiControl::Security>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result.ssid = reader.Text();
+            result.bssid = reader.Number<uint64_t>();
+            result.frequency = reader.Number<uint32_t>();
+            result.signal = reader.Number<int32_t>();
+            result.security = reader.Number<Exchange::IWifiControl::Security>();
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance_7ed557741e4e75e2Proxy
+    }; // class RPCIteratorTypeInstance2926998AProxy
 
     //
-    // RPC::IIteratorTypeInstance_b3acff3685df4032 interface proxy definitions
+    // RPC::IIteratorTypeInstanceBD0DE7AC interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(string&) = 0
@@ -899,52 +897,62 @@ namespace ProxyStubs {
     //  (5) virtual string Current() const = 0
     //
 
-    class RPCIteratorTypeInstance_b3acff3685df4032Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>> {
+    class RPCIteratorTypeInstanceBD0DE7ACProxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>> {
     public:
-        RPCIteratorTypeInstance_b3acff3685df4032Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstanceBD0DE7ACProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         bool Next(string& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Text();
 
             return (result);
         }
 
         bool Previous(string& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Text();
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -954,56 +962,44 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(UnknownProxyType::Message(4));
+            IPCMessage message(BaseClass::Message(4));
 
             uint32_t result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
 
             return (result);
         }
 
         string Current() const override
         {
-            IPCMessage message(UnknownProxyType::Message(5));
+            IPCMessage message(BaseClass::Message(5));
 
             string result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Text();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Text();
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance_b3acff3685df4032Proxy
+    }; // class RPCIteratorTypeInstanceBD0DE7ACProxy
 
     //
     // Exchange::IWifiControl interface proxy definitions
@@ -1030,232 +1026,7 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Register(Exchange::IWifiControl::INotification* _sink) override
-        {
-            IPCMessage message(UnknownProxyType::Message(0));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                _Complete(reader);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Unregister(Exchange::IWifiControl::INotification* _sink) override
-        {
-            IPCMessage message(UnknownProxyType::Message(1));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-
-                _Complete(reader);
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Networks(Exchange::IWifiControl::INetworkInfoIterator*& _networkInfoList) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(2));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                _networkInfoList = reinterpret_cast<Exchange::IWifiControl::INetworkInfoIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IWifiControl::INetworkInfoIterator::ID));
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Securities(const string& _ssid, Exchange::IWifiControl::ISecurityIterator*& _securityMethods) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(3));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_ssid);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                _securityMethods = reinterpret_cast<Exchange::IWifiControl::ISecurityIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IWifiControl::ISecurityIterator::ID));
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Configs(Exchange::IWifiControl::IStringIterator*& _configs) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(4));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                _configs = reinterpret_cast<Exchange::IWifiControl::IStringIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IWifiControl::IStringIterator::ID));
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Config(const string& _ssid, Exchange::IWifiControl::ConfigInfo& _configInfo) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(5));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_ssid);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                _configInfo.hidden = reader.Boolean();
-                _configInfo.accesspoint = reader.Boolean();
-                _configInfo.ssid = reader.Text();
-                _configInfo.secret = reader.Text();
-                _configInfo.identity = reader.Text();
-                _configInfo.method = reader.Number<Exchange::IWifiControl::Security>();
-                _configInfo.key = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Config(const string& _ssid, const Exchange::IWifiControl::ConfigInfo& _configInfo) override
-        {
-            IPCMessage message(UnknownProxyType::Message(6));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_ssid);
-            writer.Boolean(_configInfo.hidden);
-            writer.Boolean(_configInfo.accesspoint);
-            writer.Text(_configInfo.ssid);
-            writer.Text(_configInfo.secret);
-            writer.Text(_configInfo.identity);
-            writer.Number<Exchange::IWifiControl::Security>(_configInfo.method);
-            writer.Number<Exchange::IWifiControl::SecurityInfo::Key>(_configInfo.key);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Scan() override
-        {
-            IPCMessage message(UnknownProxyType::Message(7));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t AbortScan() override
-        {
-            IPCMessage message(UnknownProxyType::Message(8));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Connect(const string& _configSSID) override
-        {
-            IPCMessage message(UnknownProxyType::Message(9));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_configSSID);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Disconnect(const string& _configSSID) override
-        {
-            IPCMessage message(UnknownProxyType::Message(10));
-
-            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_configSSID);
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-        uint32_t Status(string& _connectedSsid, bool& _isScanning) const override
-        {
-            IPCMessage message(UnknownProxyType::Message(11));
-
-            Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                hresult = reader.Number<uint32_t>();
-                _connectedSsid = reader.Text();
-                _isScanning = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
-
-            return (hresult);
-        }
-
-    private:
-        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
         {
             uint32_t result = Core::ERROR_NONE;
 
@@ -1271,6 +1042,240 @@ namespace ProxyStubs {
             }
 
             return (result);
+        }
+
+        uint32_t Register(Exchange::IWifiControl::INotification* _sink) override
+        {
+            IPCMessage message(BaseClass::Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                Complete(reader);
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Unregister(Exchange::IWifiControl::INotification* _sink) override
+        {
+            IPCMessage message(BaseClass::Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+
+                Complete(reader);
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Networks(Exchange::IWifiControl::INetworkInfoIterator*& _networkInfoList) const override
+        {
+            IPCMessage message(BaseClass::Message(2));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _networkInfoList = reinterpret_cast<Exchange::IWifiControl::INetworkInfoIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IWifiControl::INetworkInfoIterator::ID));
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Securities(const string& _ssid, Exchange::IWifiControl::ISecurityIterator*& _securityMethods) const override
+        {
+            IPCMessage message(BaseClass::Message(3));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_ssid));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _securityMethods = reinterpret_cast<Exchange::IWifiControl::ISecurityIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IWifiControl::ISecurityIterator::ID));
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Configs(Exchange::IWifiControl::IStringIterator*& _configs) const override
+        {
+            IPCMessage message(BaseClass::Message(4));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _configs = reinterpret_cast<Exchange::IWifiControl::IStringIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IWifiControl::IStringIterator::ID));
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Config(const string& _ssid, Exchange::IWifiControl::ConfigInfo& _configInfo) const override
+        {
+            IPCMessage message(BaseClass::Message(5));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_ssid));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _configInfo.hidden = reader.Boolean();
+                    _configInfo.accesspoint = reader.Boolean();
+                    _configInfo.ssid = reader.Text();
+                    _configInfo.secret = reader.Text();
+                    _configInfo.identity = reader.Text();
+                    _configInfo.method = reader.Number<Exchange::IWifiControl::Security>();
+                    _configInfo.key = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Config(const string& _ssid, const Exchange::IWifiControl::ConfigInfo& _configInfo) override
+        {
+            IPCMessage message(BaseClass::Message(6));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_ssid));
+            writer.Boolean(_configInfo.hidden);
+            writer.Boolean(_configInfo.accesspoint);
+            writer.Text(_configInfo.ssid);
+            writer.Text(_configInfo.secret);
+            writer.Text(_configInfo.identity);
+            writer.Number<Exchange::IWifiControl::Security>(_configInfo.method);
+            writer.Number<Exchange::IWifiControl::SecurityInfo::Key>(_configInfo.key);
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Scan() override
+        {
+            IPCMessage message(BaseClass::Message(7));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t AbortScan() override
+        {
+            IPCMessage message(BaseClass::Message(8));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Connect(const string& _configSSID) override
+        {
+            IPCMessage message(BaseClass::Message(9));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_configSSID));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Disconnect(const string& _configSSID) override
+        {
+            IPCMessage message(BaseClass::Message(10));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(static_cast<const string&>(_configSSID));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
+        }
+
+        uint32_t Status(string& _connectedSsid, bool& _isScanning) const override
+        {
+            IPCMessage message(BaseClass::Message(11));
+
+            Core::hresult hresult = UnknownProxyType::Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<uint32_t>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _connectedSsid = reader.Text();
+                    _isScanning = reader.Boolean();
+                }
+            } else {
+                hresult |= COM_ERROR;
+            }
+
+            return (hresult);
         }
 
     }; // class ExchangeWifiControlProxy
@@ -1290,19 +1295,37 @@ namespace ProxyStubs {
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         void NetworkChange() override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             UnknownProxyType::Invoke(message);
         }
 
         void ConnectionChange(const string& _ssid) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Text(_ssid);
+            writer.Text(static_cast<const string&>(_ssid));
 
             UnknownProxyType::Invoke(message);
         }
@@ -1318,9 +1341,9 @@ namespace ProxyStubs {
 
     namespace {
 
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>, RPCIteratorTypeInstance_c46f4bc0bed3f7fdStubMethods> RPCIteratorTypeInstance_c46f4bc0bed3f7fdStub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>, RPCIteratorTypeInstance_7ed557741e4e75e2StubMethods> RPCIteratorTypeInstance_7ed557741e4e75e2Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>, RPCIteratorTypeInstance_b3acff3685df4032StubMethods> RPCIteratorTypeInstance_b3acff3685df4032Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>, RPCIteratorTypeInstance7EF8DD26StubMethods> RPCIteratorTypeInstance7EF8DD26Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>, RPCIteratorTypeInstance2926998AStubMethods> RPCIteratorTypeInstance2926998AStub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>, RPCIteratorTypeInstanceBD0DE7ACStubMethods> RPCIteratorTypeInstanceBD0DE7ACStub;
         typedef ProxyStub::UnknownStubType<Exchange::IWifiControl, ExchangeWifiControlStubMethods> ExchangeWifiControlStub;
         typedef ProxyStub::UnknownStubType<Exchange::IWifiControl::INotification, ExchangeWifiControlNotificationStubMethods> ExchangeWifiControlNotificationStub;
 
@@ -1328,9 +1351,9 @@ namespace ProxyStubs {
         public:
             Instantiation()
             {
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>, RPCIteratorTypeInstance_c46f4bc0bed3f7fdProxy, RPCIteratorTypeInstance_c46f4bc0bed3f7fdStub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>, RPCIteratorTypeInstance_7ed557741e4e75e2Proxy, RPCIteratorTypeInstance_7ed557741e4e75e2Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>, RPCIteratorTypeInstance_b3acff3685df4032Proxy, RPCIteratorTypeInstance_b3acff3685df4032Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>, RPCIteratorTypeInstance7EF8DD26Proxy, RPCIteratorTypeInstance7EF8DD26Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>, RPCIteratorTypeInstance2926998AProxy, RPCIteratorTypeInstance2926998AStub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>, RPCIteratorTypeInstanceBD0DE7ACProxy, RPCIteratorTypeInstanceBD0DE7ACStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IWifiControl, ExchangeWifiControlProxy, ExchangeWifiControlStub>();
                 RPC::Administrator::Instance().Announce<Exchange::IWifiControl::INotification, ExchangeWifiControlNotificationProxy, ExchangeWifiControlNotificationStub>();
             }

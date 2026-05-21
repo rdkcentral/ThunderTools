@@ -2,8 +2,8 @@
 // generated automatically from "IPlayerInfo.h"
 //
 // implements COM-RPC proxy stubs for:
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IPlayerProperties::AudioCodec, INTERFACE_ID = Exchange::ID_PLAYER_PROPERTIES_AUDIO] [[iterator]]
-//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t INTERFACE_ID> [with ELEMENT = Exchange::IPlayerProperties::VideoCodec, INTERFACE_ID = Exchange::ID_PLAYER_PROPERTIES_VIDEO] [[iterator]]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IPlayerProperties::AudioCodec, INTERFACE_ID = Exchange::ID_PLAYER_PROPERTIES_AUDIO]
+//   - class RPC::IIteratorType<typename ELEMENT, const uint32_t> [with ELEMENT = Exchange::IPlayerProperties::VideoCodec, INTERFACE_ID = Exchange::ID_PLAYER_PROPERTIES_VIDEO]
 //   - class Exchange::IPlayerProperties
 //
 
@@ -24,7 +24,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance_0169caca45928b69 interface stub definitions
+    // RPC::IIteratorTypeInstance27A6B4A9 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IPlayerProperties::AudioCodec&) = 0
@@ -35,7 +35,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IPlayerProperties::AudioCodec Current() const = 0
     //
 
-    static ProxyStub::MethodHandler RPCIteratorTypeInstance_0169caca45928b69StubMethods[] = {
+    ProxyStub::MethodHandler RPCIteratorTypeInstance27A6B4A9StubMethods[] = {
         // (0) virtual bool Next(Exchange::IPlayerProperties::AudioCodec&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -126,10 +126,10 @@ namespace ProxyStubs {
             writer.Number<Exchange::IPlayerProperties::AudioCodec>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance_0169caca45928b69StubMethods
+    }; // RPCIteratorTypeInstance27A6B4A9StubMethods
 
     //
-    // RPC::IIteratorTypeInstance_5574229b507eba30 interface stub definitions
+    // RPC::IIteratorTypeInstance37B90E11 interface stub definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IPlayerProperties::VideoCodec&) = 0
@@ -140,7 +140,7 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IPlayerProperties::VideoCodec Current() const = 0
     //
 
-    static ProxyStub::MethodHandler RPCIteratorTypeInstance_5574229b507eba30StubMethods[] = {
+    ProxyStub::MethodHandler RPCIteratorTypeInstance37B90E11StubMethods[] = {
         // (0) virtual bool Next(Exchange::IPlayerProperties::VideoCodec&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -231,7 +231,7 @@ namespace ProxyStubs {
             writer.Number<Exchange::IPlayerProperties::VideoCodec>(result);
         }
         , nullptr
-    }; // RPCIteratorTypeInstance_5574229b507eba30StubMethods
+    }; // RPCIteratorTypeInstance37B90E11StubMethods
 
     //
     // Exchange::IPlayerProperties interface stub definitions
@@ -243,7 +243,7 @@ namespace ProxyStubs {
     //  (3) virtual uint32_t IsAudioEquivalenceEnabled(bool&) const = 0
     //
 
-    static ProxyStub::MethodHandler ExchangePlayerPropertiesStubMethods[] = {
+    ProxyStub::MethodHandler ExchangePlayerPropertiesStubMethods[] = {
         // (0) virtual uint32_t AudioCodecs(Exchange::IPlayerProperties::IAudioCodecIterator*&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
@@ -315,7 +315,7 @@ namespace ProxyStubs {
     // -----------------------------------------------------------------
 
     //
-    // RPC::IIteratorTypeInstance_0169caca45928b69 interface proxy definitions
+    // RPC::IIteratorTypeInstance27A6B4A9 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IPlayerProperties::AudioCodec&) = 0
@@ -326,52 +326,62 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IPlayerProperties::AudioCodec Current() const = 0
     //
 
-    class RPCIteratorTypeInstance_0169caca45928b69Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>> {
+    class RPCIteratorTypeInstance27A6B4A9Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>> {
     public:
-        RPCIteratorTypeInstance_0169caca45928b69Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance27A6B4A9Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         bool Next(Exchange::IPlayerProperties::AudioCodec& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info = reader.Number<Exchange::IPlayerProperties::AudioCodec>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IPlayerProperties::AudioCodec>();
 
             return (result);
         }
 
         bool Previous(Exchange::IPlayerProperties::AudioCodec& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info = reader.Number<Exchange::IPlayerProperties::AudioCodec>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IPlayerProperties::AudioCodec>();
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -381,59 +391,47 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(UnknownProxyType::Message(4));
+            IPCMessage message(BaseClass::Message(4));
 
             uint32_t result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
 
             return (result);
         }
 
         Exchange::IPlayerProperties::AudioCodec Current() const override
         {
-            IPCMessage message(UnknownProxyType::Message(5));
+            IPCMessage message(BaseClass::Message(5));
 
             Exchange::IPlayerProperties::AudioCodec result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::IPlayerProperties::AudioCodec>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::IPlayerProperties::AudioCodec>();
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance_0169caca45928b69Proxy
+    }; // class RPCIteratorTypeInstance27A6B4A9Proxy
 
     //
-    // RPC::IIteratorTypeInstance_5574229b507eba30 interface proxy definitions
+    // RPC::IIteratorTypeInstance37B90E11 interface proxy definitions
     //
     // Methods:
     //  (0) virtual bool Next(Exchange::IPlayerProperties::VideoCodec&) = 0
@@ -444,52 +442,62 @@ namespace ProxyStubs {
     //  (5) virtual Exchange::IPlayerProperties::VideoCodec Current() const = 0
     //
 
-    class RPCIteratorTypeInstance_5574229b507eba30Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>> {
+    class RPCIteratorTypeInstance37B90E11Proxy final : public ProxyStub::UnknownProxyType<RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>> {
     public:
-        RPCIteratorTypeInstance_5574229b507eba30Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+        RPCIteratorTypeInstance37B90E11Proxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
             : BaseClass(channel, implementation, otherSideInformed)
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         bool Next(Exchange::IPlayerProperties::VideoCodec& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info = reader.Number<Exchange::IPlayerProperties::VideoCodec>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IPlayerProperties::VideoCodec>();
 
             return (result);
         }
 
         bool Previous(Exchange::IPlayerProperties::VideoCodec& _info) override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-                _info = reader.Number<Exchange::IPlayerProperties::VideoCodec>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
+            _info = reader.Number<Exchange::IPlayerProperties::VideoCodec>();
 
             return (result);
         }
 
         void Reset(const uint32_t _position) override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_position);
@@ -499,56 +507,44 @@ namespace ProxyStubs {
 
         bool IsValid() const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             bool result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Boolean();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Boolean();
 
             return (result);
         }
 
         uint32_t Count() const override
         {
-            IPCMessage message(UnknownProxyType::Message(4));
+            IPCMessage message(BaseClass::Message(4));
 
             uint32_t result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<uint32_t>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<uint32_t>();
 
             return (result);
         }
 
         Exchange::IPlayerProperties::VideoCodec Current() const override
         {
-            IPCMessage message(UnknownProxyType::Message(5));
+            IPCMessage message(BaseClass::Message(5));
 
             Exchange::IPlayerProperties::VideoCodec result{};
 
-            const Core::hresult hresult = UnknownProxyType::Invoke(message);
-            if (hresult == Core::ERROR_NONE) {
-                RPC::Data::Frame::Reader reader(message->Response().Reader());
-                result = reader.Number<Exchange::IPlayerProperties::VideoCodec>();
-            } else {
-                ASSERT((hresult & COM_ERROR) != 0);
-            }
+            UnknownProxyType::Invoke(message);
+            RPC::Data::Frame::Reader reader(message->Response().Reader());
+            result = reader.Number<Exchange::IPlayerProperties::VideoCodec>();
 
             return (result);
         }
 
-    }; // class RPCIteratorTypeInstance_5574229b507eba30Proxy
+    }; // class RPCIteratorTypeInstance37B90E11Proxy
 
     //
     // Exchange::IPlayerProperties interface proxy definitions
@@ -567,17 +563,37 @@ namespace ProxyStubs {
         {
         }
 
+        uint32_t Complete(RPC::Data::Frame::Reader& reader)
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = UnknownProxyType::Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
         uint32_t AudioCodecs(Exchange::IPlayerProperties::IAudioCodecIterator*& _codec) const override
         {
-            IPCMessage message(UnknownProxyType::Message(0));
+            IPCMessage message(BaseClass::Message(0));
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                _codec = reinterpret_cast<Exchange::IPlayerProperties::IAudioCodecIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IPlayerProperties::IAudioCodecIterator::ID));
+                if ((hresult & COM_ERROR) == 0) {
+                    _codec = reinterpret_cast<Exchange::IPlayerProperties::IAudioCodecIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IPlayerProperties::IAudioCodecIterator::ID));
+                }
             } else {
-                ASSERT((hresult & COM_ERROR) != 0);
+                hresult |= COM_ERROR;
             }
 
             return (hresult);
@@ -585,15 +601,17 @@ namespace ProxyStubs {
 
         uint32_t VideoCodecs(Exchange::IPlayerProperties::IVideoCodecIterator*& _codec) const override
         {
-            IPCMessage message(UnknownProxyType::Message(1));
+            IPCMessage message(BaseClass::Message(1));
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                _codec = reinterpret_cast<Exchange::IPlayerProperties::IVideoCodecIterator*>(UnknownProxyType::Interface(reader.Number<Core::instance_id>(), Exchange::IPlayerProperties::IVideoCodecIterator::ID));
+                if ((hresult & COM_ERROR) == 0) {
+                    _codec = reinterpret_cast<Exchange::IPlayerProperties::IVideoCodecIterator*>(Interface(reader.Number<Core::instance_id>(), Exchange::IPlayerProperties::IVideoCodecIterator::ID));
+                }
             } else {
-                ASSERT((hresult & COM_ERROR) != 0);
+                hresult |= COM_ERROR;
             }
 
             return (hresult);
@@ -601,15 +619,17 @@ namespace ProxyStubs {
 
         uint32_t Resolution(Exchange::IPlayerProperties::PlaybackResolution& _res) const override
         {
-            IPCMessage message(UnknownProxyType::Message(2));
+            IPCMessage message(BaseClass::Message(2));
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                _res = reader.Number<Exchange::IPlayerProperties::PlaybackResolution>();
+                if ((hresult & COM_ERROR) == 0) {
+                    _res = reader.Number<Exchange::IPlayerProperties::PlaybackResolution>();
+                }
             } else {
-                ASSERT((hresult & COM_ERROR) != 0);
+                hresult |= COM_ERROR;
             }
 
             return (hresult);
@@ -617,15 +637,17 @@ namespace ProxyStubs {
 
         uint32_t IsAudioEquivalenceEnabled(bool& _ae) const override
         {
-            IPCMessage message(UnknownProxyType::Message(3));
+            IPCMessage message(BaseClass::Message(3));
 
             Core::hresult hresult = UnknownProxyType::Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<uint32_t>();
-                _ae = reader.Boolean();
+                if ((hresult & COM_ERROR) == 0) {
+                    _ae = reader.Boolean();
+                }
             } else {
-                ASSERT((hresult & COM_ERROR) != 0);
+                hresult |= COM_ERROR;
             }
 
             return (hresult);
@@ -642,16 +664,16 @@ namespace ProxyStubs {
 
     namespace {
 
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>, RPCIteratorTypeInstance_0169caca45928b69StubMethods> RPCIteratorTypeInstance_0169caca45928b69Stub;
-        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>, RPCIteratorTypeInstance_5574229b507eba30StubMethods> RPCIteratorTypeInstance_5574229b507eba30Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>, RPCIteratorTypeInstance27A6B4A9StubMethods> RPCIteratorTypeInstance27A6B4A9Stub;
+        typedef ProxyStub::UnknownStubType<RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>, RPCIteratorTypeInstance37B90E11StubMethods> RPCIteratorTypeInstance37B90E11Stub;
         typedef ProxyStub::UnknownStubType<Exchange::IPlayerProperties, ExchangePlayerPropertiesStubMethods> ExchangePlayerPropertiesStub;
 
         static class Instantiation {
         public:
             Instantiation()
             {
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>, RPCIteratorTypeInstance_0169caca45928b69Proxy, RPCIteratorTypeInstance_0169caca45928b69Stub>();
-                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>, RPCIteratorTypeInstance_5574229b507eba30Proxy, RPCIteratorTypeInstance_5574229b507eba30Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>, RPCIteratorTypeInstance27A6B4A9Proxy, RPCIteratorTypeInstance27A6B4A9Stub>();
+                RPC::Administrator::Instance().Announce<RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>, RPCIteratorTypeInstance37B90E11Proxy, RPCIteratorTypeInstance37B90E11Stub>();
                 RPC::Administrator::Instance().Announce<Exchange::IPlayerProperties, ExchangePlayerPropertiesProxy, ExchangePlayerPropertiesStub>();
             }
             ~Instantiation()
