@@ -32,10 +32,13 @@ jobs:
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
     with:
       thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
+      thunder_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
 
   ThunderInterfaces:
     needs: Thunder
     uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@R4_4
+    with:
+      thunderinterfaces_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
 
   harvest_generated_code:
     runs-on: ubuntu-latest
