@@ -1,4 +1,4 @@
-// Enumeration code for Browser API.
+// Enumeration code for Browser API JSON-RPC API.
 // Generated automatically from 'Browser.json'.
 
 #include <core/Enumerate.h>

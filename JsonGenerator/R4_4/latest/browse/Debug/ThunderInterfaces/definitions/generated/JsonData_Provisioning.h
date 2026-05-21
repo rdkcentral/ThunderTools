@@ -1,4 +1,4 @@
-// C++ types for Provisioning API.
+// C++ classes for Provisioning API JSON-RPC API.
 // Generated automatically from 'Provisioning.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Provisioning {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("index"), &Index);
             }
 
-            IndexParamsData(const IndexParamsData&) = delete;
-            IndexParamsData(IndexParamsData&&) noexcept  = delete;
-
-            IndexParamsData& operator=(const IndexParamsData&) = delete;
-            IndexParamsData& operator=(IndexParamsData&&) noexcept  = delete;
-
-            ~IndexParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Label.IsSet() == true) && (Index.IsSet() == true));
+                return (true);
             }
+
+            IndexParamsData(const IndexParamsData&) = delete;
+            IndexParamsData& operator=(const IndexParamsData&) = delete;
 
         public:
             Core::JSON::String Label; // The label name for which the index should be changed
@@ -54,19 +46,13 @@ namespace JsonData {
                 Add(_T("status"), &Status);
             }
 
-            ProvisioningchangeParamsData(const ProvisioningchangeParamsData&) = delete;
-            ProvisioningchangeParamsData(ProvisioningchangeParamsData&&) noexcept  = delete;
-
-            ProvisioningchangeParamsData& operator=(const ProvisioningchangeParamsData&) = delete;
-            ProvisioningchangeParamsData& operator=(ProvisioningchangeParamsData&&) noexcept  = delete;
-
-            ~ProvisioningchangeParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Status.IsSet() == true);
+                return (true);
             }
+
+            ProvisioningchangeParamsData(const ProvisioningchangeParamsData&) = delete;
+            ProvisioningchangeParamsData& operator=(const ProvisioningchangeParamsData&) = delete;
 
         public:
             Core::JSON::DecUInt32 Status; // Provision status
@@ -82,19 +68,13 @@ namespace JsonData {
                 Add(_T("tokens"), &Tokens);
             }
 
-            StateData(const StateData&) = delete;
-            StateData(StateData&&) noexcept  = delete;
-
-            StateData& operator=(const StateData&) = delete;
-            StateData& operator=(StateData&&) noexcept  = delete;
-
-            ~StateData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Id.IsSet() == true) && (Status.IsSet() == true) && (Tokens.IsSet() == true));
+                return (true);
             }
+
+            StateData(const StateData&) = delete;
+            StateData& operator=(const StateData&) = delete;
 
         public:
             Core::JSON::String Id; // Provision ID value
@@ -103,8 +83,6 @@ namespace JsonData {
         }; // class StateData
 
     } // namespace Provisioning
-
-    POP_WARNING()
 
 } // namespace JsonData
 

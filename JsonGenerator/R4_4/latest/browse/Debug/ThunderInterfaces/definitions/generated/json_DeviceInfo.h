@@ -1,4 +1,4 @@
-// DeviceInfo API
+// DeviceInfo JSON-RPC API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

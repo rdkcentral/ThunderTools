@@ -1,4 +1,4 @@
-// Enumeration code for ConnectionProperties API.
+// Enumeration code for ConnectionProperties API JSON-RPC API.
 // Generated automatically from 'IDisplayInfo.h'.
 
 #include <core/Enumerate.h>
@@ -11,8 +11,8 @@ namespace WPEFramework {
 
 ENUM_CONVERSION_BEGIN(Exchange::IConnectionProperties::HDCPProtectionType)
     { Exchange::IConnectionProperties::HDCPProtectionType::HDCP_Unencrypted, _TXT("HdcpUnencrypted") },
-    { Exchange::IConnectionProperties::HDCPProtectionType::HDCP_1X, _TXT("Hdcp1x") },
-    { Exchange::IConnectionProperties::HDCPProtectionType::HDCP_2X, _TXT("Hdcp2x") },
+    { Exchange::IConnectionProperties::HDCPProtectionType::HDCP_1X, _TXT("Hdcp1X") },
+    { Exchange::IConnectionProperties::HDCPProtectionType::HDCP_2X, _TXT("Hdcp2X") },
     { Exchange::IConnectionProperties::HDCPProtectionType::HDCP_AUTO, _TXT("HdcpAuto") },
 ENUM_CONVERSION_END(Exchange::IConnectionProperties::HDCPProtectionType)
 

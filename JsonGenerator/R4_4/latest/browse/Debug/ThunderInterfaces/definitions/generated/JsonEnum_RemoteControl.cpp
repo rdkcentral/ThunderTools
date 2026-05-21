@@ -1,4 +1,4 @@
-// Enumeration code for Remote Control API.
+// Enumeration code for Remote Control API JSON-RPC API.
 // Generated automatically from 'RemoteControl.json'.
 
 #include <core/Enumerate.h>

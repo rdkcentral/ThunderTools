@@ -1,4 +1,4 @@
-// C++ types for MessageControl API.
+// C++ classes for MessageControl API JSON-RPC API.
 // Generated automatically from 'IMessageControl.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace MessageControl {
 
@@ -37,14 +35,13 @@ namespace JsonData {
                 _Init();
             }
 
-            ControlInfo(ControlInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Type(std::move(_other.Type))
-                , Category(std::move(_other.Category))
-                , Module(std::move(_other.Module))
-                , Enabled(std::move(_other.Enabled))
+            ControlInfo& operator=(const ControlInfo& _rhs)
             {
-                _Init();
+                Type = _rhs.Type;
+                Category = _rhs.Category;
+                Module = _rhs.Module;
+                Enabled = _rhs.Enabled;
+                return (*this);
             }
 
             ControlInfo(const Exchange::IMessageControl::Control& _other)
@@ -55,24 +52,6 @@ namespace JsonData {
                 Module = _other.module;
                 Enabled = _other.enabled;
                 _Init();
-            }
-
-            ControlInfo& operator=(const ControlInfo& _rhs)
-            {
-                Type = _rhs.Type;
-                Category = _rhs.Category;
-                Module = _rhs.Module;
-                Enabled = _rhs.Enabled;
-                return (*this);
-            }
-
-            ControlInfo& operator=(ControlInfo&& _rhs) noexcept
-            {
-                Type = std::move(_rhs.Type);
-                Category = std::move(_rhs.Category);
-                Module = std::move(_rhs.Module);
-                Enabled = std::move(_rhs.Enabled);
-                return (*this);
             }
 
             ControlInfo& operator=(const Exchange::IMessageControl::Control& _rhs)
@@ -94,12 +73,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~ControlInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Category.IsSet() == true) && (Module.IsSet() == true) && (Enabled.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -122,8 +98,6 @@ namespace JsonData {
         //
 
     } // namespace MessageControl
-
-    POP_WARNING()
 
 } // namespace JsonData
 

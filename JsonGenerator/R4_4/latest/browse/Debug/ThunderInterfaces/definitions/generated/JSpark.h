@@ -1,6 +1,7 @@
 // Generated automatically from 'Spark.json'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 
 namespace WPEFramework {
@@ -16,7 +17,6 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
-
     } // namespace JSpark
 
 } // namespace Exchange

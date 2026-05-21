@@ -1,4 +1,4 @@
-// Enumeration code for Netflix API.
+// Enumeration code for Netflix API JSON-RPC API.
 // Generated automatically from 'Netflix.json'.
 
 #include <core/Enumerate.h>

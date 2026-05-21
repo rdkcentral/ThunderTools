@@ -1,6 +1,7 @@
 // Generated automatically from 'IWatchDog.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_WatchDog.h"
 #include <interfaces/IWatchDog.h>
@@ -19,48 +20,38 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IWatchDog* _implementation__)
+        static void Register(JSONRPC& _module_, IWatchDog* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JWatchDog"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JWatchDog"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'touch' - Touch the watchdog as a sign of life
-            _module__.PluginHost::JSONRPC::Register<JsonData::WatchDog::TouchParamsData, void>(_T("touch"),
-                [_implementation__](const JsonData::WatchDog::TouchParamsData& params) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::WatchDog::TouchParamsData, void>(_T("touch"), 
+                [_impl_](const JsonData::WatchDog::TouchParamsData& params) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
-                    else {
-                        const string _callsign_{params.Callsign};
+                    const string _callsign{params.Callsign};
 
-                        _errorCode__ = _implementation__->Touch(_callsign_);
+                    _errorCode = _impl_->Touch(_callsign);
 
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("touch"));
+            _module_.Unregister(_T("touch"));
         }
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JWatchDog

@@ -1,4 +1,4 @@
-// C++ types for ConnectionProperties API.
+// C++ classes for ConnectionProperties API JSON-RPC API.
 // Generated automatically from 'IDisplayInfo.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace ConnectionProperties {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("length"), &Length);
             }
 
-            EDIDParamsData(const EDIDParamsData&) = delete;
-            EDIDParamsData(EDIDParamsData&&) noexcept  = delete;
-
-            EDIDParamsData& operator=(const EDIDParamsData&) = delete;
-            EDIDParamsData& operator=(EDIDParamsData&&) noexcept  = delete;
-
-            ~EDIDParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Length.IsSet() == true);
+                return (true);
             }
+
+            EDIDParamsData(const EDIDParamsData&) = delete;
+            EDIDParamsData& operator=(const EDIDParamsData&) = delete;
 
         public:
             Core::JSON::DecUInt16 Length;
@@ -54,19 +46,13 @@ namespace JsonData {
                 Add(_T("data"), &Data);
             }
 
-            EDIDResultData(const EDIDResultData&) = delete;
-            EDIDResultData(EDIDResultData&&) noexcept  = delete;
-
-            EDIDResultData& operator=(const EDIDResultData&) = delete;
-            EDIDResultData& operator=(EDIDResultData&&) noexcept  = delete;
-
-            ~EDIDResultData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Length.IsSet() == true) && (Data.IsSet() == true));
+                return (true);
             }
+
+            EDIDResultData(const EDIDResultData&) = delete;
+            EDIDResultData& operator=(const EDIDResultData&) = delete;
 
         public:
             Core::JSON::DecUInt16 Length;
@@ -81,27 +67,19 @@ namespace JsonData {
                 Add(_T("event"), &Event);
             }
 
-            UpdatedParamsData(const UpdatedParamsData&) = delete;
-            UpdatedParamsData(UpdatedParamsData&&) noexcept  = delete;
-
-            UpdatedParamsData& operator=(const UpdatedParamsData&) = delete;
-            UpdatedParamsData& operator=(UpdatedParamsData&&) noexcept  = delete;
-
-            ~UpdatedParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Event.IsSet() == true);
+                return (true);
             }
+
+            UpdatedParamsData(const UpdatedParamsData&) = delete;
+            UpdatedParamsData& operator=(const UpdatedParamsData&) = delete;
 
         public:
             Core::JSON::EnumType<Exchange::IConnectionProperties::INotification::Source> Event;
         }; // class UpdatedParamsData
 
     } // namespace ConnectionProperties
-
-    POP_WARNING()
 
 } // namespace JsonData
 

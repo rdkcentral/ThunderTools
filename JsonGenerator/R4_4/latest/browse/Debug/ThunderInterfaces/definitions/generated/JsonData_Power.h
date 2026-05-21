@@ -1,4 +1,4 @@
-// C++ types for Power API.
+// C++ classes for Power API JSON-RPC API.
 // Generated automatically from 'Power.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Power {
 
@@ -41,19 +39,13 @@ namespace JsonData {
                 Add(_T("timeout"), &Timeout);
             }
 
-            PowerData(const PowerData&) = delete;
-            PowerData(PowerData&&) noexcept  = delete;
-
-            PowerData& operator=(const PowerData&) = delete;
-            PowerData& operator=(PowerData&&) noexcept  = delete;
-
-            ~PowerData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Powerstate.IsSet() == true) && (Timeout.IsSet() == true));
+                return (true);
             }
+
+            PowerData(const PowerData&) = delete;
+            PowerData& operator=(const PowerData&) = delete;
 
         public:
             Core::JSON::EnumType<StateType> Powerstate; // Power state
@@ -61,8 +53,6 @@ namespace JsonData {
         }; // class PowerData
 
     } // namespace Power
-
-    POP_WARNING()
 
 } // namespace JsonData
 

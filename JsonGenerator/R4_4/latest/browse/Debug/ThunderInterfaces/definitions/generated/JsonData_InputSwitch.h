@@ -1,4 +1,4 @@
-// C++ types for Input Switch API.
+// C++ classes for Input Switch API JSON-RPC API.
 // Generated automatically from 'InputSwitch.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace InputSwitch {
 
@@ -34,14 +32,6 @@ namespace JsonData {
                 _Init();
             }
 
-            ChannelParamsInfo(ChannelParamsInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Name(std::move(_other.Name))
-                , Enabled(std::move(_other.Enabled))
-            {
-                _Init();
-            }
-
             ChannelParamsInfo& operator=(const ChannelParamsInfo& _rhs)
             {
                 Name = _rhs.Name;
@@ -49,19 +39,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            ChannelParamsInfo& operator=(ChannelParamsInfo&& _rhs) noexcept
+            bool IsValid() const
             {
-                Name = std::move(_rhs.Name);
-                Enabled = std::move(_rhs.Enabled);
-                return (*this);
-            }
-
-            ~ChannelParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return ((Name.IsSet() == true) && (Enabled.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -84,19 +64,13 @@ namespace JsonData {
                 Add(_T("name"), &Name);
             }
 
-            SelectParamsInfo(const SelectParamsInfo&) = delete;
-            SelectParamsInfo(SelectParamsInfo&&) noexcept  = delete;
-
-            SelectParamsInfo& operator=(const SelectParamsInfo&) = delete;
-            SelectParamsInfo& operator=(SelectParamsInfo&&) noexcept  = delete;
-
-            ~SelectParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Name.IsSet() == true);
+                return (true);
             }
+
+            SelectParamsInfo(const SelectParamsInfo&) = delete;
+            SelectParamsInfo& operator=(const SelectParamsInfo&) = delete;
 
         public:
             Core::JSON::String Name; // Callsign that is the owner of this channel
@@ -106,8 +80,6 @@ namespace JsonData {
         //
 
     } // namespace InputSwitch
-
-    POP_WARNING()
 
 } // namespace JsonData
 

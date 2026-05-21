@@ -1,6 +1,7 @@
 // Generated automatically from 'Browser.json'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_Browser.h"
 
@@ -17,7 +18,6 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
-
     } // namespace JBrowser
 
 } // namespace Exchange

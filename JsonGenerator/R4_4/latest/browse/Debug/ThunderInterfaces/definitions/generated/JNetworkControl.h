@@ -1,6 +1,7 @@
 // Generated automatically from 'INetworkControl.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_NetworkControl.h"
 #include <interfaces/INetworkControl.h>
@@ -19,268 +20,230 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, INetworkControl* _implementation__)
+        static void Register(JSONRPC& _module_, INetworkControl* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JNetworkControl"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JNetworkControl"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'flush' - Flush and reload requested interface
-            _module__.PluginHost::JSONRPC::Register<JsonData::NetworkControl::FlushParamsData, void>(_T("flush"),
-                [_implementation__](const JsonData::NetworkControl::FlushParamsData& params) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::NetworkControl::FlushParamsData, void>(_T("flush"), 
+                [_impl_](const JsonData::NetworkControl::FlushParamsData& params) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
-                    else {
-                        const string _interface_{params.Interface};
+                    const string _interface{params.Interface};
 
-                        _errorCode__ = _implementation__->Flush(_interface_);
+                    _errorCode = _impl_->Flush(_interface);
 
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'interfaces' - Currently available interfaces (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::String>>(_T("interfaces"),
-                [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::ArrayType<Core::JSON::String>>(_T("interfaces"), 
+                [_impl_](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                    // read-only property get
+                    ::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result{};
 
-                    _errorCode__ = _implementation__->Interfaces(_result_);
+                    _errorCode = _impl_->Interfaces(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result.Set(true);
+                    if (_errorCode == Core::ERROR_NONE) {
 
-                        if (_result_ != nullptr) {
-                            string _resultItem__{};
-                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                            _result_->Release();
+                        if (_result != nullptr) {
+                            string _resultItem_{};
+                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                            _result->Release();
                         }
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Indexed Property: 'status' - Status of requested interface (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::EnumType<Exchange::INetworkControl::StatusType>, std::function<uint32_t(const string&, Core::JSON::EnumType<Exchange::INetworkControl::StatusType>&)>>(_T("status"),
-                [_implementation__](const string& interface, Core::JSON::EnumType<Exchange::INetworkControl::StatusType>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::EnumType<Exchange::INetworkControl::StatusType>, std::function<uint32_t(const string&,
+                     Core::JSON::EnumType<Exchange::INetworkControl::StatusType>&)>>(_T("status"), 
+                [_impl_](const string& _index_, Core::JSON::EnumType<Exchange::INetworkControl::StatusType>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if (interface.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    // read-only property get
+                    Exchange::INetworkControl::StatusType _result{};
+
+                    _errorCode = _impl_->Status(_index_, _result);
+
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        Exchange::INetworkControl::StatusType _result_{};
-
-                        _errorCode__ = _implementation__->Status(interface, _result_);
-
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
-                        }
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Indexed Property: 'network' - Network info of requested interface
-            _module__.PluginHost::JSONRPC::Register<JsonData::NetworkControl::NetworkData, Core::JSON::ArrayType<JsonData::NetworkControl::NetworkInfoInfo>, std::function<uint32_t(const string&, const JsonData::NetworkControl::NetworkData&, Core::JSON::ArrayType<JsonData::NetworkControl::NetworkInfoInfo>&)>>(_T("network"),
-                [_implementation__](const string& interface, const JsonData::NetworkControl::NetworkData& params, Core::JSON::ArrayType<JsonData::NetworkControl::NetworkInfoInfo>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::NetworkControl::NetworkData, Core::JSON::ArrayType<JsonData::NetworkControl::NetworkInfoInfo>,
+                     std::function<uint32_t(const string&, const JsonData::NetworkControl::NetworkData&,
+                     Core::JSON::ArrayType<JsonData::NetworkControl::NetworkInfoInfo>&)>>(_T("network"), 
+                [_impl_](const string& _index_, const JsonData::NetworkControl::NetworkData& params,
+                         Core::JSON::ArrayType<JsonData::NetworkControl::NetworkInfoInfo>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if (interface.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
+                    if (params.IsSet() == false) {
+                        // property get
+                        ::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _result{};
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
+                        _errorCode = (static_cast<const INetworkControl*>(_impl_))->Network(_index_, _result);
 
-                        if (params.IsSet() == false) {
-                            ::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _result_{};
+                        if (_errorCode == Core::ERROR_NONE) {
 
-                            _errorCode__ = (static_cast<const INetworkControl*>(_implementation__))->Network(interface, _result_);
-
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result.Set(true);
-
-                                if (_result_ != nullptr) {
-                                    Exchange::INetworkControl::NetworkInfo _resultItem__{};
-                                    while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                                    _result_->Release();
-                                }
+                            if (_result != nullptr) {
+                                Exchange::INetworkControl::NetworkInfo _resultItem_{};
+                                while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                                _result->Release();
                             }
                         }
-                        else {
 
-                            if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
-                            }
-                            else {
-                                ::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _value_{};
-                                std::list<Exchange::INetworkControl::NetworkInfo> _valueElements_{};
-                                auto _valueIterator_ = params.Value.Elements();
-                                while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                                using _valueIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>;
-                                _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>(std::move(_valueElements_));
-                                ASSERT(_value_ != nullptr);
+                    } else {
+                        // property set
+                        std::list<Exchange::INetworkControl::NetworkInfo> _elements;
+                        auto _Iterator = params.Value.Elements();
+                        while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }
 
-                                _errorCode__ = _implementation__->Network(interface, static_cast<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const&>(_value_));
-                                if (_value_ != nullptr) {
-                                    _value_->Release();
-                                }
+                        ::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo,
+                                 ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const _value{Core::Service<::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo,
+                                 ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>>::Create<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo,
+                                 ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>(_elements)};
 
-                            }
+                        ASSERT(_value != nullptr); 
 
-                            result.Null(true);
+                        if ((_value != nullptr)) {
+                            _errorCode = _impl_->Network(_index_, _value);
+                            _value->Release();
+                        } else {
+                            _errorCode = Core::ERROR_GENERAL;
                         }
-                    }
 
-                    return (_errorCode__);
+                        // result.Null(true);
+                    }
+                    return (_errorCode);
                 });
 
             // Property: 'dns' - DNS list
-            _module__.PluginHost::JSONRPC::Register<JsonData::NetworkControl::DNSData, Core::JSON::ArrayType<Core::JSON::String>>(_T("dns"),
-                [_implementation__](const JsonData::NetworkControl::DNSData& params, Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::NetworkControl::DNSData, Core::JSON::ArrayType<Core::JSON::String>>(_T("dns"), 
+                [_impl_](const JsonData::NetworkControl::DNSData& params, Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                        // property get
+                        ::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result{};
 
-                        _errorCode__ = (static_cast<const INetworkControl*>(_implementation__))->DNS(_result_);
+                        _errorCode = (static_cast<const INetworkControl*>(_impl_))->DNS(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Set(true);
+                        if (_errorCode == Core::ERROR_NONE) {
 
-                            if (_result_ != nullptr) {
-                                string _resultItem__{};
-                                while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                                _result_->Release();
+                            if (_result != nullptr) {
+                                string _resultItem_{};
+                                while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                                _result->Release();
                             }
                         }
-                    }
-                    else {
 
-                        if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _value_{};
-                            std::list<string> _valueElements_{};
-                            auto _valueIterator_ = params.Value.Elements();
-                            while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                            using _valueIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>;
-                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
-                            ASSERT(_value_ != nullptr);
+                    } else {
+                        // property set
+                        std::list<string> _elements;
+                        auto _Iterator = params.Value.Elements();
+                        while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }
 
-                            _errorCode__ = _implementation__->DNS(static_cast<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* const&>(_value_));
-                            if (_value_ != nullptr) {
-                                _value_->Release();
-                            }
+                        ::WPEFramework::RPC::IIteratorType<string,
+                                 RPC::ID_STRINGITERATOR>* const _value{Core::Service<::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>>::Create<::WPEFramework::RPC::IIteratorType<string,
+                                 RPC::ID_STRINGITERATOR>>(_elements)};
 
+                        ASSERT(_value != nullptr); 
+
+                        if ((_value != nullptr)) {
+                            _errorCode = _impl_->DNS(_value);
+                            _value->Release();
+                        } else {
+                            _errorCode = Core::ERROR_GENERAL;
                         }
 
-                        result.Null(true);
+                        // result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Indexed Property: 'up' - Provides given requested interface is up or not
-            _module__.PluginHost::JSONRPC::Register<JsonData::NetworkControl::UpData, Core::JSON::Boolean, std::function<uint32_t(const string&, const JsonData::NetworkControl::UpData&, Core::JSON::Boolean&)>>(_T("up"),
-                [_implementation__](const string& interface, const JsonData::NetworkControl::UpData& params, Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::NetworkControl::UpData, Core::JSON::Boolean, std::function<uint32_t(const string&,
+                     const JsonData::NetworkControl::UpData&, Core::JSON::Boolean&)>>(_T("up"), 
+                [_impl_](const string& _index_, const JsonData::NetworkControl::UpData& params, Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if (interface.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
+                    if (params.IsSet() == false) {
+                        // property get
+                        bool _result{};
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
+                        _errorCode = (static_cast<const INetworkControl*>(_impl_))->Up(_index_, _result);
 
-                        if (params.IsSet() == false) {
-                            bool _result_{};
-
-                            _errorCode__ = (static_cast<const INetworkControl*>(_implementation__))->Up(interface, _result_);
-
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result = _result_;
-                            }
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                        else {
 
-                            if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
-                            }
-                            else {
-                                const bool _value_{params.Value};
+                    } else {
+                        // property set
+                        const bool _value{params.Value};
 
-                                _errorCode__ = _implementation__->Up(interface, _value_);
+                        _errorCode = _impl_->Up(_index_, _value);
 
-                            }
-
-                            result.Null(true);
-                        }
+                        result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("flush"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("interfaces"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("status"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("network"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("dns"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("up"));
+            _module_.Unregister(_T("flush"));
+            _module_.Unregister(_T("interfaces"));
+            _module_.Unregister(_T("status"));
+            _module_.Unregister(_T("network"));
+            _module_.Unregister(_T("dns"));
+            _module_.Unregister(_T("up"));
         }
 
         namespace Event {
 
             // Event: 'update'
-            template<typename MODULE>
-            static void Update(const MODULE& module_, const JsonData::NetworkControl::UpdateParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void Update(const JSONRPC& _module_, const JsonData::NetworkControl::UpdateParamsData& params)
             {
-                module_.Notify(_T("update"), params, sendIfMethod_);
+                _module_.Notify(_T("update"), params);
             }
 
             // Event: 'update'
-            template<typename MODULE>
-            static void Update(const MODULE& module_, const Core::JSON::String& interfaceName, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void Update(const JSONRPC& _module_, const Core::JSON::String& interfaceName)
             {
-                JsonData::NetworkControl::UpdateParamsData params_;
-                params_.InterfaceName = interfaceName;
+                JsonData::NetworkControl::UpdateParamsData _params_;
+                _params_.InterfaceName = interfaceName;
 
-                Update(module_, params_, sendIfMethod_);
+                Update(_module_, _params_);
             }
 
             // Event: 'update'
-            template<typename MODULE>
-            static void Update(const MODULE& module_, const string& interfaceName, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void Update(const JSONRPC& _module_, const string& interfaceName)
             {
-                JsonData::NetworkControl::UpdateParamsData params_;
-                params_.InterfaceName = interfaceName;
+                JsonData::NetworkControl::UpdateParamsData _params_;
+                _params_.InterfaceName = interfaceName;
 
-                Update(module_, params_, sendIfMethod_);
+                Update(_module_, _params_);
             }
 
         } // namespace Event
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JNetworkControl

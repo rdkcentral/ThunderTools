@@ -1,4 +1,4 @@
-// Enumeration code for Compositor API.
+// Enumeration code for Compositor API JSON-RPC API.
 // Generated automatically from 'Compositor.json'.
 
 #include <core/Enumerate.h>

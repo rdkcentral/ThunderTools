@@ -1,4 +1,4 @@
-// C++ types for DIAL Server API.
+// C++ classes for DIAL Server API JSON-RPC API.
 // Generated automatically from 'DIALServer.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace DIALServer {
 
@@ -37,19 +35,13 @@ namespace JsonData {
                 Add(_T("application"), &Application);
             }
 
-            HideParamsInfo(const HideParamsInfo&) = delete;
-            HideParamsInfo(HideParamsInfo&&) noexcept  = delete;
-
-            HideParamsInfo& operator=(const HideParamsInfo&) = delete;
-            HideParamsInfo& operator=(HideParamsInfo&&) noexcept  = delete;
-
-            ~HideParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Application.IsSet() == true);
+                return (true);
             }
+
+            HideParamsInfo(const HideParamsInfo&) = delete;
+            HideParamsInfo& operator=(const HideParamsInfo&) = delete;
 
         public:
             Core::JSON::String Application; // Application name
@@ -68,19 +60,13 @@ namespace JsonData {
                 Add(_T("payload"), &Payload);
             }
 
-            StartParamsData(const StartParamsData&) = delete;
-            StartParamsData(StartParamsData&&) noexcept  = delete;
-
-            StartParamsData& operator=(const StartParamsData&) = delete;
-            StartParamsData& operator=(StartParamsData&&) noexcept  = delete;
-
-            ~StartParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Application.IsSet() == true);
+                return (true);
             }
+
+            StartParamsData(const StartParamsData&) = delete;
+            StartParamsData& operator=(const StartParamsData&) = delete;
 
         public:
             Core::JSON::String Application; // Application name
@@ -97,19 +83,13 @@ namespace JsonData {
                 Add(_T("parameters"), &Parameters);
             }
 
-            StopParamsData(const StopParamsData&) = delete;
-            StopParamsData(StopParamsData&&) noexcept  = delete;
-
-            StopParamsData& operator=(const StopParamsData&) = delete;
-            StopParamsData& operator=(StopParamsData&&) noexcept  = delete;
-
-            ~StopParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Application.IsSet() == true);
+                return (true);
             }
+
+            StopParamsData(const StopParamsData&) = delete;
+            StopParamsData& operator=(const StopParamsData&) = delete;
 
         public:
             Core::JSON::String Application; // Application name
@@ -117,8 +97,6 @@ namespace JsonData {
         }; // class StopParamsData
 
     } // namespace DIALServer
-
-    POP_WARNING()
 
 } // namespace JsonData
 

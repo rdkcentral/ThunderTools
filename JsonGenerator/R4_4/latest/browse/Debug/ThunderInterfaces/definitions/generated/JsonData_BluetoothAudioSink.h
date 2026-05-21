@@ -1,4 +1,4 @@
-// C++ types for BluetoothAudioSink API.
+// C++ classes for BluetoothAudioSink API JSON-RPC API.
 // Generated automatically from 'IBluetoothAudio.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace BluetoothAudioSink {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("address"), &Address);
             }
 
-            AssignParamsData(const AssignParamsData&) = delete;
-            AssignParamsData(AssignParamsData&&) noexcept  = delete;
-
-            AssignParamsData& operator=(const AssignParamsData&) = delete;
-            AssignParamsData& operator=(AssignParamsData&&) noexcept  = delete;
-
-            ~AssignParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Address.IsSet() == true);
+                return (true);
             }
+
+            AssignParamsData(const AssignParamsData&) = delete;
+            AssignParamsData& operator=(const AssignParamsData&) = delete;
 
         public:
             Core::JSON::String Address; // Address of the bluetooth device to assign
@@ -53,42 +45,12 @@ namespace JsonData {
                 _Init();
             }
 
-            CodecPropertiesData(const CodecPropertiesData& _other)
-                : Core::JSON::Container()
-                , Codec(_other.Codec)
-                , Settings(_other.Settings)
-            {
-                _Init();
-            }
-
-            CodecPropertiesData(CodecPropertiesData&& _other) noexcept
-                : Core::JSON::Container()
-                , Codec(std::move(_other.Codec))
-                , Settings(std::move(_other.Settings))
-            {
-                _Init();
-            }
-
             CodecPropertiesData(const Exchange::IBluetoothAudioSink::CodecProperties& _other)
                 : Core::JSON::Container()
             {
                 Codec = _other.Codec;
                 Settings = _other.Settings;
                 _Init();
-            }
-
-            CodecPropertiesData& operator=(const CodecPropertiesData& _rhs)
-            {
-                Codec = _rhs.Codec;
-                Settings = _rhs.Settings;
-                return (*this);
-            }
-
-            CodecPropertiesData& operator=(CodecPropertiesData&& _rhs) noexcept
-            {
-                Codec = std::move(_rhs.Codec);
-                Settings = std::move(_rhs.Settings);
-                return (*this);
             }
 
             CodecPropertiesData& operator=(const Exchange::IBluetoothAudioSink::CodecProperties& _rhs)
@@ -106,12 +68,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~CodecPropertiesData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Codec.IsSet() == true) && (Settings.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -134,42 +93,12 @@ namespace JsonData {
                 _Init();
             }
 
-            DRMPropertiesData(const DRMPropertiesData& _other)
-                : Core::JSON::Container()
-                , DRM(_other.DRM)
-                , Settings(_other.Settings)
-            {
-                _Init();
-            }
-
-            DRMPropertiesData(DRMPropertiesData&& _other) noexcept
-                : Core::JSON::Container()
-                , DRM(std::move(_other.DRM))
-                , Settings(std::move(_other.Settings))
-            {
-                _Init();
-            }
-
             DRMPropertiesData(const Exchange::IBluetoothAudioSink::DRMProperties& _other)
                 : Core::JSON::Container()
             {
                 DRM = _other.DRM;
                 Settings = _other.Settings;
                 _Init();
-            }
-
-            DRMPropertiesData& operator=(const DRMPropertiesData& _rhs)
-            {
-                DRM = _rhs.DRM;
-                Settings = _rhs.Settings;
-                return (*this);
-            }
-
-            DRMPropertiesData& operator=(DRMPropertiesData&& _rhs) noexcept
-            {
-                DRM = std::move(_rhs.DRM);
-                Settings = std::move(_rhs.Settings);
-                return (*this);
             }
 
             DRMPropertiesData& operator=(const Exchange::IBluetoothAudioSink::DRMProperties& _rhs)
@@ -187,12 +116,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~DRMPropertiesData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((DRM.IsSet() == true) && (Settings.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -215,19 +141,13 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            LatencyData(const LatencyData&) = delete;
-            LatencyData(LatencyData&&) noexcept  = delete;
-
-            LatencyData& operator=(const LatencyData&) = delete;
-            LatencyData& operator=(LatencyData&&) noexcept  = delete;
-
-            ~LatencyData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Value.IsSet() == true);
+                return (true);
             }
+
+            LatencyData(const LatencyData&) = delete;
+            LatencyData& operator=(const LatencyData&) = delete;
 
         public:
             Core::JSON::DecSInt16 Value; // Audio latency of the sink in milliseconds
@@ -241,28 +161,6 @@ namespace JsonData {
                 _Init();
             }
 
-            StreamPropertiesData(const StreamPropertiesData& _other)
-                : Core::JSON::Container()
-                , SampleRate(_other.SampleRate)
-                , BitRate(_other.BitRate)
-                , Channels(_other.Channels)
-                , Resolution(_other.Resolution)
-                , IsResampling(_other.IsResampling)
-            {
-                _Init();
-            }
-
-            StreamPropertiesData(StreamPropertiesData&& _other) noexcept
-                : Core::JSON::Container()
-                , SampleRate(std::move(_other.SampleRate))
-                , BitRate(std::move(_other.BitRate))
-                , Channels(std::move(_other.Channels))
-                , Resolution(std::move(_other.Resolution))
-                , IsResampling(std::move(_other.IsResampling))
-            {
-                _Init();
-            }
-
             StreamPropertiesData(const Exchange::IBluetoothAudioSink::StreamProperties& _other)
                 : Core::JSON::Container()
             {
@@ -272,26 +170,6 @@ namespace JsonData {
                 Resolution = _other.Resolution;
                 IsResampling = _other.IsResampling;
                 _Init();
-            }
-
-            StreamPropertiesData& operator=(const StreamPropertiesData& _rhs)
-            {
-                SampleRate = _rhs.SampleRate;
-                BitRate = _rhs.BitRate;
-                Channels = _rhs.Channels;
-                Resolution = _rhs.Resolution;
-                IsResampling = _rhs.IsResampling;
-                return (*this);
-            }
-
-            StreamPropertiesData& operator=(StreamPropertiesData&& _rhs) noexcept
-            {
-                SampleRate = std::move(_rhs.SampleRate);
-                BitRate = std::move(_rhs.BitRate);
-                Channels = std::move(_rhs.Channels);
-                Resolution = std::move(_rhs.Resolution);
-                IsResampling = std::move(_rhs.IsResampling);
-                return (*this);
             }
 
             StreamPropertiesData& operator=(const Exchange::IBluetoothAudioSink::StreamProperties& _rhs)
@@ -315,12 +193,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~StreamPropertiesData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((SampleRate.IsSet() == true) && (BitRate.IsSet() == true) && (Channels.IsSet() == true) && (Resolution.IsSet() == true) && (IsResampling.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -342,8 +217,6 @@ namespace JsonData {
         }; // class StreamPropertiesData
 
     } // namespace BluetoothAudioSink
-
-    POP_WARNING()
 
 } // namespace JsonData
 

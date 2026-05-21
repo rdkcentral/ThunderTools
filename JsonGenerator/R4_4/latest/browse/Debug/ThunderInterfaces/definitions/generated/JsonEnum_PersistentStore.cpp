@@ -1,4 +1,4 @@
-// Enumeration code for PertsistentStore API.
+// Enumeration code for PertsistentStore API JSON-RPC API.
 // Generated automatically from 'PersistentStore.json'.
 
 #include <core/Enumerate.h>

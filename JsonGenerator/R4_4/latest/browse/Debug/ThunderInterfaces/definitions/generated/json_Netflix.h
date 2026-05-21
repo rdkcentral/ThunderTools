@@ -1,4 +1,4 @@
-// Netflix API
+// Netflix JSON-RPC API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

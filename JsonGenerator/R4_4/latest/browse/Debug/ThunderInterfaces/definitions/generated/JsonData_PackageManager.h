@@ -1,4 +1,4 @@
-// C++ types for PackageManager API.
+// C++ classes for PackageManager API JSON-RPC API.
 // Generated automatically from 'IPackageManager.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace PackageManager {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("handle"), &Handle);
             }
 
-            CancelParamsInfo(const CancelParamsInfo&) = delete;
-            CancelParamsInfo(CancelParamsInfo&&) noexcept  = delete;
-
-            CancelParamsInfo& operator=(const CancelParamsInfo&) = delete;
-            CancelParamsInfo& operator=(CancelParamsInfo&&) noexcept  = delete;
-
-            ~CancelParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Handle.IsSet() == true);
+                return (true);
             }
+
+            CancelParamsInfo(const CancelParamsInfo&) = delete;
+            CancelParamsInfo& operator=(const CancelParamsInfo&) = delete;
 
         public:
             Core::JSON::String Handle; // Cancel asynchronous request.
@@ -55,19 +47,13 @@ namespace JsonData {
                 Add(_T("version"), &Version);
             }
 
-            GetStorageDetailsParamsInfo(const GetStorageDetailsParamsInfo&) = delete;
-            GetStorageDetailsParamsInfo(GetStorageDetailsParamsInfo&&) noexcept  = delete;
-
-            GetStorageDetailsParamsInfo& operator=(const GetStorageDetailsParamsInfo&) = delete;
-            GetStorageDetailsParamsInfo& operator=(GetStorageDetailsParamsInfo&&) noexcept  = delete;
-
-            ~GetStorageDetailsParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true));
+                return (true);
             }
+
+            GetStorageDetailsParamsInfo(const GetStorageDetailsParamsInfo&) = delete;
+            GetStorageDetailsParamsInfo& operator=(const GetStorageDetailsParamsInfo&) = delete;
 
         public:
             Core::JSON::String Type; // Information on the storage usage.
@@ -91,12 +77,11 @@ namespace JsonData {
                 _Init();
             }
 
-            KeyValueInfo(KeyValueInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Key(std::move(_other.Key))
-                , Value(std::move(_other.Value))
+            KeyValueInfo& operator=(const KeyValueInfo& _rhs)
             {
-                _Init();
+                Key = _rhs.Key;
+                Value = _rhs.Value;
+                return (*this);
             }
 
             KeyValueInfo(const Exchange::IPackageManager::KeyValue& _other)
@@ -105,20 +90,6 @@ namespace JsonData {
                 Key = _other.key;
                 Value = _other.value;
                 _Init();
-            }
-
-            KeyValueInfo& operator=(const KeyValueInfo& _rhs)
-            {
-                Key = _rhs.Key;
-                Value = _rhs.Value;
-                return (*this);
-            }
-
-            KeyValueInfo& operator=(KeyValueInfo&& _rhs) noexcept
-            {
-                Key = std::move(_rhs.Key);
-                Value = std::move(_rhs.Value);
-                return (*this);
             }
 
             KeyValueInfo& operator=(const Exchange::IPackageManager::KeyValue& _rhs)
@@ -136,12 +107,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~KeyValueInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Key.IsSet() == true) && (Value.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -170,19 +138,13 @@ namespace JsonData {
                 Add(_T("key"), &Key);
             }
 
-            ClearAuxMetadataParamsData(const ClearAuxMetadataParamsData&) = delete;
-            ClearAuxMetadataParamsData(ClearAuxMetadataParamsData&&) noexcept  = delete;
-
-            ClearAuxMetadataParamsData& operator=(const ClearAuxMetadataParamsData&) = delete;
-            ClearAuxMetadataParamsData& operator=(ClearAuxMetadataParamsData&&) noexcept  = delete;
-
-            ~ClearAuxMetadataParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (Key.IsSet() == true));
+                return (true);
             }
+
+            ClearAuxMetadataParamsData(const ClearAuxMetadataParamsData&) = delete;
+            ClearAuxMetadataParamsData& operator=(const ClearAuxMetadataParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Clears an arbitrary metadata.
@@ -203,19 +165,13 @@ namespace JsonData {
                 Add(_T("url"), &Url);
             }
 
-            DownloadParamsData(const DownloadParamsData&) = delete;
-            DownloadParamsData(DownloadParamsData&&) noexcept  = delete;
-
-            DownloadParamsData& operator=(const DownloadParamsData&) = delete;
-            DownloadParamsData& operator=(DownloadParamsData&&) noexcept  = delete;
-
-            ~DownloadParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (ResKey.IsSet() == true) && (Url.IsSet() == true));
+                return (true);
             }
+
+            DownloadParamsData(const DownloadParamsData&) = delete;
+            DownloadParamsData& operator=(const DownloadParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Download arbitrary application's resource file.
@@ -237,19 +193,13 @@ namespace JsonData {
                 Add(_T("category"), &Category);
             }
 
-            GetListParamsData(const GetListParamsData&) = delete;
-            GetListParamsData(GetListParamsData&&) noexcept  = delete;
-
-            GetListParamsData& operator=(const GetListParamsData&) = delete;
-            GetListParamsData& operator=(GetListParamsData&&) noexcept  = delete;
-
-            ~GetListParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (AppName.IsSet() == true) && (Category.IsSet() == true));
+                return (true);
             }
+
+            GetListParamsData(const GetListParamsData&) = delete;
+            GetListParamsData& operator=(const GetListParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // List installed applications.
@@ -275,12 +225,11 @@ namespace JsonData {
                 _Init();
             }
 
-            PackageKeyData(PackageKeyData&& _other) noexcept
-                : Core::JSON::Container()
-                , Id(std::move(_other.Id))
-                , Version(std::move(_other.Version))
+            PackageKeyData& operator=(const PackageKeyData& _rhs)
             {
-                _Init();
+                Id = _rhs.Id;
+                Version = _rhs.Version;
+                return (*this);
             }
 
             PackageKeyData(const Exchange::IPackageManager::PackageKey& _other)
@@ -289,20 +238,6 @@ namespace JsonData {
                 Id = _other.id;
                 Version = _other.version;
                 _Init();
-            }
-
-            PackageKeyData& operator=(const PackageKeyData& _rhs)
-            {
-                Id = _rhs.Id;
-                Version = _rhs.Version;
-                return (*this);
-            }
-
-            PackageKeyData& operator=(PackageKeyData&& _rhs) noexcept
-            {
-                Id = std::move(_rhs.Id);
-                Version = std::move(_rhs.Version);
-                return (*this);
             }
 
             PackageKeyData& operator=(const Exchange::IPackageManager::PackageKey& _rhs)
@@ -320,12 +255,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~PackageKeyData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Id.IsSet() == true) && (Version.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -348,42 +280,12 @@ namespace JsonData {
                 _Init();
             }
 
-            LockInfoData(const LockInfoData& _other)
-                : Core::JSON::Container()
-                , Reason(_other.Reason)
-                , Owner(_other.Owner)
-            {
-                _Init();
-            }
-
-            LockInfoData(LockInfoData&& _other) noexcept
-                : Core::JSON::Container()
-                , Reason(std::move(_other.Reason))
-                , Owner(std::move(_other.Owner))
-            {
-                _Init();
-            }
-
             LockInfoData(const Exchange::IPackageManager::LockInfo& _other)
                 : Core::JSON::Container()
             {
                 Reason = _other.reason;
                 Owner = _other.owner;
                 _Init();
-            }
-
-            LockInfoData& operator=(const LockInfoData& _rhs)
-            {
-                Reason = _rhs.Reason;
-                Owner = _rhs.Owner;
-                return (*this);
-            }
-
-            LockInfoData& operator=(LockInfoData&& _rhs) noexcept
-            {
-                Reason = std::move(_rhs.Reason);
-                Owner = std::move(_rhs.Owner);
-                return (*this);
             }
 
             LockInfoData& operator=(const Exchange::IPackageManager::LockInfo& _rhs)
@@ -401,12 +303,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~LockInfoData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Reason.IsSet() == true) && (Owner.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -431,26 +330,6 @@ namespace JsonData {
                     _Init();
                 }
 
-                MetadataPayloadData(const MetadataPayloadData& _other)
-                    : Core::JSON::Container()
-                    , AppName(_other.AppName)
-                    , Type(_other.Type)
-                    , Category(_other.Category)
-                    , Url(_other.Url)
-                {
-                    _Init();
-                }
-
-                MetadataPayloadData(MetadataPayloadData&& _other) noexcept
-                    : Core::JSON::Container()
-                    , AppName(std::move(_other.AppName))
-                    , Type(std::move(_other.Type))
-                    , Category(std::move(_other.Category))
-                    , Url(std::move(_other.Url))
-                {
-                    _Init();
-                }
-
                 MetadataPayloadData(const Exchange::IPackageManager::MetadataPayload& _other)
                     : Core::JSON::Container()
                 {
@@ -459,24 +338,6 @@ namespace JsonData {
                     Category = _other.category;
                     Url = _other.url;
                     _Init();
-                }
-
-                MetadataPayloadData& operator=(const MetadataPayloadData& _rhs)
-                {
-                    AppName = _rhs.AppName;
-                    Type = _rhs.Type;
-                    Category = _rhs.Category;
-                    Url = _rhs.Url;
-                    return (*this);
-                }
-
-                MetadataPayloadData& operator=(MetadataPayloadData&& _rhs) noexcept
-                {
-                    AppName = std::move(_rhs.AppName);
-                    Type = std::move(_rhs.Type);
-                    Category = std::move(_rhs.Category);
-                    Url = std::move(_rhs.Url);
-                    return (*this);
                 }
 
                 MetadataPayloadData& operator=(const Exchange::IPackageManager::MetadataPayload& _rhs)
@@ -498,12 +359,9 @@ namespace JsonData {
                     return (_value);
                 }
 
-                ~MetadataPayloadData() = default;
-
-            public:
-                bool IsDataValid() const
+                bool IsValid() const
                 {
-                    return ((AppName.IsSet() == true) && (Type.IsSet() == true) && (Category.IsSet() == true) && (Url.IsSet() == true));
+                    return (true);
                 }
 
             private:
@@ -530,19 +388,13 @@ namespace JsonData {
                 Add(_T("auxmetadata"), &AuxMetadata);
             }
 
-            GetMetadataResultData(const GetMetadataResultData&) = delete;
-            GetMetadataResultData(GetMetadataResultData&&) noexcept  = delete;
-
-            GetMetadataResultData& operator=(const GetMetadataResultData&) = delete;
-            GetMetadataResultData& operator=(GetMetadataResultData&&) noexcept  = delete;
-
-            ~GetMetadataResultData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (((Metadata.IsSet() == true) && (Metadata.IsDataValid() == true)) && (Resources.IsSet() == true) && (AuxMetadata.IsSet() == true));
+                return (true);
             }
+
+            GetMetadataResultData(const GetMetadataResultData&) = delete;
+            GetMetadataResultData& operator=(const GetMetadataResultData&) = delete;
 
         public:
             GetMetadataResultData::MetadataPayloadData Metadata; // Get application metadata.
@@ -560,24 +412,6 @@ namespace JsonData {
                     _Init();
                 }
 
-                StorageDetailsData(const StorageDetailsData& _other)
-                    : Core::JSON::Container()
-                    , Path(_other.Path)
-                    , QuotaKB(_other.QuotaKB)
-                    , UsedKB(_other.UsedKB)
-                {
-                    _Init();
-                }
-
-                StorageDetailsData(StorageDetailsData&& _other) noexcept
-                    : Core::JSON::Container()
-                    , Path(std::move(_other.Path))
-                    , QuotaKB(std::move(_other.QuotaKB))
-                    , UsedKB(std::move(_other.UsedKB))
-                {
-                    _Init();
-                }
-
                 StorageDetailsData(const Exchange::IPackageManager::StorageInfo::StorageDetails& _other)
                     : Core::JSON::Container()
                 {
@@ -585,22 +419,6 @@ namespace JsonData {
                     QuotaKB = _other.quotaKB;
                     UsedKB = _other.usedKB;
                     _Init();
-                }
-
-                StorageDetailsData& operator=(const StorageDetailsData& _rhs)
-                {
-                    Path = _rhs.Path;
-                    QuotaKB = _rhs.QuotaKB;
-                    UsedKB = _rhs.UsedKB;
-                    return (*this);
-                }
-
-                StorageDetailsData& operator=(StorageDetailsData&& _rhs) noexcept
-                {
-                    Path = std::move(_rhs.Path);
-                    QuotaKB = std::move(_rhs.QuotaKB);
-                    UsedKB = std::move(_rhs.UsedKB);
-                    return (*this);
                 }
 
                 StorageDetailsData& operator=(const Exchange::IPackageManager::StorageInfo::StorageDetails& _rhs)
@@ -620,12 +438,9 @@ namespace JsonData {
                     return (_value);
                 }
 
-                ~StorageDetailsData() = default;
-
-            public:
-                bool IsDataValid() const
+                bool IsValid() const
                 {
-                    return ((Path.IsSet() == true) && (QuotaKB.IsSet() == true) && (UsedKB.IsSet() == true));
+                    return (true);
                 }
 
             private:
@@ -648,51 +463,17 @@ namespace JsonData {
                 _Init();
             }
 
-            StorageInfoData(const StorageInfoData& _other)
-                : Core::JSON::Container()
-                , Apps(_other.Apps)
-                , Persistent(_other.Persistent)
-            {
-                _Init();
-            }
-
-            StorageInfoData(StorageInfoData&& _other) noexcept
-                : Core::JSON::Container()
-                , Apps(std::move(_other.Apps))
-                , Persistent(std::move(_other.Persistent))
-            {
-                _Init();
-            }
-
             StorageInfoData(const Exchange::IPackageManager::StorageInfo& _other)
                 : Core::JSON::Container()
             {
-                Apps.Set(true);
                 Apps = _other.apps;
-                Persistent.Set(true);
                 Persistent = _other.persistent;
                 _Init();
             }
 
-            StorageInfoData& operator=(const StorageInfoData& _rhs)
-            {
-                Apps = _rhs.Apps;
-                Persistent = _rhs.Persistent;
-                return (*this);
-            }
-
-            StorageInfoData& operator=(StorageInfoData&& _rhs) noexcept
-            {
-                Apps = std::move(_rhs.Apps);
-                Persistent = std::move(_rhs.Persistent);
-                return (*this);
-            }
-
             StorageInfoData& operator=(const Exchange::IPackageManager::StorageInfo& _rhs)
             {
-                Apps.Set(true);
                 Apps = _rhs.apps;
-                Persistent.Set(true);
                 Persistent = _rhs.persistent;
                 return (*this);
             }
@@ -705,12 +486,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~StorageInfoData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (((Apps.IsSet() == true) && (Apps.IsDataValid() == true)) && ((Persistent.IsSet() == true) && (Persistent.IsDataValid() == true)));
+                return (true);
             }
 
         private:
@@ -738,19 +516,13 @@ namespace JsonData {
                 Add(_T("category"), &Category);
             }
 
-            InstallParamsData(const InstallParamsData&) = delete;
-            InstallParamsData(InstallParamsData&&) noexcept  = delete;
-
-            InstallParamsData& operator=(const InstallParamsData&) = delete;
-            InstallParamsData& operator=(InstallParamsData&&) noexcept  = delete;
-
-            ~InstallParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (Url.IsSet() == true) && (AppName.IsSet() == true) && (Category.IsSet() == true));
+                return (true);
             }
+
+            InstallParamsData(const InstallParamsData&) = delete;
+            InstallParamsData& operator=(const InstallParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Download the application bundle.
@@ -773,19 +545,13 @@ namespace JsonData {
                 Add(_T("owner"), &Owner);
             }
 
-            LockParamsData(const LockParamsData&) = delete;
-            LockParamsData(LockParamsData&&) noexcept  = delete;
-
-            LockParamsData& operator=(const LockParamsData&) = delete;
-            LockParamsData& operator=(LockParamsData&&) noexcept  = delete;
-
-            ~LockParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (Reason.IsSet() == true) && (Owner.IsSet() == true));
+                return (true);
             }
+
+            LockParamsData(const LockParamsData&) = delete;
+            LockParamsData& operator=(const LockParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Lock the application. Preventing uninstallation.
@@ -809,19 +575,13 @@ namespace JsonData {
                 Add(_T("details"), &Details);
             }
 
-            OperationStatusParamsData(const OperationStatusParamsData&) = delete;
-            OperationStatusParamsData(OperationStatusParamsData&&) noexcept  = delete;
-
-            OperationStatusParamsData& operator=(const OperationStatusParamsData&) = delete;
-            OperationStatusParamsData& operator=(OperationStatusParamsData&&) noexcept  = delete;
-
-            ~OperationStatusParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Handle.IsSet() == true) && (Operation.IsSet() == true) && (Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (Status.IsSet() == true) && (Details.IsSet() == true));
+                return (true);
             }
+
+            OperationStatusParamsData(const OperationStatusParamsData&) = delete;
+            OperationStatusParamsData& operator=(const OperationStatusParamsData&) = delete;
 
         public:
             Core::JSON::String Handle; // Completion of asynchronous operation.
@@ -844,19 +604,13 @@ namespace JsonData {
                 Add(_T("resettype"), &ResetType);
             }
 
-            ResetParamsData(const ResetParamsData&) = delete;
-            ResetParamsData(ResetParamsData&&) noexcept  = delete;
-
-            ResetParamsData& operator=(const ResetParamsData&) = delete;
-            ResetParamsData& operator=(ResetParamsData&&) noexcept  = delete;
-
-            ~ResetParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (ResetType.IsSet() == true));
+                return (true);
             }
+
+            ResetParamsData(const ResetParamsData&) = delete;
+            ResetParamsData& operator=(const ResetParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Delete persistent data stored locally.
@@ -877,19 +631,13 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            SetAuxMetadataParamsData(const SetAuxMetadataParamsData&) = delete;
-            SetAuxMetadataParamsData(SetAuxMetadataParamsData&&) noexcept  = delete;
-
-            SetAuxMetadataParamsData& operator=(const SetAuxMetadataParamsData&) = delete;
-            SetAuxMetadataParamsData& operator=(SetAuxMetadataParamsData&&) noexcept  = delete;
-
-            ~SetAuxMetadataParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (Key.IsSet() == true) && (Value.IsSet() == true));
+                return (true);
             }
+
+            SetAuxMetadataParamsData(const SetAuxMetadataParamsData&) = delete;
+            SetAuxMetadataParamsData& operator=(const SetAuxMetadataParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Set an arbitrary metadata.
@@ -910,19 +658,13 @@ namespace JsonData {
                 Add(_T("uninstalltype"), &UninstallType);
             }
 
-            UninstallParamsData(const UninstallParamsData&) = delete;
-            UninstallParamsData(UninstallParamsData&&) noexcept  = delete;
-
-            UninstallParamsData& operator=(const UninstallParamsData&) = delete;
-            UninstallParamsData& operator=(UninstallParamsData&&) noexcept  = delete;
-
-            ~UninstallParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Type.IsSet() == true) && (Id.IsSet() == true) && (Version.IsSet() == true) && (UninstallType.IsSet() == true));
+                return (true);
             }
+
+            UninstallParamsData(const UninstallParamsData&) = delete;
+            UninstallParamsData& operator=(const UninstallParamsData&) = delete;
 
         public:
             Core::JSON::String Type; // Uninstall the application.
@@ -932,8 +674,6 @@ namespace JsonData {
         }; // class UninstallParamsData
 
     } // namespace PackageManager
-
-    POP_WARNING()
 
 } // namespace JsonData
 

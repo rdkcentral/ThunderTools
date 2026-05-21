@@ -1,4 +1,4 @@
-// Enumeration code for Messenger API.
+// Enumeration code for Messenger API JSON-RPC API.
 // Generated automatically from 'Messenger.json'.
 
 #include <core/Enumerate.h>

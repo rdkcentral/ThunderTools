@@ -1,4 +1,4 @@
-// C++ types for Display Info API.
+// C++ classes for Display Info API JSON-RPC API.
 // Generated automatically from 'DisplayInfo.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace DisplayInfo {
 
@@ -50,19 +48,13 @@ namespace JsonData {
                 Add(_T("hdrtype"), &Hdrtype);
             }
 
-            DisplayinfoData(const DisplayinfoData&) = delete;
-            DisplayinfoData(DisplayinfoData&&) noexcept  = delete;
-
-            DisplayinfoData& operator=(const DisplayinfoData&) = delete;
-            DisplayinfoData& operator=(DisplayinfoData&&) noexcept  = delete;
-
-            ~DisplayinfoData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Totalgpuram.IsSet() == true) && (Freegpuram.IsSet() == true) && (Audiopassthrough.IsSet() == true) && (Connected.IsSet() == true) && (Width.IsSet() == true) && (Height.IsSet() == true) && (Hdcpprotection.IsSet() == true) && (Hdrtype.IsSet() == true));
+                return (true);
             }
+
+            DisplayinfoData(const DisplayinfoData&) = delete;
+            DisplayinfoData& operator=(const DisplayinfoData&) = delete;
 
         public:
             Core::JSON::DecUInt64 Totalgpuram; // Total GPU DRAM memory (in bytes)
@@ -76,8 +68,6 @@ namespace JsonData {
         }; // class DisplayinfoData
 
     } // namespace DisplayInfo
-
-    POP_WARNING()
 
 } // namespace JsonData
 

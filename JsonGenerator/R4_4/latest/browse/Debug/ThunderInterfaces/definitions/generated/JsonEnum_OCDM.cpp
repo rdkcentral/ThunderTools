@@ -1,4 +1,4 @@
-// Enumeration code for OpenCDMi API.
+// Enumeration code for OpenCDMi API JSON-RPC API.
 // Generated automatically from 'OCDM.json'.
 
 #include <core/Enumerate.h>

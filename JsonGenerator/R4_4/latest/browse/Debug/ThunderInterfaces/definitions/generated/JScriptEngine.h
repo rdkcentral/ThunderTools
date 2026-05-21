@@ -1,6 +1,7 @@
 // Generated automatically from 'IScriptEngine.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_ScriptEngine.h"
 #include <interfaces/IScriptEngine.h>
@@ -19,93 +20,80 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IScriptEngine* _implementation__)
+        static void Register(JSONRPC& _module_, IScriptEngine* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JScriptEngine"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JScriptEngine"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'url' - Script to be loaded into the engine and to be executed
-            _module__.PluginHost::JSONRPC::Register<JsonData::ScriptEngine::URLData, Core::JSON::String>(_T("url"),
-                [_implementation__](const JsonData::ScriptEngine::URLData& params, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::ScriptEngine::URLData, Core::JSON::String>(_T("url"), 
+                [_impl_](const JsonData::ScriptEngine::URLData& params, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        string _result_{};
+                        // property get
+                        string _result{};
 
-                        _errorCode__ = (static_cast<const IScriptEngine*>(_implementation__))->URL(_result_);
+                        _errorCode = (static_cast<const IScriptEngine*>(_impl_))->URL(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
 
-                        if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const string _value_{params.Value};
+                    } else {
+                        // property set
+                        const string _value{params.Value};
 
-                            _errorCode__ = _implementation__->URL(_value_);
-
-                        }
+                        _errorCode = _impl_->URL(_value);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("url"));
+            _module_.Unregister(_T("url"));
         }
 
         namespace Event {
 
             // Event: 'urlchanged'
-            template<typename MODULE>
-            static void URLChanged(const MODULE& module_, const JsonData::ScriptEngine::URLChangedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void URLChanged(const JSONRPC& _module_, const JsonData::ScriptEngine::URLChangedParamsData& params)
             {
-                module_.Notify(_T("urlchanged"), params, sendIfMethod_);
+                _module_.Notify(_T("urlchanged"), params);
             }
 
             // Event: 'urlchanged'
-            template<typename MODULE>
-            static void URLChanged(const MODULE& module_, const Core::JSON::String& URL, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void URLChanged(const JSONRPC& _module_, const Core::JSON::String& URL)
             {
-                JsonData::ScriptEngine::URLChangedParamsData params_;
-                params_.URL = URL;
+                JsonData::ScriptEngine::URLChangedParamsData _params_;
+                _params_.URL = URL;
 
-                URLChanged(module_, params_, sendIfMethod_);
+                URLChanged(_module_, _params_);
             }
 
             // Event: 'urlchanged'
-            template<typename MODULE>
-            static void URLChanged(const MODULE& module_, const string& URL, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void URLChanged(const JSONRPC& _module_, const string& URL)
             {
-                JsonData::ScriptEngine::URLChangedParamsData params_;
-                params_.URL = URL;
+                JsonData::ScriptEngine::URLChangedParamsData _params_;
+                _params_.URL = URL;
 
-                URLChanged(module_, params_, sendIfMethod_);
+                URLChanged(_module_, _params_);
             }
 
         } // namespace Event
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JScriptEngine

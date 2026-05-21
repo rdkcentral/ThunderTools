@@ -1,4 +1,4 @@
-// Packager API
+// Packager JSON-RPC API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

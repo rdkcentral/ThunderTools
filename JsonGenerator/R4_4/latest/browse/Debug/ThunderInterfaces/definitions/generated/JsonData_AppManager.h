@@ -1,4 +1,4 @@
-// C++ types for AppManager API.
+// C++ classes for AppManager API JSON-RPC API.
 // Generated automatically from 'IAppManager.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace AppManager {
 
@@ -28,19 +26,13 @@ namespace JsonData {
                 Add(_T("key"), &Key);
             }
 
-            GetAppMetaInfoParamsInfo(const GetAppMetaInfoParamsInfo&) = delete;
-            GetAppMetaInfoParamsInfo(GetAppMetaInfoParamsInfo&&) noexcept  = delete;
-
-            GetAppMetaInfoParamsInfo& operator=(const GetAppMetaInfoParamsInfo&) = delete;
-            GetAppMetaInfoParamsInfo& operator=(GetAppMetaInfoParamsInfo&&) noexcept  = delete;
-
-            ~GetAppMetaInfoParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (Key.IsSet() == true));
+                return (true);
             }
+
+            GetAppMetaInfoParamsInfo(const GetAppMetaInfoParamsInfo&) = delete;
+            GetAppMetaInfoParamsInfo& operator=(const GetAppMetaInfoParamsInfo&) = delete;
 
         public:
             Core::JSON::String AppId;
@@ -57,19 +49,13 @@ namespace JsonData {
                 Add(_T("launchArgs"), &LaunchArgs);
             }
 
-            LaunchAppParamsInfo(const LaunchAppParamsInfo&) = delete;
-            LaunchAppParamsInfo(LaunchAppParamsInfo&&) noexcept  = delete;
-
-            LaunchAppParamsInfo& operator=(const LaunchAppParamsInfo&) = delete;
-            LaunchAppParamsInfo& operator=(LaunchAppParamsInfo&&) noexcept  = delete;
-
-            ~LaunchAppParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (Intent.IsSet() == true) && (LaunchArgs.IsSet() == true));
+                return (true);
             }
+
+            LaunchAppParamsInfo(const LaunchAppParamsInfo&) = delete;
+            LaunchAppParamsInfo& operator=(const LaunchAppParamsInfo&) = delete;
 
         public:
             Core::JSON::String AppId;
@@ -85,19 +71,13 @@ namespace JsonData {
                 Add(_T("appId"), &AppId);
             }
 
-            PrepareAppParamsInfo(const PrepareAppParamsInfo&) = delete;
-            PrepareAppParamsInfo(PrepareAppParamsInfo&&) noexcept  = delete;
-
-            PrepareAppParamsInfo& operator=(const PrepareAppParamsInfo&) = delete;
-            PrepareAppParamsInfo& operator=(PrepareAppParamsInfo&&) noexcept  = delete;
-
-            ~PrepareAppParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (AppId.IsSet() == true);
+                return (true);
             }
+
+            PrepareAppParamsInfo(const PrepareAppParamsInfo&) = delete;
+            PrepareAppParamsInfo& operator=(const PrepareAppParamsInfo&) = delete;
 
         public:
             Core::JSON::String AppId;
@@ -115,19 +95,13 @@ namespace JsonData {
                 Add(_T("version"), &Version);
             }
 
-            OnAppInstalledParamsData(const OnAppInstalledParamsData&) = delete;
-            OnAppInstalledParamsData(OnAppInstalledParamsData&&) noexcept  = delete;
-
-            OnAppInstalledParamsData& operator=(const OnAppInstalledParamsData&) = delete;
-            OnAppInstalledParamsData& operator=(OnAppInstalledParamsData&&) noexcept  = delete;
-
-            ~OnAppInstalledParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (Version.IsSet() == true));
+                return (true);
             }
+
+            OnAppInstalledParamsData(const OnAppInstalledParamsData&) = delete;
+            OnAppInstalledParamsData& operator=(const OnAppInstalledParamsData&) = delete;
 
         public:
             Core::JSON::String AppId; // id of the application
@@ -144,19 +118,13 @@ namespace JsonData {
                 Add(_T("source"), &Source);
             }
 
-            OnAppLaunchRequestParamsData(const OnAppLaunchRequestParamsData&) = delete;
-            OnAppLaunchRequestParamsData(OnAppLaunchRequestParamsData&&) noexcept  = delete;
-
-            OnAppLaunchRequestParamsData& operator=(const OnAppLaunchRequestParamsData&) = delete;
-            OnAppLaunchRequestParamsData& operator=(OnAppLaunchRequestParamsData&&) noexcept  = delete;
-
-            ~OnAppLaunchRequestParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (Intent.IsSet() == true) && (Source.IsSet() == true));
+                return (true);
             }
+
+            OnAppLaunchRequestParamsData(const OnAppLaunchRequestParamsData&) = delete;
+            OnAppLaunchRequestParamsData& operator=(const OnAppLaunchRequestParamsData&) = delete;
 
         public:
             Core::JSON::String AppId; // The source of the launch request
@@ -173,19 +141,13 @@ namespace JsonData {
                 Add(_T("state"), &State);
             }
 
-            OnAppStateChangedParamsData(const OnAppStateChangedParamsData&) = delete;
-            OnAppStateChangedParamsData(OnAppStateChangedParamsData&&) noexcept  = delete;
-
-            OnAppStateChangedParamsData& operator=(const OnAppStateChangedParamsData&) = delete;
-            OnAppStateChangedParamsData& operator=(OnAppStateChangedParamsData&&) noexcept  = delete;
-
-            ~OnAppStateChangedParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (State.IsSet() == true));
+                return (true);
             }
+
+            OnAppStateChangedParamsData(const OnAppStateChangedParamsData&) = delete;
+            OnAppStateChangedParamsData& operator=(const OnAppStateChangedParamsData&) = delete;
 
         public:
             Core::JSON::String AppId; // id of the application
@@ -201,19 +163,13 @@ namespace JsonData {
                 Add(_T("messagae"), &Messagae);
             }
 
-            SendMessageParamsData(const SendMessageParamsData&) = delete;
-            SendMessageParamsData(SendMessageParamsData&&) noexcept  = delete;
-
-            SendMessageParamsData& operator=(const SendMessageParamsData&) = delete;
-            SendMessageParamsData& operator=(SendMessageParamsData&&) noexcept  = delete;
-
-            ~SendMessageParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (Messagae.IsSet() == true));
+                return (true);
             }
+
+            SendMessageParamsData(const SendMessageParamsData&) = delete;
+            SendMessageParamsData& operator=(const SendMessageParamsData&) = delete;
 
         public:
             Core::JSON::String AppId;
@@ -230,19 +186,13 @@ namespace JsonData {
                 Add(_T("value"), &Value);
             }
 
-            SetAppPropertyParamsData(const SetAppPropertyParamsData&) = delete;
-            SetAppPropertyParamsData(SetAppPropertyParamsData&&) noexcept  = delete;
-
-            SetAppPropertyParamsData& operator=(const SetAppPropertyParamsData&) = delete;
-            SetAppPropertyParamsData& operator=(SetAppPropertyParamsData&&) noexcept  = delete;
-
-            ~SetAppPropertyParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((AppId.IsSet() == true) && (Key.IsSet() == true) && (Value.IsSet() == true));
+                return (true);
             }
+
+            SetAppPropertyParamsData(const SetAppPropertyParamsData&) = delete;
+            SetAppPropertyParamsData& operator=(const SetAppPropertyParamsData&) = delete;
 
         public:
             Core::JSON::String AppId;
@@ -258,19 +208,13 @@ namespace JsonData {
                 Add(_T("maxHibernatedApps"), &MaxHibernatedApps);
             }
 
-            SetMaxHibernatedAppsData(const SetMaxHibernatedAppsData&) = delete;
-            SetMaxHibernatedAppsData(SetMaxHibernatedAppsData&&) noexcept  = delete;
-
-            SetMaxHibernatedAppsData& operator=(const SetMaxHibernatedAppsData&) = delete;
-            SetMaxHibernatedAppsData& operator=(SetMaxHibernatedAppsData&&) noexcept  = delete;
-
-            ~SetMaxHibernatedAppsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (MaxHibernatedApps.IsSet() == true);
+                return (true);
             }
+
+            SetMaxHibernatedAppsData(const SetMaxHibernatedAppsData&) = delete;
+            SetMaxHibernatedAppsData& operator=(const SetMaxHibernatedAppsData&) = delete;
 
         public:
             Core::JSON::DecUInt32 MaxHibernatedApps; // : maxHibernatedApps
@@ -284,19 +228,13 @@ namespace JsonData {
                 Add(_T("maxHibernatedFlashUsage"), &MaxHibernatedFlashUsage);
             }
 
-            SetMaxHibernatedFlashUsageData(const SetMaxHibernatedFlashUsageData&) = delete;
-            SetMaxHibernatedFlashUsageData(SetMaxHibernatedFlashUsageData&&) noexcept  = delete;
-
-            SetMaxHibernatedFlashUsageData& operator=(const SetMaxHibernatedFlashUsageData&) = delete;
-            SetMaxHibernatedFlashUsageData& operator=(SetMaxHibernatedFlashUsageData&&) noexcept  = delete;
-
-            ~SetMaxHibernatedFlashUsageData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (MaxHibernatedFlashUsage.IsSet() == true);
+                return (true);
             }
+
+            SetMaxHibernatedFlashUsageData(const SetMaxHibernatedFlashUsageData&) = delete;
+            SetMaxHibernatedFlashUsageData& operator=(const SetMaxHibernatedFlashUsageData&) = delete;
 
         public:
             Core::JSON::DecUInt32 MaxHibernatedFlashUsage; // : maxHibernatedFlashUsage
@@ -310,19 +248,13 @@ namespace JsonData {
                 Add(_T("maxInteractiveApps"), &MaxInteractiveApps);
             }
 
-            SetMaxInactiveAppsData(const SetMaxInactiveAppsData&) = delete;
-            SetMaxInactiveAppsData(SetMaxInactiveAppsData&&) noexcept  = delete;
-
-            SetMaxInactiveAppsData& operator=(const SetMaxInactiveAppsData&) = delete;
-            SetMaxInactiveAppsData& operator=(SetMaxInactiveAppsData&&) noexcept  = delete;
-
-            ~SetMaxInactiveAppsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (MaxInteractiveApps.IsSet() == true);
+                return (true);
             }
+
+            SetMaxInactiveAppsData(const SetMaxInactiveAppsData&) = delete;
+            SetMaxInactiveAppsData& operator=(const SetMaxInactiveAppsData&) = delete;
 
         public:
             Core::JSON::DecUInt32 MaxInteractiveApps; // : maxInteractiveApps
@@ -336,27 +268,19 @@ namespace JsonData {
                 Add(_T("maxInactiveRamUsage"), &MaxInactiveRamUsage);
             }
 
-            SetMaxInactiveRamUsageData(const SetMaxInactiveRamUsageData&) = delete;
-            SetMaxInactiveRamUsageData(SetMaxInactiveRamUsageData&&) noexcept  = delete;
-
-            SetMaxInactiveRamUsageData& operator=(const SetMaxInactiveRamUsageData&) = delete;
-            SetMaxInactiveRamUsageData& operator=(SetMaxInactiveRamUsageData&&) noexcept  = delete;
-
-            ~SetMaxInactiveRamUsageData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (MaxInactiveRamUsage.IsSet() == true);
+                return (true);
             }
+
+            SetMaxInactiveRamUsageData(const SetMaxInactiveRamUsageData&) = delete;
+            SetMaxInactiveRamUsageData& operator=(const SetMaxInactiveRamUsageData&) = delete;
 
         public:
             Core::JSON::DecUInt32 MaxInactiveRamUsage; // : maxInactiveRamUsage
         }; // class SetMaxInactiveRamUsageData
 
     } // namespace AppManager
-
-    POP_WARNING()
 
 } // namespace JsonData
 

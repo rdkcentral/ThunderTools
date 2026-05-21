@@ -1,4 +1,4 @@
-// Enumeration code for DTV API.
+// Enumeration code for DTV API JSON-RPC API.
 // Generated automatically from 'DTV.json'.
 
 #include <core/Enumerate.h>

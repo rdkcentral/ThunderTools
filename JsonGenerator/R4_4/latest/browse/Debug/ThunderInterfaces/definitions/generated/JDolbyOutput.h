@@ -1,6 +1,7 @@
 // Generated automatically from 'IDolby.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_DolbyOutput.h"
 #include <interfaces/IDolby.h>
@@ -21,221 +22,213 @@ namespace Exchange {
 
             } // namespace Version
 
+            using JSONRPC = PluginHost::JSONRPC;
+
             PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-            PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-            PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-            template<typename MODULE>
-            static void Register(MODULE& _module__, Dolby::IOutput* _implementation__)
+            static void Register(JSONRPC& _module_, Dolby::IOutput* _impl_)
             {
-                ASSERT(_implementation__ != nullptr);
+                ASSERT(_impl_ != nullptr);
 
-                _module__.PluginHost::JSONRPC::RegisterVersion(_T("JOutput"), Version::Major, Version::Minor, Version::Patch);
+                _module_.RegisterVersion(_T("JOutput"), Version::Major, Version::Minor, Version::Patch);
 
                 // Register methods and properties...
 
                 // Property: 'dolbyatmossupported' - Atmos capabilities of Sink (r/o)
-                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::Boolean>(_T("dolbyatmossupported"),
-                    [_implementation__](Core::JSON::Boolean& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, Core::JSON::Boolean>(_T("dolbyatmossupported"), 
+                    [_impl_](Core::JSON::Boolean& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        bool _result_{};
+                        // read-only property get
+                        bool _result{};
 
-                        _errorCode__ = _implementation__->AtmosMetadata(_result_);
+                        _errorCode = _impl_->AtmosMetadata(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolby_atmosmetadata' - Atmos capabilities of Sink (DEPRECATED) (r/o)
-                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::Boolean>(_T("dolby_atmosmetadata"),
-                    [_implementation__](Core::JSON::Boolean& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, Core::JSON::Boolean>(_T("dolby_atmosmetadata"), 
+                    [_impl_](Core::JSON::Boolean& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        bool _result_{};
+                        // read-only property get
+                        bool _result{};
 
-                        _errorCode__ = _implementation__->AtmosMetadata(_result_);
+                        _errorCode = _impl_->AtmosMetadata(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolbysoundmode' - Sound Mode - Mono/Stereo/Surround (r/o)
-                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>>(_T("dolbysoundmode"),
-                    [_implementation__](Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>>(_T("dolbysoundmode"), 
+                    [_impl_](Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        Exchange::Dolby::IOutput::SoundModes _result_{};
+                        // read-only property get
+                        Exchange::Dolby::IOutput::SoundModes _result{};
 
-                        _errorCode__ = _implementation__->SoundMode(_result_);
+                        _errorCode = _impl_->SoundMode(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolby_soundmode' - Sound Mode - Mono/Stereo/Surround (DEPRECATED) (r/o)
-                _module__.PluginHost::JSONRPC::Register<void, Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>>(_T("dolby_soundmode"),
-                    [_implementation__](Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<void, Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>>(_T("dolby_soundmode"), 
+                    [_impl_](Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        Exchange::Dolby::IOutput::SoundModes _result_{};
+                        // read-only property get
+                        Exchange::Dolby::IOutput::SoundModes _result{};
 
-                        _errorCode__ = _implementation__->SoundMode(_result_);
+                        _errorCode = _impl_->SoundMode(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
 
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolbyatmosoutput' - Enable Atmos Audio Output (w/o)
-                _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, void>(_T("dolbyatmosoutput"),
-                    [_implementation__](const Core::JSON::Boolean& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<Core::JSON::Boolean, void>(_T("dolbyatmosoutput"), 
+                    [_impl_](const Core::JSON::Boolean& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if (params.IsSet() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const bool _params_{params};
+                        // write-only property set
+                        const bool _params{params};
 
-                            _errorCode__ = _implementation__->EnableAtmosOutput(_params_);
+                        _errorCode = _impl_->EnableAtmosOutput(_params);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolby_enableatmosoutput' - Enable Atmos Audio Output (DEPRECATED) (w/o)
-                _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, void>(_T("dolby_enableatmosoutput"),
-                    [_implementation__](const Core::JSON::Boolean& params) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<Core::JSON::Boolean, void>(_T("dolby_enableatmosoutput"), 
+                    [_impl_](const Core::JSON::Boolean& params) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
-                        if (params.IsSet() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const bool _params_{params};
+                        // write-only property set
+                        const bool _params{params};
 
-                            _errorCode__ = _implementation__->EnableAtmosOutput(_params_);
+                        _errorCode = _impl_->EnableAtmosOutput(_params);
 
-                        }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolbymode' - Dolby Mode
-                _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>, Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>>(_T("dolbymode"),
-                    [_implementation__](const Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& params, Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>, Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>>(_T("dolbymode"), 
+                    [_impl_](const Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& params,
+                             Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
                         if (params.IsSet() == false) {
-                            Exchange::Dolby::IOutput::Type _result_{};
+                            // property get
+                            Exchange::Dolby::IOutput::Type _result{};
 
-                            _errorCode__ = (static_cast<const Dolby::IOutput*>(_implementation__))->Mode(_result_);
+                            _errorCode = (static_cast<const Dolby::IOutput*>(_impl_))->Mode(_result);
 
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result = _result_;
+                            if (_errorCode == Core::ERROR_NONE) {
+                                result = _result;
                             }
-                        }
-                        else {
-                            const Exchange::Dolby::IOutput::Type _params_{params};
 
-                            _errorCode__ = _implementation__->Mode(_params_);
+                        } else {
+                            // property set
+                            const Exchange::Dolby::IOutput::Type _params{params};
+
+                            _errorCode = _impl_->Mode(_params);
 
                             result.Null(true);
                         }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
                 // Property: 'dolby_mode' - Dolby Mode
-                _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>, Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>>(_T("dolby_mode"),
-                    [_implementation__](const Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& params, Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& result) -> uint32_t {
-                        uint32_t _errorCode__ = Core::ERROR_NONE;
+                _module_.Register<Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>, Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>>(_T("dolby_mode"), 
+                    [_impl_](const Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& params,
+                             Core::JSON::EnumType<Exchange::Dolby::IOutput::Type>& result) -> uint32_t {
+                        uint32_t _errorCode = Core::ERROR_NONE;
 
                         if (params.IsSet() == false) {
-                            Exchange::Dolby::IOutput::Type _result_{};
+                            // property get
+                            Exchange::Dolby::IOutput::Type _result{};
 
-                            _errorCode__ = (static_cast<const Dolby::IOutput*>(_implementation__))->Mode(_result_);
+                            _errorCode = (static_cast<const Dolby::IOutput*>(_impl_))->Mode(_result);
 
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result = _result_;
+                            if (_errorCode == Core::ERROR_NONE) {
+                                result = _result;
                             }
-                        }
-                        else {
-                            const Exchange::Dolby::IOutput::Type _params_{params};
 
-                            _errorCode__ = _implementation__->Mode(_params_);
+                        } else {
+                            // property set
+                            const Exchange::Dolby::IOutput::Type _params{params};
+
+                            _errorCode = _impl_->Mode(_params);
 
                             result.Null(true);
                         }
-
-                        return (_errorCode__);
+                        return (_errorCode);
                     });
 
             }
 
-            template<typename MODULE>
-            static void Unregister(MODULE& _module__)
+            static void Unregister(JSONRPC& _module_)
             {
                 // Unregister methods and properties...
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolbyatmossupported"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolby_atmosmetadata"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolbysoundmode"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolby_soundmode"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolbyatmosoutput"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolby_enableatmosoutput"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolbymode"));
-                _module__.PluginHost::JSONRPC::Unregister(_T("dolby_mode"));
+                _module_.Unregister(_T("dolbyatmossupported"));
+                _module_.Unregister(_T("dolby_atmosmetadata"));
+                _module_.Unregister(_T("dolbysoundmode"));
+                _module_.Unregister(_T("dolby_soundmode"));
+                _module_.Unregister(_T("dolbyatmosoutput"));
+                _module_.Unregister(_T("dolby_enableatmosoutput"));
+                _module_.Unregister(_T("dolbymode"));
+                _module_.Unregister(_T("dolby_mode"));
             }
 
             namespace Event {
 
                 // Event: 'soundmodechanged' - Signal audio mode change
-                template<typename MODULE>
-                static void AudioModeChanged(const MODULE& module_, const JsonData::Dolby::Output::AudioModeChangedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+                static void AudioModeChanged(const JSONRPC& _module_, const JsonData::Dolby::Output::AudioModeChangedParamsData& params)
                 {
-                    module_.Notify(_T("soundmodechanged"), params, sendIfMethod_);
-                    module_.Notify(_T("dolby_audiomodechanged"), params, sendIfMethod_);
+                    _module_.Notify(_T("soundmodechanged"), params);
+                    _module_.Notify(_T("dolby_audiomodechanged"), params);
                 }
 
                 // Event: 'soundmodechanged' - Signal audio mode change
-                template<typename MODULE>
-                static void AudioModeChanged(const MODULE& module_, const Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>& mode, const Core::JSON::Boolean& enabled, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+                static void AudioModeChanged(const JSONRPC& _module_, const Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes>& mode,
+                         const Core::JSON::Boolean& enabled)
                 {
-                    JsonData::Dolby::Output::AudioModeChangedParamsData params_;
-                    params_.Mode = mode;
-                    params_.Enabled = enabled;
+                    JsonData::Dolby::Output::AudioModeChangedParamsData _params_;
+                    _params_.Mode = mode;
+                    _params_.Enabled = enabled;
 
-                    AudioModeChanged(module_, params_, sendIfMethod_);
+                    AudioModeChanged(_module_, _params_);
                 }
 
                 // Event: 'soundmodechanged' - Signal audio mode change
-                template<typename MODULE>
-                static void AudioModeChanged(const MODULE& module_, const Dolby::IOutput::SoundModes mode, const bool enabled, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+                static void AudioModeChanged(const JSONRPC& _module_, const Exchange::Dolby::IOutput::SoundModes& mode, const bool& enabled)
                 {
-                    JsonData::Dolby::Output::AudioModeChangedParamsData params_;
-                    params_.Mode = mode;
-                    params_.Enabled = enabled;
+                    JsonData::Dolby::Output::AudioModeChangedParamsData _params_;
+                    _params_.Mode = mode;
+                    _params_.Enabled = enabled;
 
-                    AudioModeChanged(module_, params_, sendIfMethod_);
+                    AudioModeChanged(_module_, _params_);
                 }
 
             } // namespace Event
 
-            POP_WARNING()
-            POP_WARNING()
             POP_WARNING()
 
         } // namespace JOutput

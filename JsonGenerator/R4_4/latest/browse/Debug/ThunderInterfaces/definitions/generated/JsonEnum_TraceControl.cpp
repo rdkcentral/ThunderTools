@@ -1,4 +1,4 @@
-// Enumeration code for Trace Control API.
+// Enumeration code for Trace Control API JSON-RPC API.
 // Generated automatically from 'TraceControl.json'.
 
 #include <core/Enumerate.h>

@@ -1,4 +1,4 @@
-// C++ types for BrowserCookieJar API.
+// C++ classes for BrowserCookieJar API JSON-RPC API.
 // Generated automatically from 'IBrowser.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace BrowserCookieJar {
 
@@ -27,24 +25,6 @@ namespace JsonData {
                 _Init();
             }
 
-            ConfigData(const ConfigData& _other)
-                : Core::JSON::Container()
-                , Version(_other.Version)
-                , Checksum(_other.Checksum)
-                , Payload(_other.Payload)
-            {
-                _Init();
-            }
-
-            ConfigData(ConfigData&& _other) noexcept
-                : Core::JSON::Container()
-                , Version(std::move(_other.Version))
-                , Checksum(std::move(_other.Checksum))
-                , Payload(std::move(_other.Payload))
-            {
-                _Init();
-            }
-
             ConfigData(const Exchange::IBrowserCookieJar::Config& _other)
                 : Core::JSON::Container()
             {
@@ -52,22 +32,6 @@ namespace JsonData {
                 Checksum = _other.checksum;
                 Payload = _other.payload;
                 _Init();
-            }
-
-            ConfigData& operator=(const ConfigData& _rhs)
-            {
-                Version = _rhs.Version;
-                Checksum = _rhs.Checksum;
-                Payload = _rhs.Payload;
-                return (*this);
-            }
-
-            ConfigData& operator=(ConfigData&& _rhs) noexcept
-            {
-                Version = std::move(_rhs.Version);
-                Checksum = std::move(_rhs.Checksum);
-                Payload = std::move(_rhs.Payload);
-                return (*this);
             }
 
             ConfigData& operator=(const Exchange::IBrowserCookieJar::Config& _rhs)
@@ -87,12 +51,9 @@ namespace JsonData {
                 return (_value);
             }
 
-            ~ConfigData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Version.IsSet() == true) && (Checksum.IsSet() == true) && (Payload.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -110,8 +71,6 @@ namespace JsonData {
         }; // class ConfigData
 
     } // namespace BrowserCookieJar
-
-    POP_WARNING()
 
 } // namespace JsonData
 

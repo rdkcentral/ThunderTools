@@ -1,6 +1,7 @@
 // Generated automatically from 'IMessageControl.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_MessageControl.h"
 #include <interfaces/IMessageControl.h>
@@ -19,74 +20,64 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IMessageControl* _implementation__)
+        static void Register(JSONRPC& _module_, IMessageControl* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JMessageControl"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JMessageControl"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'enable' - Enables/disables a message control
-            _module__.PluginHost::JSONRPC::Register<JsonData::MessageControl::ControlInfo, void>(_T("enable"),
-                [_implementation__](const JsonData::MessageControl::ControlInfo& params) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::MessageControl::ControlInfo, void>(_T("enable"), 
+                [_impl_](const JsonData::MessageControl::ControlInfo& params) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
-                    else {
-                        const Exchange::IMessageControl::messagetype _type_{params.Type};
-                        const string _category_{params.Category};
-                        const string _module_{params.Module};
-                        const bool _enabled_{params.Enabled};
+                    const Exchange::IMessageControl::messagetype _type{params.Type};
+                    const string _category{params.Category};
+                    const string _module{params.Module};
+                    const bool _enabled{params.Enabled};
 
-                        _errorCode__ = _implementation__->Enable(_type_, _category_, _module_, _enabled_);
+                    _errorCode = _impl_->Enable(_type, _category, _module, _enabled);
 
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'controls' - Retrieves a list of current message controls (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>>(_T("controls"),
-                [_implementation__](Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>>(_T("controls"), 
+                [_impl_](Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<IMessageControl::Control, ID_MESSAGE_CONTROL_ITERATOR>* _result_{};
+                    // read-only property get
+                    ::WPEFramework::RPC::IIteratorType<IMessageControl::Control, ID_MESSAGE_CONTROL_ITERATOR>* _result{};
 
-                    _errorCode__ = _implementation__->Controls(_result_);
+                    _errorCode = _impl_->Controls(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result.Set(true);
+                    if (_errorCode == Core::ERROR_NONE) {
 
-                        if (_result_ != nullptr) {
-                            Exchange::IMessageControl::Control _resultItem__{};
-                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                            _result_->Release();
+                        if (_result != nullptr) {
+                            Exchange::IMessageControl::Control _resultItem_{};
+                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                            _result->Release();
                         }
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("enable"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("controls"));
+            _module_.Unregister(_T("enable"));
+            _module_.Unregister(_T("controls"));
         }
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JMessageControl

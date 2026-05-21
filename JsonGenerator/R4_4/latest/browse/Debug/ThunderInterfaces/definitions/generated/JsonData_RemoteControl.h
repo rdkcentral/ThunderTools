@@ -1,4 +1,4 @@
-// C++ types for Remote Control API.
+// C++ classes for Remote Control API JSON-RPC API.
 // Generated automatically from 'RemoteControl.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace RemoteControl {
 
@@ -41,19 +39,13 @@ namespace JsonData {
                 Add(_T("code"), &Code);
             }
 
-            KeyobjInfo(const KeyobjInfo&) = delete;
-            KeyobjInfo(KeyobjInfo&&) noexcept  = delete;
-
-            KeyobjInfo& operator=(const KeyobjInfo&) = delete;
-            KeyobjInfo& operator=(KeyobjInfo&&) noexcept  = delete;
-
-            ~KeyobjInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Device.IsSet() == true) && (Code.IsSet() == true));
+                return (true);
             }
+
+            KeyobjInfo(const KeyobjInfo&) = delete;
+            KeyobjInfo& operator=(const KeyobjInfo&) = delete;
 
         public:
             Core::JSON::String Device; // Device name
@@ -68,19 +60,13 @@ namespace JsonData {
                 Add(_T("device"), &Device);
             }
 
-            LoadParamsInfo(const LoadParamsInfo&) = delete;
-            LoadParamsInfo(LoadParamsInfo&&) noexcept  = delete;
-
-            LoadParamsInfo& operator=(const LoadParamsInfo&) = delete;
-            LoadParamsInfo& operator=(LoadParamsInfo&&) noexcept  = delete;
-
-            ~LoadParamsInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Device.IsSet() == true);
+                return (true);
             }
+
+            LoadParamsInfo(const LoadParamsInfo&) = delete;
+            LoadParamsInfo& operator=(const LoadParamsInfo&) = delete;
 
         public:
             Core::JSON::String Device; // Device name
@@ -97,19 +83,13 @@ namespace JsonData {
                 Add(_T("modifiers"), &Modifiers);
             }
 
-            RcobjInfo(const RcobjInfo&) = delete;
-            RcobjInfo(RcobjInfo&&) noexcept  = delete;
-
-            RcobjInfo& operator=(const RcobjInfo&) = delete;
-            RcobjInfo& operator=(RcobjInfo&&) noexcept  = delete;
-
-            ~RcobjInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Device.IsSet() == true) && (Code.IsSet() == true) && (Key.IsSet() == true));
+                return (true);
             }
+
+            RcobjInfo(const RcobjInfo&) = delete;
+            RcobjInfo& operator=(const RcobjInfo&) = delete;
 
         public:
             Core::JSON::String Device; // Device name
@@ -129,19 +109,13 @@ namespace JsonData {
                 Add(_T("metadata"), &Metadata);
             }
 
-            DeviceData(const DeviceData&) = delete;
-            DeviceData(DeviceData&&) noexcept  = delete;
-
-            DeviceData& operator=(const DeviceData&) = delete;
-            DeviceData& operator=(DeviceData&&) noexcept  = delete;
-
-            ~DeviceData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Metadata.IsSet() == true);
+                return (true);
             }
+
+            DeviceData(const DeviceData&) = delete;
+            DeviceData& operator=(const DeviceData&) = delete;
 
         public:
             Core::JSON::String Metadata; // Device metadata
@@ -157,19 +131,13 @@ namespace JsonData {
                 Add(_T("modifiers"), &Modifiers);
             }
 
-            KeyResultData(const KeyResultData&) = delete;
-            KeyResultData(KeyResultData&&) noexcept  = delete;
-
-            KeyResultData& operator=(const KeyResultData&) = delete;
-            KeyResultData& operator=(KeyResultData&&) noexcept  = delete;
-
-            ~KeyResultData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Code.IsSet() == true) && (Key.IsSet() == true));
+                return (true);
             }
+
+            KeyResultData(const KeyResultData&) = delete;
+            KeyResultData& operator=(const KeyResultData&) = delete;
 
         public:
             Core::JSON::DecUInt32 Code; // Key code
@@ -185,19 +153,13 @@ namespace JsonData {
                 Add(_T("pressed"), &Pressed);
             }
 
-            KeypressedParamsData(const KeypressedParamsData&) = delete;
-            KeypressedParamsData(KeypressedParamsData&&) noexcept  = delete;
-
-            KeypressedParamsData& operator=(const KeypressedParamsData&) = delete;
-            KeypressedParamsData& operator=(KeypressedParamsData&&) noexcept  = delete;
-
-            ~KeypressedParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Pressed.IsSet() == true);
+                return (true);
             }
+
+            KeypressedParamsData(const KeypressedParamsData&) = delete;
+            KeypressedParamsData& operator=(const KeypressedParamsData&) = delete;
 
         public:
             Core::JSON::Boolean Pressed; // Denotes if the key was pressed (true) or released (false)
@@ -212,19 +174,13 @@ namespace JsonData {
                 Add(_T("bindid"), &Bindid);
             }
 
-            UnpairParamsData(const UnpairParamsData&) = delete;
-            UnpairParamsData(UnpairParamsData&&) noexcept  = delete;
-
-            UnpairParamsData& operator=(const UnpairParamsData&) = delete;
-            UnpairParamsData& operator=(UnpairParamsData&&) noexcept  = delete;
-
-            ~UnpairParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Device.IsSet() == true) && (Bindid.IsSet() == true));
+                return (true);
             }
+
+            UnpairParamsData(const UnpairParamsData&) = delete;
+            UnpairParamsData& operator=(const UnpairParamsData&) = delete;
 
         public:
             Core::JSON::String Device; // Device name
@@ -232,8 +188,6 @@ namespace JsonData {
         }; // class UnpairParamsData
 
     } // namespace RemoteControl
-
-    POP_WARNING()
 
 } // namespace JsonData
 

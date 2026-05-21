@@ -1,4 +1,4 @@
-// C++ types for Messenger API.
+// C++ classes for Messenger API JSON-RPC API.
 // Generated automatically from 'Messenger.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Messenger {
 
@@ -36,19 +34,13 @@ namespace JsonData {
                 Add(_T("roomid"), &Roomid);
             }
 
-            JoinResultInfo(const JoinResultInfo&) = delete;
-            JoinResultInfo(JoinResultInfo&&) noexcept  = delete;
-
-            JoinResultInfo& operator=(const JoinResultInfo&) = delete;
-            JoinResultInfo& operator=(JoinResultInfo&&) noexcept  = delete;
-
-            ~JoinResultInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Roomid.IsSet() == true);
+                return (true);
             }
+
+            JoinResultInfo(const JoinResultInfo&) = delete;
+            JoinResultInfo& operator=(const JoinResultInfo&) = delete;
 
         public:
             Core::JSON::String Roomid; // Unique ID of the room
@@ -68,19 +60,13 @@ namespace JsonData {
                 Add(_T("acl"), &Acl);
             }
 
-            JoinParamsData(const JoinParamsData&) = delete;
-            JoinParamsData(JoinParamsData&&) noexcept  = delete;
-
-            JoinParamsData& operator=(const JoinParamsData&) = delete;
-            JoinParamsData& operator=(JoinParamsData&&) noexcept  = delete;
-
-            ~JoinParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((User.IsSet() == true) && (Room.IsSet() == true));
+                return (true);
             }
+
+            JoinParamsData(const JoinParamsData&) = delete;
+            JoinParamsData& operator=(const JoinParamsData&) = delete;
 
         public:
             Core::JSON::String User; // User name to join the room under (must not be empty)
@@ -98,19 +84,13 @@ namespace JsonData {
                 Add(_T("message"), &Message);
             }
 
-            MessageParamsData(const MessageParamsData&) = delete;
-            MessageParamsData(MessageParamsData&&) noexcept  = delete;
-
-            MessageParamsData& operator=(const MessageParamsData&) = delete;
-            MessageParamsData& operator=(MessageParamsData&&) noexcept  = delete;
-
-            ~MessageParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((User.IsSet() == true) && (Message.IsSet() == true));
+                return (true);
             }
+
+            MessageParamsData(const MessageParamsData&) = delete;
+            MessageParamsData& operator=(const MessageParamsData&) = delete;
 
         public:
             Core::JSON::String User; // Name of the user that has sent the message
@@ -133,19 +113,13 @@ namespace JsonData {
                 Add(_T("action"), &Action);
             }
 
-            RoomupdateParamsData(const RoomupdateParamsData&) = delete;
-            RoomupdateParamsData(RoomupdateParamsData&&) noexcept  = delete;
-
-            RoomupdateParamsData& operator=(const RoomupdateParamsData&) = delete;
-            RoomupdateParamsData& operator=(RoomupdateParamsData&&) noexcept  = delete;
-
-            ~RoomupdateParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Room.IsSet() == true) && (Action.IsSet() == true));
+                return (true);
             }
+
+            RoomupdateParamsData(const RoomupdateParamsData&) = delete;
+            RoomupdateParamsData& operator=(const RoomupdateParamsData&) = delete;
 
         public:
             Core::JSON::String Room; // Name of the room this notification relates to
@@ -162,19 +136,13 @@ namespace JsonData {
                 Add(_T("message"), &Message);
             }
 
-            SendParamsData(const SendParamsData&) = delete;
-            SendParamsData(SendParamsData&&) noexcept  = delete;
-
-            SendParamsData& operator=(const SendParamsData&) = delete;
-            SendParamsData& operator=(SendParamsData&&) noexcept  = delete;
-
-            ~SendParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Roomid.IsSet() == true) && (Message.IsSet() == true));
+                return (true);
             }
+
+            SendParamsData(const SendParamsData&) = delete;
+            SendParamsData& operator=(const SendParamsData&) = delete;
 
         public:
             Core::JSON::String Roomid; // ID of the room to send the message to
@@ -196,19 +164,13 @@ namespace JsonData {
                 Add(_T("action"), &Action);
             }
 
-            UserupdateParamsData(const UserupdateParamsData&) = delete;
-            UserupdateParamsData(UserupdateParamsData&&) noexcept  = delete;
-
-            UserupdateParamsData& operator=(const UserupdateParamsData&) = delete;
-            UserupdateParamsData& operator=(UserupdateParamsData&&) noexcept  = delete;
-
-            ~UserupdateParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((User.IsSet() == true) && (Action.IsSet() == true));
+                return (true);
             }
+
+            UserupdateParamsData(const UserupdateParamsData&) = delete;
+            UserupdateParamsData& operator=(const UserupdateParamsData&) = delete;
 
         public:
             Core::JSON::String User; // Name of the user that has this notification relates to
@@ -216,8 +178,6 @@ namespace JsonData {
         }; // class UserupdateParamsData
 
     } // namespace Messenger
-
-    POP_WARNING()
 
 } // namespace JsonData
 

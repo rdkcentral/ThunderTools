@@ -1,6 +1,7 @@
 // Generated automatically from 'IBrowser.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_BrowserResources.h"
 #include <interfaces/IBrowser.h>
@@ -19,111 +20,115 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IBrowserResources* _implementation__)
+        static void Register(JSONRPC& _module_, IBrowserResources* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JBrowserResources"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JBrowserResources"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'userscripts' - User scripts used by the browser
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::ArrayType<Core::JSON::String>, Core::JSON::ArrayType<Core::JSON::String>>(_T("userscripts"),
-                [_implementation__](const Core::JSON::ArrayType<Core::JSON::String>& params, Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::ArrayType<Core::JSON::String>, Core::JSON::ArrayType<Core::JSON::String>>(_T("userscripts"), 
+                [_impl_](const Core::JSON::ArrayType<Core::JSON::String>& params, Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                        // property get
+                        ::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result{};
 
-                        _errorCode__ = (static_cast<const IBrowserResources*>(_implementation__))->UserScripts(_result_);
+                        _errorCode = (static_cast<const IBrowserResources*>(_impl_))->UserScripts(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Set(true);
+                        if (_errorCode == Core::ERROR_NONE) {
 
-                            if (_result_ != nullptr) {
-                                string _resultItem__{};
-                                while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                                _result_->Release();
+                            if (_result != nullptr) {
+                                string _resultItem_{};
+                                while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                                _result->Release();
                             }
                         }
-                    }
-                    else {
-                        ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _params_{};
-                        std::list<string> _paramsElements_{};
-                        auto _paramsIterator_ = params.Elements();
-                        while (_paramsIterator_.Next() == true) { _paramsElements_.push_back(_paramsIterator_.Current()); }
-                        using _paramsIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>;
-                        _params_ = Core::ServiceType<_paramsIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>(std::move(_paramsElements_));
-                        ASSERT(_params_ != nullptr);
 
-                        _errorCode__ = _implementation__->UserScripts(static_cast<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* const&>(_params_));
-                        if (_params_ != nullptr) {
-                            _params_->Release();
+                    } else {
+                        // property set
+                        std::list<string> _elements;
+                        auto _Iterator = params.Elements();
+                        while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }
+
+                        ::WPEFramework::RPC::IIteratorType<string,
+                                 RPC::ID_STRINGITERATOR>* const _params{Core::Service<::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>>::Create<::WPEFramework::RPC::IIteratorType<string,
+                                 RPC::ID_STRINGITERATOR>>(_elements)};
+
+                        ASSERT(_params != nullptr); 
+
+                        if ((_params != nullptr)) {
+                            _errorCode = _impl_->UserScripts(_params);
+                            _params->Release();
+                        } else {
+                            _errorCode = Core::ERROR_GENERAL;
                         }
 
-                        result.Null(true);
+                        // result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'userstylesheets' - User style sheets used by the browser
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::ArrayType<Core::JSON::String>, Core::JSON::ArrayType<Core::JSON::String>>(_T("userstylesheets"),
-                [_implementation__](const Core::JSON::ArrayType<Core::JSON::String>& params, Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::ArrayType<Core::JSON::String>, Core::JSON::ArrayType<Core::JSON::String>>(_T("userstylesheets"), 
+                [_impl_](const Core::JSON::ArrayType<Core::JSON::String>& params, Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                        // property get
+                        ::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result{};
 
-                        _errorCode__ = (static_cast<const IBrowserResources*>(_implementation__))->UserStyleSheets(_result_);
+                        _errorCode = (static_cast<const IBrowserResources*>(_impl_))->UserStyleSheets(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Set(true);
+                        if (_errorCode == Core::ERROR_NONE) {
 
-                            if (_result_ != nullptr) {
-                                string _resultItem__{};
-                                while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                                _result_->Release();
+                            if (_result != nullptr) {
+                                string _resultItem_{};
+                                while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                                _result->Release();
                             }
                         }
-                    }
-                    else {
-                        ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _params_{};
-                        std::list<string> _paramsElements_{};
-                        auto _paramsIterator_ = params.Elements();
-                        while (_paramsIterator_.Next() == true) { _paramsElements_.push_back(_paramsIterator_.Current()); }
-                        using _paramsIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>;
-                        _params_ = Core::ServiceType<_paramsIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>(std::move(_paramsElements_));
-                        ASSERT(_params_ != nullptr);
 
-                        _errorCode__ = _implementation__->UserStyleSheets(static_cast<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* const&>(_params_));
-                        if (_params_ != nullptr) {
-                            _params_->Release();
+                    } else {
+                        // property set
+                        std::list<string> _elements;
+                        auto _Iterator = params.Elements();
+                        while (_Iterator.Next() == true) { _elements.push_back(_Iterator.Current()); }
+
+                        ::WPEFramework::RPC::IIteratorType<string,
+                                 RPC::ID_STRINGITERATOR>* const _params{Core::Service<::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>>::Create<::WPEFramework::RPC::IIteratorType<string,
+                                 RPC::ID_STRINGITERATOR>>(_elements)};
+
+                        ASSERT(_params != nullptr); 
+
+                        if ((_params != nullptr)) {
+                            _errorCode = _impl_->UserStyleSheets(_params);
+                            _params->Release();
+                        } else {
+                            _errorCode = Core::ERROR_GENERAL;
                         }
 
-                        result.Null(true);
+                        // result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("userscripts"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("userstylesheets"));
+            _module_.Unregister(_T("userscripts"));
+            _module_.Unregister(_T("userstylesheets"));
         }
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JBrowserResources

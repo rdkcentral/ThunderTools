@@ -1,4 +1,4 @@
-// TestController API
+// TestController JSON-RPC API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

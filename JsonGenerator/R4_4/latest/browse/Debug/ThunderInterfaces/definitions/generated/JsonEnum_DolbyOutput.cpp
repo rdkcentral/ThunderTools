@@ -1,4 +1,4 @@
-// Enumeration code for Output API.
+// Enumeration code for Output API JSON-RPC API.
 // Generated automatically from 'IDolby.h'.
 
 #include <core/Enumerate.h>

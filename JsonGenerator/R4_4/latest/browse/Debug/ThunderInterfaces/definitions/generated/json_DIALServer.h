@@ -1,4 +1,4 @@
-// DIALServer API
+// DIALServer JSON-RPC API
 // Generated automatically. DO NOT EDIT.
 
 #pragma once

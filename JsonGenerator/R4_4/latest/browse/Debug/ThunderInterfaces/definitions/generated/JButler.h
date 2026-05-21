@@ -1,6 +1,7 @@
 // Generated automatically from 'Butler.json'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_Butler.h"
 
@@ -17,7 +18,6 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
-
     } // namespace JButler
 
 } // namespace Exchange

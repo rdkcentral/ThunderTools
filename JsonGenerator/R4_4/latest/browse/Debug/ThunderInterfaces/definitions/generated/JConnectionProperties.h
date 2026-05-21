@@ -1,6 +1,7 @@
 // Generated automatically from 'IDisplayInfo.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_ConnectionProperties.h"
 #include <interfaces/IDisplayInfo.h>
@@ -19,256 +20,256 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IConnectionProperties* _implementation__)
+        static void Register(JSONRPC& _module_, IConnectionProperties* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JConnectionProperties"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JConnectionProperties"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'edid' - TV's Extended Display Identification Data
-            _module__.PluginHost::JSONRPC::Register<JsonData::ConnectionProperties::EDIDParamsData, JsonData::ConnectionProperties::EDIDResultData>(_T("edid"),
-                [_implementation__](const JsonData::ConnectionProperties::EDIDParamsData& params, JsonData::ConnectionProperties::EDIDResultData& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::ConnectionProperties::EDIDParamsData, JsonData::ConnectionProperties::EDIDResultData>(_T("edid"), 
+                [_impl_](const JsonData::ConnectionProperties::EDIDParamsData& params, JsonData::ConnectionProperties::EDIDResultData& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    uint16_t _length{params.Length};
+                    uint8_t* _data = nullptr;
+
+                    if ((_length != 0) && (_length <= 0x400000)) {
+                        _data = reinterpret_cast<uint8_t*>(ALLOCA(_length));
+                        ASSERT(_data != nullptr);
                     }
                     else {
-                        uint16_t _length_{params.Length.Value()};
-                        uint8_t* _data_{};
+                        _errorCode = Core::ERROR_INVALID_RANGE;
+                    }
 
-                        if (_length_ != 0) {
-                            _data_ = reinterpret_cast<uint8_t*>(ALLOCA(_length_));
-                            ASSERT(_data_ != nullptr);
-                        }
+                    _errorCode = _impl_->EDID(_length, _data);
 
-                        _errorCode__ = _implementation__->EDID(_length_, _data_);
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result.Length = _length;
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Length = _length_;
-
-                            if ((_length_ != 0) && (_data_ != nullptr)) {
-                                string _dataEncoded__;
-                                Core::ToString(_data_, _length_, true, _dataEncoded__);
-                                result.Data = std::move(_dataEncoded__);
-                            }
+                        if (_length != 0) {
+                            string _dataEncoded_;
+                            Core::ToString(_data, _length, true, _dataEncoded_);
+                            result.Data = _dataEncoded_;
                         }
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Method: 'widthincentimeters' - Horizontal size in centimeters
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt8>(_T("widthincentimeters"),
-                [_implementation__](Core::JSON::DecUInt8& width) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt8>(_T("widthincentimeters"), 
+                [_impl_](Core::JSON::DecUInt8& width) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint8_t _width_{};
+                    uint8_t _width{};
 
-                    _errorCode__ = _implementation__->WidthInCentimeters(_width_);
+                    _errorCode = _impl_->WidthInCentimeters(_width);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        width = _width_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        width = _width;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Method: 'heightincentimeters' - Vertical size in centimeters
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt8>(_T("heightincentimeters"),
-                [_implementation__](Core::JSON::DecUInt8& height) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt8>(_T("heightincentimeters"), 
+                [_impl_](Core::JSON::DecUInt8& height) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint8_t _height_{};
+                    uint8_t _height{};
 
-                    _errorCode__ = _implementation__->HeightInCentimeters(_height_);
+                    _errorCode = _impl_->HeightInCentimeters(_height);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        height = _height_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        height = _height;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'isaudiopassthrough' - Current audio passthrough status on HDMI (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::Boolean>(_T("isaudiopassthrough"),
-                [_implementation__](Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::Boolean>(_T("isaudiopassthrough"), 
+                [_impl_](Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    bool _result_{};
+                    // read-only property get
+                    bool _result{};
 
-                    _errorCode__ = _implementation__->IsAudioPassthrough(_result_);
+                    _errorCode = _impl_->IsAudioPassthrough(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'connected' - Current HDMI connection status (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::Boolean>(_T("connected"),
-                [_implementation__](Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::Boolean>(_T("connected"), 
+                [_impl_](Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    bool _result_{};
+                    // read-only property get
+                    bool _result{};
 
-                    _errorCode__ = _implementation__->Connected(_result_);
+                    _errorCode = _impl_->Connected(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'width' - Horizontal resolution of TV (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt32>(_T("width"),
-                [_implementation__](Core::JSON::DecUInt32& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt32>(_T("width"), 
+                [_impl_](Core::JSON::DecUInt32& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint32_t _result_{};
+                    // read-only property get
+                    uint32_t _result{};
 
-                    _errorCode__ = _implementation__->Width(_result_);
+                    _errorCode = _impl_->Width(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'height' - Vertical resolution of TV (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt32>(_T("height"),
-                [_implementation__](Core::JSON::DecUInt32& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt32>(_T("height"), 
+                [_impl_](Core::JSON::DecUInt32& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint32_t _result_{};
+                    // read-only property get
+                    uint32_t _result{};
 
-                    _errorCode__ = _implementation__->Height(_result_);
+                    _errorCode = _impl_->Height(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'verticalfreq' - Vertical Frequency (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt32>(_T("verticalfreq"),
-                [_implementation__](Core::JSON::DecUInt32& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt32>(_T("verticalfreq"), 
+                [_impl_](Core::JSON::DecUInt32& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint32_t _result_{};
+                    // read-only property get
+                    uint32_t _result{};
 
-                    _errorCode__ = _implementation__->VerticalFreq(_result_);
+                    _errorCode = _impl_->VerticalFreq(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'hdcpprotection' - HDCP protocol used for transmission
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>, Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>>(_T("hdcpprotection"),
-                [_implementation__](const Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>& params, Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>,
+                     Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>>(_T("hdcpprotection"), 
+                [_impl_](const Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>& params,
+                         Core::JSON::EnumType<Exchange::IConnectionProperties::HDCPProtectionType>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        Exchange::IConnectionProperties::HDCPProtectionType _result_{};
+                        // property get
+                        Exchange::IConnectionProperties::HDCPProtectionType _result{};
 
-                        _errorCode__ = (static_cast<const IConnectionProperties*>(_implementation__))->HDCPProtection(_result_);
+                        _errorCode = (static_cast<const IConnectionProperties*>(_impl_))->HDCPProtection(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
-                        const Exchange::IConnectionProperties::HDCPProtectionType _params_{params};
 
-                        _errorCode__ = _implementation__->HDCPProtection(_params_);
+                    } else {
+                        // property set
+                        const Exchange::IConnectionProperties::HDCPProtectionType _params{params};
+
+                        _errorCode = _impl_->HDCPProtection(_params);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'portname' - Video output port on the STB used for connection to TV (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::String>(_T("portname"),
-                [_implementation__](Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::String>(_T("portname"), 
+                [_impl_](Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    string _result_{};
+                    // read-only property get
+                    string _result{};
 
-                    _errorCode__ = _implementation__->PortName(_result_);
+                    _errorCode = _impl_->PortName(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("edid"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("widthincentimeters"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("heightincentimeters"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("isaudiopassthrough"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("connected"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("width"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("height"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("verticalfreq"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("hdcpprotection"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("portname"));
+            _module_.Unregister(_T("edid"));
+            _module_.Unregister(_T("widthincentimeters"));
+            _module_.Unregister(_T("heightincentimeters"));
+            _module_.Unregister(_T("isaudiopassthrough"));
+            _module_.Unregister(_T("connected"));
+            _module_.Unregister(_T("width"));
+            _module_.Unregister(_T("height"));
+            _module_.Unregister(_T("verticalfreq"));
+            _module_.Unregister(_T("hdcpprotection"));
+            _module_.Unregister(_T("portname"));
         }
 
         namespace Event {
 
             // Event: 'updated'
-            template<typename MODULE>
-            static void Updated(const MODULE& module_, const JsonData::ConnectionProperties::UpdatedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void Updated(const JSONRPC& _module_, const JsonData::ConnectionProperties::UpdatedParamsData& params)
             {
-                module_.Notify(_T("updated"), params, sendIfMethod_);
+                _module_.Notify(_T("updated"), params);
             }
 
             // Event: 'updated'
-            template<typename MODULE>
-            static void Updated(const MODULE& module_, const Core::JSON::EnumType<Exchange::IConnectionProperties::INotification::Source>& event, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void Updated(const JSONRPC& _module_, const Core::JSON::EnumType<Exchange::IConnectionProperties::INotification::Source>& event)
             {
-                JsonData::ConnectionProperties::UpdatedParamsData params_;
-                params_.Event = event;
+                JsonData::ConnectionProperties::UpdatedParamsData _params_;
+                _params_.Event = event;
 
-                Updated(module_, params_, sendIfMethod_);
+                Updated(_module_, _params_);
             }
 
             // Event: 'updated'
-            template<typename MODULE>
-            static void Updated(const MODULE& module_, const IConnectionProperties::INotification::Source event, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void Updated(const JSONRPC& _module_, const Exchange::IConnectionProperties::INotification::Source& event)
             {
-                JsonData::ConnectionProperties::UpdatedParamsData params_;
-                params_.Event = event;
+                JsonData::ConnectionProperties::UpdatedParamsData _params_;
+                _params_.Event = event;
 
-                Updated(module_, params_, sendIfMethod_);
+                Updated(_module_, _params_);
             }
 
         } // namespace Event
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JConnectionProperties

@@ -1,6 +1,7 @@
 // Generated automatically from 'DeviceIdentification.json'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_DeviceIdentification.h"
 
@@ -17,7 +18,6 @@ namespace Exchange {
             constexpr uint8_t Patch = 0;
 
         } // namespace Version
-
     } // namespace JDeviceIdentification
 
 } // namespace Exchange

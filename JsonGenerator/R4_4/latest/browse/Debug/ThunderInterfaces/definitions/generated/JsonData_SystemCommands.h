@@ -1,4 +1,4 @@
-// C++ types for System Commands API.
+// C++ classes for System Commands API JSON-RPC API.
 // Generated automatically from 'SystemCommands.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace SystemCommands {
 
@@ -26,27 +24,19 @@ namespace JsonData {
                 Add(_T("device"), &Device);
             }
 
-            UsbresetParamsData(const UsbresetParamsData&) = delete;
-            UsbresetParamsData(UsbresetParamsData&&) noexcept  = delete;
-
-            UsbresetParamsData& operator=(const UsbresetParamsData&) = delete;
-            UsbresetParamsData& operator=(UsbresetParamsData&&) noexcept  = delete;
-
-            ~UsbresetParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Device.IsSet() == true);
+                return (true);
             }
+
+            UsbresetParamsData(const UsbresetParamsData&) = delete;
+            UsbresetParamsData& operator=(const UsbresetParamsData&) = delete;
 
         public:
             Core::JSON::String Device; // USB device to reset
         }; // class UsbresetParamsData
 
     } // namespace SystemCommands
-
-    POP_WARNING()
 
 } // namespace JsonData
 

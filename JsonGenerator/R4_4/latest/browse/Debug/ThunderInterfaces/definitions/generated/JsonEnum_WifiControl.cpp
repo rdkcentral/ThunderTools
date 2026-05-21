@@ -1,4 +1,4 @@
-// Enumeration code for WifiControl API.
+// Enumeration code for WifiControl API JSON-RPC API.
 // Generated automatically from 'IWifiControl.h'.
 
 #include <core/Enumerate.h>

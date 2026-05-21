@@ -1,6 +1,7 @@
 // Generated automatically from 'IDisplayInfo.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include <interfaces/IDisplayInfo.h>
 
@@ -18,63 +19,61 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IGraphicsProperties* _implementation__)
+        static void Register(JSONRPC& _module_, IGraphicsProperties* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JGraphicsProperties"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JGraphicsProperties"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'totalgpuram' - Total GPU DRAM memory (in bytes) (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt64>(_T("totalgpuram"),
-                [_implementation__](Core::JSON::DecUInt64& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt64>(_T("totalgpuram"), 
+                [_impl_](Core::JSON::DecUInt64& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint64_t _result_{};
+                    // read-only property get
+                    uint64_t _result{};
 
-                    _errorCode__ = _implementation__->TotalGpuRam(_result_);
+                    _errorCode = _impl_->TotalGpuRam(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'freegpuram' - Free GPU DRAM memory (in bytes) (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt64>(_T("freegpuram"),
-                [_implementation__](Core::JSON::DecUInt64& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt64>(_T("freegpuram"), 
+                [_impl_](Core::JSON::DecUInt64& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint64_t _result_{};
+                    // read-only property get
+                    uint64_t _result{};
 
-                    _errorCode__ = _implementation__->FreeGpuRam(_result_);
+                    _errorCode = _impl_->FreeGpuRam(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("totalgpuram"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("freegpuram"));
+            _module_.Unregister(_T("totalgpuram"));
+            _module_.Unregister(_T("freegpuram"));
         }
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JGraphicsProperties

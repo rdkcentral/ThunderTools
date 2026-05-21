@@ -1,6 +1,7 @@
 // Generated automatically from 'IDisplayInfo.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_HDRProperties.h"
 #include <interfaces/IDisplayInfo.h>
@@ -19,92 +20,89 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IHDRProperties* _implementation__)
+        static void Register(JSONRPC& _module_, IHDRProperties* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JHDRProperties"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JHDRProperties"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'tvcapabilities' - HDR formats supported by TV (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>>(_T("tvcapabilities"),
-                [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>>(_T("tvcapabilities"), 
+                [_impl_](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<IHDRProperties::HDRType, ID_HDR_ITERATOR>* _result_{};
+                    // read-only property get
+                    ::WPEFramework::RPC::IIteratorType<IHDRProperties::HDRType, ID_HDR_ITERATOR>* _result{};
 
-                    _errorCode__ = _implementation__->TVCapabilities(_result_);
+                    _errorCode = _impl_->TVCapabilities(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result.Set(true);
+                    if (_errorCode == Core::ERROR_NONE) {
 
-                        if (_result_ != nullptr) {
-                            Exchange::IHDRProperties::HDRType _resultItem__{};
-                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                            _result_->Release();
+                        if (_result != nullptr) {
+                            Exchange::IHDRProperties::HDRType _resultItem_{};
+                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                            _result->Release();
                         }
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'stbcapabilities' - HDR formats supported by STB (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>>(_T("stbcapabilities"),
-                [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>>(_T("stbcapabilities"), 
+                [_impl_](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<IHDRProperties::HDRType, ID_HDR_ITERATOR>* _result_{};
+                    // read-only property get
+                    ::WPEFramework::RPC::IIteratorType<IHDRProperties::HDRType, ID_HDR_ITERATOR>* _result{};
 
-                    _errorCode__ = _implementation__->STBCapabilities(_result_);
+                    _errorCode = _impl_->STBCapabilities(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result.Set(true);
+                    if (_errorCode == Core::ERROR_NONE) {
 
-                        if (_result_ != nullptr) {
-                            Exchange::IHDRProperties::HDRType _resultItem__{};
-                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                            _result_->Release();
+                        if (_result != nullptr) {
+                            Exchange::IHDRProperties::HDRType _resultItem_{};
+                            while (_result->Next(_resultItem_) == true) { result.Add() = _resultItem_; }
+                            _result->Release();
                         }
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'hdrsetting' - HDR format in use (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>(_T("hdrsetting"),
-                [_implementation__](Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>(_T("hdrsetting"), 
+                [_impl_](Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    Exchange::IHDRProperties::HDRType _result_{};
+                    // read-only property get
+                    Exchange::IHDRProperties::HDRType _result{};
 
-                    _errorCode__ = _implementation__->HDRSetting(_result_);
+                    _errorCode = _impl_->HDRSetting(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("tvcapabilities"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("stbcapabilities"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("hdrsetting"));
+            _module_.Unregister(_T("tvcapabilities"));
+            _module_.Unregister(_T("stbcapabilities"));
+            _module_.Unregister(_T("hdrsetting"));
         }
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JHDRProperties

@@ -1,4 +1,4 @@
-// C++ types for BrowserScripting API.
+// C++ classes for BrowserScripting API JSON-RPC API.
 // Generated automatically from 'IBrowser.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace BrowserScripting {
 
@@ -28,19 +26,13 @@ namespace JsonData {
                 Add(_T("topframeonly"), &TopFrameOnly);
             }
 
-            AddUserScriptParamsData(const AddUserScriptParamsData&) = delete;
-            AddUserScriptParamsData(AddUserScriptParamsData&&) noexcept  = delete;
-
-            AddUserScriptParamsData& operator=(const AddUserScriptParamsData&) = delete;
-            AddUserScriptParamsData& operator=(AddUserScriptParamsData&&) noexcept  = delete;
-
-            ~AddUserScriptParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Script.IsSet() == true) && (TopFrameOnly.IsSet() == true));
+                return (true);
             }
+
+            AddUserScriptParamsData(const AddUserScriptParamsData&) = delete;
+            AddUserScriptParamsData& operator=(const AddUserScriptParamsData&) = delete;
 
         public:
             Core::JSON::String Script; // Utf8 encoded JS code string.
@@ -55,27 +47,19 @@ namespace JsonData {
                 Add(_T("script"), &Script);
             }
 
-            RunJavaScriptParamsData(const RunJavaScriptParamsData&) = delete;
-            RunJavaScriptParamsData(RunJavaScriptParamsData&&) noexcept  = delete;
-
-            RunJavaScriptParamsData& operator=(const RunJavaScriptParamsData&) = delete;
-            RunJavaScriptParamsData& operator=(RunJavaScriptParamsData&&) noexcept  = delete;
-
-            ~RunJavaScriptParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Script.IsSet() == true);
+                return (true);
             }
+
+            RunJavaScriptParamsData(const RunJavaScriptParamsData&) = delete;
+            RunJavaScriptParamsData& operator=(const RunJavaScriptParamsData&) = delete;
 
         public:
             Core::JSON::String Script; // Utf8 encoded JS code string.
         }; // class RunJavaScriptParamsData
 
     } // namespace BrowserScripting
-
-    POP_WARNING()
 
 } // namespace JsonData
 

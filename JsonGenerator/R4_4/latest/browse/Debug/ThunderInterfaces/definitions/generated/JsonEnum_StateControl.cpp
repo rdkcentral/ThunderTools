@@ -1,4 +1,4 @@
-// Enumeration code for StateControl API.
+// Enumeration code for StateControl API JSON-RPC API.
 // Generated automatically from 'StateControl.json'.
 
 #include <core/Enumerate.h>

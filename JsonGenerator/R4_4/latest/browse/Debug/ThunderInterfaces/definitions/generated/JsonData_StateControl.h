@@ -1,4 +1,4 @@
-// C++ types for StateControl API.
+// C++ classes for StateControl API JSON-RPC API.
 // Generated automatically from 'StateControl.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace StateControl {
 
@@ -36,27 +34,19 @@ namespace JsonData {
                 Add(_T("suspended"), &Suspended);
             }
 
-            StatechangeParamsData(const StatechangeParamsData&) = delete;
-            StatechangeParamsData(StatechangeParamsData&&) noexcept  = delete;
-
-            StatechangeParamsData& operator=(const StatechangeParamsData&) = delete;
-            StatechangeParamsData& operator=(StatechangeParamsData&&) noexcept  = delete;
-
-            ~StatechangeParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Suspended.IsSet() == true);
+                return (true);
             }
+
+            StatechangeParamsData(const StatechangeParamsData&) = delete;
+            StatechangeParamsData& operator=(const StatechangeParamsData&) = delete;
 
         public:
             Core::JSON::Boolean Suspended; // Determines if the service has entered suspended state (true) or resumed state (false)
         }; // class StatechangeParamsData
 
     } // namespace StateControl
-
-    POP_WARNING()
 
 } // namespace JsonData
 

@@ -1,6 +1,7 @@
 // Generated automatically from 'IBrowser.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_WebBrowser.h"
 #include <interfaces/IBrowser.h>
@@ -19,348 +20,331 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IWebBrowser* _implementation__)
+        static void Register(JSONRPC& _module_, IWebBrowser* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JWebBrowser"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JWebBrowser"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Method: 'collectgarbage' - Initiate garbage collection
-            _module__.PluginHost::JSONRPC::Register<void, void>(_T("collectgarbage"),
-                [_implementation__]() -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, void>(_T("collectgarbage"), 
+                [_impl_]() -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    _errorCode__ = _implementation__->CollectGarbage();
+                    _errorCode = _impl_->CollectGarbage();
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'url' - Page loaded in the browser
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, Core::JSON::String>(_T("url"),
-                [_implementation__](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::String, Core::JSON::String>(_T("url"), 
+                [_impl_](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        string _result_{};
+                        // property get
+                        string _result{};
 
-                        _errorCode__ = (static_cast<const IWebBrowser*>(_implementation__))->URL(_result_);
+                        _errorCode = (static_cast<const IWebBrowser*>(_impl_))->URL(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
-                        const string _params_{params};
 
-                        _errorCode__ = _implementation__->URL(_params_);
+                    } else {
+                        // property set
+                        const string _params{params};
+
+                        _errorCode = _impl_->URL(_params);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'visibility' - Browser window visibility state
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>, Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>>(_T("visibility"),
-                [_implementation__](const Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>& params, Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>,
+                     Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>>(_T("visibility"), 
+                [_impl_](const Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>& params,
+                         Core::JSON::EnumType<Exchange::IWebBrowser::VisibilityType>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        Exchange::IWebBrowser::VisibilityType _result_{};
+                        // property get
+                        Exchange::IWebBrowser::VisibilityType _result{};
 
-                        _errorCode__ = (static_cast<const IWebBrowser*>(_implementation__))->Visibility(_result_);
+                        _errorCode = (static_cast<const IWebBrowser*>(_impl_))->Visibility(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
-                        const Exchange::IWebBrowser::VisibilityType _params_{params};
 
-                        _errorCode__ = _implementation__->Visibility(_params_);
+                    } else {
+                        // property set
+                        const Exchange::IWebBrowser::VisibilityType _params{params};
+
+                        _errorCode = _impl_->Visibility(_params);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'fps' - Current framerate the browser is rendering at (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::DecUInt8>(_T("fps"),
-                [_implementation__](Core::JSON::DecUInt8& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<void, Core::JSON::DecUInt8>(_T("fps"), 
+                [_impl_](Core::JSON::DecUInt8& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    uint8_t _result_{};
+                    // read-only property get
+                    uint8_t _result{};
 
-                    _errorCode__ = _implementation__->FPS(_result_);
+                    _errorCode = _impl_->FPS(_result);
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        result = _result_;
+                    if (_errorCode == Core::ERROR_NONE) {
+                        result = _result;
                     }
 
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'useragent' - UserAgent string used by the browser
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, Core::JSON::String>(_T("useragent"),
-                [_implementation__](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::String, Core::JSON::String>(_T("useragent"), 
+                [_impl_](const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        string _result_{};
+                        // property get
+                        string _result{};
 
-                        _errorCode__ = (static_cast<const IWebBrowser*>(_implementation__))->UserAgent(_result_);
+                        _errorCode = (static_cast<const IWebBrowser*>(_impl_))->UserAgent(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
-                        const string _params_{params};
 
-                        _errorCode__ = _implementation__->UserAgent(_params_);
+                    } else {
+                        // property set
+                        const string _params{params};
+
+                        _errorCode = _impl_->UserAgent(_params);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'localstorageenabled' - Controls the local storage availability
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::Boolean, Core::JSON::Boolean>(_T("localstorageenabled"),
-                [_implementation__](const Core::JSON::Boolean& params, Core::JSON::Boolean& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::Boolean, Core::JSON::Boolean>(_T("localstorageenabled"), 
+                [_impl_](const Core::JSON::Boolean& params, Core::JSON::Boolean& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        bool _result_{};
+                        // property get
+                        bool _result{};
 
-                        _errorCode__ = (static_cast<const IWebBrowser*>(_implementation__))->LocalStorageEnabled(_result_);
+                        _errorCode = (static_cast<const IWebBrowser*>(_impl_))->LocalStorageEnabled(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
-                        const bool _params_{params};
 
-                        _errorCode__ = _implementation__->LocalStorageEnabled(_params_);
+                    } else {
+                        // property set
+                        const bool _params{params};
+
+                        _errorCode = _impl_->LocalStorageEnabled(_params);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'httpcookieacceptpolicy' - HTTP cookies accept policy
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>, Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>>(_T("httpcookieacceptpolicy"),
-                [_implementation__](const Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>& params, Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>,
+                     Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>>(_T("httpcookieacceptpolicy"), 
+                [_impl_](const Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>& params,
+                         Core::JSON::EnumType<Exchange::IWebBrowser::HTTPCookieAcceptPolicyType>& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        Exchange::IWebBrowser::HTTPCookieAcceptPolicyType _result_{};
+                        // property get
+                        Exchange::IWebBrowser::HTTPCookieAcceptPolicyType _result{};
 
-                        _errorCode__ = (static_cast<const IWebBrowser*>(_implementation__))->HTTPCookieAcceptPolicy(_result_);
+                        _errorCode = (static_cast<const IWebBrowser*>(_impl_))->HTTPCookieAcceptPolicy(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
-                    }
-                    else {
-                        const Exchange::IWebBrowser::HTTPCookieAcceptPolicyType _params_{params};
 
-                        _errorCode__ = _implementation__->HTTPCookieAcceptPolicy(_params_);
+                    } else {
+                        // property set
+                        const Exchange::IWebBrowser::HTTPCookieAcceptPolicyType _params{params};
+
+                        _errorCode = _impl_->HTTPCookieAcceptPolicy(_params);
 
                         result.Null(true);
                     }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'bridgereply' - Response for legacy $badger (w/o)
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, void>(_T("bridgereply"),
-                [_implementation__](const Core::JSON::String& params) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::String, void>(_T("bridgereply"), 
+                [_impl_](const Core::JSON::String& params) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if (params.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
-                    else {
-                        const string _params_{params};
+                    // write-only property set
+                    const string _params{params};
 
-                        _errorCode__ = _implementation__->BridgeReply(_params_);
+                    _errorCode = _impl_->BridgeReply(_params);
 
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
             // Property: 'bridgeevent' - Send legacy $badger event (w/o)
-            _module__.PluginHost::JSONRPC::Register<Core::JSON::String, void>(_T("bridgeevent"),
-                [_implementation__](const Core::JSON::String& params) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<Core::JSON::String, void>(_T("bridgeevent"), 
+                [_impl_](const Core::JSON::String& params) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
-                    if (params.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
-                    }
-                    else {
-                        const string _params_{params};
+                    // write-only property set
+                    const string _params{params};
 
-                        _errorCode__ = _implementation__->BridgeEvent(_params_);
+                    _errorCode = _impl_->BridgeEvent(_params);
 
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("collectgarbage"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("url"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("visibility"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("fps"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("useragent"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("localstorageenabled"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("httpcookieacceptpolicy"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("bridgereply"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("bridgeevent"));
+            _module_.Unregister(_T("collectgarbage"));
+            _module_.Unregister(_T("url"));
+            _module_.Unregister(_T("visibility"));
+            _module_.Unregister(_T("fps"));
+            _module_.Unregister(_T("useragent"));
+            _module_.Unregister(_T("localstorageenabled"));
+            _module_.Unregister(_T("httpcookieacceptpolicy"));
+            _module_.Unregister(_T("bridgereply"));
+            _module_.Unregister(_T("bridgeevent"));
         }
 
         namespace Event {
 
             // Event: 'loadfinished' - Initial HTML document has been completely loaded and parsed
-            template<typename MODULE>
-            static void LoadFinished(const MODULE& module_, const JsonData::WebBrowser::LoadFinishedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void LoadFinished(const JSONRPC& _module_, const JsonData::WebBrowser::LoadFinishedParamsData& params)
             {
-                module_.Notify(_T("loadfinished"), params, sendIfMethod_);
+                _module_.Notify(_T("loadfinished"), params);
             }
 
             // Event: 'loadfinished' - Initial HTML document has been completely loaded and parsed
-            template<typename MODULE>
-            static void LoadFinished(const MODULE& module_, const Core::JSON::String& URL, const Core::JSON::DecSInt32& httpstatus, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void LoadFinished(const JSONRPC& _module_, const Core::JSON::String& URL, const Core::JSON::DecSInt32& httpstatus)
             {
-                JsonData::WebBrowser::LoadFinishedParamsData params_;
-                params_.URL = URL;
-                params_.Httpstatus = httpstatus;
+                JsonData::WebBrowser::LoadFinishedParamsData _params_;
+                _params_.URL = URL;
+                _params_.Httpstatus = httpstatus;
 
-                LoadFinished(module_, params_, sendIfMethod_);
+                LoadFinished(_module_, _params_);
             }
 
             // Event: 'loadfinished' - Initial HTML document has been completely loaded and parsed
-            template<typename MODULE>
-            static void LoadFinished(const MODULE& module_, const string& URL, const int32_t httpstatus, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void LoadFinished(const JSONRPC& _module_, const string& URL, const int32_t& httpstatus)
             {
-                JsonData::WebBrowser::LoadFinishedParamsData params_;
-                params_.URL = URL;
-                params_.Httpstatus = httpstatus;
+                JsonData::WebBrowser::LoadFinishedParamsData _params_;
+                _params_.URL = URL;
+                _params_.Httpstatus = httpstatus;
 
-                LoadFinished(module_, params_, sendIfMethod_);
+                LoadFinished(_module_, _params_);
             }
 
             // Event: 'loadfailed' - Browser failed to load page
-            template<typename MODULE>
-            static void LoadFailed(const MODULE& module_, const JsonData::WebBrowser::LoadFailedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void LoadFailed(const JSONRPC& _module_, const JsonData::WebBrowser::LoadFailedParamsData& params)
             {
-                module_.Notify(_T("loadfailed"), params, sendIfMethod_);
+                _module_.Notify(_T("loadfailed"), params);
             }
 
             // Event: 'loadfailed' - Browser failed to load page
-            template<typename MODULE>
-            static void LoadFailed(const MODULE& module_, const Core::JSON::String& URL, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void LoadFailed(const JSONRPC& _module_, const Core::JSON::String& URL)
             {
-                JsonData::WebBrowser::LoadFailedParamsData params_;
-                params_.URL = URL;
+                JsonData::WebBrowser::LoadFailedParamsData _params_;
+                _params_.URL = URL;
 
-                LoadFailed(module_, params_, sendIfMethod_);
+                LoadFailed(_module_, _params_);
             }
 
             // Event: 'loadfailed' - Browser failed to load page
-            template<typename MODULE>
-            static void LoadFailed(const MODULE& module_, const string& URL, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void LoadFailed(const JSONRPC& _module_, const string& URL)
             {
-                JsonData::WebBrowser::LoadFailedParamsData params_;
-                params_.URL = URL;
+                JsonData::WebBrowser::LoadFailedParamsData _params_;
+                _params_.URL = URL;
 
-                LoadFailed(module_, params_, sendIfMethod_);
+                LoadFailed(_module_, _params_);
             }
 
             // Event: 'urlchange' - Signals a URL change in the browser
-            template<typename MODULE>
-            static void URLChange(const MODULE& module_, const JsonData::WebBrowser::URLChangeParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void URLChange(const JSONRPC& _module_, const JsonData::WebBrowser::URLChangeParamsData& params)
             {
-                module_.Notify(_T("urlchange"), params, sendIfMethod_);
+                _module_.Notify(_T("urlchange"), params);
             }
 
             // Event: 'urlchange' - Signals a URL change in the browser
-            template<typename MODULE>
-            static void URLChange(const MODULE& module_, const Core::JSON::String& URL, const Core::JSON::Boolean& loaded, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void URLChange(const JSONRPC& _module_, const Core::JSON::String& URL, const Core::JSON::Boolean& loaded)
             {
-                JsonData::WebBrowser::URLChangeParamsData params_;
-                params_.URL = URL;
-                params_.Loaded = loaded;
+                JsonData::WebBrowser::URLChangeParamsData _params_;
+                _params_.URL = URL;
+                _params_.Loaded = loaded;
 
-                URLChange(module_, params_, sendIfMethod_);
+                URLChange(_module_, _params_);
             }
 
             // Event: 'urlchange' - Signals a URL change in the browser
-            template<typename MODULE>
-            static void URLChange(const MODULE& module_, const string& URL, const bool loaded, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void URLChange(const JSONRPC& _module_, const string& URL, const bool& loaded)
             {
-                JsonData::WebBrowser::URLChangeParamsData params_;
-                params_.URL = URL;
-                params_.Loaded = loaded;
+                JsonData::WebBrowser::URLChangeParamsData _params_;
+                _params_.URL = URL;
+                _params_.Loaded = loaded;
 
-                URLChange(module_, params_, sendIfMethod_);
+                URLChange(_module_, _params_);
             }
 
             // Event: 'visibilitychange' - Signals a visibility change of the browser
-            template<typename MODULE>
-            static void VisibilityChange(const MODULE& module_, const JsonData::WebBrowser::VisibilityChangeParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void VisibilityChange(const JSONRPC& _module_, const JsonData::WebBrowser::VisibilityChangeParamsData& params)
             {
-                module_.Notify(_T("visibilitychange"), params, sendIfMethod_);
+                _module_.Notify(_T("visibilitychange"), params);
             }
 
             // Event: 'visibilitychange' - Signals a visibility change of the browser
-            template<typename MODULE>
-            static void VisibilityChange(const MODULE& module_, const Core::JSON::Boolean& hidden, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void VisibilityChange(const JSONRPC& _module_, const Core::JSON::Boolean& hidden)
             {
-                JsonData::WebBrowser::VisibilityChangeParamsData params_;
-                params_.Hidden = hidden;
+                JsonData::WebBrowser::VisibilityChangeParamsData _params_;
+                _params_.Hidden = hidden;
 
-                VisibilityChange(module_, params_, sendIfMethod_);
+                VisibilityChange(_module_, _params_);
             }
 
             // Event: 'visibilitychange' - Signals a visibility change of the browser
-            template<typename MODULE>
-            static void VisibilityChange(const MODULE& module_, const bool hidden, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void VisibilityChange(const JSONRPC& _module_, const bool& hidden)
             {
-                JsonData::WebBrowser::VisibilityChangeParamsData params_;
-                params_.Hidden = hidden;
+                JsonData::WebBrowser::VisibilityChangeParamsData _params_;
+                _params_.Hidden = hidden;
 
-                VisibilityChange(module_, params_, sendIfMethod_);
+                VisibilityChange(_module_, _params_);
             }
 
             // Event: 'pageclosure' - Notifies that the web page requests to close its window
-            template<typename MODULE>
-            static void PageClosure(const MODULE& module_, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void PageClosure(const JSONRPC& _module_)
             {
-                module_.Notify(_T("pageclosure"), sendIfMethod_);
+                _module_.Notify(_T("pageclosure"));
             }
 
         } // namespace Event
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JWebBrowser

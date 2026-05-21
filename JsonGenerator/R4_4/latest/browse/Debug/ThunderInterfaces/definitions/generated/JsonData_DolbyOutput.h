@@ -1,4 +1,4 @@
-// C++ types for Output API.
+// C++ classes for Output API JSON-RPC API.
 // Generated automatically from 'IDolby.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Dolby {
 
@@ -30,19 +28,13 @@ namespace JsonData {
                     Add(_T("enabled"), &Enabled);
                 }
 
-                AudioModeChangedParamsData(const AudioModeChangedParamsData&) = delete;
-                AudioModeChangedParamsData(AudioModeChangedParamsData&&) noexcept  = delete;
-
-                AudioModeChangedParamsData& operator=(const AudioModeChangedParamsData&) = delete;
-                AudioModeChangedParamsData& operator=(AudioModeChangedParamsData&&) noexcept  = delete;
-
-                ~AudioModeChangedParamsData() = default;
-
-            public:
-                bool IsDataValid() const
+                bool IsValid() const
                 {
-                    return ((Mode.IsSet() == true) && (Enabled.IsSet() == true));
+                    return (true);
                 }
+
+                AudioModeChangedParamsData(const AudioModeChangedParamsData&) = delete;
+                AudioModeChangedParamsData& operator=(const AudioModeChangedParamsData&) = delete;
 
             public:
                 Core::JSON::EnumType<Exchange::Dolby::IOutput::SoundModes> Mode; // Changed Mode
@@ -52,8 +44,6 @@ namespace JsonData {
         } // namespace Output
 
     } // namespace Dolby
-
-    POP_WARNING()
 
 } // namespace JsonData
 

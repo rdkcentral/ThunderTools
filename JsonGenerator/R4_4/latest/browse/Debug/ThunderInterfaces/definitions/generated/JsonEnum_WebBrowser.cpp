@@ -1,4 +1,4 @@
-// Enumeration code for WebBrowser API.
+// Enumeration code for WebBrowser API JSON-RPC API.
 // Generated automatically from 'IBrowser.h'.
 
 #include <core/Enumerate.h>

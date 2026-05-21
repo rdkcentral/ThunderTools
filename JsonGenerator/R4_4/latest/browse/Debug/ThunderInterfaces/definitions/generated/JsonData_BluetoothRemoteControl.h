@@ -1,4 +1,4 @@
-// C++ types for Bluetooth Remote Control API.
+// C++ classes for Bluetooth Remote Control API JSON-RPC API.
 // Generated automatically from 'BluetoothRemoteControl.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -11,8 +11,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace BluetoothRemoteControl {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("address"), &Address);
             }
 
-            AssignParamsData(const AssignParamsData&) = delete;
-            AssignParamsData(AssignParamsData&&) noexcept  = delete;
-
-            AssignParamsData& operator=(const AssignParamsData&) = delete;
-            AssignParamsData& operator=(AssignParamsData&&) noexcept  = delete;
-
-            ~AssignParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Address.IsSet() == true);
+                return (true);
             }
+
+            AssignParamsData(const AssignParamsData&) = delete;
+            AssignParamsData& operator=(const AssignParamsData&) = delete;
 
         public:
             Core::JSON::String Address; // Bluetooth address
@@ -54,19 +46,13 @@ namespace JsonData {
                 Add(_T("data"), &Data);
             }
 
-            AudioframeParamsData(const AudioframeParamsData&) = delete;
-            AudioframeParamsData(AudioframeParamsData&&) noexcept  = delete;
-
-            AudioframeParamsData& operator=(const AudioframeParamsData&) = delete;
-            AudioframeParamsData& operator=(AudioframeParamsData&&) noexcept  = delete;
-
-            ~AudioframeParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Data.IsSet() == true);
+                return (true);
             }
+
+            AudioframeParamsData(const AudioframeParamsData&) = delete;
+            AudioframeParamsData& operator=(const AudioframeParamsData&) = delete;
 
         public:
             Core::JSON::DecUInt32 Seq; // Sequence number of the audio frame within current audio transmission
@@ -90,19 +76,13 @@ namespace JsonData {
                 Add(_T("resolution"), &Resolution);
             }
 
-            AudioprofileData(const AudioprofileData&) = delete;
-            AudioprofileData(AudioprofileData&&) noexcept  = delete;
-
-            AudioprofileData& operator=(const AudioprofileData&) = delete;
-            AudioprofileData& operator=(AudioprofileData&&) noexcept  = delete;
-
-            ~AudioprofileData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Codec.IsSet() == true) && (Channels.IsSet() == true) && (Rate.IsSet() == true) && (Resolution.IsSet() == true));
+                return (true);
             }
+
+            AudioprofileData(const AudioprofileData&) = delete;
+            AudioprofileData& operator=(const AudioprofileData&) = delete;
 
         public:
             Core::JSON::EnumType<AudioprofileData::CodecType> Codec; // Name of the audio codec (*pcm* for uncompressed audio)
@@ -119,19 +99,13 @@ namespace JsonData {
                 Add(_T("profile"), &Profile);
             }
 
-            AudiotransmissionParamsData(const AudiotransmissionParamsData&) = delete;
-            AudiotransmissionParamsData(AudiotransmissionParamsData&&) noexcept  = delete;
-
-            AudiotransmissionParamsData& operator=(const AudiotransmissionParamsData&) = delete;
-            AudiotransmissionParamsData& operator=(AudiotransmissionParamsData&&) noexcept  = delete;
-
-            ~AudiotransmissionParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
                 return (true);
             }
+
+            AudiotransmissionParamsData(const AudiotransmissionParamsData&) = delete;
+            AudiotransmissionParamsData& operator=(const AudiotransmissionParamsData&) = delete;
 
         public:
             Core::JSON::String Profile; // Type of audio profile, marking start of transmission; empty in case of end of transmission
@@ -145,19 +119,13 @@ namespace JsonData {
                 Add(_T("level"), &Level);
             }
 
-            BatterylevelchangeParamsData(const BatterylevelchangeParamsData&) = delete;
-            BatterylevelchangeParamsData(BatterylevelchangeParamsData&&) noexcept  = delete;
-
-            BatterylevelchangeParamsData& operator=(const BatterylevelchangeParamsData&) = delete;
-            BatterylevelchangeParamsData& operator=(BatterylevelchangeParamsData&&) noexcept  = delete;
-
-            ~BatterylevelchangeParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Level.IsSet() == true);
+                return (true);
             }
+
+            BatterylevelchangeParamsData(const BatterylevelchangeParamsData&) = delete;
+            BatterylevelchangeParamsData& operator=(const BatterylevelchangeParamsData&) = delete;
 
         public:
             Core::JSON::DecUInt8 Level; // Battery level (in percentage)
@@ -175,19 +143,13 @@ namespace JsonData {
                 Add(_T("manufacturer"), &Manufacturer);
             }
 
-            InfoData(const InfoData&) = delete;
-            InfoData(InfoData&&) noexcept  = delete;
-
-            InfoData& operator=(const InfoData&) = delete;
-            InfoData& operator=(InfoData&&) noexcept  = delete;
-
-            ~InfoData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
                 return (true);
             }
+
+            InfoData(const InfoData&) = delete;
+            InfoData& operator=(const InfoData&) = delete;
 
         public:
             Core::JSON::String Model; // Unit model name or number
@@ -198,8 +160,6 @@ namespace JsonData {
         }; // class InfoData
 
     } // namespace BluetoothRemoteControl
-
-    POP_WARNING()
 
 } // namespace JsonData
 

@@ -1,4 +1,4 @@
-// C++ types for SecureShell Server API.
+// C++ classes for SecureShell Server API JSON-RPC API.
 // Generated automatically from 'SecureShellServer.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace SecureShellServer {
 
@@ -26,19 +24,13 @@ namespace JsonData {
                 Add(_T("clientpid"), &Clientpid);
             }
 
-            Close_client_sessionParamsData(const Close_client_sessionParamsData&) = delete;
-            Close_client_sessionParamsData(Close_client_sessionParamsData&&) noexcept  = delete;
-
-            Close_client_sessionParamsData& operator=(const Close_client_sessionParamsData&) = delete;
-            Close_client_sessionParamsData& operator=(Close_client_sessionParamsData&&) noexcept  = delete;
-
-            ~Close_client_sessionParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Clientpid.IsSet() == true);
+                return (true);
             }
+
+            Close_client_sessionParamsData(const Close_client_sessionParamsData&) = delete;
+            Close_client_sessionParamsData& operator=(const Close_client_sessionParamsData&) = delete;
 
         public:
             Core::JSON::String Clientpid; // SSH client process id
@@ -61,15 +53,6 @@ namespace JsonData {
                 _Init();
             }
 
-            Get_active_sessions_infoResultDataElem(Get_active_sessions_infoResultDataElem&& _other) noexcept
-                : Core::JSON::Container()
-                , Pid(std::move(_other.Pid))
-                , Ipaddress(std::move(_other.Ipaddress))
-                , Timestamp(std::move(_other.Timestamp))
-            {
-                _Init();
-            }
-
             Get_active_sessions_infoResultDataElem& operator=(const Get_active_sessions_infoResultDataElem& _rhs)
             {
                 Pid = _rhs.Pid;
@@ -78,20 +61,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            Get_active_sessions_infoResultDataElem& operator=(Get_active_sessions_infoResultDataElem&& _rhs) noexcept
+            bool IsValid() const
             {
-                Pid = std::move(_rhs.Pid);
-                Ipaddress = std::move(_rhs.Ipaddress);
-                Timestamp = std::move(_rhs.Timestamp);
-                return (*this);
-            }
-
-            ~Get_active_sessions_infoResultDataElem() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return ((Pid.IsSet() == true) && (Ipaddress.IsSet() == true) && (Timestamp.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -109,8 +81,6 @@ namespace JsonData {
         }; // class Get_active_sessions_infoResultDataElem
 
     } // namespace SecureShellServer
-
-    POP_WARNING()
 
 } // namespace JsonData
 

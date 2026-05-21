@@ -1,4 +1,4 @@
-// C++ types for Performance Monitor API.
+// C++ classes for Performance Monitor API JSON-RPC API.
 // Generated automatically from 'PerformanceMonitor.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace PerformanceMonitor {
 
@@ -28,19 +26,13 @@ namespace JsonData {
                 Add(_T("duration"), &Duration);
             }
 
-            BufferInfo(const BufferInfo&) = delete;
-            BufferInfo(BufferInfo&&) noexcept  = delete;
-
-            BufferInfo& operator=(const BufferInfo&) = delete;
-            BufferInfo& operator=(BufferInfo&&) noexcept  = delete;
-
-            ~BufferInfo() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Data.IsSet() == true) && (Length.IsSet() == true) && (Duration.IsSet() == true));
+                return (true);
             }
+
+            BufferInfo(const BufferInfo&) = delete;
+            BufferInfo& operator=(const BufferInfo&) = delete;
 
         public:
             Core::JSON::String Data; // Any string data upto the size specified in the length
@@ -64,19 +56,13 @@ namespace JsonData {
                     Add(_T("count"), &Count);
                 }
 
-                StatisticsData(const StatisticsData&) = delete;
-                StatisticsData(StatisticsData&&) noexcept  = delete;
-
-                StatisticsData& operator=(const StatisticsData&) = delete;
-                StatisticsData& operator=(StatisticsData&&) noexcept  = delete;
-
-                ~StatisticsData() = default;
-
-            public:
-                bool IsDataValid() const
+                bool IsValid() const
                 {
-                    return ((Minimum.IsSet() == true) && (Maximum.IsSet() == true) && (Average.IsSet() == true) && (Count.IsSet() == true));
+                    return (true);
                 }
+
+                StatisticsData(const StatisticsData&) = delete;
+                StatisticsData& operator=(const StatisticsData&) = delete;
 
             public:
                 Core::JSON::DecUInt32 Minimum;
@@ -96,19 +82,13 @@ namespace JsonData {
                 Add(_T("total"), &Total);
             }
 
-            MeasurementData(const MeasurementData&) = delete;
-            MeasurementData(MeasurementData&&) noexcept  = delete;
-
-            MeasurementData& operator=(const MeasurementData&) = delete;
-            MeasurementData& operator=(MeasurementData&&) noexcept  = delete;
-
-            ~MeasurementData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (((Serialization.IsSet() == true) && (Serialization.IsDataValid() == true)) && ((Deserialization.IsSet() == true) && (Deserialization.IsDataValid() == true)) && ((Execution.IsSet() == true) && (Execution.IsDataValid() == true)) && ((Threadpool.IsSet() == true) && (Threadpool.IsDataValid() == true)) && ((Communication.IsSet() == true) && (Communication.IsDataValid() == true)) && ((Total.IsSet() == true) && (Total.IsDataValid() == true)));
+                return (true);
             }
+
+            MeasurementData(const MeasurementData&) = delete;
+            MeasurementData& operator=(const MeasurementData&) = delete;
 
         public:
             MeasurementData::StatisticsData Serialization; // Time taken to complete serialization
@@ -120,8 +100,6 @@ namespace JsonData {
         }; // class MeasurementData
 
     } // namespace PerformanceMonitor
-
-    POP_WARNING()
 
 } // namespace JsonData
 

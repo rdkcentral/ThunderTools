@@ -1,6 +1,7 @@
 // Generated automatically from 'IBrowser.h'. DO NOT EDIT.
 
 #pragma once
+
 #include "Module.h"
 #include "JsonData_BrowserCookieJar.h"
 #include <interfaces/IBrowser.h>
@@ -19,74 +20,62 @@ namespace Exchange {
 
         } // namespace Version
 
+        using JSONRPC = PluginHost::JSONRPC;
+
         PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)
-        PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)
-        PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
-        template<typename MODULE>
-        static void Register(MODULE& _module__, IBrowserCookieJar* _implementation__)
+        static void Register(JSONRPC& _module_, IBrowserCookieJar* _impl_)
         {
-            ASSERT(_implementation__ != nullptr);
+            ASSERT(_impl_ != nullptr);
 
-            _module__.PluginHost::JSONRPC::RegisterVersion(_T("JBrowserCookieJar"), Version::Major, Version::Minor, Version::Patch);
+            _module_.RegisterVersion(_T("JBrowserCookieJar"), Version::Major, Version::Minor, Version::Patch);
 
             // Register methods and properties...
 
             // Property: 'cookiejar'
-            _module__.PluginHost::JSONRPC::Register<JsonData::BrowserCookieJar::ConfigData, JsonData::BrowserCookieJar::ConfigData>(_T("cookiejar"),
-                [_implementation__](const JsonData::BrowserCookieJar::ConfigData& params, JsonData::BrowserCookieJar::ConfigData& result) -> uint32_t {
-                    uint32_t _errorCode__ = Core::ERROR_NONE;
+            _module_.Register<JsonData::BrowserCookieJar::ConfigData, JsonData::BrowserCookieJar::ConfigData>(_T("cookiejar"), 
+                [_impl_](const JsonData::BrowserCookieJar::ConfigData& params, JsonData::BrowserCookieJar::ConfigData& result) -> uint32_t {
+                    uint32_t _errorCode = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        Exchange::IBrowserCookieJar::Config _result_{};
+                        // property get
+                        Exchange::IBrowserCookieJar::Config _result{};
 
-                        _errorCode__ = (static_cast<const IBrowserCookieJar*>(_implementation__))->CookieJar(_result_);
+                        _errorCode = (static_cast<const IBrowserCookieJar*>(_impl_))->CookieJar(_result);
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Set(true);
-                            result = _result_;
+                        if (_errorCode == Core::ERROR_NONE) {
+                            result = _result;
                         }
+
+                    } else {
+                        // property set
+                        const Exchange::IBrowserCookieJar::Config _params(params);
+
+                        _errorCode = _impl_->CookieJar(_params);
+
+                        // result.Null(true);
                     }
-                    else {
-
-                        if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
-                        }
-                        else {
-                            const Exchange::IBrowserCookieJar::Config _params_(params);
-
-                            _errorCode__ = _implementation__->CookieJar(_params_);
-
-                        }
-
-                        result.Null(true);
-                    }
-
-                    return (_errorCode__);
+                    return (_errorCode);
                 });
 
         }
 
-        template<typename MODULE>
-        static void Unregister(MODULE& _module__)
+        static void Unregister(JSONRPC& _module_)
         {
             // Unregister methods and properties...
-            _module__.PluginHost::JSONRPC::Unregister(_T("cookiejar"));
+            _module_.Unregister(_T("cookiejar"));
         }
 
         namespace Event {
 
             // Event: 'cookiejarchanged' - Notifies that cookies were added, removed or modified
-            template<typename MODULE>
-            static void CookieJarChanged(const MODULE& module_, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void CookieJarChanged(const JSONRPC& _module_)
             {
-                module_.Notify(_T("cookiejarchanged"), sendIfMethod_);
+                _module_.Notify(_T("cookiejarchanged"));
             }
 
         } // namespace Event
 
-        POP_WARNING()
-        POP_WARNING()
         POP_WARNING()
 
     } // namespace JBrowserCookieJar

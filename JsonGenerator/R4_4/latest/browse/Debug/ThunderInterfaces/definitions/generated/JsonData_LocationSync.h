@@ -1,4 +1,4 @@
-// C++ types for Location Sync API.
+// C++ classes for Location Sync API JSON-RPC API.
 // Generated automatically from 'LocationSync.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace LocationSync {
 
@@ -30,19 +28,13 @@ namespace JsonData {
                 Add(_T("publicip"), &Publicip);
             }
 
-            LocationData(const LocationData&) = delete;
-            LocationData(LocationData&&) noexcept  = delete;
-
-            LocationData& operator=(const LocationData&) = delete;
-            LocationData& operator=(LocationData&&) noexcept  = delete;
-
-            ~LocationData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((City.IsSet() == true) && (Country.IsSet() == true) && (Region.IsSet() == true) && (Timezone.IsSet() == true) && (Publicip.IsSet() == true));
+                return (true);
             }
+
+            LocationData(const LocationData&) = delete;
+            LocationData& operator=(const LocationData&) = delete;
 
         public:
             Core::JSON::String City; // City name
@@ -53,8 +45,6 @@ namespace JsonData {
         }; // class LocationData
 
     } // namespace LocationSync
-
-    POP_WARNING()
 
 } // namespace JsonData
 

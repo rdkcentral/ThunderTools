@@ -1,4 +1,4 @@
-// Enumeration code for Streamer API.
+// Enumeration code for Streamer API JSON-RPC API.
 // Generated automatically from 'Streamer.json'.
 
 #include <core/Enumerate.h>

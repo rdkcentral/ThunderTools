@@ -1,4 +1,4 @@
-// C++ types for PlayerProperties API.
+// C++ classes for PlayerProperties API JSON-RPC API.
 // Generated automatically from 'IPlayerInfo.h'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -12,16 +12,12 @@ namespace WPEFramework {
 
 namespace JsonData {
 
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
-
     namespace PlayerProperties {
 
         // Method params/result classes
         //
 
     } // namespace PlayerProperties
-
-    POP_WARNING()
 
 } // namespace JsonData
 

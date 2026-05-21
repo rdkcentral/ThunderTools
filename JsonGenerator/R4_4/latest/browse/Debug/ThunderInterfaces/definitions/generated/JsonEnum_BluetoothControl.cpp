@@ -1,4 +1,4 @@
-// Enumeration code for Bluetooth Control API.
+// Enumeration code for Bluetooth Control API JSON-RPC API.
 // Generated automatically from 'BluetoothControl.json'.
 
 #include <core/Enumerate.h>

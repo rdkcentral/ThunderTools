@@ -1,4 +1,4 @@
-// C++ types for Process Containers.
+// C++ classes for Process Containers JSON-RPC API.
 // Generated automatically from 'Containers.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Containers {
 
@@ -27,19 +25,13 @@ namespace JsonData {
                 Add(_T("cores"), &Cores);
             }
 
-            CpuData(const CpuData&) = delete;
-            CpuData(CpuData&&) noexcept  = delete;
-
-            CpuData& operator=(const CpuData&) = delete;
-            CpuData& operator=(CpuData&&) noexcept  = delete;
-
-            ~CpuData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Total.IsSet() == true) && (Cores.IsSet() == true));
+                return (true);
             }
+
+            CpuData(const CpuData&) = delete;
+            CpuData& operator=(const CpuData&) = delete;
 
         public:
             Core::JSON::DecUInt64 Total; // CPU-time spent on container, in nanoseconds
@@ -56,19 +48,13 @@ namespace JsonData {
                 Add(_T("shared"), &Shared);
             }
 
-            MemoryData(const MemoryData&) = delete;
-            MemoryData(MemoryData&&) noexcept  = delete;
-
-            MemoryData& operator=(const MemoryData&) = delete;
-            MemoryData& operator=(MemoryData&&) noexcept  = delete;
-
-            ~MemoryData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Allocated.IsSet() == true) && (Resident.IsSet() == true) && (Shared.IsSet() == true));
+                return (true);
             }
+
+            MemoryData(const MemoryData&) = delete;
+            MemoryData& operator=(const MemoryData&) = delete;
 
         public:
             Core::JSON::DecUInt64 Allocated; // Memory allocated by container
@@ -92,14 +78,6 @@ namespace JsonData {
                 _Init();
             }
 
-            NetworksResultDataElem(NetworksResultDataElem&& _other) noexcept
-                : Core::JSON::Container()
-                , Interface(std::move(_other.Interface))
-                , Ips(std::move(_other.Ips))
-            {
-                _Init();
-            }
-
             NetworksResultDataElem& operator=(const NetworksResultDataElem& _rhs)
             {
                 Interface = _rhs.Interface;
@@ -107,19 +85,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            NetworksResultDataElem& operator=(NetworksResultDataElem&& _rhs) noexcept
+            bool IsValid() const
             {
-                Interface = std::move(_rhs.Interface);
-                Ips = std::move(_rhs.Ips);
-                return (*this);
-            }
-
-            ~NetworksResultDataElem() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return ((Interface.IsSet() == true) && (Ips.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -144,19 +112,13 @@ namespace JsonData {
                 Add(_T("parameters"), &Parameters);
             }
 
-            StartParamsData(const StartParamsData&) = delete;
-            StartParamsData(StartParamsData&&) noexcept  = delete;
-
-            StartParamsData& operator=(const StartParamsData&) = delete;
-            StartParamsData& operator=(StartParamsData&&) noexcept  = delete;
-
-            ~StartParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Name.IsSet() == true) && (Command.IsSet() == true) && (Parameters.IsSet() == true));
+                return (true);
             }
+
+            StartParamsData(const StartParamsData&) = delete;
+            StartParamsData& operator=(const StartParamsData&) = delete;
 
         public:
             Core::JSON::String Name; // Name of container
@@ -172,27 +134,19 @@ namespace JsonData {
                 Add(_T("name"), &Name);
             }
 
-            StopParamsData(const StopParamsData&) = delete;
-            StopParamsData(StopParamsData&&) noexcept  = delete;
-
-            StopParamsData& operator=(const StopParamsData&) = delete;
-            StopParamsData& operator=(StopParamsData&&) noexcept  = delete;
-
-            ~StopParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Name.IsSet() == true);
+                return (true);
             }
+
+            StopParamsData(const StopParamsData&) = delete;
+            StopParamsData& operator=(const StopParamsData&) = delete;
 
         public:
             Core::JSON::String Name; // Name of container
         }; // class StopParamsData
 
     } // namespace Containers
-
-    POP_WARNING()
 
 } // namespace JsonData
 

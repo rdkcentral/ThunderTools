@@ -1,4 +1,4 @@
-// C++ types for Monitor API.
+// C++ classes for Monitor API JSON-RPC API.
 // Generated automatically from 'Monitor.json'. DO NOT EDIT.
 
 // Note: This code is inherently not thread safe. If required, proper synchronisation must be added.
@@ -10,8 +10,6 @@
 namespace WPEFramework {
 
 namespace JsonData {
-
-    PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)
 
     namespace Monitor {
 
@@ -36,16 +34,6 @@ namespace JsonData {
                 _Init();
             }
 
-            MeasurementInfo(MeasurementInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Min(std::move(_other.Min))
-                , Max(std::move(_other.Max))
-                , Average(std::move(_other.Average))
-                , Last(std::move(_other.Last))
-            {
-                _Init();
-            }
-
             MeasurementInfo& operator=(const MeasurementInfo& _rhs)
             {
                 Min = _rhs.Min;
@@ -55,21 +43,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            MeasurementInfo& operator=(MeasurementInfo&& _rhs) noexcept
+            bool IsValid() const
             {
-                Min = std::move(_rhs.Min);
-                Max = std::move(_rhs.Max);
-                Average = std::move(_rhs.Average);
-                Last = std::move(_rhs.Last);
-                return (*this);
-            }
-
-            ~MeasurementInfo() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return ((Min.IsSet() == true) && (Max.IsSet() == true) && (Average.IsSet() == true) && (Last.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -108,18 +84,6 @@ namespace JsonData {
                 _Init();
             }
 
-            MeasurementsInfo(MeasurementsInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Resident(std::move(_other.Resident))
-                , Allocated(std::move(_other.Allocated))
-                , Shared(std::move(_other.Shared))
-                , Process(std::move(_other.Process))
-                , Operational(std::move(_other.Operational))
-                , Count(std::move(_other.Count))
-            {
-                _Init();
-            }
-
             MeasurementsInfo& operator=(const MeasurementsInfo& _rhs)
             {
                 Resident = _rhs.Resident;
@@ -131,23 +95,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            MeasurementsInfo& operator=(MeasurementsInfo&& _rhs) noexcept
+            bool IsValid() const
             {
-                Resident = std::move(_rhs.Resident);
-                Allocated = std::move(_rhs.Allocated);
-                Shared = std::move(_rhs.Shared);
-                Process = std::move(_rhs.Process);
-                Operational = std::move(_rhs.Operational);
-                Count = std::move(_rhs.Count);
-                return (*this);
-            }
-
-            ~MeasurementsInfo() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return (((Resident.IsSet() == true) && (Resident.IsDataValid() == true)) && ((Allocated.IsSet() == true) && (Allocated.IsDataValid() == true)) && ((Shared.IsSet() == true) && (Shared.IsDataValid() == true)) && ((Process.IsSet() == true) && (Process.IsDataValid() == true)) && (Operational.IsSet() == true) && (Count.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -186,14 +136,6 @@ namespace JsonData {
                 _Init();
             }
 
-            RestartInfo(RestartInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Limit(std::move(_other.Limit))
-                , Window(std::move(_other.Window))
-            {
-                _Init();
-            }
-
             RestartInfo& operator=(const RestartInfo& _rhs)
             {
                 Limit = _rhs.Limit;
@@ -201,19 +143,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            RestartInfo& operator=(RestartInfo&& _rhs) noexcept
+            bool IsValid() const
             {
-                Limit = std::move(_rhs.Limit);
-                Window = std::move(_rhs.Window);
-                return (*this);
-            }
-
-            ~RestartInfo() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return ((Limit.IsSet() == true) && (Window.IsSet() == true));
+                return (true);
             }
 
         private:
@@ -245,15 +177,6 @@ namespace JsonData {
                 _Init();
             }
 
-            InfoInfo(InfoInfo&& _other) noexcept
-                : Core::JSON::Container()
-                , Measurements(std::move(_other.Measurements))
-                , Observable(std::move(_other.Observable))
-                , Restart(std::move(_other.Restart))
-            {
-                _Init();
-            }
-
             InfoInfo& operator=(const InfoInfo& _rhs)
             {
                 Measurements = _rhs.Measurements;
@@ -262,20 +185,9 @@ namespace JsonData {
                 return (*this);
             }
 
-            InfoInfo& operator=(InfoInfo&& _rhs) noexcept
+            bool IsValid() const
             {
-                Measurements = std::move(_rhs.Measurements);
-                Observable = std::move(_rhs.Observable);
-                Restart = std::move(_rhs.Restart);
-                return (*this);
-            }
-
-            ~InfoInfo() = default;
-
-        public:
-            bool IsDataValid() const
-            {
-                return (((Measurements.IsSet() == true) && (Measurements.IsDataValid() == true)) && (Observable.IsSet() == true) && ((Restart.IsSet() == true) && (Restart.IsDataValid() == true)));
+                return (true);
             }
 
         private:
@@ -305,19 +217,13 @@ namespace JsonData {
                 Add(_T("reason"), &Reason);
             }
 
-            ActionParamsData(const ActionParamsData&) = delete;
-            ActionParamsData(ActionParamsData&&) noexcept  = delete;
-
-            ActionParamsData& operator=(const ActionParamsData&) = delete;
-            ActionParamsData& operator=(ActionParamsData&&) noexcept  = delete;
-
-            ~ActionParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Callsign.IsSet() == true) && (Action.IsSet() == true) && (Reason.IsSet() == true));
+                return (true);
             }
+
+            ActionParamsData(const ActionParamsData&) = delete;
+            ActionParamsData& operator=(const ActionParamsData&) = delete;
 
         public:
             Core::JSON::String Callsign; // Callsign of the service the Monitor acted upon
@@ -333,19 +239,13 @@ namespace JsonData {
                 Add(_T("callsign"), &Callsign);
             }
 
-            ResetstatsParamsData(const ResetstatsParamsData&) = delete;
-            ResetstatsParamsData(ResetstatsParamsData&&) noexcept  = delete;
-
-            ResetstatsParamsData& operator=(const ResetstatsParamsData&) = delete;
-            ResetstatsParamsData& operator=(ResetstatsParamsData&&) noexcept  = delete;
-
-            ~ResetstatsParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return (Callsign.IsSet() == true);
+                return (true);
             }
+
+            ResetstatsParamsData(const ResetstatsParamsData&) = delete;
+            ResetstatsParamsData& operator=(const ResetstatsParamsData&) = delete;
 
         public:
             Core::JSON::String Callsign; // The callsign of a service to reset statistics of
@@ -360,19 +260,13 @@ namespace JsonData {
                 Add(_T("restart"), &Restart);
             }
 
-            RestartlimitsParamsData(const RestartlimitsParamsData&) = delete;
-            RestartlimitsParamsData(RestartlimitsParamsData&&) noexcept  = delete;
-
-            RestartlimitsParamsData& operator=(const RestartlimitsParamsData&) = delete;
-            RestartlimitsParamsData& operator=(RestartlimitsParamsData&&) noexcept  = delete;
-
-            ~RestartlimitsParamsData() = default;
-
-        public:
-            bool IsDataValid() const
+            bool IsValid() const
             {
-                return ((Callsign.IsSet() == true) && ((Restart.IsSet() == true) && (Restart.IsDataValid() == true)));
+                return (true);
             }
+
+            RestartlimitsParamsData(const RestartlimitsParamsData&) = delete;
+            RestartlimitsParamsData& operator=(const RestartlimitsParamsData&) = delete;
 
         public:
             Core::JSON::String Callsign; // The callsign of a service to reset measurements snapshot of
@@ -380,8 +274,6 @@ namespace JsonData {
         }; // class RestartlimitsParamsData
 
     } // namespace Monitor
-
-    POP_WARNING()
 
 } // namespace JsonData
 

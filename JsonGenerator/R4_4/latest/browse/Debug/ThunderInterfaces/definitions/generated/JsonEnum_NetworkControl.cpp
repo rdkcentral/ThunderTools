@@ -1,4 +1,4 @@
-// Enumeration code for NetworkControl API.
+// Enumeration code for NetworkControl API JSON-RPC API.
 // Generated automatically from 'INetworkControl.h'.
 
 #include <core/Enumerate.h>
