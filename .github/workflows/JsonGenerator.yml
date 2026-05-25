@@ -34,6 +34,7 @@ jobs:
         with:
           token: ${{ github.token }}
           base: ${{ github.event.before }}
+          ref: ${{ github.event.after }}
           filters: |
             relevant:
               - 'JsonGenerator/**'
