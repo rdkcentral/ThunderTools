@@ -23,7 +23,29 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.filter.outputs.relevant }}
+    steps:
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          token: ${{ github.token }}
+          base: ${{ github.event.before }}
+          filters: |
+            relevant:
+              - 'PluginSkeletonGenerator/**'
+              - '.github/workflows/PluginSkeletonGenerator.yml'
+
   Thunder:
+    needs: [changes]
+    if: |
+      always() && (
+        needs.changes.result == 'skipped' ||
+        needs.changes.outputs.relevant == 'true'
+      )
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
 
   ThunderInterfaces:
@@ -31,6 +53,12 @@ jobs:
     uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@master
 
   prepare:
+    needs: [changes]
+    if: |
+      always() && (
+        needs.changes.result == 'skipped' ||
+        needs.changes.outputs.relevant == 'true'
+      )
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
