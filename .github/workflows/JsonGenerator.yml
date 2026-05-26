@@ -1,4 +1,4 @@
-name: JsonGenerator Checks
+name: JsonGenerator Checks # test: try to trigger only this workflow
 
 on:
   workflow_dispatch:
