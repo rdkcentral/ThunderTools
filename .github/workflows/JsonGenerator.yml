@@ -28,7 +28,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.check.outputs.relevant }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.action }}" != "synchronize" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          relevant=$(gh api \
+            "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
+            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
   Thunder:
+    needs: [changes]
+    if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
     with:
       thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
@@ -202,8 +222,8 @@ jobs:
               BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/tag_${DIFF_TAG}_raw"
               echo "Using tag baseline: $DIFF_TAG"
             else
-              BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/tag_raw"
-              echo "Using default tag baseline"
+              BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/R4_4/latest_raw"
+              echo "Using latest R4_4 baseline"
             fi
             mkdir -p diffs "site/$RUN_DIR/diff"
 
@@ -344,7 +364,7 @@ jobs:
             mkdir -p "site/R4_4/latest"
             cp -a "site/$RUN_DIR"/* "site/R4_4/latest/"
 
-            # ----- Update Raw Latest (for browsing only, not used for diffs) -----
+            # ----- Update Raw Latest (used as default diff baseline) -----
             rm -rf "site/R4_4/latest_raw"
             mkdir -p "site/R4_4/latest_raw"
             cp -r generated/* "site/R4_4/latest_raw/"
