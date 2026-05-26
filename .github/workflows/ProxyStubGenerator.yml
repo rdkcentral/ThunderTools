@@ -24,29 +24,26 @@ concurrency:
 
 jobs:
   changes:
-    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
+      relevant: ${{ steps.check.outputs.relevant }}
     steps:
-      - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
-        id: filter
-        with:
-          token: ${{ github.token }}
-          base: ${{ github.event.before }}
-          ref: ${{ github.event.after }}
-          filters: |
-            relevant:
-              - 'ProxyStubGenerator/**'
-              - '.github/workflows/ProxyStubGenerator.yml'
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.action }}" != "synchronize" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          relevant=$(gh api \
+            "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
+            --jq '[.files[].filename] | map(select(startswith("ProxyStubGenerator/") or . == ".github/workflows/ProxyStubGenerator.yml")) | length > 0')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
 
   Thunder:
     needs: [changes]
-    if: |
-      always() && (
-        needs.changes.result == 'skipped' ||
-        needs.changes.outputs.relevant == 'true'
-      )
+    if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
 
   ThunderInterfaces:
