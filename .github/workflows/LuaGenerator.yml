@@ -33,12 +33,12 @@ concurrency:
 
 jobs:
   changes:
-    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
+      relevant: ${{ steps.filter.outputs.relevant || steps.default.outputs.relevant }}
     steps:
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
         id: filter
         with:
           token: ${{ github.token }}
@@ -50,14 +50,13 @@ jobs:
               - 'ProxyStubGenerator/**'
               - '.github/workflows/LuaGenerator.yml'
               - '.github/workflows/ProxyStubGenerator.yml'
+      - id: default
+        if: github.event_name != 'pull_request' || github.event.action != 'synchronize'
+        run: echo "relevant=true" >> "$GITHUB_OUTPUT"
 
   generate_lua:
     needs: [changes]
-    if: |
-      always() && (
-        needs.changes.result == 'skipped' ||
-        needs.changes.outputs.relevant == 'true'
-      )
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ThunderTools

@@ -29,12 +29,12 @@ concurrency:
 
 jobs:
   changes:
-    if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
     runs-on: ubuntu-latest
     outputs:
-      relevant: ${{ steps.filter.outputs.relevant }}
+      relevant: ${{ steps.filter.outputs.relevant || steps.default.outputs.relevant }}
     steps:
       - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+        if: github.event_name == 'pull_request' && github.event.action == 'synchronize'
         id: filter
         with:
           token: ${{ github.token }}
@@ -44,14 +44,13 @@ jobs:
             relevant:
               - 'JsonGenerator/**'
               - '.github/workflows/JsonGenerator.yml'
+      - id: default
+        if: github.event_name != 'pull_request' || github.event.action != 'synchronize'
+        run: echo "relevant=true" >> "$GITHUB_OUTPUT"
 
   Thunder:
     needs: [changes]
-    if: |
-      always() && (
-        needs.changes.result == 'skipped' ||
-        needs.changes.outputs.relevant == 'true'
-      )
+    if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
     with:
       thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
