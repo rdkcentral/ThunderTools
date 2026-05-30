@@ -2220,6 +2220,7 @@ def Parse(contents,log = None):
             current_line = int(token[6:].split()[0])
         elif isinstance(token, str) and token.startswith("@FILE:"):
             current_file = token[6:]
+            tokens.append("@GLOBAL")
             line_numbers.append(current_line)
             files.append(current_file)
         else:
@@ -2328,6 +2329,33 @@ def Parse(contents,log = None):
             i += 2
         elif tokens[i] == "@ITERATOR":
             iterator_next = True
+            tokens[i] = ";"
+            i += 1
+        elif tokens[i] == "@GLOBAL":
+            current_block = [global_namespace]
+            next_block = None
+            last_template_def = []
+            min_index = 0
+            omit_mode = False
+            omit_next = False
+            stub_next = False
+            json_next = False
+            object_next = False
+            autoobject_next = False
+            encode_enum_next = False
+            wrap_next = False
+            json_version = ""
+            prefix_next = False
+            prefix_string = ""
+            exclude_next = False
+            event_next = False
+            extended_next = False
+            collapsed_next = False
+            compliant_next = False
+            iterator_next = False
+            sourcelocation_next = False
+            text_next = None
+            in_typedef = False
             tokens[i] = ";"
             i += 1
 
