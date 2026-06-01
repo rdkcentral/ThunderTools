@@ -32,7 +32,7 @@ import Log
 import CppParser
 
 NAME = "ProxyStubGenerator"
-
+#dummy
 # runtime changeable configuration
 INDENT_SIZE = 4
 SHOW_WARNINGS = True
