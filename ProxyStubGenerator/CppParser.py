@@ -1905,7 +1905,7 @@ def __Tokenize(contents,log = None):
             if skipmode:
                 if "@_file" in token:
                     skipmode = False
-                else:
+                elif token not in ['}', '{', ';']:
                     continue
 
             def __ParseParameterValue(string, tag, mandatory=True, append=True, relay=None):
@@ -2237,7 +2237,6 @@ def Parse(contents,log = None):
     omit_next = False
     stub_next = False
     object_next = False
-    autoobject_next = False
     json_next = False
     json_version = ""
     prefix_next = False
@@ -2453,8 +2452,6 @@ def Parse(contents,log = None):
             if json_next:
                 if object_next:
                     object_next = False
-                if autoobject_next:
-                    autoobject_next = False
                 new_class.is_json = True
                 new_class.json_version = json_version
                 if event_next:
@@ -2488,7 +2485,6 @@ def Parse(contents,log = None):
 
             json_next = False
             object_next = False
-            autoobject_next = False
             encode_enum_next = False
             wrap_next = False
             json_version = ""
@@ -2594,7 +2590,6 @@ def Parse(contents,log = None):
 
             json_next = False
             object_next = False
-            autoobject_next = False
             encode_enum_next = False
             text_next = None
 
