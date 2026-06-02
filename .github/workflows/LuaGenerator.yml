@@ -27,7 +27,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.check.outputs.relevant }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.action }}" != "synchronize" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          relevant=$(gh api \
+            "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
+            --jq '[.files[].filename] | map(select(startswith("LuaGenerator/") or startswith("ProxyStubGenerator/") or . == ".github/workflows/LuaGenerator.yml" or . == ".github/workflows/ProxyStubGenerator.yml")) | length > 0')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
   generate_lua:
+    needs: [changes]
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout ThunderTools
@@ -85,6 +105,9 @@ jobs:
 
   publish_pages:
     runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
     needs: generate_lua
 
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository

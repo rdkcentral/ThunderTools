@@ -23,7 +23,27 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      relevant: ${{ steps.check.outputs.relevant }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.action }}" != "synchronize" ]]; then
+            echo "relevant=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          relevant=$(gh api \
+            "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
+            --jq '[.files[].filename] | map(select(startswith("PluginSkeletonGenerator/") or . == ".github/workflows/PluginSkeletonGenerator.yml")) | length > 0')
+          echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
+
   Thunder:
+    needs: [changes]
+    if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
 
   ThunderInterfaces:
@@ -31,6 +51,8 @@ jobs:
     uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@master
 
   prepare:
+    needs: [changes]
+    if: needs.changes.outputs.relevant == 'true'
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.set-matrix.outputs.matrix }}
@@ -184,6 +206,9 @@ jobs:
 
   publish_pages:
     runs-on: ubuntu-latest
+    concurrency:
+      group: gh-pages-deploy
+      cancel-in-progress: false
     needs: [ prepare, generate ]
 
     if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository

@@ -83,6 +83,7 @@ namespace __FRAMEWORK_NAMESPACE__ {
     class ISubSystem;
     class IPlugin {
       class INotification;
+      class INotificationExtended;
     };
   }
 }
