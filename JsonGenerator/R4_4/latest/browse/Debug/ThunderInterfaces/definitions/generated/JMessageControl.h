@@ -53,14 +53,41 @@ namespace Exchange {
                     return (_errorCode__);
                 });
 
-            // Property: 'controls' - Retrieves a list of current message controls (r/o)
-            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>>(_T("controls"),
-                [_implementation__](Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>& result) -> uint32_t {
+            // Property: 'modules' - Retrieves a list of current message modules (r/o)
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<Core::JSON::String>>(_T("modules"),
+                [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
+                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+
+                    _errorCode__ = _implementation__->Modules(_result_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Set(true);
+
+                        if (_result_ != nullptr) {
+                            string _resultItem__{};
+                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                            _result_->Release();
+                        }
+                    }
+
+                    return (_errorCode__);
+                });
+
+            // Indexed Property: 'controls' - Retrieves a list of current message controls for a specific module (r/o)
+            _module__.PluginHost::JSONRPC::Register<void, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>, std::function<uint32_t(const string&, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>&)>>(_T("controls"),
+                [_implementation__](const string& module, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>& result) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
+
+                    if (module.empty() == true) {
+                        // no error, optional
+                    }
+                    else {
+                    }
                     ::WPEFramework::RPC::IIteratorType<IMessageControl::Control, ID_MESSAGE_CONTROL_ITERATOR>* _result_{};
 
-                    _errorCode__ = _implementation__->Controls(_result_);
+                    _errorCode__ = _implementation__->Controls(module, _result_);
 
                     if (_errorCode__ == Core::ERROR_NONE) {
                         result.Set(true);
@@ -82,6 +109,7 @@ namespace Exchange {
         {
             // Unregister methods and properties...
             _module__.PluginHost::JSONRPC::Unregister(_T("enable"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("modules"));
             _module__.PluginHost::JSONRPC::Unregister(_T("controls"));
         }
 
