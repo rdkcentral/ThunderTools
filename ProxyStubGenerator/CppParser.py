@@ -1906,6 +1906,7 @@ def __Tokenize(contents,log = None):
                 if "@_file" in token:
                     skipmode = False
                 elif token not in ['}', '{', ';'] and not token.startswith("// @_"):
+                    # skip all but keep matching parentheses and still follow control lines
                     continue
 
             def __ParseParameterValue(string, tag, mandatory=True, append=True, relay=None):
