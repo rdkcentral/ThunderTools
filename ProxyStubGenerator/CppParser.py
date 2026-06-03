@@ -1905,7 +1905,7 @@ def __Tokenize(contents,log = None):
             if skipmode:
                 if "@_file" in token:
                     skipmode = False
-                elif token not in ['}', '{', ';']:
+                elif token not in ['}', '{', ';'] and not token.startswith("// @_"):
                     continue
 
             def __ParseParameterValue(string, tag, mandatory=True, append=True, relay=None):
