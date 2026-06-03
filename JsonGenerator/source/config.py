@@ -101,7 +101,6 @@ def Parse(cmdline):
     global AUTO_PREFIX
     global DEFAULT_CASE_CONVENTION
     global IGNORE_SOURCE_CASE_CONVENTION
-    global STATS_FOR_NERDS
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
@@ -395,8 +394,6 @@ def Parse(cmdline):
 
     if "force" in args.format:
         RPC_FORMAT_FORCED = True
-
-    STATS_FOR_NERDS = args.stats
 
     NO_INCLUDES = args.no_includes
     NO_VERSIONING = args.no_versioning
