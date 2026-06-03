@@ -454,9 +454,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
         def ResolveTypedef(type, parent=type):
             if isinstance(type, str):
-                raise CppParseError(parent, "%s: undefined type1"% type)
+                raise CppParseError(parent, "%s: undefined type" % type)
             elif isinstance(type, list):
-                raise CppParseError(parent, "%s: undefined type2"% " ".join(type))
+                raise CppParseError(parent, "%s: undefined type" % " ".join(type))
 
             return type.Resolve()
 
@@ -465,16 +465,16 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 meta = var.meta
 
             if isinstance(var.type, str):
-                raise CppParseError(var, "%s: undefined type3" % var.type)
+                raise CppParseError(var, "%s: undefined type" % var.type)
             elif isinstance(var.type, list):
-                raise CppParseError(var, "%s: undefined type4" % " ".join(var.type))
+                raise CppParseError(var, "%s: undefined type" % " ".join(var.type))
 
             var_type = ResolveTypedef(var.type)
 
             if isinstance(var_type, str):
-                raise CppParseError(var, "%s: undefined type5" % var_type)
+                raise CppParseError(var, "%s: undefined type" % var_type)
             elif isinstance(var_type, list):
-                raise CppParseError(var, "%s: undefined type6" % " ".join(var_type))
+                raise CppParseError(var, "%s: undefined type" % " ".join(var_type))
 
             cppType = var_type.Type()
 
@@ -666,9 +666,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             p_type = ResolveTypedef(p.type)
 
                             if isinstance(p.type, list):
-                                raise CppParseError(p, "%s: undefined type10" % " ".join(p.type))
+                                raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
                             if isinstance(p.type, str):
-                                raise CppParseError(p, "%s: undefined type11" % p.type)
+                                raise CppParseError(p, "%s: undefined type" % p.type)
                             elif isinstance(p_type.Type(), CppParser.Class) and not p.array:
                                 _, props = GenerateObject(p_type.Type(), isinstance(p.type.Type(), CppParser.Typedef))
                                 properties[p_name] = props
@@ -791,7 +791,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                             if isinstance(type.Type(), CppParser.Class) and type.Type().is_event:
                                 events.append(var)
                     else:
-                        raise CppParseError(var, "undefined type12: '%s'" % " ".join(type))
+                        raise CppParseError(var, "undefined type: '%s'" % " ".join(type))
 
                     resolved.append(type)
                     return events

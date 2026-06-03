@@ -745,10 +745,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 lambda_params = []
                 lambda_params.append("%s%s" % ("&" if legacy else "", names.handler))
 
-                has_lookup = False
-
                 params = []
-                params.append("const uint32_t%s" % (" channelId_" if has_lookup else ""))
+                params.append("const uint32_t")
                 params.append("const string& client_")
                 params.append("const string&%s" % (" index_" if event.sendif_type and not event.sendif_deprecated else ""))
                 params.append("const %s::Status status_" % "PluginHost::JSONRPCSupportsEventStatus")
@@ -766,7 +764,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 if event.sendif_type and not event.sendif_deprecated:
                     emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
                     converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
-                    call_params.insert((2 if has_lookup else 1), converted)
+                    call_params.insert(1, converted)
 
                     emit.Line("if (_errorCode__ == %s) {" % CoreError("none"))
                     emit.Indent()
@@ -1590,12 +1588,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
 
         version_info = [ Tstring(names.namespace), "Version::Major", "Version::Minor", "Version::Patch" ]
-
-        if config.STATS_FOR_NERDS:
-            method_count = len(methods) + len(alt_methods)
-            property_count = len(properties) + len(alt_properties)
-            event_count = len(events) + len(alt_events)
-            version_info.extend([str(method_count), str(property_count), str(event_count)])
 
         emit.Line("%s.PluginHost::JSONRPC::RegisterVersion(%s);" % (names.module, ", ".join(version_info)))
 
