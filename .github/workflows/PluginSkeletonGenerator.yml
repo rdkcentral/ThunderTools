@@ -127,7 +127,7 @@ jobs:
                   pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
               ) },
 
-            { "name": "OutOfProcessPreconditions", "header": "IMessageControl.h",
+            { "name": "OutOfProcessPreconditions", "header": "IMessagingControl.h",
               "answers": mk_answers(
                   "OutOfProcessPreconditions", "Y", "N",
                   pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
