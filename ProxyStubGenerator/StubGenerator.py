@@ -2489,7 +2489,8 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
 
         emit.Line()
 
-        if os.path.isfile(os.path.join(project_dir, "Module.h")):
+        _module_dir = project_dir if project_dir else os.path.dirname(source_file)
+        if os.path.isfile(os.path.join(_module_dir, "Module.h")):
             emit.Line('#include "Module.h"')
 
         if os.path.isfile(os.path.join(os.path.dirname(source_file), interface_header_name)):
@@ -2774,7 +2775,7 @@ if __name__ == "__main__":
 
             for source_file in interface_files:
                 try:
-                    if args.project_dir is not None:
+                    if args.project_dir:
                         _extra_includes = [ os.path.join("@" + args.project_dir, MODULE_FILE) ]
                         _extra_includes = [ os.path.join("@" + args.project_dir, "Ids.h") ]
                     else:
