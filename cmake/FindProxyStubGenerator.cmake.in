@@ -31,7 +31,7 @@ function(ProxyStubGenerator)
     endif()
 
     set(optionsArgs SECURE COHERENT TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE)
-    set(oneValueArgs OUTDIR)
+    set(oneValueArgs OUTDIR PROJECT_DIR)
     set(multiValueArgs INPUT INCLUDE INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
@@ -79,6 +79,10 @@ function(ProxyStubGenerator)
     if(Argument_OUTDIR)
         file(MAKE_DIRECTORY "${Argument_OUTDIR}")
         list(APPEND _execute_command  "--outdir" "${Argument_OUTDIR}")
+    endif()
+
+    if(Argument_PROJECT_DIR)
+       list(APPEND _execute_command  "--projectdir" "${Argument_PROJECT_DIR}")
     endif()
 
     foreach(_include ${Argument_INCLUDE})

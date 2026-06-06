@@ -250,7 +250,6 @@ def EmitEnumRegs(log, root, emit, header_file, if_file):
     emit.Line("#include <core/Enumerate.h>")
     emit.Line()
 
-    emit.Line("#include \"definitions.h\"")
 
     if not config.NO_INCLUDES:
         if if_file.endswith(".h"):
