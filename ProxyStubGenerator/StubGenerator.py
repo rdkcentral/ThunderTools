@@ -1019,7 +1019,7 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
                         raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
 
                 if (not self.is_buffer and not self.is_array) and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
-                    if not self.kind.fixed and not getattr(self.kind, 'char', False):
+                    if not self.kind.fixed and not self.kind.char:
                         log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
 
                 if isinstance(self.kind, CppParser.Enum):
