@@ -20,7 +20,7 @@
 #pragma once
 
 #include "Module.h"
-#include <interfaces/IMessageControl.h>
+#include <interfaces/IMessagingControl.h>
 
 namespace Thunder {
 namespace Plugin {
@@ -37,7 +37,7 @@ namespace Plugin {
             , PluginHost::JSONRPC()
             , _service(nullptr)
             , _connectionId(0)
-            , _implMessageControl(nullptr)
+            , _implMessagingControl(nullptr)
             , _notification(*this)
         {
         }
@@ -84,7 +84,7 @@ namespace Plugin {
         BEGIN_INTERFACE_MAP(OutOfProcessPreconditions)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
-            INTERFACE_AGGREGATE(Exchange::IMessageControl, _implMessageControl)
+            INTERFACE_AGGREGATE(Exchange::IMessagingControl, _implMessagingControl)
         END_INTERFACE_MAP
 
     private:
@@ -93,7 +93,7 @@ namespace Plugin {
 
         PluginHost::IShell* _service;
         uint32_t _connectionId;
-        Exchange::IMessageControl* _implMessageControl;
+        Exchange::IMessagingControl* _implMessagingControl;
         Core::SinkType<Notification> _notification;
     };
 } // Plugin

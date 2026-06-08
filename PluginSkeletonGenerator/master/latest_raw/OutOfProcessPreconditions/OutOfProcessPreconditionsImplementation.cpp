@@ -18,12 +18,12 @@
 */
 
 #include "Module.h"
-#include <interfaces/IMessageControl.h>
+#include <interfaces/IMessagingControl.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class OutOfProcessPreconditionsImplementation : public Exchange::IMessageControl {
+    class OutOfProcessPreconditionsImplementation : public Exchange::IMessagingControl {
     public:
         OutOfProcessPreconditionsImplementation(const OutOfProcessPreconditionsImplementation&) = delete;
         OutOfProcessPreconditionsImplementation& operator=(const OutOfProcessPreconditionsImplementation&) = delete;
@@ -31,7 +31,7 @@ namespace Plugin {
         OutOfProcessPreconditionsImplementation& operator=(OutOfProcessPreconditionsImplementation&&) = delete;
 
         OutOfProcessPreconditionsImplementation()
-            : Exchange::IMessageControl()
+            : Exchange::IMessagingControl()
         {
         }
         ~OutOfProcessPreconditionsImplementation() override = default;
@@ -39,15 +39,15 @@ namespace Plugin {
     public:
 
         BEGIN_INTERFACE_MAP(OutOfProcessPreconditionsImplementation)
-            INTERFACE_ENTRY(Exchange::IMessageControl)
+            INTERFACE_ENTRY(Exchange::IMessagingControl)
         END_INTERFACE_MAP
 
         // Type aliases copied from interface headers
-        using IControlIterator = RPC::IIteratorType<Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>;
+        using IControlIterator = RPC::IIteratorType<Control, Exchange::ID_MESSAGING_CONTROL_ITERATOR>;
         using IStringIterator = RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>;
         using messagetype = Core::Messaging::Metadata::type;
 
-        // IMessageControl methods
+        // IMessagingControl methods
 
         Core::hresult Enable(const messagetype /* type */, const string& /* category */, const string& /* module */, const bool /* enabled */) override {
             return Core::ERROR_NONE;

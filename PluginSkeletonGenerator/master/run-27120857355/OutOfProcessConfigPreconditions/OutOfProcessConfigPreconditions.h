@@ -20,31 +20,32 @@
 #pragma once
 
 #include "Module.h"
-#include <interfaces/IMessagingControl.h>
+#include <interfaces/IWifiControl.h>
+#include <interfaces/json/JWifiControl.h>
 
 namespace Thunder {
 namespace Plugin {
 
-    class OutOfProcessPreconditions : public PluginHost::IPlugin, public PluginHost::JSONRPC {
+    class OutOfProcessConfigPreconditions : public PluginHost::IPlugin, public PluginHost::JSONRPC {
     public:
-        OutOfProcessPreconditions(const OutOfProcessPreconditions&) = delete;
-        OutOfProcessPreconditions& operator=(const OutOfProcessPreconditions&) = delete;
-        OutOfProcessPreconditions(OutOfProcessPreconditions&&) = delete;
-        OutOfProcessPreconditions& operator=(OutOfProcessPreconditions&&) = delete;
+        OutOfProcessConfigPreconditions(const OutOfProcessConfigPreconditions&) = delete;
+        OutOfProcessConfigPreconditions& operator=(const OutOfProcessConfigPreconditions&) = delete;
+        OutOfProcessConfigPreconditions(OutOfProcessConfigPreconditions&&) = delete;
+        OutOfProcessConfigPreconditions& operator=(OutOfProcessConfigPreconditions&&) = delete;
 
-        OutOfProcessPreconditions()
+        OutOfProcessConfigPreconditions()
             : PluginHost::IPlugin()
             , PluginHost::JSONRPC()
             , _service(nullptr)
             , _connectionId(0)
-            , _implMessagingControl(nullptr)
+            , _implWifiControl(nullptr)
             , _notification(*this)
         {
         }
 
-        ~OutOfProcessPreconditions() override = default;
+        ~OutOfProcessConfigPreconditions() override = default;
     private:
-        class Notification : public RPC::IRemoteConnection::INotification {
+        class Notification : public RPC::IRemoteConnection::INotification, public PluginHost::IShell::ICOMLink::INotification, public Exchange::IWifiControl::INotification {
         public:
             Notification(const Notification&) = delete;
             Notification& operator=(const Notification&) = delete;
@@ -52,8 +53,10 @@ namespace Plugin {
             Notification& operator=(Notification&&) = delete;
             Notification() = delete;
 
-            explicit Notification(OutOfProcessPreconditions& parent)
+            explicit Notification(OutOfProcessConfigPreconditions& parent)
                 : RPC::IRemoteConnection::INotification()
+                , PluginHost::IShell::ICOMLink::INotification()
+                , Exchange::IWifiControl::INotification()
                 , _parent(parent)
             {
             }
@@ -68,11 +71,22 @@ namespace Plugin {
                 _parent.Deactivated(connection);
             }
 
+            void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {
+                _parent.Dangling(remote, interfaceId);
+            }
+            void NetworkChange() override {
+                Exchange::JWifiControl::Event::NetworkChange(_parent);
+            }
+            void ConnectionChange(const string& ssid) override {
+                Exchange::JWifiControl::Event::ConnectionChange(_parent, ssid);
+            }
             BEGIN_INTERFACE_MAP(Notification)
                 INTERFACE_ENTRY(RPC::IRemoteConnection::INotification)
+                INTERFACE_ENTRY(PluginHost::IShell::ICOMLink::INotification)
+                INTERFACE_ENTRY(Exchange::IWifiControl::INotification)
             END_INTERFACE_MAP
         private:
-            OutOfProcessPreconditions& _parent;
+            OutOfProcessConfigPreconditions& _parent;
         };
     public:
         // IPlugin Methods
@@ -80,11 +94,12 @@ namespace Plugin {
         void Deinitialize(PluginHost::IShell* service) override;
         string Information() const override;
         void Deactivated(RPC::IRemoteConnection* connection);
+        void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId);
 
-        BEGIN_INTERFACE_MAP(OutOfProcessPreconditions)
+        BEGIN_INTERFACE_MAP(OutOfProcessConfigPreconditions)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
-            INTERFACE_AGGREGATE(Exchange::IMessagingControl, _implMessagingControl)
+            INTERFACE_AGGREGATE(Exchange::IWifiControl, _implWifiControl)
         END_INTERFACE_MAP
 
     private:
@@ -93,7 +108,7 @@ namespace Plugin {
 
         PluginHost::IShell* _service;
         uint32_t _connectionId;
-        Exchange::IMessagingControl* _implMessagingControl;
+        Exchange::IWifiControl* _implWifiControl;
         Core::SinkType<Notification> _notification;
     };
 } // Plugin

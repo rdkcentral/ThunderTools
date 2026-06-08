@@ -11,6 +11,6 @@
     "version": "1.0"
   },
   "interface": {
-    "$cppref": "{cppinterfacedir}/IMessageControl.h"
+    "$cppref": "{cppinterfacedir}/IMessagingControl.h"
   }
 }

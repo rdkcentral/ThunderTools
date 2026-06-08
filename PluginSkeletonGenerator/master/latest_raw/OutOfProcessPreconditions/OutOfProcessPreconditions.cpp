@@ -18,7 +18,7 @@
 */
 
 #include "OutOfProcessPreconditions.h"
-#include <interfaces/json/JMessageControl.h>
+#include <interfaces/json/JMessagingControl.h>
 
 namespace Thunder {
 namespace Plugin {
@@ -42,18 +42,18 @@ namespace Plugin {
 
         ASSERT(_service == nullptr);
         ASSERT(service != nullptr);
-        ASSERT(_implMessageControl == nullptr);
+        ASSERT(_implMessagingControl == nullptr);
         ASSERT(_connectionId == 0);
 
         _service = service;
         _service->AddRef();
         _service->Register(&_notification);
 
-        _implMessageControl = service->Root<Exchange::IMessageControl>(_connectionId, timeout, _T("OutOfProcessPreconditionsImplementation"));
-        if (_implMessageControl == nullptr) {
-            message = _T("Couldn't create instance of _implMessageControl");
+        _implMessagingControl = service->Root<Exchange::IMessagingControl>(_connectionId, timeout, _T("OutOfProcessPreconditionsImplementation"));
+        if (_implMessagingControl == nullptr) {
+            message = _T("Couldn't create instance of _implMessagingControl");
         } else {
-            Exchange::JMessageControl::Register(*this, _implMessageControl);
+            Exchange::JMessagingControl::Register(*this, _implMessagingControl);
         }
 
         return (message);
@@ -65,12 +65,12 @@ namespace Plugin {
 
         _service->Unregister(&_notification);
 
-        if (_implMessageControl != nullptr) {
-            Exchange::JMessageControl::Unregister(*this);
+        if (_implMessagingControl != nullptr) {
+            Exchange::JMessagingControl::Unregister(*this);
 
             RPC::IRemoteConnection* connection(service->RemoteConnection(_connectionId));
-            VARIABLE_IS_NOT_USED uint32_t result = _implMessageControl->Release();
-            _implMessageControl = nullptr;
+            VARIABLE_IS_NOT_USED uint32_t result = _implMessagingControl->Release();
+            _implMessagingControl = nullptr;
 
             ASSERT((result == Core::ERROR_DESTRUCTION_SUCCEEDED) || (result == Core::ERROR_CONNECTION_CLOSED));
 
