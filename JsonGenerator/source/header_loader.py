@@ -1052,24 +1052,24 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:
                     if mm == prefix + method_name:
-                        log.Warn(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                        log.WarnLine(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                     if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                        log.Warn(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                        log.WarnLine(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                     if methods[mm].get("alt") == method_name:
-                        log.Warn(method, "%s (override clashes with '%s' alternative)" % (clash_msg, methods[mm].get("alt")))
+                        log.WarnLine(method, "%s (override clashes with '%s' alternative)" % (clash_msg, methods[mm].get("alt")))
                     if method.retval.meta.alt and (methods[mm].get("alt") == method.retval.meta.alt):
-                        log.Warn(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
+                        log.WarnLine(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                 for mm in properties:
                     if properties[mm]["@originalname"] != method.name:
                         if mm == prefix + method_name:
-                            log.Warn(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                            log.WarnLine(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                         if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                            log.Warn(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                            log.WarnLine(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                         if properties[mm].get("alt") == method_name:
-                            log.Warn(method, "%s (override clashes with '%s' alternative)" % (clash_msg, properties[mm].get("alt")))
+                            log.WarnLine(method, "%s (override clashes with '%s' alternative)" % (clash_msg, properties[mm].get("alt")))
                         if method.retval.meta.alt and (properties[mm].get("alt") == method.retval.meta.alt):
-                            log.Warn(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
+                            log.WarnLine(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
             for e in event_params:
                 exists = any(x.obj.type == e.type.type.type for x in event_interfaces)
@@ -1440,13 +1440,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
                             if mm == prefix + method_name:
-                                log.Warn(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                                log.WarnLine(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                             if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                                log.Warn(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                                log.WarnLine(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                             if events[mm].get("alt") == method_name:
-                                log.Warn(method, "%s (override clashes with '%s' alternative)" % (clash_msg, events[mm].get("alt")))
+                                log.WarnLine(method, "%s (override clashes with '%s' alternative)" % (clash_msg, events[mm].get("alt")))
                             if method.retval.meta.alt and (events[mm].get("alt") == method.retval.meta.alt):
-                                log.Warn(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
+                                log.WarnLine(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                     if method.retval.meta.alt:
                         obj["alt"] = method.retval.meta.alt
