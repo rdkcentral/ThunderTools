@@ -227,6 +227,8 @@ def ProcessEnums(log, action=None):
     return count
 
 def EmitEnumRegs(log, root, emit, header_file, if_file):
+    log.Info("Emitting enum conversion tables... ")
+
     def _EmitEnumRegistration(log, enum):
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
 
@@ -274,6 +276,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emittedItems = 0
 
     def _EmitEnumConversionHandler(root, enum):
+        log.Info("Emitting enum conversion handler for '{}'".format(enum.cpp_class))
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
         emit.Line("ENUM_CONVERSION_HANDLER(%s)" % name)
 
@@ -705,11 +708,12 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Indent()
         emit.Line()
 
-        if emitCommon and trackers.enum_tracker.CommonObjects():
+        if emitCommon and trackers.enum_tracker.common_objects:
             log.Info("Emitting common enums...")
             emittedPrologue = False
-            for obj in trackers.enum_tracker.CommonObjects():
-                if obj.do_create and not obj.is_duplicate and not obj.included_from:
+            for obj in trackers.enum_tracker.common_objects:
+                if obj.do_create and not obj.included_from:
+                    assert not obj.is_duplicate
                     if not emittedPrologue:
                         emit.Line("// Common enums")
                         emit.Line("//")
@@ -717,11 +721,12 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                         emittedPrologue = True
                     _EmitEnum(obj)
 
-        if emitCommon and trackers.object_tracker.CommonObjects():
+        if emitCommon and trackers.object_tracker.common_objects:
             log.Info("Emitting common classes...")
             emittedPrologue = False
-            for obj in trackers.object_tracker.CommonObjects():
+            for obj in trackers.object_tracker.common_objects:
                 if not obj.included_from:
+                    assert not obj.is_duplicate
                     if not emittedPrologue:
                         emit.Line("// Common classes")
                         emit.Line("//")
@@ -751,16 +756,19 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
         emit.Line()
 
-    emittedPrologue = False
 
-    for obj in trackers.enum_tracker.objects:
-        if not obj.is_duplicate and not obj.included_from:
-            if not emittedPrologue:
-                emit.Line("// Enum conversion handlers")
-                emittedPrologue = True
+    log.Info("Emitting enum conversion handlers...")
+    if trackers.enum_tracker.objects:
+        emittedPrologue = False
+        for obj in trackers.enum_tracker.objects:
+            if not obj.is_duplicate and not obj.included_from:
+                assert not obj.is_duplicate
+                if not emittedPrologue:
+                    emit.Line("// Enum conversion handlers")
+                    emittedPrologue = True
 
-            _EmitEnumConversionHandler(root, obj)
-            emittedItems += 1
+                _EmitEnumConversionHandler(root, obj)
+                emittedItems += 1
 
     emit.Line()
     emit.Line("}")

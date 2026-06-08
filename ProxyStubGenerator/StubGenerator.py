@@ -126,7 +126,7 @@ class Interface():
         self.file = file
 
 
-# Looks for interface classes (ie. classes inheriting from Core::Unknown and specifying ID enum).
+# Looks for interface classes (ie. classes inheriting from Core::IUnknown and specifying ID enum).
 def FindInterfaceClasses(tree, namespace):
     interfaces = []
     omit_interface_used = False
@@ -140,7 +140,7 @@ def FindInterfaceClasses(tree, namespace):
                 if c.omit:
                     omit_interface_used = True
 
-                if not isinstance(c, CppParser.TemplateClass):
+                if not isinstance(c, CppParser.TemplateClass) and (not isinstance(c, CppParser.InstantiatedTemplateClass) or c.refs > 0):
                     if (c.full_name.startswith(interface_namespace + "::")):
                         if (c.is_iterator and ENABLE_ITERATOR_OPTIMIZATION) and not c.is_force_interface:
                             log.Info("Skipping iterator %s" % c.name, source_file)
@@ -1047,8 +1047,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif self.identifier_type.IsPointerToConst() and self.is_output:
                         raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
 
-                if (not self.is_buffer and not self.is_array) and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
-                    if not self.kind.fixed and not self.kind.char:
+                if (not self.is_buffer and not self.is_array) and isinstance(self.kind, CppParser.Integer):
+                    if not self.kind.fixed and self.kind.size != "char":
                         log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
 
                 if isinstance(self.kind, CppParser.Enum):
@@ -2673,9 +2673,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line("//")
         emit.Line("// implements COM-RPC proxy stubs for:")
 
+        emitted_interfaces = []
         for face in interfaces:
             if not face.obj.omit:
                 emit.Line("//   - %s" % Flatten(str(face.obj), ns))
+                emitted_interfaces.append(face)
 
         emit.Line("//")
 
@@ -2737,6 +2739,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line("// -----------------------------------------------------------------")
         emit.Line("// REGISTRATION")
         emit.Line("// -----------------------------------------------------------------")
+        emit.Line()
         EmitRegistration(announce_list)
 
         emit.IndentDec()
@@ -2744,7 +2747,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line()
         emit.Line("}")
 
-    return interfaces, omit_interface_used
+    return emitted_interfaces, omit_interface_used
 
 
 # -------------------------------------------------------------------------
@@ -2911,6 +2914,7 @@ if __name__ == "__main__":
         print("   @statuslistener        - emits registration/unregistration status listeners for an event")
         print("   @bitmask               - indicates that enumerator lists should be packed into into a bit mask")
         print("   @index                 - indicates that a parameter in a JSON-RPC property or notification is an index")
+        print("   @index:deprecated      - indicates that a parameter to a notification is legacy index")
         print("   @opaque                - indicates that a string parameter is an opaque JSON object")
         print("   @extract               - indicates that that if only one element is present in the array it shall be taken out of it")
         print("                            or, if the parameter is a struct, the object should be collapsed and its members spilled to method parameters")
@@ -2982,6 +2986,8 @@ if __name__ == "__main__":
             for source_file in interface_files:
                 try:
                     _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), MODULE_FILE) ]
+                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), "Ids.h") ]
+
                     _extra_includes.extend(args.extra_includes)
 
                     tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths,
@@ -3007,6 +3013,9 @@ if __name__ == "__main__":
                             new_faces += output
 
                         if not new_faces:
+                            if os.path.isfile(output_file):
+                                os.remove(output_file)
+
                             if not some_omitted:
                                 raise NoInterfaceError
                             else:

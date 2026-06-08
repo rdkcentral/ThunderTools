@@ -78,6 +78,7 @@ namespace __FRAMEWORK_NAMESPACE__ {
     }
   }
 
+  // for legacy compatibiltity only
   namespace PluginHost {
     class IShell;
     class ISubSystem;
@@ -87,3 +88,5 @@ namespace __FRAMEWORK_NAMESPACE__ {
     };
   }
 }
+
+// @insert:weak <com/ICOM.h>

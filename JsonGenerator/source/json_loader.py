@@ -255,6 +255,8 @@ class JsonType():
     def cpp_native_type_cv(self):
         if self.schema.get("@cv"):
             return self.schema.get("@cv") + " " + self.cpp_native_type
+        else:
+            return self.cpp_native_type
 
     @property
     def cpp_native_type_opt(self):
@@ -293,8 +295,10 @@ class JsonType():
 
     @property
     def local_proto(self):
-        assert self.schema.get("@proto")
-        return self.cpp_native_type_proto.replace('@', self.local_name)
+        if "@proto" in self.schema:
+            return self.cpp_native_type_proto.replace('@', self.local_name)
+        else:
+            return "%s %s" % (self.cpp_native_type_opt_cv, self.local_name)
 
     @property
     def cpp_concrete_type(self):
@@ -442,7 +446,6 @@ class JsonRefCounted():
 
     def RefCount(self):
         return len(self.refs)
-
 
 class JsonTime(JsonNative, JsonType):
     def __init__(self, name, parent, schema, time_type):
@@ -1071,7 +1074,7 @@ class JsonRpcSchema(JsonType):
         _AddMethods("events", schema, lambda name, obj, method: JsonNotification(name, obj, method))
 
         if not self.methods:
-            raise JsonParseError("no methods, properties or events defined in %s" % self.schema["@fullname"] if "@fullname" in self.schema else self.name)
+            raise JsonParseError("no methods, properties or events defined in %s" % (self.schema["@fullname"] if "@fullname" in self.schema else self.name))
 
     @property
     def root(self):

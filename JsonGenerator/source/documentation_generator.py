@@ -102,9 +102,9 @@ def Create(log, args, schema, path, indent_size = 4):
 
             def _TableObj(name, obj, parentName="", parent=None, prefix="", parentOptional=False):
                 # determine if the attribute is optional
-                optional = parentOptional or (obj["optional"] if "optional" in obj else False)
-                deprecated = obj["deprecated"] if "deprecated" in obj else False
-                obsolete = obj["obsolete"] if "obsolete" in obj else False
+                optional = parentOptional or obj.get("optional") or obj.get("@optionaltype")
+                deprecated = obj.get("deprecated")
+                obsolete = obj.get("obsolete")
                 restricted = obj.get("range")
 
                 name = name.replace(' ','-')
@@ -123,7 +123,7 @@ def Create(log, args, schema, path, indent_size = 4):
                     endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
-                            break;
+                            break
                         enums.append(str(obj["enum"][i]))
                         if "default" in obj and e == obj["default"]:
                             default_enum = enums[-1]
@@ -237,10 +237,15 @@ def Create(log, args, schema, path, indent_size = 4):
                     if obj.get("@async"):
                         if row:
                             row += "<br>"
-
                         obj_type = "string (async ID)"
+                    elif obj.get("opaque"):
+                        obj_type = "opaque object"
+                    elif obj.get("encode"):
+                        obj_type = "string (%s)" % obj.get("encode")
+                    elif obj.get("time"):
+                        obj_type = "string (%s time)" % obj.get("time").upper()
                     else:
-                        obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
+                        obj_type = obj["type"]
 
                     if obj.get("@lookup"):
                         if row == "...":
@@ -260,7 +265,7 @@ def Create(log, args, schema, path, indent_size = 4):
                         _TableObj(pname, props, parentName + "/" + name, obj, prefix, False)
 
                 elif obj["type"] == "array":
-                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", False)
+                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", optional)
 
             _TableObj(name, object, "")
             MdBr()
