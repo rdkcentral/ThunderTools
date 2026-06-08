@@ -2515,7 +2515,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line()
 
         emit.Line("// -----------------------------------------------------------------")
-        emit.Line("// STUBS")
+        emit.Line("// STUBS TEST")
         emit.Line("// -----------------------------------------------------------------\n")
 
         for name, element in announce_list.items():
