@@ -30,9 +30,6 @@ namespace Exchange {
 
             _module__.PluginHost::JSONRPC::RegisterVersion(_T("JContentProtection"), Version::Major, Version::Minor, Version::Patch);
 
-            // Register alternative notification names...
-            _module__.PluginHost::JSONRPC::RegisterEventAlias(_T("onWatermarkStatusChanged"), _T("watermarkStatusChanged"));
-
             // Register methods and properties...
 
             // Method: 'openDrmSession'
@@ -49,7 +46,7 @@ namespace Exchange {
                         const Exchange::IContentProtection::KeySystem _keySystem_{params.KeySystem};
                         const string _licenseRequest_{params.LicenseRequest};
                         const string _initData_{params.InitData};
-                        uint32_t _sessionId_{};
+                        string _sessionId_{};
                         string _response_{};
 
                         _errorCode__ = _implementation__->OpenDrmSession(_clientId_, _appId_, _keySystem_, _licenseRequest_, _initData_, _sessionId_, _response_);
@@ -63,8 +60,6 @@ namespace Exchange {
                     return (_errorCode__);
                 });
 
-            _module__.PluginHost::JSONRPC::Register(_T("openDrmSession"), _T("openDrmSession"));
-
             // Method: 'setDrmSessionState'
             _module__.PluginHost::JSONRPC::template Register<JsonData::ContentProtection::SetDrmSessionStateParamsData, void>(_T("setDrmSessionState"),
                 [_implementation__](const JsonData::ContentProtection::SetDrmSessionStateParamsData& params) -> uint32_t {
@@ -74,7 +69,7 @@ namespace Exchange {
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
-                        const uint32_t _sessionId_{params.SessionId};
+                        const string _sessionId_{params.SessionId};
                         const Exchange::IContentProtection::State _sessionState_{params.SessionState};
 
                         _errorCode__ = _implementation__->SetDrmSessionState(_sessionId_, _sessionState_);
@@ -83,8 +78,6 @@ namespace Exchange {
 
                     return (_errorCode__);
                 });
-
-            _module__.PluginHost::JSONRPC::Register(_T("setDrmSessionState"), _T("setDrmSessionState"));
 
             // Method: 'updateDrmSession'
             _module__.PluginHost::JSONRPC::template Register<JsonData::ContentProtection::UpdateDrmSessionParamsData, Core::JSON::String>(_T("updateDrmSession"),
@@ -95,7 +88,7 @@ namespace Exchange {
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
-                        const uint32_t _sessionId_{params.SessionId};
+                        const string _sessionId_{params.SessionId};
                         const string _licenseRequest_{params.LicenseRequest};
                         const string _initData_{params.InitData};
                         string _response_{};
@@ -110,8 +103,6 @@ namespace Exchange {
                     return (_errorCode__);
                 });
 
-            _module__.PluginHost::JSONRPC::Register(_T("updateDrmSession"), _T("updateDrmSession"));
-
             // Method: 'closeDrmSession'
             _module__.PluginHost::JSONRPC::template Register<JsonData::ContentProtection::CloseDrmSessionParamsData, Core::JSON::String>(_T("closeDrmSession"),
                 [_implementation__](const JsonData::ContentProtection::CloseDrmSessionParamsData& params, Core::JSON::String& response) -> uint32_t {
@@ -121,7 +112,7 @@ namespace Exchange {
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
-                        const uint32_t _sessionId_{params.SessionId};
+                        const string _sessionId_{params.SessionId};
                         string _response_{};
 
                         _errorCode__ = _implementation__->CloseDrmSession(_sessionId_, _response_);
@@ -134,8 +125,6 @@ namespace Exchange {
                     return (_errorCode__);
                 });
 
-            _module__.PluginHost::JSONRPC::Register(_T("closeDrmSession"), _T("closeDrmSession"));
-
             // Method: 'showWatermark'
             _module__.PluginHost::JSONRPC::template Register<JsonData::ContentProtection::ShowWatermarkParamsData, void>(_T("showWatermark"),
                 [_implementation__](const JsonData::ContentProtection::ShowWatermarkParamsData& params) -> uint32_t {
@@ -145,7 +134,7 @@ namespace Exchange {
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
-                        const uint32_t _sessionId_{params.SessionId};
+                        const string _sessionId_{params.SessionId};
                         const bool _show_{params.Show};
                         const uint8_t _opacityLevel_{params.OpacityLevel};
 
@@ -156,8 +145,6 @@ namespace Exchange {
                     return (_errorCode__);
                 });
 
-            _module__.PluginHost::JSONRPC::Register(_T("showWatermark"), _T("showWatermark"));
-
             // Method: 'setPlaybackPosition'
             _module__.PluginHost::JSONRPC::template Register<JsonData::ContentProtection::SetPlaybackPositionParamsData, void>(_T("setPlaybackPosition"),
                 [_implementation__](const JsonData::ContentProtection::SetPlaybackPositionParamsData& params) -> uint32_t {
@@ -167,7 +154,7 @@ namespace Exchange {
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
-                        const uint32_t _sessionId_{params.SessionId};
+                        const string _sessionId_{params.SessionId};
                         const int32_t _speed_{params.Speed};
                         const int32_t _position_{params.Position};
 
@@ -178,8 +165,6 @@ namespace Exchange {
                     return (_errorCode__);
                 });
 
-            _module__.PluginHost::JSONRPC::Register(_T("setPlaybackPosition"), _T("setPlaybackPosition"));
-
         }
 
         template<typename MODULE>
@@ -187,34 +172,25 @@ namespace Exchange {
         {
             // Unregister methods and properties...
             _module__.PluginHost::JSONRPC::Unregister(_T("openDrmSession"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("openDrmSession"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("setDrmSessionState"));
             _module__.PluginHost::JSONRPC::Unregister(_T("setDrmSessionState"));
             _module__.PluginHost::JSONRPC::Unregister(_T("updateDrmSession"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("updateDrmSession"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("closeDrmSession"));
             _module__.PluginHost::JSONRPC::Unregister(_T("closeDrmSession"));
             _module__.PluginHost::JSONRPC::Unregister(_T("showWatermark"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("showWatermark"));
             _module__.PluginHost::JSONRPC::Unregister(_T("setPlaybackPosition"));
-            _module__.PluginHost::JSONRPC::Unregister(_T("setPlaybackPosition"));
-
-            // Unegister alternative notification names...
-            _module__.PluginHost::JSONRPC::UnregisterEventAlias(_T("onWatermarkStatusChanged"), _T("watermarkStatusChanged"));
         }
 
         namespace Event {
 
-            // Event: 'watermarkStatusChanged'
+            // Event: 'onWatermarkStatusChanged'
             template<typename MODULE>
             static void WatermarkStatusChanged(const MODULE& module_, const JsonData::ContentProtection::WatermarkStatusChangedParamsData& params, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
-                module_.Notify(_T("watermarkStatusChanged"), params, sendIfMethod_);
+                module_.Notify(_T("onWatermarkStatusChanged"), params, sendIfMethod_);
             }
 
-            // Event: 'watermarkStatusChanged'
+            // Event: 'onWatermarkStatusChanged'
             template<typename MODULE>
-            static void WatermarkStatusChanged(const MODULE& module_, const Core::JSON::DecUInt32& sessionId, const Core::JSON::String& appId, const JsonData::ContentProtection::WatermarkStatusChangedParamsData::StatusData& status, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void WatermarkStatusChanged(const MODULE& module_, const Core::JSON::String& sessionId, const Core::JSON::String& appId, const JsonData::ContentProtection::WatermarkStatusChangedParamsData::StatusData& status, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
                 JsonData::ContentProtection::WatermarkStatusChangedParamsData params_;
                 params_.SessionId = sessionId;
@@ -224,9 +200,9 @@ namespace Exchange {
                 WatermarkStatusChanged(module_, params_, sendIfMethod_);
             }
 
-            // Event: 'watermarkStatusChanged'
+            // Event: 'onWatermarkStatusChanged'
             template<typename MODULE>
-            static void WatermarkStatusChanged(const MODULE& module_, uint32_t sessionId, const string& appId, const IContentProtection::INotification::Status& status, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
+            static void WatermarkStatusChanged(const MODULE& module_, const string& sessionId, const string& appId, const IContentProtection::INotification::Status& status, typename MODULE::SendIfMethod sendIfMethod_ = nullptr)
             {
                 JsonData::ContentProtection::WatermarkStatusChangedParamsData params_;
                 params_.SessionId = sessionId;

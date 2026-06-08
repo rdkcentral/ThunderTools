@@ -4,4 +4,6 @@
 #pragma once
 
 #include "JsonData_ContentProtection.h"
+#include "JsonData_ErrorToString.h"
 #include "JContentProtection.h"
+#include "JErrorToString.h"
