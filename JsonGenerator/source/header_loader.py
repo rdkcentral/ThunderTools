@@ -353,7 +353,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
                     if not var.meta.output:
-                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Int24, CppParser.Enum)):
+                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum, CppParser.Bool)):
                             if not var.meta.default and not quiet:
                                 log.WarnLine(var, "%s: default value is assumed to be (%s)0 (use @default with @optional)" % (var.name, var.type.TypeName()))
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
@@ -543,7 +543,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     result = ["array", props]
 
                 # C-style buffers converted to JSON array (not char type or fixed array)
-                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Int24, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
+                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
                     if encoding and encoding != "array":
                         raise CppParseError(var, "'%s': @encode only available for char buffers" % var.name)
 
@@ -1052,24 +1052,24 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             if method.parent.is_json: # excludes .json inlcusion of C++ headers
                 for mm in methods:
                     if mm == prefix + method_name:
-                        raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                        log.Warn(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                     if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                        raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                        log.Warn(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                     if methods[mm].get("alt") == method_name:
-                        raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, methods[mm].get("alt")))
+                        log.Warn(method, "%s (override clashes with '%s' alternative)" % (clash_msg, methods[mm].get("alt")))
                     if method.retval.meta.alt and (methods[mm].get("alt") == method.retval.meta.alt):
-                        raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
+                        log.Warn(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                 for mm in properties:
                     if properties[mm]["@originalname"] != method.name:
                         if mm == prefix + method_name:
-                            raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                            log.Warn(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                         if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                            raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                            log.Warn(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                         if properties[mm].get("alt") == method_name:
-                            raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, properties[mm].get("alt")))
+                            log.Warn(method, "%s (override clashes with '%s' alternative)" % (clash_msg, properties[mm].get("alt")))
                         if method.retval.meta.alt and (properties[mm].get("alt") == method.retval.meta.alt):
-                            raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
+                            log.Warn(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
             for e in event_params:
                 exists = any(x.obj.type == e.type.type.type for x in event_interfaces)
@@ -1440,13 +1440,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
                             if mm == prefix + method_name:
-                                raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                                log.Warn(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                             if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
-                                raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
+                                log.Warn(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                             if events[mm].get("alt") == method_name:
-                                raise CppParseError(method, "%s (override clashes with '%s' alternative)" % (clash_msg, events[mm].get("alt")))
+                                log.Warn(method, "%s (override clashes with '%s' alternative)" % (clash_msg, events[mm].get("alt")))
                             if method.retval.meta.alt and (events[mm].get("alt") == method.retval.meta.alt):
-                                raise CppParseError(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
+                                log.Warn(method, "%s ('%s' alternatives clash)" % (clash_msg, method.retval.meta.alt))
 
                     if method.retval.meta.alt:
                         obj["alt"] = method.retval.meta.alt
