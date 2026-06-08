@@ -51,7 +51,7 @@ jobs:
     if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
     with:
-      thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || github.head_ref != '' && github.head_ref || 'R4_4' }}
+      thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || github.ref }}
       thunder_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
 
   ThunderInterfaces:
