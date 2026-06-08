@@ -6,11 +6,13 @@ on:
     branches: [ master ]
     paths:
       - "JsonGenerator/**"
+      - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
   pull_request:
     branches: [ master ]
     paths:
       - "JsonGenerator/**"
+      - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
 
 permissions:
@@ -38,7 +40,7 @@ jobs:
           fi
           relevant=$(gh api \
             "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
-            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
+            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or startswith("ProxyStubGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
           echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
 
   Thunder:
