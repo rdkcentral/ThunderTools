@@ -1018,8 +1018,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif self.identifier_type.IsPointerToConst() and self.is_output:
                         raise TypenameError(identifier, "'%s': output parameter must not be const" % self.trace_proto)
 
-                if (not self.is_buffer and not self.is_array) and isinstance(self.kind, (CppParser.Integer, CppParser.BuiltinInteger)):
-                    if not self.kind.fixed and not self.kind.char:
+                if (not self.is_buffer and not self.is_array) and isinstance(self.kind, CppParser.Integer):
+                    if not self.kind.fixed and self.kind.size != "char":
                         log.WarnLine(self.identifier, "'%s': integer is not fixed-width, use a stdint type" % self.trace_proto)
 
                 if isinstance(self.kind, CppParser.Enum):
