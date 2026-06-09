@@ -992,6 +992,7 @@ class JsonCallback(JsonMethod):
         self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
         self.notification.sendif_deprecated = False
 
+    @property
     def typed_print_name(self):
         return "callback " + super().print_name
 
@@ -1023,6 +1024,7 @@ class JsonProperty(JsonMethod):
         else:
             self.index = None
 
+    @property
     def typed_print_name(self):
         return "property " + super().print_name
 
