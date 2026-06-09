@@ -244,6 +244,10 @@ class JsonType():
         return self.cpp_type.replace("%s::%s::" % (config.DATA_NAMESPACE, self.root.cpp_class), "")
 
     @property
+    def typed_print_name(self):
+        return self.print_name
+
+    @property
     def cpp_class(self): # C++ class type of the object
         raise RuntimeError("Can't instantiate '%s'" % self.print_name)
 
@@ -949,6 +953,10 @@ class JsonMethod(JsonObject):
 
         return (_name[0].upper() + _name[1:])
 
+    @property
+    def typed_print_name(self):
+        return "method " + super().print_name
+
     def Headline(self):
         return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
                            " (DEPRECATED)" if self.deprecated else " (OBSOLETE)" if self.obsolete else "")
@@ -970,6 +978,10 @@ class JsonNotification(JsonMethod):
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
 
+    @property
+    def typed_print_name(self):
+        return "event " + super().print_name
+
     def _Check(self):
         pass
 
@@ -979,6 +991,10 @@ class JsonCallback(JsonMethod):
         self.notification = notification
         self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
         self.notification.sendif_deprecated = False
+
+    def typed_print_name(self):
+        return "callback " + super().print_name
+
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
@@ -1006,6 +1022,9 @@ class JsonProperty(JsonMethod):
                 self.index[1] = self.index[0]
         else:
             self.index = None
+
+    def typed_print_name(self):
+        return "property " + super().print_name
 
 
 class JsonRpcSchema(JsonType):
