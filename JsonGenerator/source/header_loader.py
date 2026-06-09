@@ -1441,6 +1441,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         for mm in events:
                             if mm == prefix + method_name:
                                 log.WarnLine(method, "%s ('%s')" % (clash_msg, prefix + method_name))
+                                method_name += '#' # workaround for multiple events with same name
                             if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
                                 log.WarnLine(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                             if events[mm].get("alt") == method_name:

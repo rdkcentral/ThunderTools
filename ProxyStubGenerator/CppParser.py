@@ -2825,9 +2825,12 @@ def Parse(contents,log = None):
 
 # -------------------------------------------------------------------------
 
-def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=[], quiet=False, omit=False, use_includes=False):
+def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=None, quiet=False, omit=False, use_includes=False):
     contents = ""
     file_path = None
+
+    if inclusions == None:
+        inclusions = []
 
     if source_file[0] == '@':
         quiet = True
@@ -2849,6 +2852,7 @@ def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=[],
                 break
 
     if file_path in inclusions:
+        # already included, so skip
         pass
 
     elif file_path:

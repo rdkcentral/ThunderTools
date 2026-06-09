@@ -102,7 +102,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
                 emit.Line("Core::FromString(%s, %s, %s);" % (param.local_name, converted, converted_length_param))
                 emit.Line("const bool %s = (%s != 0);" % (converted_result, converted_length_param))
             elif encode == "hex":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0));" % (converted_result, param.local_name, converted, length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0);" % (converted_result, param.local_name, converted, length))
             elif encode == "mac":
                 emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.local_name, converted, length))
             else:
