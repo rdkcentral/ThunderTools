@@ -78,7 +78,7 @@ namespace __FRAMEWORK_NAMESPACE__ {
     }
   }
 
-  // for legacy compatibiltity only
+  // for legacy compatibility only
   namespace PluginHost {
     class IShell;
     class ISubSystem;
