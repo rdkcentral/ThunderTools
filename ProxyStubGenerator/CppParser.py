@@ -2829,7 +2829,7 @@ def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=Non
     contents = ""
     file_path = None
 
-    if inclusions == None:
+    if inclusions is None:
         inclusions = []
 
     if source_file[0] == '@':
