@@ -11,11 +11,13 @@ on:
     branches: [ R4_4 ]
     paths:
       - "JsonGenerator/**"
+      - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
   pull_request:
     branches: [ R4_4 ]
     paths:
       - "JsonGenerator/**"
+      - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
 
 permissions:
@@ -43,7 +45,7 @@ jobs:
           fi
           relevant=$(gh api \
             "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
-            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
+            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or startswith("ProxyStubGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
           echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
 
   Thunder:
@@ -51,7 +53,7 @@ jobs:
     if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
     with:
-      thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
+      thundertools_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || (github.event_name == 'pull_request' && github.event.pull_request.head.sha) || github.ref }}
       thunder_ref: ${{ inputs.tag_to_seed != '' && inputs.tag_to_seed || 'R4_4' }}
 
   ThunderInterfaces:
@@ -228,10 +230,13 @@ jobs:
             mkdir -p diffs "site/$RUN_DIR/diff"
 
             if [[ -d "$BASELINE_ROOT" ]]; then
-               git diff --no-index -U5 \
-                  --src-prefix=baseline/ \
-                  --dst-prefix=generated/ \
-                  -- "$BASELINE_ROOT" "generated" \
+               # Copy baseline to a local dir named 'baseline' so diff headers read
+               # 'baseline/...' vs 'generated/...' rather than the full absolute path.
+               # diff -rN: -r recurses into subdirs, -N treats absent files as empty so
+               # new files (only in generated) are shown as full additions in the diff.
+               cp -r "$BASELINE_ROOT" baseline
+               diff -rN -U5 \
+                  baseline "generated" \
                   > "diffs/combined.diff" || true
             else
                if [[ -n "$DIFF_TAG" ]]; then
@@ -243,11 +248,9 @@ jobs:
                  # Skip the rest of the diff section
                else
                  # Default baseline not seeded yet — diff against empty (shows everything as new).
-                 mkdir empty_dir
-                 git diff --no-index -U5 \
-                    --src-prefix=baseline/ \
-                    --dst-prefix=generated/ \
-                    -- "empty_dir" "generated" \
+                 mkdir baseline
+                 diff -rN -U5 \
+                    baseline "generated" \
                     > "diffs/combined.diff" || true
                fi
             fi
