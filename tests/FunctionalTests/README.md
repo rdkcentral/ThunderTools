@@ -158,8 +158,8 @@ The JSON-RPC test binary uses Thunder's `PluginHost::JSONRPC` for direct method 
 │  │ │based registry)  │ │      │   ↓             │  │
 │  │ └─────────────────┘ │      │ JSON-RPC 2.0    │  │
 │  │                     │      │ params/response │  │
-│  │  MockShell          │      │                 │  │
-│  │  (IShell stub)      │      │                 │  │
+│  │  ThunderTestRuntime │      │                 │  │
+│  │  + real IShell      │      │                 │  │
 │  │                     │      │                 │  │
 │  │  Impl (reused)      │      │                 │  │
 │  └─────────────────────┘      └─────────────────┘  │
@@ -168,7 +168,7 @@ The JSON-RPC test binary uses Thunder's `PluginHost::JSONRPC` for direct method 
 └────────────────────────────────────────────────────┘
 ```
 
-**Server side** — `JsonRpcServer` inherits from `PluginHost::JSONRPC` and `PluginHost::IPlugin`. A `MockShell` provides the minimal `IShell` interface needed for initialization. Implementation classes are the same protocol-agnostic implementations used for COM-RPC tests.
+**Server side** — `JsonRpcServer` inherits from `PluginHost::JSONRPC` and `PluginHost::IPlugin`. It initializes `Thunder::TestCore::ThunderTestRuntime` and attaches to a real `IShell` from the embedded Thunder `PluginHost::Server` (Controller callsign). Implementation classes are the same protocol-agnostic implementations used for COM-RPC tests.
 
 **Registration system** (header-only in `JsonRpcServer.h`):
 - `JsonRpcRegistrationProvider`: Singleton collecting registration lambdas
