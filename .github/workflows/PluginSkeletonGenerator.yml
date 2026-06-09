@@ -284,10 +284,13 @@ jobs:
 
             while read -r name; do
               if [[ -d "${BASELINE_ROOT}/${name}" ]]; then
-                git diff --no-index -U5 \
-                  --src-prefix=baseline/ \
-                  --dst-prefix=generated/ \
-                  -- "${BASELINE_ROOT}/${name}" "artifacts/PluginSkeleton-${name}" \
+                # Copy to a local dir named 'baseline' so diff headers read
+                # 'baseline/...' vs 'generated/...' rather than the full absolute path.
+                # diff -rN: -r recurses into subdirs, -N treats absent files as empty so
+                # new files (only in generated) are shown as full additions in the diff.
+                cp -r "${BASELINE_ROOT}/${name}" "baseline_${name}"
+                diff -rN -U5 \
+                  "baseline_${name}" "artifacts/PluginSkeleton-${name}" \
                   > "diffs/${name}.diff" || true
 
                 if [[ -s "diffs/${name}.diff" ]]; then
