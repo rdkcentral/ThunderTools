@@ -4,6 +4,7 @@
 // implements COM-RPC proxy stubs for:
 //   - class Exchange::IContentProtection
 //   - class Exchange::IContentProtection::INotification
+//   - class Exchange::IErrorToString
 //
 // secure code enabled:
 //   - instance verification enabled
@@ -31,18 +32,18 @@ namespace ProxyStubs {
     // Exchange::IContentProtection interface stub definitions
     //
     // Methods:
-    //  (0) virtual uint32_t Register(Exchange::IContentProtection::INotification*) = 0
-    //  (1) virtual uint32_t Unregister(Exchange::IContentProtection::INotification*) = 0
-    //  (2) virtual uint32_t OpenDrmSession(const string&, const string&, Exchange::IContentProtection::KeySystem, const string&, const string&, uint32_t&, string&) = 0
-    //  (3) virtual uint32_t SetDrmSessionState(uint32_t, Exchange::IContentProtection::State) = 0
-    //  (4) virtual uint32_t UpdateDrmSession(uint32_t, const string&, const string&, string&) = 0
-    //  (5) virtual uint32_t CloseDrmSession(uint32_t, string&) = 0
-    //  (6) virtual uint32_t ShowWatermark(uint32_t, bool, const uint8_t) = 0
-    //  (7) virtual uint32_t SetPlaybackPosition(uint32_t, int32_t, signed long) = 0
+    //  (0) virtual Core::hresult Register(Exchange::IContentProtection::INotification*) = 0
+    //  (1) virtual Core::hresult Unregister(Exchange::IContentProtection::INotification*) = 0
+    //  (2) virtual Core::hresult OpenDrmSession(const string&, const string&, Exchange::IContentProtection::KeySystem, const string&, const string&, string&, string&) = 0
+    //  (3) virtual Core::hresult SetDrmSessionState(const string&, Exchange::IContentProtection::State) = 0
+    //  (4) virtual Core::hresult UpdateDrmSession(const string&, const string&, const string&, string&) = 0
+    //  (5) virtual Core::hresult CloseDrmSession(const string&, string&) = 0
+    //  (6) virtual Core::hresult ShowWatermark(const string&, bool, const uint8_t) = 0
+    //  (7) virtual Core::hresult SetPlaybackPosition(const string&, int32_t, signed long) = 0
     //
 
     static ProxyStub::MethodHandler ExchangeContentProtectionStubMethods[] = {
-        // (0) virtual uint32_t Register(Exchange::IContentProtection::INotification*) = 0
+        // (0) virtual Core::hresult Register(Exchange::IContentProtection::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -66,10 +67,10 @@ namespace ProxyStubs {
                     if ((_notification == nullptr) || (_notificationProxy__ == nullptr)) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
                 }
 
-                uint32_t result = implementation->Register(_notification);
+                Core::hresult result = implementation->Register(_notification);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
 
                 if (_notificationProxy__ != nullptr) {
                     RPC::Administrator::Instance().Release(_notificationProxy__, message->Response());
@@ -85,7 +86,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (1) virtual uint32_t Unregister(Exchange::IContentProtection::INotification*) = 0
+        // (1) virtual Core::hresult Unregister(Exchange::IContentProtection::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -109,10 +110,10 @@ namespace ProxyStubs {
                     if ((_notification == nullptr) || (_notificationProxy__ == nullptr)) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
                 }
 
-                uint32_t result = implementation->Unregister(_notification);
+                Core::hresult result = implementation->Unregister(_notification);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
 
                 if (_notificationProxy__ != nullptr) {
                     RPC::Administrator::Instance().Release(_notificationProxy__, message->Response());
@@ -128,7 +129,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (2) virtual uint32_t OpenDrmSession(const string&, const string&, Exchange::IContentProtection::KeySystem, const string&, const string&, uint32_t&, string&) = 0
+        // (2) virtual Core::hresult OpenDrmSession(const string&, const string&, Exchange::IContentProtection::KeySystem, const string&, const string&, string&, string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -160,14 +161,14 @@ namespace ProxyStubs {
                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _initDataPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 const string _initData = reader.Text();
 
-                uint32_t _sessionId{};
+                string _sessionId{};
                 string _response{};
 
-                uint32_t result = implementation->OpenDrmSession(static_cast<const string&>(_clientId), static_cast<const string&>(_appId), _keySystem, static_cast<const string&>(_licenseRequest), static_cast<const string&>(_initData), _sessionId, _response);
+                Core::hresult result = implementation->OpenDrmSession(static_cast<const string&>(_clientId), static_cast<const string&>(_appId), _keySystem, static_cast<const string&>(_licenseRequest), static_cast<const string&>(_initData), _sessionId, _response);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
-                writer.Number<uint32_t>(_sessionId);
+                writer.Number<Core::hresult>(result);
+                writer.Text(_sessionId);
                 writer.Text(_response);
 
                 return (Core::ERROR_NONE);
@@ -180,7 +181,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (3) virtual uint32_t SetDrmSessionState(uint32_t, Exchange::IContentProtection::State) = 0
+        // (3) virtual Core::hresult SetDrmSessionState(const string&, Exchange::IContentProtection::State) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -193,15 +194,17 @@ namespace ProxyStubs {
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IContentProtection::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                uint32_t _sessionId = reader.Number<uint32_t>();
+                if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _sessionId = reader.Text();
                 if (reader.Length() < (Core::RealSize<Exchange::IContentProtection::State>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 Exchange::IContentProtection::State _sessionState = reader.Number<Exchange::IContentProtection::State>();
 
-                uint32_t result = implementation->SetDrmSessionState(_sessionId, _sessionState);
+                Core::hresult result = implementation->SetDrmSessionState(static_cast<const string&>(_sessionId), _sessionState);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
 
                 return (Core::ERROR_NONE);
             } ();
@@ -213,7 +216,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (4) virtual uint32_t UpdateDrmSession(uint32_t, const string&, const string&, string&) = 0
+        // (4) virtual Core::hresult UpdateDrmSession(const string&, const string&, const string&, string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -226,8 +229,10 @@ namespace ProxyStubs {
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IContentProtection::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                uint32_t _sessionId = reader.Number<uint32_t>();
+                if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _sessionId = reader.Text();
                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 const uint16_t _licenseRequestPeekedLen__ = reader.PeekNumber<uint16_t>();
                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _licenseRequestPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -239,10 +244,10 @@ namespace ProxyStubs {
 
                 string _response{};
 
-                uint32_t result = implementation->UpdateDrmSession(_sessionId, static_cast<const string&>(_licenseRequest), static_cast<const string&>(_initData), _response);
+                Core::hresult result = implementation->UpdateDrmSession(static_cast<const string&>(_sessionId), static_cast<const string&>(_licenseRequest), static_cast<const string&>(_initData), _response);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
                 writer.Text(_response);
 
                 return (Core::ERROR_NONE);
@@ -255,7 +260,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (5) virtual uint32_t CloseDrmSession(uint32_t, string&) = 0
+        // (5) virtual Core::hresult CloseDrmSession(const string&, string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -268,15 +273,17 @@ namespace ProxyStubs {
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IContentProtection::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                uint32_t _sessionId = reader.Number<uint32_t>();
+                if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _sessionId = reader.Text();
 
                 string _response{};
 
-                uint32_t result = implementation->CloseDrmSession(_sessionId, _response);
+                Core::hresult result = implementation->CloseDrmSession(static_cast<const string&>(_sessionId), _response);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
                 writer.Text(_response);
 
                 return (Core::ERROR_NONE);
@@ -289,7 +296,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (6) virtual uint32_t ShowWatermark(uint32_t, bool, const uint8_t) = 0
+        // (6) virtual Core::hresult ShowWatermark(const string&, bool, const uint8_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -302,8 +309,10 @@ namespace ProxyStubs {
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IContentProtection::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                uint32_t _sessionId = reader.Number<uint32_t>();
+                if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _sessionId = reader.Text();
                 if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 bool _show = reader.Boolean();
                 if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -311,10 +320,10 @@ namespace ProxyStubs {
                 ASSERT((_opacityLevel >= 0) && (_opacityLevel <= 100));
                 if (!((_opacityLevel >= 0) && (_opacityLevel <= 100))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }
 
-                uint32_t result = implementation->ShowWatermark(_sessionId, _show, _opacityLevel);
+                Core::hresult result = implementation->ShowWatermark(static_cast<const string&>(_sessionId), _show, _opacityLevel);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
 
                 return (Core::ERROR_NONE);
             } ();
@@ -326,7 +335,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (7) virtual uint32_t SetPlaybackPosition(uint32_t, int32_t, signed long) = 0
+        // (7) virtual Core::hresult SetPlaybackPosition(const string&, int32_t, signed long) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -339,17 +348,19 @@ namespace ProxyStubs {
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IContentProtection::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                uint32_t _sessionId = reader.Number<uint32_t>();
+                if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _sessionId = reader.Text();
                 if (reader.Length() < (Core::RealSize<int32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 int32_t _speed = reader.Number<int32_t>();
                 if (reader.Length() < (Core::RealSize<signed long>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 signed long _position = reader.Number<signed long>();
 
-                uint32_t result = implementation->SetPlaybackPosition(_sessionId, _speed, _position);
+                Core::hresult result = implementation->SetPlaybackPosition(static_cast<const string&>(_sessionId), _speed, _position);
 
                 RPC::Data::Frame::Writer writer(message->Response().Writer());
-                writer.Number<uint32_t>(result);
+                writer.Number<Core::hresult>(result);
 
                 return (Core::ERROR_NONE);
             } ();
@@ -367,11 +378,11 @@ namespace ProxyStubs {
     // Exchange::IContentProtection::INotification interface stub definitions
     //
     // Methods:
-    //  (0) virtual void WatermarkStatusChanged(uint32_t, const string&, const Exchange::IContentProtection::INotification::Status&) = 0
+    //  (0) virtual void WatermarkStatusChanged(const string&, const string&, const Exchange::IContentProtection::INotification::Status&) = 0
     //
 
     static ProxyStub::MethodHandler ExchangeContentProtectionNotificationStubMethods[] = {
-        // (0) virtual void WatermarkStatusChanged(uint32_t, const string&, const Exchange::IContentProtection::INotification::Status&) = 0
+        // (0) virtual void WatermarkStatusChanged(const string&, const string&, const Exchange::IContentProtection::INotification::Status&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             Core::hresult hresult = Core::ERROR_NONE;
@@ -384,8 +395,10 @@ namespace ProxyStubs {
                 if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IContentProtection::INotification::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
 
                 RPC::Data::Frame::Reader reader(message->Parameters().Reader());
-                if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                uint32_t _sessionId = reader.Number<uint32_t>();
+                if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const string _sessionId = reader.Text();
                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 const uint16_t _appIdPeekedLen__ = reader.PeekNumber<uint16_t>();
                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _appIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -396,7 +409,7 @@ namespace ProxyStubs {
                 if (reader.Length() < (Core::RealSize<int32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                 _status.failureReason = reader.Number<int32_t>();
 
-                implementation->WatermarkStatusChanged(_sessionId, static_cast<const string&>(_appId), static_cast<const Exchange::IContentProtection::INotification::Status&>(_status));
+                implementation->WatermarkStatusChanged(static_cast<const string&>(_sessionId), static_cast<const string&>(_appId), static_cast<const Exchange::IContentProtection::INotification::Status&>(_status));
 
                 return (Core::ERROR_NONE);
             } ();
@@ -409,6 +422,50 @@ namespace ProxyStubs {
         , nullptr
     }; // ExchangeContentProtectionNotificationStubMethods
 
+    //
+    // Exchange::IErrorToString interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual Core::hresult ErrorToString(const int32_t, string&) const = 0
+    //
+
+    static ProxyStub::MethodHandler ExchangeErrorToStringStubMethods[] = {
+        // (0) virtual Core::hresult ErrorToString(const int32_t, string&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Core::hresult hresult = Core::ERROR_NONE;
+
+            hresult = [&]() -> Core::hresult {
+                if (message->Parameters().IsValid() == false) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+
+                const Exchange::IErrorToString* implementation = reinterpret_cast<const Exchange::IErrorToString*>(message->Parameters().Implementation());
+                ASSERT(implementation != nullptr);
+                if (RPC::Administrator::Instance().IsValid(channel, RPC::instance_cast(implementation), Exchange::IErrorToString::ID) == false) { return (COM_ERROR | Core::ERROR_NOT_EXIST); }
+
+                RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+                if (reader.Length() < (Core::RealSize<int32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                const int32_t _code = reader.Number<int32_t>();
+
+                string _result{};
+
+                Core::hresult result = implementation->ErrorToString(_code, _result);
+
+                RPC::Data::Frame::Writer writer(message->Response().Writer());
+                writer.Number<Core::hresult>(result);
+                writer.Text(_result);
+
+                return (Core::ERROR_NONE);
+            } ();
+
+            if (hresult != Core::ERROR_NONE) {
+                RPC::Data::Frame::Writer writer(message->Response().Writer());
+                writer.Number<uint32_t>(hresult);
+                fprintf(stderr, "COM-RPC stub 0x%08x(%u) failed: 0x%08x\n", Exchange::IErrorToString::ID, 0, hresult);
+            }
+        }
+        , nullptr
+    }; // ExchangeErrorToStringStubMethods
+
     // -----------------------------------------------------------------
     // PROXIES
     // -----------------------------------------------------------------
@@ -417,14 +474,14 @@ namespace ProxyStubs {
     // Exchange::IContentProtection interface proxy definitions
     //
     // Methods:
-    //  (0) virtual uint32_t Register(Exchange::IContentProtection::INotification*) = 0
-    //  (1) virtual uint32_t Unregister(Exchange::IContentProtection::INotification*) = 0
-    //  (2) virtual uint32_t OpenDrmSession(const string&, const string&, Exchange::IContentProtection::KeySystem, const string&, const string&, uint32_t&, string&) = 0
-    //  (3) virtual uint32_t SetDrmSessionState(uint32_t, Exchange::IContentProtection::State) = 0
-    //  (4) virtual uint32_t UpdateDrmSession(uint32_t, const string&, const string&, string&) = 0
-    //  (5) virtual uint32_t CloseDrmSession(uint32_t, string&) = 0
-    //  (6) virtual uint32_t ShowWatermark(uint32_t, bool, const uint8_t) = 0
-    //  (7) virtual uint32_t SetPlaybackPosition(uint32_t, int32_t, signed long) = 0
+    //  (0) virtual Core::hresult Register(Exchange::IContentProtection::INotification*) = 0
+    //  (1) virtual Core::hresult Unregister(Exchange::IContentProtection::INotification*) = 0
+    //  (2) virtual Core::hresult OpenDrmSession(const string&, const string&, Exchange::IContentProtection::KeySystem, const string&, const string&, string&, string&) = 0
+    //  (3) virtual Core::hresult SetDrmSessionState(const string&, Exchange::IContentProtection::State) = 0
+    //  (4) virtual Core::hresult UpdateDrmSession(const string&, const string&, const string&, string&) = 0
+    //  (5) virtual Core::hresult CloseDrmSession(const string&, string&) = 0
+    //  (6) virtual Core::hresult ShowWatermark(const string&, bool, const uint8_t) = 0
+    //  (7) virtual Core::hresult SetPlaybackPosition(const string&, int32_t, signed long) = 0
     //
 
     class ExchangeContentProtectionProxy final : public ProxyStub::UnknownProxyType<Exchange::IContentProtection> {
@@ -434,7 +491,7 @@ namespace ProxyStubs {
         {
         }
 
-        uint32_t Register(Exchange::IContentProtection::INotification* _notification) override
+        Core::hresult Register(Exchange::IContentProtection::INotification* _notification) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
 
@@ -448,8 +505,8 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
 
                     const uint32_t completeResult__ = _Complete(reader);
                     if (completeResult__ != Core::ERROR_NONE) { return (completeResult__); }
@@ -469,7 +526,7 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t Unregister(Exchange::IContentProtection::INotification* _notification) override
+        Core::hresult Unregister(Exchange::IContentProtection::INotification* _notification) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(1));
 
@@ -483,8 +540,8 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
 
                     const uint32_t completeResult__ = _Complete(reader);
                     if (completeResult__ != Core::ERROR_NONE) { return (completeResult__); }
@@ -504,7 +561,7 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t OpenDrmSession(const string& _clientId, const string& _appId, Exchange::IContentProtection::KeySystem _keySystem, const string& _licenseRequest, const string& _initData, uint32_t& _sessionId, string& _response) override
+        Core::hresult OpenDrmSession(const string& _clientId, const string& _appId, Exchange::IContentProtection::KeySystem _keySystem, const string& _licenseRequest, const string& _initData, string& _sessionId, string& _response) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(2));
 
@@ -519,11 +576,13 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
                     if ((hresult & COM_ERROR) == 0) {
-                        if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                        _sessionId = reader.Number<uint32_t>();
+                        if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                        const uint16_t _sessionIdPeekedLen__ = reader.PeekNumber<uint16_t>();
+                        if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _sessionIdPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                        _sessionId = reader.Text();
                         if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         const uint16_t _responsePeekedLen__ = reader.PeekNumber<uint16_t>();
                         if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _responsePeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -543,20 +602,20 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t SetDrmSessionState(uint32_t _sessionId, Exchange::IContentProtection::State _sessionState) override
+        Core::hresult SetDrmSessionState(const string& _sessionId, Exchange::IContentProtection::State _sessionState) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(3));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_sessionId);
+            writer.Text(_sessionId);
             writer.Number<Exchange::IContentProtection::State>(_sessionState);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
 
                     return (hresult);
                 } ();
@@ -571,12 +630,12 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t UpdateDrmSession(uint32_t _sessionId, const string& _licenseRequest, const string& _initData, string& _response) override
+        Core::hresult UpdateDrmSession(const string& _sessionId, const string& _licenseRequest, const string& _initData, string& _response) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(4));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_sessionId);
+            writer.Text(_sessionId);
             writer.Text(_licenseRequest);
             writer.Text(_initData);
 
@@ -584,8 +643,8 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
                     if ((hresult & COM_ERROR) == 0) {
                         if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         const uint16_t _responsePeekedLen__ = reader.PeekNumber<uint16_t>();
@@ -606,19 +665,19 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t CloseDrmSession(uint32_t _sessionId, string& _response) override
+        Core::hresult CloseDrmSession(const string& _sessionId, string& _response) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(5));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_sessionId);
+            writer.Text(_sessionId);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
                     if ((hresult & COM_ERROR) == 0) {
                         if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         const uint16_t _responsePeekedLen__ = reader.PeekNumber<uint16_t>();
@@ -639,12 +698,12 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t ShowWatermark(uint32_t _sessionId, bool _show, const uint8_t _opacityLevel) override
+        Core::hresult ShowWatermark(const string& _sessionId, bool _show, const uint8_t _opacityLevel) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(6));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_sessionId);
+            writer.Text(_sessionId);
             writer.Boolean(_show);
             writer.Number<uint8_t>(_opacityLevel);
 
@@ -652,8 +711,8 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
 
                     return (hresult);
                 } ();
@@ -668,12 +727,12 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        uint32_t SetPlaybackPosition(uint32_t _sessionId, int32_t _speed, signed long _position) override
+        Core::hresult SetPlaybackPosition(const string& _sessionId, int32_t _speed, signed long _position) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(7));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_sessionId);
+            writer.Text(_sessionId);
             writer.Number<int32_t>(_speed);
             writer.Number<signed long>(_position);
 
@@ -681,8 +740,8 @@ namespace ProxyStubs {
             if (hresult == Core::ERROR_NONE) {
                 hresult = [&]() -> Core::hresult {
                     RPC::Data::Frame::Reader reader(message->Response().Reader());
-                    if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
-                    hresult = reader.Number<uint32_t>();
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
 
                     return (hresult);
                 } ();
@@ -727,7 +786,7 @@ namespace ProxyStubs {
     // Exchange::IContentProtection::INotification interface proxy definitions
     //
     // Methods:
-    //  (0) virtual void WatermarkStatusChanged(uint32_t, const string&, const Exchange::IContentProtection::INotification::Status&) = 0
+    //  (0) virtual void WatermarkStatusChanged(const string&, const string&, const Exchange::IContentProtection::INotification::Status&) = 0
     //
 
     class ExchangeContentProtectionNotificationProxy final : public ProxyStub::UnknownProxyType<Exchange::IContentProtection::INotification> {
@@ -737,12 +796,12 @@ namespace ProxyStubs {
         {
         }
 
-        void WatermarkStatusChanged(uint32_t _sessionId, const string& _appId, const Exchange::IContentProtection::INotification::Status& _status) override
+        void WatermarkStatusChanged(const string& _sessionId, const string& _appId, const Exchange::IContentProtection::INotification::Status& _status) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
-            writer.Number<uint32_t>(_sessionId);
+            writer.Text(_sessionId);
             writer.Text(_appId);
             writer.Number<Exchange::IContentProtection::INotification::Status::State>(_status.state);
             writer.Number<int32_t>(_status.failureReason);
@@ -765,6 +824,55 @@ namespace ProxyStubs {
 
     }; // class ExchangeContentProtectionNotificationProxy
 
+    //
+    // Exchange::IErrorToString interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual Core::hresult ErrorToString(const int32_t, string&) const = 0
+    //
+
+    class ExchangeErrorToStringProxy final : public ProxyStub::UnknownProxyType<Exchange::IErrorToString> {
+    public:
+        ExchangeErrorToStringProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        Core::hresult ErrorToString(const int32_t _code, string& _result) const override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<int32_t>(_code);
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                hresult = [&]() -> Core::hresult {
+                    RPC::Data::Frame::Reader reader(message->Response().Reader());
+                    if (reader.Length() < (Core::RealSize<Core::hresult>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                    hresult = reader.Number<Core::hresult>();
+                    if ((hresult & COM_ERROR) == 0) {
+                        if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                        const uint16_t _resultPeekedLen__ = reader.PeekNumber<uint16_t>();
+                        if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _resultPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
+                        _result = reader.Text();
+                    }
+
+                    return (hresult);
+                } ();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            if ((hresult & COM_ERROR) != 0) {
+                fprintf(stderr, "COM-RPC call 0x%08x(%u) failed: 0x%08x\n", Exchange::IErrorToString::ID, 0, hresult);
+            }
+
+            return (hresult);
+        }
+
+    }; // class ExchangeErrorToStringProxy
+
     POP_WARNING()
     POP_WARNING()
 
@@ -775,6 +883,7 @@ namespace ProxyStubs {
 
         typedef ProxyStub::UnknownStubType<Exchange::IContentProtection, ExchangeContentProtectionStubMethods> ExchangeContentProtectionStub;
         typedef ProxyStub::UnknownStubType<Exchange::IContentProtection::INotification, ExchangeContentProtectionNotificationStubMethods> ExchangeContentProtectionNotificationStub;
+        typedef ProxyStub::UnknownStubType<Exchange::IErrorToString, ExchangeErrorToStringStubMethods> ExchangeErrorToStringStub;
 
         static class Instantiation {
         public:
@@ -784,11 +893,13 @@ namespace ProxyStubs {
 
                 RPC::Administrator::Instance().Announce<Exchange::IContentProtection, ExchangeContentProtectionProxy, ExchangeContentProtectionStub>(security);
                 RPC::Administrator::Instance().Announce<Exchange::IContentProtection::INotification, ExchangeContentProtectionNotificationProxy, ExchangeContentProtectionNotificationStub>(security);
+                RPC::Administrator::Instance().Announce<Exchange::IErrorToString, ExchangeErrorToStringProxy, ExchangeErrorToStringStub>(security);
             }
             ~Instantiation()
             {
                 RPC::Administrator::Instance().Recall<Exchange::IContentProtection>();
                 RPC::Administrator::Instance().Recall<Exchange::IContentProtection::INotification>();
+                RPC::Administrator::Instance().Recall<Exchange::IErrorToString>();
             }
         } ProxyStubRegistration;
 
