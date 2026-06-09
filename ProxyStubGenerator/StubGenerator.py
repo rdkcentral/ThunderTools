@@ -2985,8 +2985,8 @@ if __name__ == "__main__":
 
             for source_file in interface_files:
                 try:
-                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), MODULE_FILE) ]
-                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), "Ids.h") ]
+                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), MODULE_FILE),
+                                        os.path.join("@" + os.path.dirname(source_file), "Ids.h") ]
 
                     _extra_includes.extend(args.extra_includes)
 
