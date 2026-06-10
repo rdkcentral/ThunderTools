@@ -158,26 +158,15 @@ jobs:
         set "devEnv=%VS_PATH:.exe=.com%"
         cd ThunderOnWindows
         
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%bridge%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%commander%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%deviceInfo%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%DHCPServer%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%DIALServer%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%dictionary%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%JSONRPCClient%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%JSONRPCPlugin%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%locationSync%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%messenger%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%monitor%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%networkControl%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%openCDMi%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%outOfProcessPlugin%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%remoteControl%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%securityAgent%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%subsystemController%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%svalbard%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%timeSync%" && ^
-        "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%webServer%"
+        for %%P in (
+          "%bridge%" "%commander%" "%deviceInfo%" "%DHCPServer%" "%DIALServer%"
+          "%dictionary%" "%JSONRPCClient%" "%JSONRPCPlugin%" "%locationSync%" "%messenger%"
+          "%monitor%" "%networkControl%" "%openCDMi%" "%outOfProcessPlugin%" "%remoteControl%"
+          "%securityAgent%" "%subsystemController%" "%svalbard%" "%timeSync%" "%webServer%"
+        ) do (
+          "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project %%P
+          if errorlevel 1 exit /b 1
+        )
 
 # ----- Upload artifacts -----
     - name: Tar files
