@@ -2739,7 +2739,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line("// -----------------------------------------------------------------")
         emit.Line("// REGISTRATION")
         emit.Line("// -----------------------------------------------------------------")
-        emit.Line()
         EmitRegistration(announce_list)
 
         emit.IndentDec()
