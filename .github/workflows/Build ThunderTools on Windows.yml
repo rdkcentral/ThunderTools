@@ -152,9 +152,11 @@ jobs:
     - name: Build ThunderTools
       shell: cmd
       run: |
-        for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.CoreEditor -property productPath`) do set "devEnv=%%i"
+        for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.CoreEditor -property productPath`) do set "VS_PATH=%%i"
+        if not defined VS_PATH (echo ERROR: Visual Studio not found && exit /b 1)
+        
+        set "devEnv=%VS_PATH:.exe=.com%"
         cd ThunderOnWindows
-        if not defined devEnv (echo ERROR: Visual Studio not found && exit /b 1)
         
         "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%bridge%" && ^
         "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%commander%" && ^
