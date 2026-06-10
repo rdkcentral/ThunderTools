@@ -2251,7 +2251,6 @@ def Parse(contents,log = None):
             current_line = int(token[6:].split()[0])
         elif isinstance(token, str) and token.startswith("@FILE:"):
             current_file = token[6:]
-            line_numbers.append(current_line)
             files.append(current_file)
         else:
             tokens.append(token)
@@ -2909,17 +2908,17 @@ def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=Non
                 match = re.search(r'@(?:insert|stubgen:include)\s*"([^"]+)"', line)
                 if match:
                     included_file = os.path.join(os.path.dirname(os.path.realpath(file_path)), match.group(1))
-                    included_content = ReadFile(included_file, include_paths, file_path, i+1, inclusions, quiet=False, omit=True, use_includes=False)
+                    included_content = ReadFile(included_file, include_paths, file_path, (i + 2), inclusions, quiet=False, omit=True, use_includes=False)
                     file_content[i] = included_content
                 else:
                     match = re.search(r'@(?:insert|stubgen:include)\s*<([^>]+)>', line)
                     if match:
-                        included_content = ReadFile(match.group(1), include_paths, file_path, i+1, inclusions, quiet=False, omit=True, use_includes=True)
+                        included_content = ReadFile(match.group(1), include_paths, file_path, (i + 2), inclusions, quiet=False, omit=True, use_includes=True)
                         file_content[i] = included_content
                     else:
                         match = re.search(r'@insert:weak\s*<([^>]+)>', line)
                         if match:
-                            included_content = ReadFile(match.group(1), include_paths, file_path, i+1, inclusions, quiet=True, omit=True, use_includes=True)
+                            included_content = ReadFile(match.group(1), include_paths, file_path, (i + 2), inclusions, quiet=True, omit=True, use_includes=True)
                             file_content[i] = included_content
 
             contents = "// @_file:%s,1\n" % (file_path)
