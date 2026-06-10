@@ -16,7 +16,6 @@
 # limitations under the License.
 
 import config
-import logger
 from json_loader import *
 
 log = None
@@ -24,7 +23,7 @@ log = None
 def SortByDependency(objects):
     sorted_objects = []
 
-    unique_objects = {it.cpp_class: it for it in filter(lambda o: not o.is_duplicate, objects)}.values()
+    unique_objects = {it.typed_print_name: it for it in filter(lambda o: not o.is_duplicate, objects)}.values()
 
     # This will order objects by their relations
     for obj in sorted(unique_objects, key=lambda x: x.cpp_class, reverse=False):

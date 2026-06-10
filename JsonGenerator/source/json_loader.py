@@ -217,6 +217,10 @@ class JsonType():
             return self.name
 
     @property
+    def typed_print_name(self):
+        return self.print_name
+
+    @property
     def convert_rhs(self):
         return ""
 
@@ -921,6 +925,10 @@ class JsonMethod(JsonObject):
 
         return (_name[0].upper() + _name[1:])
 
+    @property
+    def typed_print_name(self):
+        return "method " + super().print_name
+
     def Headline(self):
         return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
                            " (DEPRECATED)" if self.deprecated else " (OBSOLETE)" if self.obsolete else "")
@@ -948,6 +956,10 @@ class JsonNotification(JsonMethod):
             if not isinstance(param,JsonNative) and param.do_create:
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
+
+    @property
+    def typed_print_name(self):
+        return "event " + super().print_name
 
     def _Check(self):
         pass
@@ -982,6 +994,10 @@ class JsonProperty(JsonMethod):
 
         self.endpoint_set_name = (config.IMPL_ENDPOINT_PREFIX + "set_" + self.json_name)
         self.endpoint_get_name = (config.IMPL_ENDPOINT_PREFIX + "get_" + self.json_name)
+
+    @property
+    def typed_print_name(self):
+        return "property " + super().print_name
 
 
 class JsonRpcSchema(JsonType):
