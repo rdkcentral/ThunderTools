@@ -13,7 +13,6 @@ on:
 env:
   bridge: Thunder\Source\Thunder\bridge.vcxproj
   commander: ThunderNanoServices\Commander\Commander.vcxproj
-  devEnv: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.com
   deviceInfo: ThunderNanoServicesRDK\DeviceInfo\DeviceInfo.vcxproj
   DHCPServer: ThunderNanoServices\DHCPServer\DHCPServer.vcxproj
   DIALServer: ThunderNanoServices\DIALServer\DIALServer.vcxproj
@@ -153,7 +152,8 @@ jobs:
     - name: Build ThunderTools
       shell: cmd
       run: >
-        cd ThunderOnWindows
+        for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.CoreEditor -property productPath`) do set "devEnv=%%i"
+        && cd ThunderOnWindows
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%bridge%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%commander%"
         && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%deviceInfo%"
