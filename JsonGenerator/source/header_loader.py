@@ -173,7 +173,7 @@ class CppParseError(RuntimeError):
                 msg = "%s(%s): %s (see '%s')" % (obj.parser_file, obj.parser_line, msg, obj.Signature())
                 super(CppParseError, self).__init__(msg)
             except:
-                super(CppParseError, self).__init__("generic parsing failure: %s(%i): %s" % (obj.parser_file, obj.parser_line, msg))
+                super(CppParseError, self).__init__("generic parsing failure: %s" % msg)
         else:
             super(CppParseError, self).__init__(msg)
 
@@ -663,7 +663,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         for p in kind.vars:
                             p_name = compute_name(log, _case_converter, p, _case_converter.MEMBERS)
-                            p_type = ResolveTypedef(p.type)
+                            p_type = ResolveTypedef(p.type, p)
 
                             if isinstance(p.type, list):
                                 raise CppParseError(p, "%s: undefined type" % " ".join(p.type))
