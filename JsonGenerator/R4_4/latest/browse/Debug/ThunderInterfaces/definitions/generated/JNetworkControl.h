@@ -38,14 +38,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("flush")));
                     }
-                    else {
-                        const string _interface_{params.Interface};
 
-                        _errorCode__ = _implementation__->Flush(_interface_);
+                    const string _interface_{params.Interface};
 
-                    }
+                    _errorCode__ = _implementation__->Flush(_interface_);
 
                     return (_errorCode__);
                 });
@@ -123,22 +121,20 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("network")));
                             }
-                            else {
-                                ::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _value_{};
-                                std::list<Exchange::INetworkControl::NetworkInfo> _valueElements_{};
-                                auto _valueIterator_ = params.Value.Elements();
-                                while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                                using _valueIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>;
-                                _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>(std::move(_valueElements_));
-                                ASSERT(_value_ != nullptr);
 
-                                _errorCode__ = _implementation__->Network(interface, static_cast<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const&>(_value_));
-                                if (_value_ != nullptr) {
-                                    _value_->Release();
-                                }
+                            ::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _value_{};
+                            std::list<Exchange::INetworkControl::NetworkInfo> _valueElements_{};
+                            auto _valueIterator_ = params.Value.Elements();
+                            while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
+                            using _valueIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>;
+                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>(std::move(_valueElements_));
+                            ASSERT(_value_ != nullptr);
 
+                            _errorCode__ = _implementation__->Network(interface, static_cast<::WPEFramework::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const&>(_value_));
+                            if (_value_ != nullptr) {
+                                _value_->Release();
                             }
 
                             result.Null(true);
@@ -171,22 +167,20 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("dns")));
                         }
-                        else {
-                            ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _value_{};
-                            std::list<string> _valueElements_{};
-                            auto _valueIterator_ = params.Value.Elements();
-                            while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                            using _valueIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>;
-                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
-                            ASSERT(_value_ != nullptr);
 
-                            _errorCode__ = _implementation__->DNS(static_cast<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* const&>(_value_));
-                            if (_value_ != nullptr) {
-                                _value_->Release();
-                            }
+                        ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _value_{};
+                        std::list<string> _valueElements_{};
+                        auto _valueIterator_ = params.Value.Elements();
+                        while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
+                        using _valueIteratorImplType_ = ::WPEFramework::RPC::IteratorType<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>;
+                        _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
+                        ASSERT(_value_ != nullptr);
 
+                        _errorCode__ = _implementation__->DNS(static_cast<::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* const&>(_value_));
+                        if (_value_ != nullptr) {
+                            _value_->Release();
                         }
 
                         result.Null(true);
@@ -218,14 +212,12 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("up")));
                             }
-                            else {
-                                const bool _value_{params.Value};
 
-                                _errorCode__ = _implementation__->Up(interface, _value_);
+                            const bool _value_{params.Value};
 
-                            }
+                            _errorCode__ = _implementation__->Up(interface, _value_);
 
                             result.Null(true);
                         }

@@ -38,14 +38,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setaudiodescription")));
                     }
-                    else {
-                        const bool _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetAudioDescription(_value_);
+                    const bool _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetAudioDescription(_value_);
 
                     return (_errorCode__);
                 });
@@ -72,14 +70,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setpreferredaudiolanguages")));
                     }
-                    else {
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetPreferredAudioLanguages(_value_);
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetPreferredAudioLanguages(_value_);
 
                     return (_errorCode__);
                 });
@@ -106,14 +102,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setpresentationlanguage")));
                     }
-                    else {
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetPresentationLanguage(_value_);
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetPresentationLanguage(_value_);
 
                     return (_errorCode__);
                 });
@@ -140,14 +134,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setcaptions")));
                     }
-                    else {
-                        const bool _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetCaptions(_value_);
+                    const bool _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetCaptions(_value_);
 
                     return (_errorCode__);
                 });
@@ -174,14 +166,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setpreferredcaptionslanguages")));
                     }
-                    else {
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetPreferredCaptionsLanguages(_value_);
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetPreferredCaptionsLanguages(_value_);
 
                     return (_errorCode__);
                 });
@@ -208,14 +198,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setpreferredclosedcaptionservice")));
                     }
-                    else {
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetPreferredClosedCaptionService(_value_);
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetPreferredClosedCaptionService(_value_);
 
                     return (_errorCode__);
                 });
@@ -242,14 +230,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JUserSettings"), _T("setprivacymode")));
                     }
-                    else {
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetPrivacyMode(_value_);
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetPrivacyMode(_value_);
 
                     return (_errorCode__);
                 });

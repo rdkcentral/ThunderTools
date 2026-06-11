@@ -66,16 +66,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("setdiscoverable")));
                     }
-                    else {
-                        const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
-                        const Core::JSON::EnumType<JsonData::BluetoothControl::scanmode>& _mode_{params.Mode};
-                        const Core::JSON::Boolean& _connectable_{params.Connectable};
-                        const Core::JSON::DecUInt16& _duration_{params.Duration};
-                        _errorCode__ = _implementation__.SetDiscoverable(_type_, _mode_, _connectable_, _duration_);
 
-                    }
+                    const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
+                    const Core::JSON::EnumType<JsonData::BluetoothControl::scanmode>& _mode_{params.Mode};
+                    const Core::JSON::Boolean& _connectable_{params.Connectable};
+                    const Core::JSON::DecUInt16& _duration_{params.Duration};
+                    _errorCode__ = _implementation__.SetDiscoverable(_type_, _mode_, _connectable_, _duration_);
 
                     return (_errorCode__);
                 });
@@ -86,13 +84,11 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("stopdiscoverable")));
                     }
-                    else {
-                        const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
-                        _errorCode__ = _implementation__.StopDiscoverable(_type_);
 
-                    }
+                    const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
+                    _errorCode__ = _implementation__.StopDiscoverable(_type_);
 
                     return (_errorCode__);
                 });
@@ -103,16 +99,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("scan")));
                     }
-                    else {
-                        const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
-                        const Core::JSON::EnumType<JsonData::BluetoothControl::scanmode>& _mode_{params.Mode};
-                        const Core::JSON::DecUInt16& _timeout_{params.Timeout};
-                        const Core::JSON::DecUInt16& _duration_{params.Duration};
-                        _errorCode__ = _implementation__.Scan(_type_, _mode_, _timeout_, _duration_);
 
-                    }
+                    const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
+                    const Core::JSON::EnumType<JsonData::BluetoothControl::scanmode>& _mode_{params.Mode};
+                    const Core::JSON::DecUInt16& _timeout_{params.Timeout};
+                    const Core::JSON::DecUInt16& _duration_{params.Duration};
+                    _errorCode__ = _implementation__.Scan(_type_, _mode_, _timeout_, _duration_);
 
                     return (_errorCode__);
                 });
@@ -123,13 +117,11 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == true) && (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("stopscanning")));
                     }
-                    else {
-                        const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
-                        _errorCode__ = _implementation__.StopScanning(_type_);
 
-                    }
+                    const Core::JSON::EnumType<JsonData::BluetoothControl::scantype>& _type_{params.Type};
+                    _errorCode__ = _implementation__.StopScanning(_type_);
 
                     return (_errorCode__);
                 });
@@ -140,14 +132,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("connect")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        _errorCode__ = _implementation__.Connect(_address_, _type_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    _errorCode__ = _implementation__.Connect(_address_, _type_);
 
                     return (_errorCode__);
                 });
@@ -158,14 +148,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("disconnect")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        _errorCode__ = _implementation__.Disconnect(_address_, _type_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    _errorCode__ = _implementation__.Disconnect(_address_, _type_);
 
                     return (_errorCode__);
                 });
@@ -176,16 +164,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("pair")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::pairingcapabilities>& _capabilities_{params.Capabilities};
-                        const Core::JSON::DecUInt16& _timeout_{params.Timeout};
-                        _errorCode__ = _implementation__.Pair(_address_, _type_, _capabilities_, _timeout_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::pairingcapabilities>& _capabilities_{params.Capabilities};
+                    const Core::JSON::DecUInt16& _timeout_{params.Timeout};
+                    _errorCode__ = _implementation__.Pair(_address_, _type_, _capabilities_, _timeout_);
 
                     return (_errorCode__);
                 });
@@ -196,14 +182,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("unpair")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        _errorCode__ = _implementation__.Unpair(_address_, _type_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    _errorCode__ = _implementation__.Unpair(_address_, _type_);
 
                     return (_errorCode__);
                 });
@@ -214,14 +198,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("abortpairing")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        _errorCode__ = _implementation__.AbortPairing(_address_, _type_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    _errorCode__ = _implementation__.AbortPairing(_address_, _type_);
 
                     return (_errorCode__);
                 });
@@ -232,15 +214,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("providepincode")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        const Core::JSON::String& _secret_{params.Secret};
-                        _errorCode__ = _implementation__.ProvidePINCode(_address_, _type_, _secret_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    const Core::JSON::String& _secret_{params.Secret};
+                    _errorCode__ = _implementation__.ProvidePINCode(_address_, _type_, _secret_);
 
                     return (_errorCode__);
                 });
@@ -251,15 +231,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("providepasskey")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        const Core::JSON::DecUInt32& _secret_{params.Secret};
-                        _errorCode__ = _implementation__.ProvidePasskey(_address_, _type_, _secret_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    const Core::JSON::DecUInt32& _secret_{params.Secret};
+                    _errorCode__ = _implementation__.ProvidePasskey(_address_, _type_, _secret_);
 
                     return (_errorCode__);
                 });
@@ -270,15 +248,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("confirmpasskey")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        const Core::JSON::Boolean& _iscorrect_{params.Iscorrect};
-                        _errorCode__ = _implementation__.ConfirmPasskey(_address_, _type_, _iscorrect_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    const Core::JSON::Boolean& _iscorrect_{params.Iscorrect};
+                    _errorCode__ = _implementation__.ConfirmPasskey(_address_, _type_, _iscorrect_);
 
                     return (_errorCode__);
                 });
@@ -289,14 +265,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("forget")));
                     }
-                    else {
-                        const Core::JSON::String& _address_{params.Address};
-                        const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
-                        _errorCode__ = _implementation__.Forget(_address_, _type_);
 
-                    }
+                    const Core::JSON::String& _address_{params.Address};
+                    const Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{params.Type};
+                    _errorCode__ = _implementation__.Forget(_address_, _type_);
 
                     return (_errorCode__);
                 });
@@ -318,22 +292,20 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("getdeviceinfo")));
                     }
-                    else {
-                        result.Address = params.Address;
-                        Core::JSON::String& _address_{result.Address};
-                        result.Type = params.Type;
-                        Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{result.Type};
-                        Core::JSON::String& _name_{result.Name};
-                        Core::JSON::DecUInt32& _class__{result.Class};
-                        Core::JSON::DecUInt32& _appearance_{result.Appearance};
-                        Core::JSON::ArrayType<Core::JSON::String>& _services_{result.Services};
-                        Core::JSON::Boolean& _connected_{result.Connected};
-                        Core::JSON::Boolean& _paired_{result.Paired};
-                        _errorCode__ = _implementation__.GetDeviceInfo(_address_, _type_, _name_, _class__, _appearance_, _services_, _connected_, _paired_);
 
-                    }
+                    result.Address = params.Address;
+                    Core::JSON::String& _address_{result.Address};
+                    result.Type = params.Type;
+                    Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{result.Type};
+                    Core::JSON::String& _name_{result.Name};
+                    Core::JSON::DecUInt32& _class__{result.Class};
+                    Core::JSON::DecUInt32& _appearance_{result.Appearance};
+                    Core::JSON::ArrayType<Core::JSON::String>& _services_{result.Services};
+                    Core::JSON::Boolean& _connected_{result.Connected};
+                    Core::JSON::Boolean& _paired_{result.Paired};
+                    _errorCode__ = _implementation__.GetDeviceInfo(_address_, _type_, _name_, _class__, _appearance_, _services_, _connected_, _paired_);
 
                     return (_errorCode__);
                 });

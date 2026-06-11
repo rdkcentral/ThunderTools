@@ -38,17 +38,15 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMessageControl"), _T("enable")));
                     }
-                    else {
-                        const Exchange::IMessageControl::messagetype _type_{params.Type};
-                        const string _category_{params.Category};
-                        const string _module_{params.Module};
-                        const bool _enabled_{params.Enabled};
 
-                        _errorCode__ = _implementation__->Enable(_type_, _category_, _module_, _enabled_);
+                    const Exchange::IMessageControl::messagetype _type_{params.Type};
+                    const string _category_{params.Category};
+                    const string _module_{params.Module};
+                    const bool _enabled_{params.Enabled};
 
-                    }
+                    _errorCode__ = _implementation__->Enable(_type_, _category_, _module_, _enabled_);
 
                     return (_errorCode__);
                 });

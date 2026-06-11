@@ -58,14 +58,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("connect")));
                     }
-                    else {
-                        const string _configSSID_{params.ConfigSSID};
 
-                        _errorCode__ = _implementation__->Connect(_configSSID_);
+                    const string _configSSID_{params.ConfigSSID};
 
-                    }
+                    _errorCode__ = _implementation__->Connect(_configSSID_);
 
                     return (_errorCode__);
                 });
@@ -76,14 +74,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("disconnect")));
                     }
-                    else {
-                        const string _configSSID_{params.ConfigSSID};
 
-                        _errorCode__ = _implementation__->Disconnect(_configSSID_);
+                    const string _configSSID_{params.ConfigSSID};
 
-                    }
+                    _errorCode__ = _implementation__->Disconnect(_configSSID_);
 
                     return (_errorCode__);
                 });
@@ -202,14 +198,12 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("config")));
                             }
-                            else {
-                                const Exchange::IWifiControl::ConfigInfo _value_(params.Value);
 
-                                _errorCode__ = _implementation__->Config(ssid, _value_);
+                            const Exchange::IWifiControl::ConfigInfo _value_(params.Value);
 
-                            }
+                            _errorCode__ = _implementation__->Config(ssid, _value_);
 
                             result.Null(true);
                         }

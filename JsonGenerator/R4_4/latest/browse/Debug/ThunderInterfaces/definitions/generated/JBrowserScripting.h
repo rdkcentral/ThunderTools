@@ -38,14 +38,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBrowserScripting"), _T("runjavascript")));
                     }
-                    else {
-                        const string _script_{params.Script};
 
-                        _errorCode__ = _implementation__->RunJavaScript(_script_);
+                    const string _script_{params.Script};
 
-                    }
+                    _errorCode__ = _implementation__->RunJavaScript(_script_);
 
                     return (_errorCode__);
                 });
@@ -56,15 +54,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBrowserScripting"), _T("adduserscript")));
                     }
-                    else {
-                        const string _script_{params.Script};
-                        const bool _topFrameOnly_{params.TopFrameOnly};
 
-                        _errorCode__ = _implementation__->AddUserScript(_script_, _topFrameOnly_);
+                    const string _script_{params.Script};
+                    const bool _topFrameOnly_{params.TopFrameOnly};
 
-                    }
+                    _errorCode__ = _implementation__->AddUserScript(_script_, _topFrameOnly_);
 
                     return (_errorCode__);
                 });

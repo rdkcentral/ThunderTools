@@ -189,14 +189,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWebBrowser"), _T("bridgereply")));
                     }
-                    else {
-                        const string _params_{params};
 
-                        _errorCode__ = _implementation__->BridgeReply(_params_);
+                    const string _params_{params};
 
-                    }
+                    _errorCode__ = _implementation__->BridgeReply(_params_);
 
                     return (_errorCode__);
                 });
@@ -207,14 +205,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWebBrowser"), _T("bridgeevent")));
                     }
-                    else {
-                        const string _params_{params};
 
-                        _errorCode__ = _implementation__->BridgeEvent(_params_);
+                    const string _params_{params};
 
-                    }
+                    _errorCode__ = _implementation__->BridgeEvent(_params_);
 
                     return (_errorCode__);
                 });

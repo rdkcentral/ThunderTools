@@ -50,14 +50,12 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBrowserCookieJar"), _T("cookiejar")));
                         }
-                        else {
-                            const Exchange::IBrowserCookieJar::Config _params_(params);
 
-                            _errorCode__ = _implementation__->CookieJar(_params_);
+                        const Exchange::IBrowserCookieJar::Config _params_(params);
 
-                        }
+                        _errorCode__ = _implementation__->CookieJar(_params_);
 
                         result.Null(true);
                     }

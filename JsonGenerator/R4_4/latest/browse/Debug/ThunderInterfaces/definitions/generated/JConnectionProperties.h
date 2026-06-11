@@ -38,27 +38,26 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JConnectionProperties"), _T("edid")));
                     }
-                    else {
-                        uint16_t _length_{params.Length.Value()};
-                        uint8_t* _data_{};
 
-                        if (_length_ != 0) {
-                            _data_ = reinterpret_cast<uint8_t*>(ALLOCA(_length_));
-                            ASSERT(_data_ != nullptr);
-                        }
+                    uint16_t _length_{params.Length.Value()};
+                    uint8_t* _data_{};
 
-                        _errorCode__ = _implementation__->EDID(_length_, _data_);
+                    if (_length_ != 0) {
+                        _data_ = reinterpret_cast<uint8_t*>(ALLOCA(_length_));
+                        ASSERT(_data_ != nullptr);
+                    }
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Length = _length_;
+                    _errorCode__ = _implementation__->EDID(_length_, _data_);
 
-                            if ((_length_ != 0) && (_data_ != nullptr)) {
-                                string _dataEncoded__;
-                                Core::ToString(_data_, _length_, true, _dataEncoded__);
-                                result.Data = std::move(_dataEncoded__);
-                            }
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Length = _length_;
+
+                        if ((_length_ != 0) && (_data_ != nullptr)) {
+                            string _dataEncoded__;
+                            Core::ToString(_data_, _length_, true, _dataEncoded__);
+                            result.Data = std::move(_dataEncoded__);
                         }
                     }
 

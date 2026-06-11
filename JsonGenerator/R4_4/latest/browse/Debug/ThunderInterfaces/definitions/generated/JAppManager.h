@@ -82,16 +82,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("launchApp")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
-                        const string _intent_{params.Intent};
-                        const string _launchArgs_{params.LaunchArgs};
 
-                        _errorCode__ = _implementation__->LaunchApp(_appId_, _intent_, _launchArgs_);
+                    const string _appId_{params.AppId};
+                    const string _intent_{params.Intent};
+                    const string _launchArgs_{params.LaunchArgs};
 
-                    }
+                    _errorCode__ = _implementation__->LaunchApp(_appId_, _intent_, _launchArgs_);
 
                     return (_errorCode__);
                 });
@@ -102,16 +100,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("loadApp")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
-                        const string _intent_{params.Intent};
-                        const string _launchArgs_{params.LaunchArgs};
 
-                        _errorCode__ = _implementation__->LoadApp(_appId_, _intent_, _launchArgs_);
+                    const string _appId_{params.AppId};
+                    const string _intent_{params.Intent};
+                    const string _launchArgs_{params.LaunchArgs};
 
-                    }
+                    _errorCode__ = _implementation__->LoadApp(_appId_, _intent_, _launchArgs_);
 
                     return (_errorCode__);
                 });
@@ -122,14 +118,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("prepareApp")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
 
-                        _errorCode__ = _implementation__->PrepareApp(_appId_);
+                    const string _appId_{params.AppId};
 
-                    }
+                    _errorCode__ = _implementation__->PrepareApp(_appId_);
 
                     return (_errorCode__);
                 });
@@ -140,15 +134,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("sendMessage")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
-                        const string _messagae_{params.Messagae};
 
-                        _errorCode__ = _implementation__->SendMessage(_appId_, _messagae_);
+                    const string _appId_{params.AppId};
+                    const string _messagae_{params.Messagae};
 
-                    }
+                    _errorCode__ = _implementation__->SendMessage(_appId_, _messagae_);
 
                     return (_errorCode__);
                 });
@@ -159,14 +151,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("closeApp")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
 
-                        _errorCode__ = _implementation__->CloseApp(_appId_);
+                    const string _appId_{params.AppId};
 
-                    }
+                    _errorCode__ = _implementation__->CloseApp(_appId_);
 
                     return (_errorCode__);
                 });
@@ -177,14 +167,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("terminateApp")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
 
-                        _errorCode__ = _implementation__->TerminateApp(_appId_);
+                    const string _appId_{params.AppId};
 
-                    }
+                    _errorCode__ = _implementation__->TerminateApp(_appId_);
 
                     return (_errorCode__);
                 });
@@ -195,14 +183,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("clearAppData")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
 
-                        _errorCode__ = _implementation__->ClearAppData(_appId_);
+                    const string _appId_{params.AppId};
 
-                    }
+                    _errorCode__ = _implementation__->ClearAppData(_appId_);
 
                     return (_errorCode__);
                 });
@@ -213,14 +199,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("setAppFocus")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
 
-                        _errorCode__ = _implementation__->SetAppFocus(_appId_);
+                    const string _appId_{params.AppId};
 
-                    }
+                    _errorCode__ = _implementation__->SetAppFocus(_appId_);
 
                     return (_errorCode__);
                 });
@@ -231,15 +215,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("getAppMetaData")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
-                        const string _key_{params.Key};
 
-                        _errorCode__ = _implementation__->GetAppMetaData(_appId_, _key_);
+                    const string _appId_{params.AppId};
+                    const string _key_{params.Key};
 
-                    }
+                    _errorCode__ = _implementation__->GetAppMetaData(_appId_, _key_);
 
                     return (_errorCode__);
                 });
@@ -250,15 +232,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("getAppProperty")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
-                        const string _key_{params.Key};
 
-                        _errorCode__ = _implementation__->GetAppProperty(_appId_, _key_);
+                    const string _appId_{params.AppId};
+                    const string _key_{params.Key};
 
-                    }
+                    _errorCode__ = _implementation__->GetAppProperty(_appId_, _key_);
 
                     return (_errorCode__);
                 });
@@ -269,16 +249,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("setAppProperty")));
                     }
-                    else {
-                        const string _appId_{params.AppId};
-                        const string _key_{params.Key};
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetAppProperty(_appId_, _key_, _value_);
+                    const string _appId_{params.AppId};
+                    const string _key_{params.Key};
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetAppProperty(_appId_, _key_, _value_);
 
                     return (_errorCode__);
                 });
@@ -289,14 +267,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("setMaxInactiveApps")));
                     }
-                    else {
-                        const uint32_t _maxInteractiveApps_{params.MaxInteractiveApps};
 
-                        _errorCode__ = _implementation__->SetMaxInactiveApps(_maxInteractiveApps_);
+                    const uint32_t _maxInteractiveApps_{params.MaxInteractiveApps};
 
-                    }
+                    _errorCode__ = _implementation__->SetMaxInactiveApps(_maxInteractiveApps_);
 
                     return (_errorCode__);
                 });
@@ -323,14 +299,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("setMaxHibernatedApps")));
                     }
-                    else {
-                        const uint32_t _maxHibernatedApps_{params.MaxHibernatedApps};
 
-                        _errorCode__ = _implementation__->SetMaxHibernatedApps(_maxHibernatedApps_);
+                    const uint32_t _maxHibernatedApps_{params.MaxHibernatedApps};
 
-                    }
+                    _errorCode__ = _implementation__->SetMaxHibernatedApps(_maxHibernatedApps_);
 
                     return (_errorCode__);
                 });
@@ -357,14 +331,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("setMaxHibernatedFlashUsage")));
                     }
-                    else {
-                        const uint32_t _maxHibernatedFlashUsage_{params.MaxHibernatedFlashUsage};
 
-                        _errorCode__ = _implementation__->SetMaxHibernatedFlashUsage(_maxHibernatedFlashUsage_);
+                    const uint32_t _maxHibernatedFlashUsage_{params.MaxHibernatedFlashUsage};
 
-                    }
+                    _errorCode__ = _implementation__->SetMaxHibernatedFlashUsage(_maxHibernatedFlashUsage_);
 
                     return (_errorCode__);
                 });
@@ -391,14 +363,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAppManager"), _T("setMaxInactiveRamUsage")));
                     }
-                    else {
-                        const uint32_t _maxInactiveRamUsage_{params.MaxInactiveRamUsage};
 
-                        _errorCode__ = _implementation__->SetMaxInactiveRamUsage(_maxInactiveRamUsage_);
+                    const uint32_t _maxInactiveRamUsage_{params.MaxInactiveRamUsage};
 
-                    }
+                    _errorCode__ = _implementation__->SetMaxInactiveRamUsage(_maxInactiveRamUsage_);
 
                     return (_errorCode__);
                 });

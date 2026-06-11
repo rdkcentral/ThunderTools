@@ -49,14 +49,12 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JScriptEngine"), _T("url")));
                         }
-                        else {
-                            const string _value_{params.Value};
 
-                            _errorCode__ = _implementation__->URL(_value_);
+                        const string _value_{params.Value};
 
-                        }
+                        _errorCode__ = _implementation__->URL(_value_);
 
                         result.Null(true);
                     }

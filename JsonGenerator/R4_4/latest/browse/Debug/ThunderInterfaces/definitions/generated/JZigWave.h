@@ -38,15 +38,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("bind")));
                     }
-                    else {
-                        const uint32_t _source_{params.Source};
-                        const uint32_t _destination_{params.Destination};
 
-                        _errorCode__ = _implementation__->Bind(_source_, _destination_);
+                    const uint32_t _source_{params.Source};
+                    const uint32_t _destination_{params.Destination};
 
-                    }
+                    _errorCode__ = _implementation__->Bind(_source_, _destination_);
 
                     return (_errorCode__);
                 });
@@ -57,15 +55,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("unbind")));
                     }
-                    else {
-                        const uint32_t _source_{params.Source};
-                        const uint32_t _destination_{params.Destination};
 
-                        _errorCode__ = _implementation__->Unbind(_source_, _destination_);
+                    const uint32_t _source_{params.Source};
+                    const uint32_t _destination_{params.Destination};
 
-                    }
+                    _errorCode__ = _implementation__->Unbind(_source_, _destination_);
 
                     return (_errorCode__);
                 });
@@ -102,14 +98,12 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("permutable")));
                             }
-                            else {
-                                const bool _value_{params.Value};
 
-                                _errorCode__ = _implementation__->Permutable(_addressConv__, _value_);
+                            const bool _value_{params.Value};
 
-                            }
+                            _errorCode__ = _implementation__->Permutable(_addressConv__, _value_);
 
                             result.Null(true);
                         }
@@ -150,14 +144,12 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
-                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("accept")));
                             }
-                            else {
-                                const bool _value_{params.Value};
 
-                                _errorCode__ = _implementation__->Permutable(_addressConv__, _value_);
+                            const bool _value_{params.Value};
 
-                            }
+                            _errorCode__ = _implementation__->Permutable(_addressConv__, _value_);
 
                             result.Null(true);
                         }

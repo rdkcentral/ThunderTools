@@ -38,22 +38,21 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("install")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _url_{params.Url};
-                        const string _appName_{params.AppName};
-                        const string _category_{params.Category};
-                        string _handle_{};
 
-                        _errorCode__ = _implementation__->Install(_type_, _id_, _version_, _url_, _appName_, _category_, _handle_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _url_{params.Url};
+                    const string _appName_{params.AppName};
+                    const string _category_{params.Category};
+                    string _handle_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            handle = _handle_;
-                        }
+                    _errorCode__ = _implementation__->Install(_type_, _id_, _version_, _url_, _appName_, _category_, _handle_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        handle = _handle_;
                     }
 
                     return (_errorCode__);
@@ -65,20 +64,19 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("uninstall")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _uninstallType_{params.UninstallType};
-                        string _handle_{};
 
-                        _errorCode__ = _implementation__->Uninstall(_type_, _id_, _version_, _uninstallType_, _handle_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _uninstallType_{params.UninstallType};
+                    string _handle_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            handle = _handle_;
-                        }
+                    _errorCode__ = _implementation__->Uninstall(_type_, _id_, _version_, _uninstallType_, _handle_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        handle = _handle_;
                     }
 
                     return (_errorCode__);
@@ -90,21 +88,20 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("download")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _resKey_{params.ResKey};
-                        const string _url_{params.Url};
-                        string _handle_{};
 
-                        _errorCode__ = _implementation__->Download(_type_, _id_, _version_, _resKey_, _url_, _handle_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _resKey_{params.ResKey};
+                    const string _url_{params.Url};
+                    string _handle_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            handle = _handle_;
-                        }
+                    _errorCode__ = _implementation__->Download(_type_, _id_, _version_, _resKey_, _url_, _handle_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        handle = _handle_;
                     }
 
                     return (_errorCode__);
@@ -116,17 +113,15 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("reset")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _resetType_{params.ResetType};
 
-                        _errorCode__ = _implementation__->Reset(_type_, _id_, _version_, _resetType_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _resetType_{params.ResetType};
 
-                    }
+                    _errorCode__ = _implementation__->Reset(_type_, _id_, _version_, _resetType_);
 
                     return (_errorCode__);
                 });
@@ -137,20 +132,19 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getstoragedetails")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        Exchange::IPackageManager::StorageInfo _storageinfo_{};
 
-                        _errorCode__ = _implementation__->GetStorageDetails(_type_, _id_, _version_, _storageinfo_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    Exchange::IPackageManager::StorageInfo _storageinfo_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            storageinfo.Set(true);
-                            storageinfo = _storageinfo_;
-                        }
+                    _errorCode__ = _implementation__->GetStorageDetails(_type_, _id_, _version_, _storageinfo_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        storageinfo.Set(true);
+                        storageinfo = _storageinfo_;
                     }
 
                     return (_errorCode__);
@@ -162,18 +156,16 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("setauxmetadata")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _key_{params.Key};
-                        const string _value_{params.Value};
 
-                        _errorCode__ = _implementation__->SetAuxMetadata(_type_, _id_, _version_, _key_, _value_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _key_{params.Key};
+                    const string _value_{params.Value};
 
-                    }
+                    _errorCode__ = _implementation__->SetAuxMetadata(_type_, _id_, _version_, _key_, _value_);
 
                     return (_errorCode__);
                 });
@@ -184,17 +176,15 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("clearauxmetadata")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _key_{params.Key};
 
-                        _errorCode__ = _implementation__->ClearAuxMetadata(_type_, _id_, _version_, _key_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _key_{params.Key};
 
-                    }
+                    _errorCode__ = _implementation__->ClearAuxMetadata(_type_, _id_, _version_, _key_);
 
                     return (_errorCode__);
                 });
@@ -205,35 +195,34 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getmetadata")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        Exchange::IPackageManager::MetadataPayload _metadata_{};
-                        ::WPEFramework::RPC::IIteratorType<IPackageManager::KeyValue, ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _resources_{};
-                        ::WPEFramework::RPC::IIteratorType<IPackageManager::KeyValue, ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _auxMetadata_{};
 
-                        _errorCode__ = _implementation__->GetMetadata(_type_, _id_, _version_, _metadata_, _resources_, _auxMetadata_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    Exchange::IPackageManager::MetadataPayload _metadata_{};
+                    ::WPEFramework::RPC::IIteratorType<IPackageManager::KeyValue, ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _resources_{};
+                    ::WPEFramework::RPC::IIteratorType<IPackageManager::KeyValue, ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _auxMetadata_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Metadata.Set(true);
-                            result.Metadata = _metadata_;
-                            result.Resources.Set(true);
+                    _errorCode__ = _implementation__->GetMetadata(_type_, _id_, _version_, _metadata_, _resources_, _auxMetadata_);
 
-                            if (_resources_ != nullptr) {
-                                Exchange::IPackageManager::KeyValue _resourcesItem__{};
-                                while (_resources_->Next(_resourcesItem__) == true) { result.Resources.Add() = _resourcesItem__; }
-                                _resources_->Release();
-                            }
-                            result.AuxMetadata.Set(true);
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Metadata.Set(true);
+                        result.Metadata = _metadata_;
+                        result.Resources.Set(true);
 
-                            if (_auxMetadata_ != nullptr) {
-                                Exchange::IPackageManager::KeyValue _auxmetadataItem__{};
-                                while (_auxMetadata_->Next(_auxmetadataItem__) == true) { result.AuxMetadata.Add() = _auxmetadataItem__; }
-                                _auxMetadata_->Release();
-                            }
+                        if (_resources_ != nullptr) {
+                            Exchange::IPackageManager::KeyValue _resourcesItem__{};
+                            while (_resources_->Next(_resourcesItem__) == true) { result.Resources.Add() = _resourcesItem__; }
+                            _resources_->Release();
+                        }
+                        result.AuxMetadata.Set(true);
+
+                        if (_auxMetadata_ != nullptr) {
+                            Exchange::IPackageManager::KeyValue _auxmetadataItem__{};
+                            while (_auxMetadata_->Next(_auxmetadataItem__) == true) { result.AuxMetadata.Add() = _auxmetadataItem__; }
+                            _auxMetadata_->Release();
                         }
                     }
 
@@ -246,14 +235,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("cancel")));
                     }
-                    else {
-                        const string _handle_{params.Handle};
 
-                        _errorCode__ = _implementation__->Cancel(_handle_);
+                    const string _handle_{params.Handle};
 
-                    }
+                    _errorCode__ = _implementation__->Cancel(_handle_);
 
                     return (_errorCode__);
                 });
@@ -264,17 +251,16 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getprogress")));
                     }
-                    else {
-                        const string _handle_{params.Handle};
-                        uint32_t _progress_{};
 
-                        _errorCode__ = _implementation__->GetProgress(_handle_, _progress_);
+                    const string _handle_{params.Handle};
+                    uint32_t _progress_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            progress = _progress_;
-                        }
+                    _errorCode__ = _implementation__->GetProgress(_handle_, _progress_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        progress = _progress_;
                     }
 
                     return (_errorCode__);
@@ -286,26 +272,25 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getlist")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _appName_{params.AppName};
-                        const string _category_{params.Category};
-                        ::WPEFramework::RPC::IIteratorType<IPackageManager::PackageKey, ID_PACKAGEMANAGER_PACKAGE_KEY_ITERATOR>* _installedIds_{};
 
-                        _errorCode__ = _implementation__->GetList(_type_, _id_, _version_, _appName_, _category_, _installedIds_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _appName_{params.AppName};
+                    const string _category_{params.Category};
+                    ::WPEFramework::RPC::IIteratorType<IPackageManager::PackageKey, ID_PACKAGEMANAGER_PACKAGE_KEY_ITERATOR>* _installedIds_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            installedIds.Set(true);
+                    _errorCode__ = _implementation__->GetList(_type_, _id_, _version_, _appName_, _category_, _installedIds_);
 
-                            if (_installedIds_ != nullptr) {
-                                Exchange::IPackageManager::PackageKey _resultItem__{};
-                                while (_installedIds_->Next(_resultItem__) == true) { installedIds.Add() = _resultItem__; }
-                                _installedIds_->Release();
-                            }
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        installedIds.Set(true);
+
+                        if (_installedIds_ != nullptr) {
+                            Exchange::IPackageManager::PackageKey _resultItem__{};
+                            while (_installedIds_->Next(_resultItem__) == true) { installedIds.Add() = _resultItem__; }
+                            _installedIds_->Release();
                         }
                     }
 
@@ -318,21 +303,20 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("lock")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        const string _reason_{params.Reason};
-                        const string _owner_{params.Owner};
-                        string _handle_{};
 
-                        _errorCode__ = _implementation__->Lock(_type_, _id_, _version_, _reason_, _owner_, _handle_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    const string _reason_{params.Reason};
+                    const string _owner_{params.Owner};
+                    string _handle_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            handle = _handle_;
-                        }
+                    _errorCode__ = _implementation__->Lock(_type_, _id_, _version_, _reason_, _owner_, _handle_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        handle = _handle_;
                     }
 
                     return (_errorCode__);
@@ -344,14 +328,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("unlock")));
                     }
-                    else {
-                        const string _handle_{params.Handle};
 
-                        _errorCode__ = _implementation__->Unlock(_handle_);
+                    const string _handle_{params.Handle};
 
-                    }
+                    _errorCode__ = _implementation__->Unlock(_handle_);
 
                     return (_errorCode__);
                 });
@@ -362,20 +344,19 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getlockinfo")));
                     }
-                    else {
-                        const string _type_{params.Type};
-                        const string _id_{params.Id};
-                        const string _version_{params.Version};
-                        Exchange::IPackageManager::LockInfo _result_{};
 
-                        _errorCode__ = _implementation__->GetLockInfo(_type_, _id_, _version_, _result_);
+                    const string _type_{params.Type};
+                    const string _id_{params.Id};
+                    const string _version_{params.Version};
+                    Exchange::IPackageManager::LockInfo _result_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Set(true);
-                            result = _result_;
-                        }
+                    _errorCode__ = _implementation__->GetLockInfo(_type_, _id_, _version_, _result_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        result.Set(true);
+                        result = _result_;
                     }
 
                     return (_errorCode__);

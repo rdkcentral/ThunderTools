@@ -38,14 +38,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (type.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JApplication"), _T("reset")));
                     }
-                    else {
-                        const Exchange::IApplication::resettype _type_{type};
 
-                        _errorCode__ = _implementation__->Reset(_type_);
+                    const Exchange::IApplication::resettype _type_{type};
 
-                    }
+                    _errorCode__ = _implementation__->Reset(_type_);
 
                     return (_errorCode__);
                 });
@@ -72,14 +70,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JApplication"), _T("contentlink")));
                     }
-                    else {
-                        const string _params_{params};
 
-                        _errorCode__ = _implementation__->ContentLink(_params_);
+                    const string _params_{params};
 
-                    }
+                    _errorCode__ = _implementation__->ContentLink(_params_);
 
                     return (_errorCode__);
                 });

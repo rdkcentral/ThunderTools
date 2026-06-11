@@ -38,14 +38,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothAudioSink"), _T("assign")));
                     }
-                    else {
-                        const string _address_{params.Address};
 
-                        _errorCode__ = _implementation__->Assign(_address_);
+                    const string _address_{params.Address};
 
-                    }
+                    _errorCode__ = _implementation__->Assign(_address_);
 
                     return (_errorCode__);
                 });
@@ -77,14 +75,12 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothAudioSink"), _T("latency")));
                         }
-                        else {
-                            const int16_t _value_{params.Value};
 
-                            _errorCode__ = _implementation__->Latency(_value_);
+                        const int16_t _value_{params.Value};
 
-                        }
+                        _errorCode__ = _implementation__->Latency(_value_);
 
                         result.Null(true);
                     }

@@ -38,14 +38,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (muted.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAVSController"), _T("mute")));
                     }
-                    else {
-                        const bool _muted_{muted};
 
-                        _errorCode__ = _implementation__->Mute(_muted_);
+                    const bool _muted_{muted};
 
-                    }
+                    _errorCode__ = _implementation__->Mute(_muted_);
 
                     return (_errorCode__);
                 });
@@ -56,14 +54,12 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (started.IsSet() == false) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAVSController"), _T("record")));
                     }
-                    else {
-                        const bool _started_{started};
 
-                        _errorCode__ = _implementation__->Record(_started_);
+                    const bool _started_{started};
 
-                    }
+                    _errorCode__ = _implementation__->Record(_started_);
 
                     return (_errorCode__);
                 });

@@ -38,18 +38,17 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMath"), _T("add")));
                     }
-                    else {
-                        const uint16_t _a_{params.A};
-                        const uint16_t _b_{params.B};
-                        uint16_t _sum_{};
 
-                        _errorCode__ = _implementation__->Add(_a_, _b_, _sum_);
+                    const uint16_t _a_{params.A};
+                    const uint16_t _b_{params.B};
+                    uint16_t _sum_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            sum = _sum_;
-                        }
+                    _errorCode__ = _implementation__->Add(_a_, _b_, _sum_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        sum = _sum_;
                     }
 
                     return (_errorCode__);
@@ -61,18 +60,17 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMath"), _T("sub")));
                     }
-                    else {
-                        const uint16_t _a_{params.A};
-                        const uint16_t _b_{params.B};
-                        uint16_t _sum_{};
 
-                        _errorCode__ = _implementation__->Sub(_a_, _b_, _sum_);
+                    const uint16_t _a_{params.A};
+                    const uint16_t _b_{params.B};
+                    uint16_t _sum_{};
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            sum = _sum_;
-                        }
+                    _errorCode__ = _implementation__->Sub(_a_, _b_, _sum_);
+
+                    if (_errorCode__ == Core::ERROR_NONE) {
+                        sum = _sum_;
                     }
 
                     return (_errorCode__);

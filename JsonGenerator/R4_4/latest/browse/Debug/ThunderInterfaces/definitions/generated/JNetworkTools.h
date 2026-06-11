@@ -38,16 +38,14 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkTools"), _T("ping")));
                     }
-                    else {
-                        const string _destination_{params.Destination};
-                        const uint16_t _timeOutInSeconds_{params.TimeOutInSeconds};
-                        const uint16_t _count_{params.Count};
 
-                        _errorCode__ = _implementation__->Ping(_destination_, _timeOutInSeconds_, _count_);
+                    const string _destination_{params.Destination};
+                    const uint16_t _timeOutInSeconds_{params.TimeOutInSeconds};
+                    const uint16_t _count_{params.Count};
 
-                    }
+                    _errorCode__ = _implementation__->Ping(_destination_, _timeOutInSeconds_, _count_);
 
                     return (_errorCode__);
                 });
@@ -58,15 +56,13 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkTools"), _T("traceroute")));
                     }
-                    else {
-                        const string _destination_{params.Destination};
-                        const uint16_t _timeOutInSeconds_{params.TimeOutInSeconds};
 
-                        _errorCode__ = _implementation__->TraceRoute(_destination_, _timeOutInSeconds_);
+                    const string _destination_{params.Destination};
+                    const uint16_t _timeOutInSeconds_{params.TimeOutInSeconds};
 
-                    }
+                    _errorCode__ = _implementation__->TraceRoute(_destination_, _timeOutInSeconds_);
 
                     return (_errorCode__);
                 });
