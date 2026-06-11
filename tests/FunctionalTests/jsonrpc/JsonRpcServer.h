@@ -20,8 +20,8 @@
  #pragma once
 
 #include <JsonRpcRegistrations.h>
-#include "MockShell.h"
 #include "Module.h"
+#include <ThunderTestRuntime.h>
 
 namespace Thunder {
 namespace JsonRpcServer {
@@ -34,7 +34,8 @@ namespace JsonRpcServer {
         ~JsonRpcServer();
 
     private:
-        MockShell _mockShell;
+        TestCore::ThunderTestRuntime _runtime;
+        Core::ProxyType<PluginHost::IShell> _shell;
     };
 
     extern JsonRpcServer* g_server;

@@ -24,19 +24,36 @@ namespace JsonRpcServer {
     JsonRpcServer* g_server = nullptr;
 
     JsonRpcServer::JsonRpcServer()
-        : _mockShell("TestPlugin")
     {
+        const std::vector<TestCore::ThunderTestRuntime::PluginConfig> plugins;
+        const uint32_t result = _runtime.Initialize(plugins);
+
+        ASSERT(result == Core::ERROR_NONE);
+
+        _shell = _runtime.GetShell("Controller");
+        ASSERT(_shell.IsValid() == true);
+
         PluginHost::IShell::IConnectionServer::INotification* sink = nullptr;
-        Attach(sink, &_mockShell);
-        if (sink != nullptr) sink->Release();
+        Attach(sink, _shell.operator->());
+        if (sink != nullptr) {
+            sink->Release();
+        }
+
         Test::RegisterJsonRpcInterfaces(*this);
     }
 
     JsonRpcServer::~JsonRpcServer()
     {
+        Test::UnregisterJsonRpcInterfaces(*this);
+
         PluginHost::IShell::IConnectionServer::INotification* sink = nullptr;
         Detach(sink);
-        if (sink != nullptr) sink->Release();
+        if (sink != nullptr) {
+            sink->Release();
+        }
+
+        _shell.Release();
+        _runtime.Deinitialize();
     }
 } // namespace JsonRpcServer
 } // namespace Thunder
