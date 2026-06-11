@@ -897,11 +897,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
             emit.Line("if (%s) {" % restrictions.join())
             emit.Indent()
-            emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+            emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(method.name)))
             emit.Unindent()
             emit.Line("}")
-            emit.Line("else {")
-            emit.Indent()
+            emit.Line()
 
         # Emit temporary variables and deserializing of JSON data
 
@@ -1467,10 +1466,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     emit.ExitBlock(legacy_optional_conditions)
 
-            emit.Unindent()
-            emit.Line("}")
-
-        if restrictions.present():
             emit.Unindent()
             emit.Line("}")
 
