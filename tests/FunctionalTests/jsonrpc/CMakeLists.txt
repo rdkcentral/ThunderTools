@@ -43,6 +43,7 @@ endif()
 
 target_link_libraries(JsonRpcFunctionalTests
     PRIVATE
+        thunder_test_support
         ${NAMESPACE}Core::${NAMESPACE}Core
         ${NAMESPACE}COM::${NAMESPACE}COM
         ${NAMESPACE}WebSocket::${NAMESPACE}WebSocket
