@@ -998,6 +998,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
             emit.Line("if (%s) {" % restrictions.join())
             emit.Indent()
+            emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(method.name)))
             emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
             emit.Unindent()
             emit.Line("}")
