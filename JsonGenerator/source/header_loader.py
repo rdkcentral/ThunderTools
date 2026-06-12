@@ -353,7 +353,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
                     if not var.meta.output:
-                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Int24, CppParser.Enum)):
+                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Int24, CppParser.Enum, CppParser.Bool)):
                             if not var.meta.default and not quiet:
                                 log.WarnLine(var, "%s: default value is assumed to be (%s)0 (use @default with @optional)" % (var.name, var.type.TypeName()))
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
@@ -935,9 +935,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         converted["@position"] = vars.index(var)
 
-                        if not handle_optional(var, ResolveTypedef(var.type), converted, test):
-                            required.append(var_name)
-
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in converted and not "time" in converted:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
@@ -952,6 +949,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                         raise CppParseError(var, "@extract not allowed on this parameter")
 
                                     properties = converted["properties"]
+                                    params["@originaltype"] = converted["@originaltype"]
+                                    required = converted["required"]
                                     extracted = var
                                 elif converted["type"] != "array":
                                     raise CppParseError(var, "@extract not supported for this type")
@@ -961,6 +960,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 raise CppParseError(var, "multiple @extract object parameters")
                         else:
                             properties[var_name] = converted
+
+                            if not handle_optional(var, ResolveTypedef(var.type), converted, test):
+                                required.append(var_name)
 
 
             params["properties"] = properties
@@ -1026,6 +1028,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                     raise CppParseError(var, "@extract not allowed on property parameters")
 
                                 properties = converted["properties"]
+                                params["@originaltype"] = converted["@originaltype"]
                                 extracted = var
                             elif converted["type"] != "array":
                                 raise CppParseError(var, "@extract not supported for this type")
@@ -1446,7 +1449,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                     for e in interfaces:
                                         for m in e.obj.methods:
                                             for p in m.vars:
-                                                if isinstance(p.type.type, CppParser.Class) and p.type.type.is_event:
+                                                if isinstance(p.type.type, CppParser.Class) and p.type.type.is_event and p.type.type.full_name == f.obj.full_name:
                                                     log.WarnLine(method, "%s: @index is not recommended here, declare in event registration method instead: %s()" % (method.vars[0].name, m.full_name))
                                                     return
                                 MaybeWarning()
@@ -1457,7 +1460,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
-                                obj["id"]["@originalname"] = "designatorId_" if deprecated else "index_"
+                                obj["id"]["@originalname"] = "index_"
                                 obj["id"]["@generated"] = True
 
                                 if deprecated:
@@ -1604,6 +1607,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
     return schemas, []
 
 def LoadInterface(file, log, all = False, include_paths = []):
+
     try:
         schemas = []
         includes = []
