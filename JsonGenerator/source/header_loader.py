@@ -768,13 +768,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             if var.meta.is_deprecated:
                 properties["deprecated"] = True
 
-            if is_member:
-                # Some tags are invalid inside a strcut/array/vector/iterator...
-                if var.meta.output or var.meta.input:
-                    raise CppParseError(var, "@in @out @inout tags are invalid here")
-                if "extract" in var.meta.decorators:
-                    raise CppParseError(var, "@extract tag is invalid here")
-
             return properties
 
         def EventParameters(vars):
@@ -834,8 +827,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             properties = OrderedDict()
             required = []
 
-            extracted = None
-
             for idx,var in enumerate(vars):
                 if isinstance(var.type, list):
                     raise CppParseError(var, "unknown type")
@@ -879,27 +870,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if converted.get("@optionaltype") and not var.type.IsReference():
                             log.WarnLine(var, "'%s': passing input optional type by value (forgot &?)" % var.name)
 
-                        if converted.get("@extract"):
-                            if not extracted:
-                                if converted["type"] == "object":
-                                    if is_property or is_index:
-                                        raise CppParseError(var, "@extract not allowed on this parameter")
+                        properties[var_name] = converted
 
-                                    properties = converted["properties"]
-                                    params["@originaltype"] = converted["@originaltype"]
-                                    required = converted["required"]
-                                    extracted = var
-                                elif converted["type"] != "array":
-                                    raise CppParseError(var, "@extract not supported for this type")
-                                else:
-                                    properties[var_name] = converted
-                            else:
-                                raise CppParseError(var, "multiple @extract object parameters")
-                        else:
-                            properties[var_name] = converted
-
-                            if not handle_optional(var, ResolveTypedef(var.type), converted, test):
-                                required.append(var_name)
+                        if not handle_optional(var, ResolveTypedef(var.type), converted, test):
+                            required.append(var_name)
 
 
             params["properties"] = properties
@@ -931,7 +905,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             required = []
 
             method_wrapped = method and "wrapped" in method.retval.meta.decorators
-            extracted = None
 
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
@@ -958,23 +931,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if not handle_optional(var, var_type, converted, test):
                         required.append(var_name)
 
-                    if converted.get("@extract"):
-                        if not extracted:
-                            if converted["type"] == "object":
-                                if is_property:
-                                    raise CppParseError(var, "@extract not allowed on property parameters")
-
-                                properties = converted["properties"]
-                                params["@originaltype"] = converted["@originaltype"]
-                                extracted = var
-                            elif converted["type"] != "array":
-                                raise CppParseError(var, "@extract not supported for this type")
-                            else:
-                                properties[var_name] = converted
-                        else:
-                            raise CppParseError(var, "multiple @extract object parameters")
-                    else:
-                        properties[var_name] = converted
+                    properties[var_name] = converted
 
             params["properties"] = properties
 
