@@ -23,8 +23,8 @@ if(TEST_ASYNC)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestAsync.cpp)
 endif()
 
-if(TEST_BUFFER)
-    target_sources(ComRpcFunctionalTests PRIVATE tests/TestBuffer.cpp)
+if(TEST_BUFFERS)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestBuffers.cpp)
 endif()
 
 if(TEST_ENUMS)
@@ -43,8 +43,8 @@ if(TEST_ITERATORS)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestIterators.cpp)
 endif()
 
-if(TEST_OPTIONAL)
-    target_sources(ComRpcFunctionalTests PRIVATE tests/TestOptional.cpp)
+if(TEST_OPTIONALS)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestOptionals.cpp)
 endif()
 
 if(TEST_PRIMITIVES)
@@ -57,6 +57,22 @@ endif()
 
 if(TEST_STRUCTS)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestStructs.cpp)
+endif()
+
+if(TEST_ENCODING_MAC)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestEncodingMac.cpp)
+endif()
+
+if(TEST_LENGTH_MODES)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestLengthModes.cpp)
+endif()
+
+if(TEST_JSON_SHAPE)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonShape.cpp)
+endif()
+
+if(TEST_JSON_FORMATTING)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonFormatting.cpp)
 endif()
 
 target_include_directories(ComRpcFunctionalTests

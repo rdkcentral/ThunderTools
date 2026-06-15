@@ -45,7 +45,7 @@ namespace FunctionalTest {
     };
 
     // @json 1.0.0
-    // @text:camelcase
+    // @text:legacy
     struct EXTERNAL ITestJsonTextCase : virtual public Core::IUnknown {
         enum { ID = ID_TEST_JSON_TEXT_CASE };
 

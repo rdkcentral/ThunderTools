@@ -41,6 +41,20 @@ if(TEST_RESTRICTIONS)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestRestrictionsJsonRpc.cpp)
 endif()
 
+if(TEST_ENCODING_MAC)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestEncodingMacJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_SHAPE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonShapeJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_FORMATTING)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonFormattingJsonRpc.cpp)
+endif()
+
+# TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support
+
 target_link_libraries(JsonRpcFunctionalTests
     PRIVATE
         thunder_test_support

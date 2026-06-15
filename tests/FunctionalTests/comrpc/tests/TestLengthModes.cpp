@@ -27,11 +27,11 @@ using namespace Thunder::FunctionalTest;
 class TestLengthModes : public Testing::TestHarness<ITestLengthModes> {};
 
 TEST_F(TestLengthModes, EchoSingleByte) {
-    const uint8_t input[1] = { 0x5A };
+    const uint8_t input = 0x5A;
     uint8_t output[1] = { 0 };
 
     ASSERT_EQ(_proxy->EchoSingleByte(input, output), Core::ERROR_NONE);
-    EXPECT_EQ(output[0], input[0]);
+    EXPECT_EQ(output[0], input);
 }
 
 TEST_F(TestLengthModes, ReadPayloadHonorsCapacity) {

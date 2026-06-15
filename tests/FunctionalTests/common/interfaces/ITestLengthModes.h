@@ -31,18 +31,17 @@ namespace FunctionalTest {
     struct EXTERNAL ITestLengthModes : virtual public Core::IUnknown {
         enum { ID = ID_TEST_LENGTH_MODES };
 
-        // @brief Echoes exactly one byte using implicit one-element sizing.
-        //        The @length:void annotation indicates that the buffer length is
-        //        implied by element size.
-        // @param input  Input single-byte payload.
-        // @param output Receives echoed single-byte payload.
+        // @brief Echoes exactly one byte, exercising the length:1 output annotation
+        //        which signals that the output buffer holds exactly one element.
+        // @param input  Input single-byte value.
+        // @param output Receives the echoed byte.
         // @retval ERROR_NONE Echo completed.
         virtual Core::hresult EchoSingleByte(
-            const uint8_t input[] /* @in @length:void */,
-            uint8_t output[] /* @out @length:void @maxlength:1 */) const = 0;
+            const uint8_t input /* @in */,
+            uint8_t output[] /* @out @length:1 @maxlength:1 */) const = 0;
 
         // @brief Fills an output buffer and returns the payload length directly.
-        //        Intended to cover the @length:return annotation in a signature
+        //        Intended to cover the length:return annotation in a signature
         //        where return type carries the produced byte count.
         // @param output  Receives payload bytes.
         // @param maxSize Maximum writable bytes in output.

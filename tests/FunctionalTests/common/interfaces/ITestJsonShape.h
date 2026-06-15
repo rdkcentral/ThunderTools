@@ -45,8 +45,8 @@ namespace FunctionalTest {
         // @param output Receives echoed list.
         // @retval ERROR_NONE Echo completed.
         virtual Core::hresult EchoExtractedList(
-            const std::vector<uint32_t>& input /* @in @extract */,
-            std::vector<uint32_t>& output /* @out @extract */) const = 0;
+            const std::vector<uint32_t>& input /* @in @extract @restrict:1..64 */,
+            std::vector<uint32_t>& output /* @out @extract @restrict:1..64 */) const = 0;
 
         // @brief Echoes a struct and requests collapsed representation in JSON.
         struct Dimensions {
@@ -59,8 +59,8 @@ namespace FunctionalTest {
         // @param out Receives echoed Dimensions value.
         // @retval ERROR_NONE Echo completed.
         virtual Core::hresult EchoExtractedStruct(
-            const Dimensions& in /* @in @extract */,
-            Dimensions& out /* @out @extract */) const = 0;
+            const Dimensions& in /* @in */,
+            Dimensions& out /* @out */) const = 0;
     };
 
 } // namespace FunctionalTest

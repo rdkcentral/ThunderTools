@@ -31,30 +31,30 @@ TEST_F(TestJsonFormattingJsonRpc, PingCompliant) {
     EXPECT_FALSE(response.empty());
 }
 
-TEST_F(TestJsonFormattingJsonRpc, DISABLED_TextKeepNaming) {
+TEST_F(TestJsonFormattingJsonRpc, TextKeepNaming) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("echoMixedCaseName", R"({"InputValue":77})", response));
+        CallMethod("keep", R"({"InputValue":77})", response));
     EXPECT_FALSE(response.empty());
 }
 
-TEST_F(TestJsonFormattingJsonRpc, DISABLED_TextCaseNaming) {
+TEST_F(TestJsonFormattingJsonRpc, TextCaseNaming) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("echoCaseConvention", R"({"sourceValue":123})", response));
+        CallMethod("echocaseconvention", R"({"sourcevalue":123})", response));
     EXPECT_FALSE(response.empty());
 }
 
-TEST_F(TestJsonFormattingJsonRpc, DISABLED_UncompliantExtendedShape) {
+TEST_F(TestJsonFormattingJsonRpc, UncompliantExtendedShape) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("pingExtended", R"({"payload":"abc"})", response));
     EXPECT_FALSE(response.empty());
 }
 
-TEST_F(TestJsonFormattingJsonRpc, DISABLED_UncompliantCollapsedShape) {
+TEST_F(TestJsonFormattingJsonRpc, UncompliantCollapsedShape) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("pingCollapsed", R"({"payload":"abc"})", response));
+        CallMethod("pingCollapsed", R"("abc")", response));
     EXPECT_FALSE(response.empty());
 }

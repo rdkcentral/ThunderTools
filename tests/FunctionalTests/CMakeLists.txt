@@ -25,6 +25,10 @@ option(TEST_OPTIONALS    "Enable optional parameters tests"     ON)
 option(TEST_PRIMITIVES   "Enable primitive types tests"         ON)
 option(TEST_RESTRICTIONS "Enable restrict annotation tests"     ON) 
 option(TEST_STRUCTS      "Enable POD struct tests"              ON)
+option(TEST_ENCODING_MAC "Enable @encode:mac annotation tests"           ON)
+option(TEST_LENGTH_MODES "Enable @length:void/@length:return tests"      ON)
+option(TEST_JSON_SHAPE   "Enable @wrapped/@extract shape tests"          ON)
+option(TEST_JSON_FORMATTING "Enable @text/@compliant/@uncompliant tests"    ON)
 
 set(CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}" CACHE BOOL "" FORCE)
 
