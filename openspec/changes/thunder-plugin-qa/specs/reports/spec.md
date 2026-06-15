@@ -12,7 +12,7 @@ with all fields needed to understand, prioritise, and track fixes.
 
 ### REQ-R1 — Plugin review CSV
 
-**Scenario:** `/thunder-plugin-review` completes all 39 checkpoints
+**Scenario:** `/thunder-plugin-review` completes all 79 rules
 - The system MUST generate a CSV file at:
   `ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
 - If a file with that name already exists, append `_2`, `_3` etc. (never overwrite)
@@ -21,7 +21,7 @@ with all fields needed to understand, prioritise, and track fixes.
 
 ### REQ-R2 — Interface review CSV
 
-**Scenario:** `/thunder-interface` completes all 19 rules
+**Scenario:** `/thunder-interface-review` completes all 19 rules
 - The system MUST generate a CSV file at:
   `ThunderTools/PluginQA/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
 - Same no-overwrite rule applies
@@ -105,7 +105,7 @@ If no issues were found, still generate the CSV with the header row only and add
 
 ```csv
 No,Plugin,Date,Phase,Rule_ID,Rule_Name,Status,Severity,File,Line,Citation,Issue_Description,Fix_Summary,Reasoning
-,,,,,,,,,,,,All checkpoints passed — no issues found,
+,,,,,,,,,,,,,"All checkpoints passed — no issues found"
 ```
 
 ---

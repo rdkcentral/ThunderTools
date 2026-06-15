@@ -249,7 +249,7 @@ modifications are made to generated files.
 
 ## Setup Script Design
 
-All three scripts (`.ps1`, `.sh`, `.py`) do the same thing:
+The `setup-prompts.py` script does the following:
 
 1. Detect VS Code settings.json location (platform-specific paths, also checks VS Code Insiders)
 2. Create a timestamped backup of existing settings.json
@@ -263,7 +263,7 @@ All three scripts (`.ps1`, `.sh`, `.py`) do the same thing:
 
 ## YAML File Versioning
 
-- `thunder-plugin-rules.yaml`: version 3.0.0
+- `thunder-plugin-rules.yaml`: version 3.3.0
   - 39 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4,
     Phase5C:2, Phase6:3, Phase7:1, Phase8:1
   - New checkpoints added over v1.0.0: rule_08 (nullptr after Release), rule_09–10 (COM ownership + no-throw), rule_16

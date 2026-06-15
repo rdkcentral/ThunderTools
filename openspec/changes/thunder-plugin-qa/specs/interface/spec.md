@@ -5,12 +5,12 @@
 ---
 
 ### Requirement: COM interface validator command
-The system MUST provide a `/thunder-interface` slash command that validates
+The system MUST provide a `/thunder-interface-review` slash command that validates
 a Thunder COM interface header against 19 rules (15 core + 4 advisory).
 
 #### Scenario: Interface with critical violations
 - GIVEN a Thunder interface file with a missing `@json` tag
-- WHEN `/thunder-interface` runs
+- WHEN `/thunder-interface-review` runs
 - THEN it reports under `🔴 Violations (Must Fix)`:
   `[IMyInterface.h:LINE] Missing @json tag — ZERO RPC code will be generated`
 - AND reports under `✅ Validated` all passing rules
@@ -105,30 +105,15 @@ PluginSkeletonGenerator.py in interactive mode.
 
 ---
 
-### Requirement: Setup scripts register prompts with VS Code
-Three setup scripts MUST modify VS Code settings.json to add
+### Requirement: Setup script registers prompts with VS Code
+The `setup-prompts.py` script MUST modify VS Code settings.json to add
 `chat.promptFilesLocations` pointing to `ThunderTools/PluginQA/Prompts`.
-
-#### Scenario: Windows PowerShell setup
-- GIVEN a Windows machine with VS Code
-- WHEN `.\setup-prompts.ps1` is run from `ThunderTools/PluginQA/`
-- THEN it auto-detects the VS Code settings.json location
-- AND creates a backup of existing settings
-- AND safely merges `chat.promptFilesLocations` into the JSON
-- AND prints next steps (reload VS Code window)
-
-#### Scenario: Linux/Mac bash setup
-- GIVEN a Linux or Mac machine
-- WHEN `./setup-prompts.sh` is run
-- THEN the same behaviour as the PowerShell script, adapted for bash
-- AND handles both VS Code and VS Code Insiders
 
 #### Scenario: Python cross-platform setup
 - GIVEN any OS with Python 3
 - WHEN `python setup-prompts.py` is run
 - THEN it performs the same safe settings merge
 - AND works identically on Windows, Mac, and Linux
-
 #### Scenario: Script is safe to run multiple times
 - GIVEN the script has already been run once
 - WHEN it is run again
@@ -169,7 +154,7 @@ No prompt file (`*.prompt.md`) needs to be changed.
 
 - AND bump the file-level `version:` field (e.g. `3.2.1` → `3.2.2`)
 - AND add a CHANGELOG entry in the `description:` block at the top of the file
-- AND save — the next time `/thunder-interface` runs it picks up the change automatically
+- AND save — the next time `/thunder-interface-review` runs it picks up the change automatically
 
 #### Scenario: Adding a new interface rule
 - GIVEN a developer needs to add a new rule (e.g. `core_18_1`)
