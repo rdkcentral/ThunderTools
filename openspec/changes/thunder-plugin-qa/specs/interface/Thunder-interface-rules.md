@@ -1,6 +1,6 @@
 # Thunder Interface Validation Rules
 
-**Version:** 3.2.2  
+
 **Status:** For Review  
 
 ## Description
