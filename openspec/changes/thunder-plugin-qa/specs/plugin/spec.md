@@ -36,17 +36,14 @@ ThunderTools/PluginQA/
 
 #### Scenario: Prompt files are registered with VS Code
 - GIVEN `ThunderTools/PluginQA/Prompts/` containing the three `.prompt.md` files
-- WHEN a setup script (`setup-prompts.ps1` / `.sh` / `.py`) is run
-- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQA/Prompts`
 - WHEN `setup-prompts.py` is run
+- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQA/Prompts`
 - AND the three slash commands (`/thunder-plugin-review`, `/thunder-interface-review`,
   `/thunder-generate-plugin`) become available in VS Code Copilot Chat
 - AND the script is safe to run multiple times (idempotent, creates backup of settings)
 
 ---
 
-### Requirement: Setup scripts modify VS Code settings.json to register prompt location
-Three setup scripts MUST modify the user-level VS Code `settings.json` to add
 ### Requirement: Setup script modifies VS Code settings.json to register prompt location
 The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add
 #### Scenario: Resulting settings.json structure
@@ -102,12 +99,12 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 
 ### Requirement: thunder-plugin-rules.yaml (v3.3.0) created under PluginQA/rules/
 The file `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` MUST exist
-with version `3.2.0` and contain all 79 rules numbered sequentially (rule_01 to rule_79).
+with version `3.3.0` and contain all 79 rules numbered sequentially (rule_01 to rule_79).
 
 #### Scenario: Metadata block
 - GIVEN the YAML file
 - THEN it MUST contain a `metadata` block with:
-  `version: "3.0.0"`, `total_rules: 79`, `total_general_rules: 40`,
+  `version: "3.3.0"`, `total_rules: 79`, `total_general_rules: 40`,
   `approach: "semantic code review — understand whole plugin first, then check specifics"`,
   and a `validation_approach` block listing the 5-step workflow
   (understand whole plugin → focus on specific concern → reason in context → cite if genuinely wrong → fix)

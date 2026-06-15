@@ -10,7 +10,7 @@ Every rule uses semantic reasoning — read the interface header in full and rea
 
 ---
 
-## Core Rules (17) — Severity: Violation
+## Core Rules (15) — Severity: Violation
 
 ### core_1_1 — File and Namespace Structure
 
