@@ -8,16 +8,6 @@
 Rules for validating Thunder COM interface headers in `ThunderInterfaces/interfaces/`.  
 Every rule uses semantic reasoning — read the interface header in full and reason about the code as a human reviewer. Never use regex or text search as the primary detection method.
 
-## Changelog
-
-| Version | Changes |
-|---------|---------|
-| v3.2.2 (current) | Removed category field from all rules (unused by validation logic); Rule names standardised to Title Case throughout; advisory_m5_1 clarified: explicitly does NOT apply to std::vector (covered by core_17_1) |
-| v3.2.1 | Added core_17_1: @restrict mandatory with std::vector parameters; advisory_m5_1 scoped to non-vector parameters only |
-| v3.2.0 | Added core_16_1: explicit integer widths (uint32_t not int); Added advisory_m5_1: @restrict for non-vector constrained parameters |
-| v3.1.0 | Added core_15_1: no std::map in interfaces; Strengthened core_5_1: Core::hresult mandatory for @json interfaces in Thunder 5.0+ |
-| v3.0.2 | Initial public release with 13 core rules and 3 advisory rules |
-
 ---
 
 ## Core Rules (17) — Severity: Violation
@@ -48,6 +38,7 @@ Thunder interface headers must follow the standard file and namespace structure:
 **Violation Pattern:** Interface not in WPEFramework::Exchange namespace, file name mismatch, or implementation code present
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 namespace WPEFramework {
@@ -94,6 +85,7 @@ Thunder COM interfaces must follow the correct declaration shape:
 **Violation Pattern:** Interface missing EXTERNAL macro, wrong inheritance, missing ID enum, or non-pure-virtual methods
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 class IDictionary : public Core::IUnknown {
@@ -133,6 +125,7 @@ Every Thunder COM interface must have a unique numeric ID registered in `RPC::ID
 **Violation Pattern:** Interface ID missing from IDs registration, uses raw number, or is not unique
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 enum { ID = 0x100 };   // ← raw number, not registered
@@ -169,6 +162,7 @@ Thunder COM interface methods must be pure virtual (`= 0`). No default implement
 **Violation Pattern:** Non-pure-virtual method, inline implementation, or static method in COM interface
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult Get(const string& key, string& value) {
@@ -205,6 +199,7 @@ In Thunder 5.0+, all COM interface methods annotated with `@json` (i.e. methods 
 **Violation Pattern:** Interface method does not return Core::hresult — required for @json interfaces in Thunder 5.0+
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual void SetVolume(const uint8_t volume) = 0;
@@ -245,6 +240,7 @@ Interface methods must use const correctly:
 **Violation Pattern:** @out parameter declared const preventing the implementation from writing the output value
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult Get(const string& key, const string& value /* @out */) = 0;
@@ -286,6 +282,7 @@ Using `std::string` in interfaces breaks cross-ABI compatibility.
 **Violation Pattern:** std::string used in interface — must use Thunder string type alias
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult Get(const std::string& key, std::string& value) = 0;
@@ -323,6 +320,7 @@ Register/Unregister must take a pointer to the notification interface. ICallback
 **Violation Pattern:** Register(INotification*) present but Unregister(INotification*) missing, or non-standard notification pattern
 
 **Fix Example:**
+
 ```cpp
 // WRONG: (Unregister missing)
 virtual Core::hresult Register(INotification* notification) = 0;
@@ -370,6 +368,7 @@ Missing `@event` prevents the code generator from emitting event dispatch code.
 **Violation Pattern:** @event tag missing on nested notification interface, or missing EXTERNAL/ID
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 struct INotification : virtual public Core::IUnknown {
@@ -410,6 +409,7 @@ If an interface intentionally does not need JSON-RPC (pure COM only), the absenc
 **Violation Pattern:** @json tag missing above interface struct declaration — no JSON-RPC code will be generated
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 struct EXTERNAL IDictionary : virtual public Core::IUnknown {
@@ -451,6 +451,7 @@ Binary-incompatible changes require creating a new interface version (`IFoo2`).
 **Violation Pattern:** Released interface has methods removed, reordered, or signatures changed — breaks binary compatibility
 
 **Fix Example:**
+
 ```cpp
 // WRONG: (removed a method or changed signature in a released interface)
 // v1: virtual Core::hresult Get(const string& key, string& value) = 0;
@@ -487,6 +488,7 @@ struct EXTERNAL IDictionary2 : virtual public IDictionary {
 **Violation Pattern:** AddRef() or Release() redeclared in interface — must be inherited from Core::IUnknown only
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 struct EXTERNAL IDictionary : virtual public Core::IUnknown {
@@ -525,6 +527,7 @@ struct EXTERNAL IDictionary : virtual public Core::IUnknown {
 **Violation Pattern:** std::map used in interface parameter — not serialisable across process boundaries
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult GetAll(std::map<string, string>& values /* @out */) = 0;
@@ -558,6 +561,7 @@ Interface method parameters and return values must use explicit-width integer ty
 **Violation Pattern:** Platform-dependent integer type (int, long, short) used in interface — must use explicit-width types (uint32_t, etc.)
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult SetTimeout(const int timeout) = 0;
@@ -595,6 +599,7 @@ Every interface method parameter of type `std::vector` (or `Core::JSON::ArrayTyp
 **Violation Pattern:** std::vector parameter missing @restrict annotation — required for safe bounds checking
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult GetItems(std::vector<string>& items /* @out */) = 0;
@@ -630,6 +635,7 @@ Each COM interface should have a single, clearly defined responsibility. An inte
 **Violation Pattern:** Interface mixes multiple unrelated responsibilities — consider splitting into focused interfaces
 
 **Fix Example:**
+
 ```cpp
 // WRONG: IDictionaryAndNetwork mixes dictionary and network concerns
 struct EXTERNAL IDictionaryAndNetwork : virtual public Core::IUnknown {
@@ -668,6 +674,7 @@ Enums used in interface parameters or return types should use explicit underlyin
 **Violation Pattern:** Named enum used in interface parameter lacks explicit underlying type — consider adding : uint8_t or : uint32_t
 
 **Fix Example:**
+
 ```cpp
 // WRONG: (named enum without explicit type)
 enum State { IDLE, ACTIVE, ERROR };
@@ -706,6 +713,7 @@ Thunder COM interfaces and their implementations must not use C++ exceptions. Ex
 **Violation Pattern:** Exception specification or throw statement in COM interface or implementation — use Core::hresult for error reporting
 
 **Fix Example:**
+
 ```cpp
 // WRONG:
 virtual Core::hresult Get(const string& key, string& value) throw(std::exception) = 0;
@@ -744,6 +752,7 @@ Parameters with natural upper bounds (strings with max length, integers with max
 **Violation Pattern:** Non-vector parameter with natural upper bound lacks @restrict annotation (advisory)
 
 **Fix Example:**
+
 ```cpp
 // Without restriction (acceptable for many cases):
 virtual Core::hresult SetName(const string& name) = 0;

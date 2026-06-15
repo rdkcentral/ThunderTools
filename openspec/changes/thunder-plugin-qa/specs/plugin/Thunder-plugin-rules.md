@@ -1,20 +1,5 @@
 # Thunder Plugin Rules — v3.3.0
 
-> **Purpose:** This document is the authoritative checklist for every Thunder plugin PR review.
-> Every rule listed here must be verified before a PR is approved.
-> Violations and warnings must be addressed; suggestions are encouraged but not blocking.
-
----
-
-## How to Use This Document
-
-1. **Read the full plugin first** — all source files, headers, CMakeLists, and config.
-   Build a mental model of the plugin's architecture, lifecycle, threading model, and ownership before checking any individual rule.
-2. **Check each rule** using the full context, not in isolation.
-3. **Cite violations** with exact file and line number (e.g. `[Dictionary.cpp:108]`).
-4. **Show the fix** — the corrected code block only, not the whole file.
-5. **Never escalate severity** beyond what is defined per rule.
-
 ### Severity Levels
 
 | Level | Meaning |
@@ -1213,13 +1198,33 @@ virtual Core::hresult SetValue(const string& key, const string& value) = 0;
 
 The following rules require reading the full plugin context before evaluating. They span multiple files and patterns.
 
+> **YAML source:** `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` → `general_rules` section
+
 ---
 
 ### rule_40
 
 **#pragma once** | `suggestion` | Category: Conventions
 
-Every header file in the plugin must use `#pragma once` as its include guard.
+**What to check:** Every header file (`.h`) in the plugin uses `#pragma once` as its include guard — not legacy `#ifndef`/`#define`/`#endif`.
+
+**Where to look:** All `.h` files in the plugin folder.
+
+**Violation pattern:** A header file uses legacy `#ifndef` include guard instead of `#pragma once`.
+
+```cpp
+// WRONG:
+#ifndef DICTIONARY_H
+#define DICTIONARY_H
+// ...
+#endif
+
+// Correct:
+#pragma once
+// ...
+```
+
+**Citation format:** `[FileName.h:1] Missing #pragma once — uses legacy include guard`
 
 ---
 
@@ -1227,7 +1232,26 @@ Every header file in the plugin must use `#pragma once` as its include guard.
 
 **Apache 2.0 Copyright Header** | `suggestion` | Category: Conventions
 
-Every source file must contain a proper Apache 2.0 copyright header at the top.
+**What to check:** Every source file (`.cpp`, `.h`) starts with the standard Apache 2.0 copyright header block.
+
+**Where to look:** First 20 lines of every source file.
+
+**Violation pattern:** Source file is missing the Apache 2.0 copyright header.
+
+```cpp
+// Correct — top of every file:
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2024 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * ...
+ */
+```
+
+**Citation format:** `[FileName.cpp:1] Missing Apache 2.0 copyright header`
 
 ---
 
@@ -1235,7 +1259,23 @@ Every source file must contain a proper Apache 2.0 copyright header at the top.
 
 **STL Types** | `warning` | Category: Code Quality
 
-Thunder type aliases (`string`, `vector`) must be used instead of their `std::` equivalents (`std::string`, `std::vector`) wherever Thunder aliases are available. Check function signatures, class members, and return types.
+**What to check:** Thunder type aliases (`string`, `vector`) are used instead of their `std::` equivalents (`std::string`, `std::vector`) wherever Thunder aliases are available.
+
+**Where to look:** Function signatures, class member declarations, return types, and local variables.
+
+**Violation pattern:** `std::string`, `std::vector`, or other STL types used where Thunder aliases exist.
+
+```cpp
+// WRONG:
+std::string GetName() const;
+std::vector<std::string> _items;
+
+// Correct:
+string GetName() const;
+std::vector<string> _items;  // Thunder aliases 'string' but not all containers
+```
+
+**Citation format:** `[PluginName.h:LINE] std::string used — use Thunder alias 'string'`
 
 ---
 
@@ -1243,7 +1283,32 @@ Thunder type aliases (`string`, `vector`) must be used instead of their `std::` 
 
 **ASSERT vs Error Handling** | `warning` | Category: Code Quality
 
-`ASSERT` must be used only for programmer invariants — conditions that must always be true in correct code. `ASSERT` must never be used for runtime error handling (user input errors, network failures, missing configuration).
+**What to check:** `ASSERT` is used only for programmer invariants (conditions that must always be true in correct code). It must never be used for runtime error handling — things that can legitimately fail (user input, network, configuration).
+
+**Where to look:** All `ASSERT(...)` calls in the plugin.
+
+**Violation pattern:** `ASSERT` used on a condition that can fail at runtime.
+
+```cpp
+// WRONG:
+string Initialize(PluginHost::IShell* service) {
+    _impl = service->Root<IPlugin>();
+    ASSERT(_impl != nullptr);  // Root<T>() CAN return nullptr at runtime
+    _impl->DoWork();
+}
+
+// Correct:
+string Initialize(PluginHost::IShell* service) {
+    _impl = service->Root<IPlugin>();
+    if (_impl == nullptr) {
+        return "Failed to acquire implementation";
+    }
+    ASSERT(_service != nullptr);  // OK — _service was set above and must be valid here
+    _impl->DoWork();
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] ASSERT used on runtime condition — use proper error handling`
 
 ---
 
@@ -1251,7 +1316,34 @@ Thunder type aliases (`string`, `vector`) must be used instead of their `std::` 
 
 **OOP Registration Order** | `violation` | Category: Lifecycle Integrity
 
-In out-of-process plugins, `service->Register()` and `service->Unregister()` must be called in the correct order relative to acquiring and releasing the remote implementation.
+**What to check:** In out-of-process plugins, `service->Register()` must be called **after** the remote implementation is acquired, and `service->Unregister()` must be called **before** the remote implementation is released.
+
+**Where to look:** `Initialize()` and `Deinitialize()` in OOP plugins.
+
+**Violation pattern:** `service->Register()` called before `Root<T>()`, or `service->Unregister()` called after implementation release.
+
+```cpp
+// WRONG:
+string Initialize(PluginHost::IShell* service) {
+    service->Register(_notification);        // too early
+    _impl = service->Root<IImplementation>();
+}
+
+// Correct:
+string Initialize(PluginHost::IShell* service) {
+    _impl = service->Root<IImplementation>();
+    if (_impl != nullptr) {
+        service->Register(_notification);    // after acquisition
+    }
+}
+void Deinitialize(PluginHost::IShell* service) {
+    service->Unregister(_notification);      // before release
+    _impl->Release();
+    _impl = nullptr;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Registration order incorrect relative to implementation acquisition`
 
 ---
 
@@ -1259,7 +1351,30 @@ In out-of-process plugins, `service->Register()` and `service->Unregister()` mus
 
 **Complete State Reset in Deinitialize** | `violation` | Category: Lifecycle Integrity
 
-Every member variable set during `Initialize()` or during operation must be reset to its default/null state in `Deinitialize()`. A subsequent `Initialize()` call must start from a completely clean state.
+**What to check:** Every member variable set during `Initialize()` or during operation must be reset to its default/null state in `Deinitialize()`. A subsequent `Initialize()` call must start from a completely clean state.
+
+**Where to look:** Compare class member declarations with `Deinitialize()` body — every non-trivial member must be reset.
+
+**Violation pattern:** Member variable set during plugin operation but not reset in `Deinitialize()`.
+
+```cpp
+// WRONG:
+void Deinitialize(PluginHost::IShell* service) {
+    _service->Release();
+    _service = nullptr;
+    // _connectionId not reset, _isActive not reset
+}
+
+// Correct:
+void Deinitialize(PluginHost::IShell* service) {
+    _service->Release();
+    _service = nullptr;
+    _connectionId = 0;
+    _isActive = false;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Member '_connectionId' not reset in Deinitialize()`
 
 ---
 
@@ -1267,7 +1382,31 @@ Every member variable set during `Initialize()` or during operation must be rese
 
 **Reverse-Order Cleanup** | `suggestion` | Category: Lifecycle Integrity
 
-`Deinitialize()` should release resources in the reverse order of how they were acquired in `Initialize()`.
+**What to check:** `Deinitialize()` should release resources in the reverse order of how they were acquired in `Initialize()`. This prevents use-after-free when later resources depend on earlier ones.
+
+**Where to look:** Compare acquisition order in `Initialize()` with release order in `Deinitialize()`.
+
+**Violation pattern:** Resources released in the same order as acquired (not reversed).
+
+```cpp
+// Initialize acquires: _service → _impl → _notification
+// Deinitialize should release: _notification → _impl → _service
+
+// WRONG:
+void Deinitialize(PluginHost::IShell* service) {
+    _service->Release(); _service = nullptr;      // first acquired, first released
+    _impl->Release(); _impl = nullptr;
+}
+
+// Correct:
+void Deinitialize(PluginHost::IShell* service) {
+    service->Unregister(_notification);           // last acquired, first released
+    _impl->Release(); _impl = nullptr;
+    _service->Release(); _service = nullptr;      // first acquired, last released
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Cleanup order does not reverse acquisition order`
 
 ---
 
@@ -1275,7 +1414,32 @@ Every member variable set during `Initialize()` or during operation must be rese
 
 **Observer Locking** | `violation` | Category: Concurrency
 
-Observer lists must be protected by appropriate locking when iterated and when observers are added or removed, to prevent data races.
+**What to check:** Observer/notification lists must be protected by a lock (`Core::CriticalSection`) when iterated and when observers are added or removed — to prevent data races from concurrent callback dispatch vs. registration changes.
+
+**Where to look:** Observer container access (iteration in notification dispatch, `push_back`/`erase` in Register/Unregister).
+
+**Violation pattern:** Observer list accessed without lock held.
+
+```cpp
+// WRONG:
+void NotifyObservers() {
+    for (auto& obs : _observers) {  // no lock — race with Register/Unregister
+        obs->StateChanged();
+    }
+}
+
+// Correct:
+void NotifyObservers() {
+    _adminLock.Lock();
+    auto copy = _observers;  // copy under lock
+    _adminLock.Unlock();
+    for (auto& obs : copy) {
+        obs->StateChanged();
+    }
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Observer list iterated without lock`
 
 ---
 
@@ -1283,7 +1447,33 @@ Observer lists must be protected by appropriate locking when iterated and when o
 
 **AddRef/Release Balance** | `violation` | Category: COM Safety
 
-Every `AddRef()` call on a COM interface must be balanced by exactly one `Release()` call across all code paths, including error paths. No leaks, no double-releases.
+**What to check:** Every `AddRef()` call on a COM interface is balanced by exactly one `Release()` call across all code paths — including error/early-return paths. No leaks, no double-releases.
+
+**Where to look:** All COM interface pointer acquisitions and their corresponding release paths.
+
+**Violation pattern:** `AddRef()` without matching `Release()` on an error path, or `Release()` called twice.
+
+```cpp
+// WRONG — leak on error path:
+_impl = service->Root<IPlugin>();
+if (_impl != nullptr) {
+    if (!Setup()) {
+        return "Setup failed";  // _impl leaked — never released
+    }
+}
+
+// Correct:
+_impl = service->Root<IPlugin>();
+if (_impl != nullptr) {
+    if (!Setup()) {
+        _impl->Release();
+        _impl = nullptr;
+        return "Setup failed";
+    }
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] COM interface leaked on error path — missing Release()`
 
 ---
 
@@ -1291,7 +1481,21 @@ Every `AddRef()` call on a COM interface must be balanced by exactly one `Releas
 
 **CMake NAMESPACE Variable** | `suggestion` | Category: Conventions
 
-`CMakeLists.txt` must use the `${NAMESPACE}` variable for target naming and installation paths per Thunder conventions.
+**What to check:** `CMakeLists.txt` uses `${NAMESPACE}` for target naming and installation paths as per Thunder build conventions.
+
+**Where to look:** `CMakeLists.txt` — target names, install paths, and project declarations.
+
+**Violation pattern:** Hardcoded namespace string used instead of `${NAMESPACE}`.
+
+```cmake
+# WRONG:
+install(TARGETS ${MODULE_NAME} DESTINATION lib/wpeframework/plugins)
+
+# Correct:
+install(TARGETS ${MODULE_NAME} DESTINATION ${CMAKE_INSTALL_PREFIX}/lib/${NAMESPACE}/plugins)
+```
+
+**Citation format:** `[CMakeLists.txt:LINE] Hardcoded namespace — use ${NAMESPACE}`
 
 ---
 
@@ -1299,7 +1503,26 @@ Every `AddRef()` call on a COM interface must be balanced by exactly one `Releas
 
 **Handlers Must Not Block** | `violation` | Category: Concurrency
 
-No notification handler (`IPlugin::INotification` callbacks, `IRemoteConnection::INotification` callbacks) may perform blocking operations (network calls, file I/O, sleep, synchronous waiting) on the framework's callback thread.
+**What to check:** No notification handler (`IPlugin::INotification`, `IRemoteConnection::INotification` callbacks) performs blocking operations — no network calls, file I/O, sleep, or synchronous waiting on the framework's callback thread.
+
+**Where to look:** All `Activated()`, `Deactivated()`, `Unavailable()`, and `Terminated()` callback bodies.
+
+**Violation pattern:** Blocking call inside a notification handler.
+
+```cpp
+// WRONG:
+void Activated(const string& callsign, PluginHost::IShell* shell) override {
+    std::this_thread::sleep_for(std::chrono::seconds(5));  // blocks framework thread
+    auto data = HttpGet("http://...");                      // blocks on network
+}
+
+// Correct:
+void Activated(const string& callsign, PluginHost::IShell* shell) override {
+    _parent.ScheduleWork(callsign);  // dispatch to WorkerPool
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Blocking operation in notification callback`
 
 ---
 
@@ -1307,7 +1530,26 @@ No notification handler (`IPlugin::INotification` callbacks, `IRemoteConnection:
 
 **No Activate/Deactivate from Handlers** | `violation` | Category: Concurrency
 
-No notification callback may call `service->Activate()` or `service->Deactivate()` directly — doing so causes deadlock on the framework thread.
+**What to check:** No notification callback directly calls `service->Activate()` or `service->Deactivate()` — this causes deadlock because those methods acquire the same framework lock that dispatches callbacks.
+
+**Where to look:** All notification callback bodies.
+
+**Violation pattern:** `Activate()` or `Deactivate()` called from inside a notification handler.
+
+```cpp
+// WRONG:
+void Deactivated(const string& callsign, PluginHost::IShell* shell) override {
+    _service->Activate(PluginHost::IShell::REQUESTED);  // DEADLOCK
+}
+
+// Correct:
+void Deactivated(const string& callsign, PluginHost::IShell* shell) override {
+    // Schedule activation on WorkerPool instead
+    Core::IWorkerPool::Instance().Submit(Core::ProxyType<ActivateJob>(*this));
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Activate/Deactivate called from notification handler — causes deadlock`
 
 ---
 
@@ -1315,7 +1557,32 @@ No notification callback may call `service->Activate()` or `service->Deactivate(
 
 **Shared State Protected by CriticalSection** | `violation` | Category: Concurrency
 
-Every member variable accessed from both the main thread and notification callbacks must be protected by a `Core::CriticalSection` lock.
+**What to check:** Every member variable accessed from both the main thread (Initialize/Deinitialize, JSON-RPC handlers) and notification callbacks must be protected by a `Core::CriticalSection` lock.
+
+**Where to look:** Member variables modified in handlers AND accessed in other methods without locking.
+
+**Violation pattern:** Shared member accessed from multiple threads without lock.
+
+```cpp
+// WRONG:
+void Activated(...) override { _isReady = true; }    // callback thread
+uint32_t GetStatus(...) { return _isReady ? 1 : 0; } // JSON-RPC thread — no lock
+
+// Correct:
+void Activated(...) override {
+    _adminLock.Lock();
+    _isReady = true;
+    _adminLock.Unlock();
+}
+uint32_t GetStatus(...) {
+    _adminLock.Lock();
+    bool ready = _isReady;
+    _adminLock.Unlock();
+    return ready ? 1 : 0;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Shared member '_isReady' accessed without lock`
 
 ---
 
@@ -1323,7 +1590,27 @@ Every member variable accessed from both the main thread and notification callba
 
 **No Lock Held During Framework Callbacks** | `violation` | Category: Concurrency
 
-All locks must be released before calling back into the Thunder framework (e.g. before `service->Submit()`, `Activate()`, or notification dispatch) to prevent deadlock.
+**What to check:** All locks (`_adminLock`) must be released before calling back into the Thunder framework — before `service->Submit()`, `Notify()`, `Activate()`, or dispatching notifications. Holding a lock while calling framework APIs causes deadlock.
+
+**Where to look:** Code paths that hold `_adminLock` and then call framework methods.
+
+**Violation pattern:** Lock held during a framework callback invocation.
+
+```cpp
+// WRONG:
+_adminLock.Lock();
+_state = newState;
+_service->Submit(PluginHost::IShell::ACTIVATED, this);  // framework call while locked
+_adminLock.Unlock();
+
+// Correct:
+_adminLock.Lock();
+_state = newState;
+_adminLock.Unlock();
+_service->Submit(PluginHost::IShell::ACTIVATED, this);  // lock released first
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Framework callback called while holding _adminLock`
 
 ---
 
@@ -1331,7 +1618,32 @@ All locks must be released before calling back into the Thunder framework (e.g. 
 
 **Worker Jobs Check Deinitialize Guard** | `violation` | Category: Concurrency
 
-All worker job (`IJob`, `WorkerPool`) `Dispatch()` methods must check a deinitialization guard flag at the start to avoid using stale pointers after `Deinitialize()` has run.
+**What to check:** All worker job `Dispatch()` methods must check a deinitialization guard flag (e.g. `_deinitialized`) at the start to avoid using stale/null framework pointers after `Deinitialize()` has run.
+
+**Where to look:** All `IJob::Dispatch()` or WorkerPool job implementations.
+
+**Violation pattern:** Job dispatches without checking whether plugin has been deinitialized.
+
+```cpp
+// WRONG:
+void Dispatch() override {
+    _parent._service->DoSomething();  // _service may be nullptr after Deinitialize
+}
+
+// Correct:
+void Dispatch() override {
+    _parent._adminLock.Lock();
+    if (_parent._service == nullptr) {
+        _parent._adminLock.Unlock();
+        return;  // plugin already deinitialized
+    }
+    auto* svc = _parent._service;
+    _parent._adminLock.Unlock();
+    svc->DoSomething();
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Worker job does not check deinitialize guard before using framework pointers`
 
 ---
 
@@ -1339,7 +1651,26 @@ All worker job (`IJob`, `WorkerPool`) `Dispatch()` methods must check a deinitia
 
 **File Descriptors / Sockets Wrapped in RAII** | `violation` | Category: Resource Management
 
-All file descriptors, sockets, and OS handles must be wrapped in RAII types or explicitly closed in `Deinitialize()`. They must never be leaked.
+**What to check:** All file descriptors, sockets, and OS handles are wrapped in RAII types or explicitly closed in `Deinitialize()`. They must never be leaked on any code path.
+
+**Where to look:** All `open()`, `socket()`, `fopen()` calls and their corresponding close paths.
+
+**Violation pattern:** File descriptor or socket opened but not closed on all paths (including error paths).
+
+```cpp
+// WRONG:
+int fd = open("/dev/input0", O_RDONLY);
+if (error) return "Failed";  // fd leaked
+
+// Correct:
+Core::DataElementFile _file;  // RAII — auto-closes on destruction
+// Or explicit:
+void Deinitialize(...) {
+    if (_fd >= 0) { close(_fd); _fd = -1; }
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] File descriptor not closed on error path`
 
 ---
 
@@ -1347,7 +1678,28 @@ All file descriptors, sockets, and OS handles must be wrapped in RAII types or e
 
 **No Unbounded Memory Growth** | `violation` | Category: Resource Management
 
-All data structures (`map`, `vector`, `list`, `queue`) populated at runtime must have a bounded size or eviction policy to prevent unbounded memory growth during sustained plugin operation.
+**What to check:** All data structures (`map`, `vector`, `list`, `queue`) populated at runtime have a bounded size or eviction policy. Without bounds, long-running plugins exhaust memory.
+
+**Where to look:** All `push_back`, `insert`, `emplace` calls on member containers — check for corresponding eviction, size cap, or periodic cleanup.
+
+**Violation pattern:** Runtime-populated container with no size limit or eviction.
+
+```cpp
+// WRONG:
+void OnEvent(const Event& e) {
+    _eventLog.push_back(e);  // grows forever
+}
+
+// Correct:
+void OnEvent(const Event& e) {
+    if (_eventLog.size() >= MAX_EVENTS) {
+        _eventLog.erase(_eventLog.begin());
+    }
+    _eventLog.push_back(e);
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Container '_eventLog' grows unbounded — add size limit`
 
 ---
 
@@ -1355,7 +1707,30 @@ All data structures (`map`, `vector`, `list`, `queue`) populated at runtime must
 
 **Config Errors Return Non-Empty from Initialize** | `violation` | Category: Lifecycle Integrity
 
-All configuration errors (missing required fields, invalid values, out-of-range values) must cause `Initialize()` to return a non-empty error string.
+**What to check:** All configuration errors (missing required fields, invalid values, out-of-range values) must cause `Initialize()` to return a non-empty error string. Silently accepting bad config leads to undefined runtime behavior.
+
+**Where to look:** Configuration parsing in `Initialize()` — all branches after `FromString()` or `Config` field access.
+
+**Violation pattern:** Configuration error detected but `Initialize()` still returns empty string (success).
+
+```cpp
+// WRONG:
+_config.FromString(service->ConfigLine());
+if (_config.Port.Value() == 0) {
+    SYSLOG(Logging::Error, "Invalid port");
+    // falls through to return string() — Thunder thinks init succeeded
+}
+return string();
+
+// Correct:
+_config.FromString(service->ConfigLine());
+if (_config.Port.Value() == 0) {
+    return "Configuration error: port must be non-zero";
+}
+return string();
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Config error not reported — Initialize() returns empty string`
 
 ---
 
@@ -1363,15 +1738,58 @@ All configuration errors (missing required fields, invalid values, out-of-range 
 
 **interface->Register/Unregister Pairing** | `violation` | Category: JSON-RPC Compliance
 
-Every `interface->Register()` call (registering a notification/callback on a non-service interface) must be matched by a corresponding `interface->Unregister()` in `Deinitialize()`.
+**What to check:** Every `interface->Register()` call (registering a notification/callback on a non-service COM interface) must be matched by `interface->Unregister()` in `Deinitialize()`.
+
+**Where to look:** `Initialize()` for `_impl->Register(...)` calls; `Deinitialize()` for matching `_impl->Unregister(...)`.
+
+**Violation pattern:** Interface notification registered but not unregistered in `Deinitialize()`.
+
+```cpp
+// WRONG:
+string Initialize(...) {
+    _impl->Register(_sink);
+}
+void Deinitialize(...) {
+    _impl->Release(); _impl = nullptr;
+    // _impl->Unregister(_sink) missing — dangling callback
+}
+
+// Correct:
+void Deinitialize(...) {
+    _impl->Unregister(_sink);   // unregister BEFORE release
+    _impl->Release(); _impl = nullptr;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] interface->Register() without matching Unregister() in Deinitialize()`
 
 ---
 
 ### rule_59
 
-**Handler Registration Order in Initialize/Deinitialize** | `violation` | Category: JSON-RPC Compliance
+**Handler Registration Order** | `violation` | Category: JSON-RPC Compliance
 
-Notification handlers must be registered **after** the interfaces they observe are fully acquired and set up, and unregistered **before** those interfaces are released — to avoid callbacks on partially-initialized state.
+**What to check:** Notification handlers must be registered **after** the interfaces they observe are fully acquired, and unregistered **before** those interfaces are released. Registering before acquisition or unregistering after release causes callbacks on partially-initialized state.
+
+**Where to look:** Ordering of `Register()`/`Unregister()` calls relative to interface acquisition/release in `Initialize()`/`Deinitialize()`.
+
+**Violation pattern:** Handler registered before interface is ready, or unregistered after interface is released.
+
+```cpp
+// WRONG:
+void Deinitialize(...) {
+    _impl->Release(); _impl = nullptr;  // release first
+    service->Unregister(_notification); // unregister after — callback may fire on null _impl
+}
+
+// Correct:
+void Deinitialize(...) {
+    service->Unregister(_notification); // unregister first
+    _impl->Release(); _impl = nullptr;  // then release
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Handler unregistered after interface release — wrong order`
 
 ---
 
@@ -1379,7 +1797,27 @@ Notification handlers must be registered **after** the interfaces they observe a
 
 **Use Core::ERROR_\* for Handler Failure Codes** | `violation` | Category: JSON-RPC Compliance
 
-All failures in JSON-RPC handlers and COM interface method implementations must be reported using `Core::ERROR_*` constants — never raw numeric literals or Windows error codes.
+**What to check:** All failure returns in JSON-RPC handlers and COM interface method implementations must use `Core::ERROR_*` named constants — not raw numeric literals.
+
+**Where to look:** Return statements in handler methods.
+
+**Violation pattern:** Raw integer returned instead of `Core::ERROR_*` constant.
+
+```cpp
+// WRONG:
+uint32_t SetValue(...) {
+    if (!valid) return 1;      // raw integer
+    if (!found) return 0x80004005;  // Windows HRESULT
+}
+
+// Correct:
+uint32_t SetValue(...) {
+    if (!valid) return Core::ERROR_GENERAL;
+    if (!found) return Core::ERROR_UNKNOWN_KEY;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Raw integer error code — use Core::ERROR_* constant`
 
 ---
 
@@ -1387,7 +1825,30 @@ All failures in JSON-RPC handlers and COM interface method implementations must 
 
 **Input Validation in JSON-RPC Handlers** | `violation` | Category: JSON-RPC Compliance
 
-Every JSON-RPC handler must validate its input parameters (null pointer checks, string length limits, enum range checks) before using them.
+**What to check:** Every JSON-RPC handler validates its input parameters (null checks, string length limits, enum range checks) before using them. Unvalidated external input leads to crashes or undefined behavior.
+
+**Where to look:** All JSON-RPC handler method bodies — the first thing after parameter extraction.
+
+**Violation pattern:** Input parameter used without validation.
+
+```cpp
+// WRONG:
+uint32_t SetName(const string& name) {
+    _name = name;  // no length check — could be 10MB string
+    return Core::ERROR_NONE;
+}
+
+// Correct:
+uint32_t SetName(const string& name) {
+    if (name.empty() || name.length() > 256) {
+        return Core::ERROR_BAD_REQUEST;
+    }
+    _name = name;
+    return Core::ERROR_NONE;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] JSON-RPC input not validated before use`
 
 ---
 
@@ -1395,7 +1856,24 @@ Every JSON-RPC handler must validate its input parameters (null pointer checks, 
 
 **Event Constants and Typed JSON Payloads** | `warning` | Category: JSON-RPC Compliance
 
-Event names must be defined as named constants rather than inline string literals. Event payloads must be typed JSON objects rather than untyped free-form strings.
+**What to check:** Event names are defined as named constants (not inline string literals). Event payloads use typed `JsonData::*` classes, not untyped free-form strings.
+
+**Where to look:** All `Notify()` or event dispatch calls.
+
+**Violation pattern:** Inline string literal for event name, or untyped payload.
+
+```cpp
+// WRONG:
+Notify("stateChanged", "{\"state\":\"active\"}");  // inline string, untyped
+
+// Correct:
+static constexpr auto EVT_STATE_CHANGED = _T("stateChanged");
+JsonData::StateInfo info;
+info.State = "active";
+Notify(EVT_STATE_CHANGED, info);
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Event name is inline string — define as named constant`
 
 ---
 
@@ -1403,7 +1881,29 @@ Event names must be defined as named constants rather than inline string literal
 
 **COM Reference Counting Correctness** | `violation` | Category: COM Safety
 
-COM reference counting must be correctly maintained across all code paths where COM interfaces are passed, returned, or stored — `AddRef` when storing, `Release` when done, no double-release or leak on any path including error paths.
+**What to check:** COM reference counting is correctly maintained across all code paths — `AddRef` when storing a new copy, `Release` when done, no double-release or leak on any path including error paths.
+
+**Where to look:** All COM interface pointer assignments, returns, and storage patterns.
+
+**Violation pattern:** Interface pointer stored without `AddRef`, or released twice, or not released on error path.
+
+```cpp
+// WRONG — double release:
+_impl->Release();
+// ... later in same function ...
+_impl->Release();  // double release — undefined behavior
+
+// WRONG — missing AddRef when copying:
+IPlugin* copy = _impl;  // no AddRef — two owners, one ref count
+
+// Correct:
+IPlugin* copy = _impl;
+copy->AddRef();  // now balanced
+// ... use copy ...
+copy->Release();
+```
+
+**Citation format:** `[PluginName.cpp:LINE] COM reference counting incorrect — double release / missing AddRef`
 
 ---
 
@@ -1411,7 +1911,26 @@ COM reference counting must be correctly maintained across all code paths where 
 
 **No Hard Inter-Plugin Dependencies** | `warning` | Category: Inter-Plugin Design
 
-The plugin must use the observer pattern and dynamic interface acquisition (`QueryInterfaceByCallsign`, `IPlugin::INotification`) for inter-plugin communication — no hard compile-time or startup-time dependencies on specific other plugins being present.
+**What to check:** The plugin uses the observer pattern and dynamic interface acquisition (`QueryInterfaceByCallsign`, `IPlugin::INotification`) for inter-plugin communication — no hard compile-time or startup-time dependencies.
+
+**Where to look:** `#include` directives, `Initialize()` for hardcoded callsign requirements.
+
+**Violation pattern:** Plugin fails to start if another specific plugin is not present.
+
+```cpp
+// WRONG:
+#include "../OtherPlugin/OtherPlugin.h"  // compile-time dependency
+auto* other = static_cast<OtherPlugin*>(GetPlugin("OtherPlugin"));
+
+// Correct:
+auto* other = _service->QueryInterfaceByCallsign<IOtherInterface>("OtherPlugin");
+if (other != nullptr) {
+    other->DoWork();
+    other->Release();
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Hard dependency on another plugin — use dynamic acquisition`
 
 ---
 
@@ -1419,7 +1938,28 @@ The plugin must use the observer pattern and dynamic interface acquisition (`Que
 
 **JSON-RPC Handlers Are Re-entrant Safe** | `violation` | Category: Concurrency
 
-All JSON-RPC handlers must be safe for concurrent invocation — either accessing only local state or properly locking shared state.
+**What to check:** All JSON-RPC handlers are safe for concurrent invocation — they either access only local state or properly lock shared state before access.
+
+**Where to look:** All JSON-RPC handler bodies that access class member variables.
+
+**Violation pattern:** Handler reads/writes shared state without lock.
+
+```cpp
+// WRONG:
+uint32_t GetCount(...) {
+    return _count;  // no lock — may race with notification thread modifying _count
+}
+
+// Correct:
+uint32_t GetCount(...) {
+    _adminLock.Lock();
+    uint32_t count = _count;
+    _adminLock.Unlock();
+    return count;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] JSON-RPC handler accesses shared state without lock`
 
 ---
 
@@ -1427,7 +1967,28 @@ All JSON-RPC handlers must be safe for concurrent invocation — either accessin
 
 **IPlugin::INotification Callbacks Must Not Block** | `violation` | Category: Concurrency
 
-No `IPlugin::INotification` callback (`Activated`, `Deactivated`, `Unavailable`) may block the calling thread — no synchronous waits, no contended mutex acquisitions, no I/O.
+**What to check:** No `IPlugin::INotification` callback (`Activated`, `Deactivated`, `Unavailable`) blocks the calling thread — no synchronous waits, no contended mutex acquisitions, no I/O operations.
+
+**Where to look:** All `IPlugin::INotification` callback implementations.
+
+**Violation pattern:** Blocking operation inside a plugin notification callback.
+
+```cpp
+// WRONG:
+void Deactivated(const string& callsign, PluginHost::IShell*) override {
+    _adminLock.Lock();  // may block if held by long operation
+    WriteLogToFile(callsign);  // I/O blocks
+    _adminLock.Unlock();
+}
+
+// Correct:
+void Deactivated(const string& callsign, PluginHost::IShell*) override {
+    // schedule work, don't block
+    _parent.ScheduleCleanup(callsign);
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] INotification callback performs blocking operation`
 
 ---
 
@@ -1435,7 +1996,27 @@ No `IPlugin::INotification` callback (`Activated`, `Deactivated`, `Unavailable`)
 
 **Lock Scope Minimized** | `violation` | Category: Concurrency
 
-All critical sections must be held for the minimum time necessary — covering only the actual shared state access. Blocking operations, callbacks, and I/O must never occur while holding a lock.
+**What to check:** Critical sections are held for the minimum time necessary — only the actual shared state access. No I/O, no blocking operations, no framework callbacks while holding a lock.
+
+**Where to look:** All `_adminLock.Lock()` ... `_adminLock.Unlock()` spans.
+
+**Violation pattern:** Lock held during I/O, sleep, or framework call.
+
+```cpp
+// WRONG:
+_adminLock.Lock();
+_data = FetchFromNetwork();    // blocks while locked
+ProcessData(_data);
+_adminLock.Unlock();
+
+// Correct:
+auto data = FetchFromNetwork();  // do I/O outside lock
+_adminLock.Lock();
+_data = data;                    // only protect the assignment
+_adminLock.Unlock();
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Lock held during blocking operation — minimize lock scope`
 
 ---
 
@@ -1443,7 +2024,28 @@ All critical sections must be held for the minimum time necessary — covering o
 
 **Plugin Threads Joined in Deinitialize** | `violation` | Category: Concurrency
 
-All threads started by the plugin must be explicitly stopped and joined (or detached with a lifetime guarantee) in `Deinitialize()` before the function returns.
+**What to check:** All threads started by the plugin are explicitly stopped and joined in `Deinitialize()` before it returns. Threads left running after `Deinitialize()` access null pointers.
+
+**Where to look:** Thread creation (in `Initialize()` or during operation) and `Deinitialize()` for join/stop.
+
+**Violation pattern:** Thread started but not joined/stopped in `Deinitialize()`.
+
+```cpp
+// WRONG:
+void Deinitialize(...) {
+    _service->Release(); _service = nullptr;
+    // _workerThread still running — will access _service
+}
+
+// Correct:
+void Deinitialize(...) {
+    _workerThread.Stop();   // signal stop
+    _workerThread.Wait();   // join — wait for exit
+    _service->Release(); _service = nullptr;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Thread not joined in Deinitialize() — may access stale pointers`
 
 ---
 
@@ -1451,7 +2053,25 @@ All threads started by the plugin must be explicitly stopped and joined (or deta
 
 **Memory and Allocation Safety** | `warning` | Category: Resource Management
 
-There must be no memory leaks (every `new` must have a corresponding `delete` on all code paths), no use-after-free, and no buffer overflows.
+**What to check:** No memory leaks (every `new` has a corresponding `delete` on all paths), no use-after-free, no buffer overflows, no large stack allocations or VLAs.
+
+**Where to look:** All `new`/`delete` pairs, raw buffer operations, and stack-allocated arrays.
+
+**Violation pattern:** `new` without matching `delete` on error path, or access to freed memory.
+
+```cpp
+// WRONG:
+char* buffer = new char[size];
+if (error) return Core::ERROR_GENERAL;  // buffer leaked
+delete[] buffer;
+
+// Correct:
+std::unique_ptr<char[]> buffer(new char[size]);
+if (error) return Core::ERROR_GENERAL;  // auto-freed
+// Or use stack for small, known-size buffers
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Memory leak on error path — 'buffer' not freed`
 
 ---
 
@@ -1459,7 +2079,31 @@ There must be no memory leaks (every `new` must have a corresponding `delete` on
 
 **Framework Pointers Not Accessed After Deinitialize** | `violation` | Category: Lifecycle Integrity
 
-No worker thread, background job, or async callback may access framework pointers (`IShell*`, service pointers, notification interfaces) after `Deinitialize()` has completed and nulled those pointers.
+**What to check:** No worker thread, background job, or async callback can access framework pointers (`IShell*`, service pointers, notification interfaces) after `Deinitialize()` has completed and nulled them.
+
+**Where to look:** Worker jobs, timers, and async callbacks that use `_service` or other framework pointers.
+
+**Violation pattern:** Background task accesses `_service` without checking if it's been nulled.
+
+```cpp
+// WRONG:
+void TimerExpired() {
+    _service->Submit(...);  // _service may be nullptr after Deinitialize
+}
+
+// Correct:
+void TimerExpired() {
+    _adminLock.Lock();
+    if (_service == nullptr) { _adminLock.Unlock(); return; }
+    PluginHost::IShell* svc = _service;
+    svc->AddRef();
+    _adminLock.Unlock();
+    svc->Submit(...);
+    svc->Release();
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Framework pointer accessed without null check after potential Deinitialize()`
 
 ---
 
@@ -1467,7 +2111,25 @@ No worker thread, background job, or async callback may access framework pointer
 
 **hresult Return Values Checked** | `violation` | Category: COM Safety
 
-The return value of every `Core::hresult`-returning COM interface method call must be checked and errors must be handled appropriately — never silently discarded.
+**What to check:** The return value of every `Core::hresult`-returning COM interface method call is checked and errors handled — never silently discarded.
+
+**Where to look:** All calls to COM interface methods that return `Core::hresult`.
+
+**Violation pattern:** `hresult` return value ignored.
+
+```cpp
+// WRONG:
+_impl->SetConfiguration(config);  // return value ignored
+
+// Correct:
+Core::hresult result = _impl->SetConfiguration(config);
+if (result != Core::ERROR_NONE) {
+    SYSLOG(Logging::Error, "SetConfiguration failed: %d", result);
+    return result;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] hresult return value from COM call ignored`
 
 ---
 
@@ -1475,7 +2137,15 @@ The return value of every `Core::hresult`-returning COM interface method call mu
 
 **ASSERT Only for Programmer Invariants** | `warning` | Category: Code Quality
 
-`ASSERT` must only be used for conditions that represent programmer errors — invariants that should never be false in correct code. It must never be used for conditions that can legitimately occur at runtime.
+**What to check:** `ASSERT` is used only for conditions that represent programmer errors (invariants that should never be false in correct code). Never for runtime conditions that can legitimately fail.
+
+**Where to look:** All `ASSERT(...)` calls — evaluate whether the condition can ever be false at runtime.
+
+**Violation pattern:** `ASSERT` on a condition that can fail at runtime (network result, user input, config value).
+
+*(Same principle as rule_43 — this rule targets holistic patterns across the full plugin.)*
+
+**Citation format:** `[PluginName.cpp:LINE] ASSERT on runtime condition`
 
 ---
 
@@ -1483,7 +2153,23 @@ The return value of every `Core::hresult`-returning COM interface method call mu
 
 **Security: Logging, Shell, Path, and Error Exposure** | `violation` | Category: Code Quality
 
-The plugin must avoid: logging sensitive data (passwords, tokens, PII); executing shell commands with unsanitized input; exposing internal error details through JSON-RPC responses; and path traversal via external inputs.
+**What to check:** The plugin avoids: (1) logging sensitive data (passwords, tokens, PII), (2) executing shell commands with unsanitized external input, (3) exposing internal error details through JSON-RPC responses, (4) path traversal via external inputs.
+
+**Where to look:** All `SYSLOG`/`TRACE` calls, any `system()`/`popen()` calls, JSON-RPC error responses, and path construction from external input.
+
+**Violation pattern:** Sensitive data logged, or shell command built from unvalidated input.
+
+```cpp
+// WRONG:
+SYSLOG(Logging::Info, "Auth token: %s", token.c_str());  // leaks secret
+system(("rm " + userInput).c_str());                      // command injection
+
+// Correct:
+SYSLOG(Logging::Info, "Auth token received (length=%d)", token.length());
+// Never use system() with external input
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Sensitive data logged / unsanitized shell command`
 
 ---
 
@@ -1491,7 +2177,27 @@ The plugin must avoid: logging sensitive data (passwords, tokens, PII); executin
 
 **JSON-RPC Input Validation for Bounds and Types** | `violation` | Category: JSON-RPC Compliance
 
-Every JSON-RPC handler must validate numeric inputs for range bounds and type correctness before use in operations that could overflow, underflow, or cause undefined behavior.
+**What to check:** Every JSON-RPC handler validates numeric inputs for range bounds and type correctness before use in operations that could overflow, underflow, or cause undefined behavior.
+
+**Where to look:** All JSON-RPC handlers that accept numeric parameters.
+
+**Violation pattern:** Numeric input used in arithmetic or array indexing without bounds check.
+
+```cpp
+// WRONG:
+uint32_t SetVolume(const uint8_t volume) {
+    _device->SetVol(volume);  // no check — what if volume > 100?
+}
+
+// Correct:
+uint32_t SetVolume(const uint8_t volume) {
+    if (volume > 100) return Core::ERROR_BAD_REQUEST;
+    _device->SetVol(volume);
+    return Core::ERROR_NONE;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Numeric input not bounds-checked before use`
 
 ---
 
@@ -1499,7 +2205,31 @@ Every JSON-RPC handler must validate numeric inputs for range bounds and type co
 
 **Config Completeness and Resource Cleanup** | `warning` | Category: Code Quality
 
-All configuration fields must be registered with `Add()` in the `Config` constructor. All resources acquired based on configuration values must be properly released in `Deinitialize()`.
+**What to check:** All configuration fields are registered with `Add()` in the `Config` constructor. All resources acquired based on configuration values are properly released in `Deinitialize()`.
+
+**Where to look:** `Config` class constructor (for `Add()` completeness) and `Deinitialize()` (for config-based resource cleanup).
+
+**Violation pattern:** Config field used but not registered with `Add()`, or config-acquired resource not released.
+
+```cpp
+// WRONG:
+class Config : public Core::JSON::Container {
+    Config() : Core::JSON::Container() {
+        Add(_T("port"), &Port);
+        // Timeout field used in code but not Add()'d — won't parse
+    }
+    Core::JSON::DecUInt16 Port;
+    Core::JSON::DecUInt32 Timeout;  // missing Add()
+};
+
+// Correct:
+Config() : Core::JSON::Container() {
+    Add(_T("port"), &Port);
+    Add(_T("timeout"), &Timeout);
+}
+```
+
+**Citation format:** `[PluginName.h:LINE] Config field 'Timeout' not registered with Add()`
 
 ---
 
@@ -1507,7 +2237,26 @@ All configuration fields must be registered with `Add()` in the `Config` constru
 
 **OOP Error Propagation and Method Naming** | `warning` | Category: Inter-Plugin Design
 
-Out-of-process method implementations must properly propagate errors from the remote process back to the plugin host. Method names must follow Thunder naming conventions — no abbreviations, clear verb+noun form.
+**What to check:** Out-of-process method implementations properly propagate errors from the remote process back to the plugin host. Method names follow Thunder conventions — no abbreviations, clear verb+noun form.
+
+**Where to look:** OOP implementation wrapper methods and their return value handling.
+
+**Violation pattern:** Remote error swallowed (returns `ERROR_NONE` even when remote call failed), or method named with abbreviations.
+
+```cpp
+// WRONG:
+Core::hresult GetVol(uint8_t& vol) {  // abbreviated name
+    _impl->GetVolume(vol);              // ignores return value
+    return Core::ERROR_NONE;
+}
+
+// Correct:
+Core::hresult GetVolume(uint8_t& volume) {
+    return _impl->GetVolume(volume);    // propagates error
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] OOP error not propagated / method name uses abbreviation`
 
 ---
 
@@ -1515,7 +2264,25 @@ Out-of-process method implementations must properly propagate errors from the re
 
 **Observer Classes Private and Nested** | `suggestion` | Category: Conventions
 
-Observer/notification classes should be declared as private nested classes within the plugin class — not as separate public classes in the header — to keep the plugin's internal observer implementation encapsulated.
+**What to check:** Observer/notification inner classes are declared as `private` nested classes within the plugin class — not exposed as separate public classes in the header.
+
+**Where to look:** Plugin header file — notification class declarations.
+
+**Violation pattern:** Notification class declared outside the plugin class or as public.
+
+```cpp
+// WRONG:
+class DictionaryNotification : public PluginHost::IPlugin::INotification { ... };
+class Dictionary : public PluginHost::IPlugin { ... };
+
+// Correct:
+class Dictionary : public PluginHost::IPlugin {
+private:
+    class Notification : public PluginHost::IPlugin::INotification { ... };
+};
+```
+
+**Citation format:** `[PluginName.h:LINE] Observer class not nested as private inside plugin class`
 
 ---
 
@@ -1523,7 +2290,21 @@ Observer/notification classes should be declared as private nested classes withi
 
 **No Deprecated JSON-RPC APIs** | `violation` | Category: JSON-RPC Compliance
 
-No deprecated JSON-RPC APIs must be used — no legacy `Register` overloads replaced by typed versions, no deprecated event dispatch patterns.
+**What to check:** No deprecated JSON-RPC APIs are used — no legacy `Register` overloads replaced by typed versions, no `IDispatcher`, no `Announce`-style event patterns.
+
+**Where to look:** All JSON-RPC registration and event dispatch code.
+
+**Violation pattern:** Use of deprecated API (e.g. untyped `Register`, legacy event dispatch).
+
+```cpp
+// WRONG:
+Register("method", [this](const string& params) -> string { ... });  // legacy untyped
+
+// Correct:
+Register<JsonData::SetParams, JsonData::SetResult>(_T("method"), &Plugin::Method, this);
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Deprecated JSON-RPC API used`
 
 ---
 
@@ -1531,7 +2312,30 @@ No deprecated JSON-RPC APIs must be used — no legacy `Register` overloads repl
 
 **All Acquired Pointers Cleared After Deinitialize** | `violation` | Category: Lifecycle Integrity
 
-Every pointer member set to a non-null value during the plugin's lifetime must be explicitly set to `nullptr` in `Deinitialize()` (in addition to being released), such that a double-`Deinitialize()` would not cause a double-release.
+**What to check:** Every pointer member set to a non-null value during the plugin's lifetime is explicitly set to `nullptr` in `Deinitialize()` (in addition to being released). This ensures a double-`Deinitialize()` call cannot cause a double-release.
+
+**Where to look:** All pointer members vs. `Deinitialize()` body.
+
+**Violation pattern:** Pointer member released but not nulled, or not touched at all in `Deinitialize()`.
+
+```cpp
+// WRONG:
+void Deinitialize(...) {
+    _impl->Release();     // released but not nulled
+    _service->Release();
+    _service = nullptr;
+    // _connection not touched at all
+}
+
+// Correct:
+void Deinitialize(...) {
+    _impl->Release(); _impl = nullptr;
+    _service->Release(); _service = nullptr;
+    _connection = nullptr;
+}
+```
+
+**Citation format:** `[PluginName.cpp:LINE] Pointer member not set to nullptr after Release()`
 
 ---
 
