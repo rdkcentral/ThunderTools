@@ -45,7 +45,8 @@ ThunderTools/PluginQA/
 ---
 
 ### Requirement: Setup script modifies VS Code settings.json to register prompt location
-The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add
+The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add `"ThunderTools/PluginQA/Prompts": true` under `chat.promptFilesLocations`.
+
 #### Scenario: Resulting settings.json structure
 - GIVEN VS Code `settings.json` before the script runs (may be empty `{}` or have existing entries)
 - WHEN `setup-prompts.py` completes successfully
@@ -462,11 +463,7 @@ NOT by running regular expressions or keyword searches against raw text.
   a guard checking `connection->Id() == _connectionId`
 - SKIP if plugin has no IRemoteConnection::INotification implementation
 
-#### Scenario: Phase 6 - Configuration (3 checkpoints, conditional)
-- GIVEN the plugin's .conf.in file and Initialize() body
-- IF no .conf.in file exists: SKIP rule_35
-- WHEN checkpoint rule_35 runs (suggestion)
-- THEN it checks the .conf.in file contains a `startmode =` declaration;
+- WHEN checkpoint rule_35 runs (violation, conditional)
   the validator MUST read the file in full and reason about the startup configuration —
   note that `autostart` is not the same as `startmode`
 - WHEN checkpoint rule_36 runs (violation, conditional)
@@ -553,12 +550,12 @@ All rules produce the same output format — there is no separate section for th
 Every failing checkpoint MUST be output as a YAML block grouped under the source file
 it belongs to. The report structure is:
 
-```
+~~~~text
 ### {FileName} — N issue(s)
 
-```yaml
+~~~yaml
 rule_id: <id>
-status: FAIL
+status: <VIOLATION|WARNING|SUGGESTION|PASS|SKIP>
 severity: violation|warning|suggestion
 question: "..."
 answer: "..."
@@ -570,8 +567,8 @@ citation: "[FileName:line] <description>"
 fix: |
   <fixed code>
 reasoning: "..."
-` ` `
-```
+~~~
+~~~~
 
 #### Scenario: File-wise grouping
 - GIVEN a plugin review that finds issues in Dictionary.cpp, Dictionary.h, and CMakeLists.txt

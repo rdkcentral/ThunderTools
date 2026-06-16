@@ -275,7 +275,7 @@
       - Important Notes: Thunder docs link, validation priorities numbered list
         (@json first through type conventions last)
 
-- [x] 2.4 Create `ThunderTools/PluginQA/Prompts/thunder-plugin-rule-manager.prompt.md`
+- [x] 2.3 Create `ThunderTools/PluginQA/Prompts/thunder-plugin-rule-manager.prompt.md`
       Frontmatter: title: "Thunder Plugin Rule Manager",
         description: "Add, update, or remove plugin rules (automated or manual) via guided questionnaire — keeps YAML, prompt, README, and spec in sync"
       Sections (in order):
@@ -311,7 +311,7 @@
       - Phase vs General Classification table at end: 5 phase checkpoint criteria vs 6
         General criteria; ambiguous cases prompt user before proceeding
 
-- [x] 2.5 Create `ThunderTools/PluginQA/Prompts/thunder-interface-rule-manager.prompt.md`
+- [x] 2.4 Create `ThunderTools/PluginQA/Prompts/thunder-interface-rule-manager.prompt.md`
       Frontmatter: title: "Thunder Interface Rule Manager",
         description: "Add, update, or remove COM interface validation rules via guided questionnaire — keeps YAML, prompt, and spec in sync"
       Sections (in order):
@@ -339,7 +339,7 @@
       - Core vs Advisory Classification table at end: core = codegen/ABI/crash failures;
         advisory = best practice; wrong list auto-corrected with explanation
 
-- [x] 2.3 Create `ThunderTools/PluginQA/Prompts/thunder-generate-plugin.prompt.md`
+- [x] 2.5 Create `ThunderTools/PluginQA/Prompts/thunder-generate-plugin.prompt.md`
       Frontmatter: title: "Thunder Plugin Generator",
         description: "Interactive Thunder plugin skeleton generator using PluginSkeletonGenerator.py"
       Sections:
