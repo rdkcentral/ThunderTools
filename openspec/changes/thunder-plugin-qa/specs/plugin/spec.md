@@ -499,7 +499,7 @@ All rules produce the same output format — there is no separate section for th
   `extracted_code` (with [File:line] prefix where applicable), `violation_line`,
   `citation`, `fix`, `reasoning`
 - AND PASS rules are NOT listed individually — they appear only as counts in the summary table
-- Holistic Rules (8 sub-phases) cover (Rules 1–12 original, Rules 13–40 new):
+- Holistic Rules (rule_40–rule_79) cover:
   1. `#pragma once` in every .h file (suggestion)
   2. Apache 2.0 copyright headers in all source files (suggestion)
   3. No STL types where Thunder equivalents exist (warning)

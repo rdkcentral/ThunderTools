@@ -221,9 +221,8 @@ text like `{PluginName}` in output.
 - Internal helper classes (Notification, Sink, Config, etc.) are excluded
 
 **Conditional checkpoints:**
-Checkpoints 4.2, 4.3, 4.5, 4.6, 4.7, 4.8, 4.10, 5.2, 5.4, 5.9, 5C/9.1, 5C/9.2, Phase 6 are conditional.
-If the prerequisite is not found (e.g. no stored IShell pointer for 4.2), the
-checkpoint SKIPS — it does not fail.
+Checkpoints rule_09, rule_16, rule_17, rule_18, rule_20, rule_21, rule_22, rule_23, rule_25, rule_29, rule_30, rule_31, rule_33, rule_34, rule_35, rule_36, and rule_38 are conditional.
+If the prerequisite is not found (e.g. no stored IShell pointer for rule_17), the checkpoint SKIPS — it does not fail.
 
 ## Plugin Generator Design
 
@@ -267,10 +266,9 @@ The `setup-prompts.py` script does the following:
   - 39 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4,
     Phase5C:2, Phase6:3, Phase7:1, Phase8:1
   - New checkpoints added over v1.0.0: rule_08 (nullptr after Release), rule_09–10 (COM ownership + no-throw), rule_16
-    (INTERFACE_MAP + JSONRPC), rule_21/4_6/4_7/4_9/4_10/4_11/4_12 (full lifecycle
-    correctness), rule_31 (Unavailable in SinkType),
+    (INTERFACE_MAP + JSONRPC), rule_20–rule_23 (full lifecycle correctness), rule_31 (Unavailable in SinkType),
     rule_34 (connectionId guard),
-    rule_36/6_3 (JSON::Container + no magic numbers)
+    rule_36 (JSON::Container configuration), rule_37 (no hardcoded numeric tuning parameters)
 
 - `thunder-interface-rules.yaml`: version 3.2.2
   - 15 core rules + 4 advisory = 19 total

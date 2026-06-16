@@ -16,7 +16,7 @@ with all fields needed to understand, prioritise, and track fixes.
 - The system MUST generate a CSV file at:
   `ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
 - If a file with that name already exists, append `_2`, `_3` etc. (never overwrite)
-- The CSV MUST contain one header row followed by one data row per FAIL or WARNING or SUGGESTION
+- The CSV MUST contain one header row followed by one data row per VIOLATION or WARNING or SUGGESTION
 - PASS and SKIP rows are NOT included in the CSV (they appear only in the phase summary in chat)
 
 ### REQ-R2 — Interface review CSV

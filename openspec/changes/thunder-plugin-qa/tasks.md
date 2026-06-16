@@ -423,12 +423,12 @@
       - Appended after Command Examples section
       - File path: `ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
       - Create folder if absent; never overwrite (append _2, _3 suffix)
-      - Columns (14, exact order): No, Plugin, Date, Phase, rule_id, Rule_Name, Status,
+      - Columns (14, exact order): No, Plugin, Date, Phase, Rule_ID, Rule_Name, Status,
         Severity, File, Line, Citation, Issue_Description, Fix_Summary, Reasoning
-      - One row per FAIL/WARNING/SUGGESTION only — PASS and SKIP excluded
+      - One row per VIOLATION/WARNING/SUGGESTION only — PASS and SKIP excluded
       - Status = effective status after JUDGE step (VIOLATION/WARNING/SUGGESTION)
       - Reasoning column populated only when JUDGE downgraded severity; empty otherwise
-      - Formatting: UTF-8, CRLF, fields with commas/dashes quoted, embedded quotes escaped as ""
+      - Formatting: UTF-8, CRLF, fields with commas or double quotes quoted, embedded quotes escaped as ""
       - Empty report (all pass): header row + one comment row
       - Post-generation chat message: file path, issue counts, Start-Process command for Excel
 
