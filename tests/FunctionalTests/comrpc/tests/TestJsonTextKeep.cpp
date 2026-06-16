@@ -35,5 +35,5 @@ TEST_F(TestJsonTextKeep, EchoMixedCaseName) {
 TEST_F(TestJsonTextKeep, BuildVersionProperty) {
     uint32_t version = 0;
     ASSERT_EQ(_proxy->BuildVersion(version), Core::ERROR_NONE);
-    EXPECT_EQ(version, 1u);
+    EXPECT_EQ(version, 42u);
 }

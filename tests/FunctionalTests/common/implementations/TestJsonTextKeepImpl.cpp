@@ -25,7 +25,7 @@ namespace TestImplementation {
 
     class TestJsonTextKeepImpl : public FunctionalTest::ITestJsonTextKeep {
     public:
-        TestJsonTextKeepImpl() : _buildVersion(1) {}
+        TestJsonTextKeepImpl() : _buildVersion(42) {}
         ~TestJsonTextKeepImpl() override = default;
 
         TestJsonTextKeepImpl(const TestJsonTextKeepImpl&) = delete;
