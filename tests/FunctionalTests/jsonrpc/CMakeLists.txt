@@ -49,8 +49,24 @@ if(TEST_JSON_SHAPE)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonShapeJsonRpc.cpp)
 endif()
 
-if(TEST_JSON_TEXT_KEEP OR TEST_JSON_TEXT_CASE OR TEST_JSON_COMPLIANT OR TEST_JSON_UNCOMPLIANT_EXT OR TEST_JSON_UNCOMPLIANT_COL)
-    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonFormattingJsonRpc.cpp)
+if(TEST_JSON_TEXT_KEEP)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonTextKeepJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_TEXT_CASE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonTextCaseJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_COMPLIANT)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonCompliantJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_UNCOMPLIANT_EXT)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantExtendedJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_UNCOMPLIANT_COL)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsedJsonRpc.cpp)
 endif()
 
 # TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support

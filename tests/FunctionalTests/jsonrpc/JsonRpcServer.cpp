@@ -19,6 +19,8 @@
 
 #include "JsonRpcServer.h"
 
+#include <vector>
+
 namespace Thunder {
 namespace JsonRpcServer {
     JsonRpcServer* g_server = nullptr;

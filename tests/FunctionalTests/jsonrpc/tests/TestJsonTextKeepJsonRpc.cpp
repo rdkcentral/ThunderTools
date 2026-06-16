@@ -19,22 +19,24 @@
 
 #include <gtest/gtest.h>
 #include "JsonRpcTestHarness.h"
-#include <ITestLengthModes.h>
+#include <ITestJsonTextKeep.h>
 
 using namespace Thunder;
 
-class TestLengthModesJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
+class TestJsonTextKeepJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 
-TEST_F(TestLengthModesJsonRpc, EchoSingleByte) {
+TEST_F(TestJsonTextKeepJsonRpc, EchoMixedCaseName) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("echoSingleByte", R"({"input":"Wg=="})", response));
-    EXPECT_FALSE(response.empty());
+        CallMethod("EchoMixedCaseName", R"({"InputValue":77})", response));
+    // @text:keep preserves exact C++ casing; verify the echo-back value is correct
+    EXPECT_NE(response.find("77"), string::npos);
 }
 
-TEST_F(TestLengthModesJsonRpc, ReadPayload) {
+TEST_F(TestJsonTextKeepJsonRpc, BuildVersionProperty) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("readPayload", R"({"maxSize":16})", response));
-    EXPECT_FALSE(response.empty());
+        CallMethod("BuildVersion", "{}", response));
+    // impl returns hardcoded version 1
+    EXPECT_NE(response.find("1"), string::npos);
 }

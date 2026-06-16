@@ -19,28 +19,16 @@
 
 #include <gtest/gtest.h>
 #include "JsonRpcTestHarness.h"
-#include <ITestEncodingMac.h>
+#include <ITestJsonTextCase.h>
 
 using namespace Thunder;
 
-class TestEncodingMacJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
+class TestJsonTextCaseJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 
-TEST_F(TestEncodingMacJsonRpc, SetGetMacAddress) {
-    string response;
-
-    EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("setMacAddress", R"({"mac":"01:23:45:67:89:ab"})", response));
-
-    response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("getMacAddress", "{}", response));
-    // verify the stored MAC is returned correctly
-    EXPECT_NE(response.find("01:23:45:67:89:ab"), string::npos);
-}
-
-TEST_F(TestEncodingMacJsonRpc, EchoMacAddress) {
+TEST_F(TestJsonTextCaseJsonRpc, EchoCaseConvention) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("echoMacAddress", R"({"input":"de:ad:be:ef:00:01"})", response));
-    // verify the echoed MAC matches the input
-    EXPECT_NE(response.find("de:ad:be:ef:00:01"), string::npos);
+        CallMethod("echocaseconvention", R"({"sourcevalue":123})", response));
+    // @text:legacy lowercases method/param names; verify the echo-back value is correct
+    EXPECT_NE(response.find("123"), string::npos);
 }

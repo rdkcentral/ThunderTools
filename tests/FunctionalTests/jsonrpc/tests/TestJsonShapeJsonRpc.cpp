@@ -28,19 +28,23 @@ class TestJsonShapeJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 TEST_F(TestJsonShapeJsonRpc, GetWrappedCounter) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getWrappedCounter", "{}", response));
-    EXPECT_FALSE(response.empty());
+    // impl counter is initialised to 42; @wrapped encloses it in an object envelope
+    EXPECT_NE(response.find("42"), string::npos);
 }
 
 TEST_F(TestJsonShapeJsonRpc, EchoExtractedList) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("echoExtractedList", R"({"input":[7]})", response));
-    EXPECT_FALSE(response.empty());
+    // verify the echoed list element survives the @extract round-trip
+    EXPECT_NE(response.find("7"), string::npos);
 }
 
 TEST_F(TestJsonShapeJsonRpc, EchoExtractedStruct) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("echoExtractedStruct", R"({"in":{"width":1920,"height":1080}})", response));
-    EXPECT_FALSE(response.empty());
+    // verify both struct fields survive the @extract round-trip
+    EXPECT_NE(response.find("1920"), string::npos);
+    EXPECT_NE(response.find("1080"), string::npos);
 }

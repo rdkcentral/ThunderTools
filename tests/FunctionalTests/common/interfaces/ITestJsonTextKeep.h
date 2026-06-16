@@ -31,7 +31,7 @@ namespace FunctionalTest {
         enum { ID = ID_TEST_JSON_TEXT_KEEP };
 
         // @brief Verifies that the original C++ identifier casing is preserved
-        //        in generated JSON names when @text:keep is enabled.
+        //        in generated JSON names when the keep case convention is active.
         // @param InputValue  Input value used for round-trip verification.
         // @param OutputValue Receives echoed value.
         // @retval ERROR_NONE Echo completed.

@@ -20,19 +20,11 @@
 #include <gtest/gtest.h>
 #include "TestHarness.h"
 #include <ITestJsonTextKeep.h>
-#include <ITestJsonTextCase.h>
-#include <ITestJsonCompliant.h>
-#include <ITestJsonUncompliantExtended.h>
-#include <ITestJsonUncompliantCollapsed.h>
 
 using namespace Thunder;
 using namespace Thunder::FunctionalTest;
 
 class TestJsonTextKeep : public Testing::TestHarness<ITestJsonTextKeep> {};
-class TestJsonTextCase : public Testing::TestHarness<ITestJsonTextCase> {};
-class TestJsonCompliant : public Testing::TestHarness<ITestJsonCompliant> {};
-class TestJsonUncompliantExtended : public Testing::TestHarness<ITestJsonUncompliantExtended> {};
-class TestJsonUncompliantCollapsed : public Testing::TestHarness<ITestJsonUncompliantCollapsed> {};
 
 TEST_F(TestJsonTextKeep, EchoMixedCaseName) {
     uint32_t output = 0;
@@ -43,25 +35,4 @@ TEST_F(TestJsonTextKeep, EchoMixedCaseName) {
 TEST_F(TestJsonTextKeep, BuildVersionProperty) {
     uint32_t version = 0;
     ASSERT_EQ(_proxy->BuildVersion(version), Core::ERROR_NONE);
-}
-
-TEST_F(TestJsonTextCase, EchoCaseConvention) {
-    uint16_t result = 0;
-    ASSERT_EQ(_proxy->EchoCaseConvention(123, result), Core::ERROR_NONE);
-    EXPECT_EQ(result, 123u);
-}
-
-TEST_F(TestJsonCompliant, Ping) {
-    string reply;
-    ASSERT_EQ(_proxy->Ping("payload", reply), Core::ERROR_NONE);
-}
-
-TEST_F(TestJsonUncompliantExtended, PingExtended) {
-    string reply;
-    ASSERT_EQ(_proxy->PingExtended("payload", reply), Core::ERROR_NONE);
-}
-
-TEST_F(TestJsonUncompliantCollapsed, PingCollapsed) {
-    string reply;
-    ASSERT_EQ(_proxy->PingCollapsed("payload", reply), Core::ERROR_NONE);
 }

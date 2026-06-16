@@ -71,8 +71,24 @@ if(TEST_JSON_SHAPE)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonShape.cpp)
 endif()
 
-if(TEST_JSON_TEXT_KEEP OR TEST_JSON_TEXT_CASE OR TEST_JSON_COMPLIANT OR TEST_JSON_UNCOMPLIANT_EXT OR TEST_JSON_UNCOMPLIANT_COL)
-    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonFormatting.cpp)
+if(TEST_JSON_TEXT_KEEP)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonTextKeep.cpp)
+endif()
+
+if(TEST_JSON_TEXT_CASE)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonTextCase.cpp)
+endif()
+
+if(TEST_JSON_COMPLIANT)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonCompliant.cpp)
+endif()
+
+if(TEST_JSON_UNCOMPLIANT_EXT)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonUncompliantExtended.cpp)
+endif()
+
+if(TEST_JSON_UNCOMPLIANT_COL)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsed.cpp)
 endif()
 
 target_include_directories(ComRpcFunctionalTests

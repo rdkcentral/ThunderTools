@@ -48,13 +48,13 @@ namespace FunctionalTest {
             const std::vector<uint32_t>& input /* @in @extract @restrict:1..64 */,
             std::vector<uint32_t>& output /* @out @extract @restrict:1..64 */) const = 0;
 
-        // @brief Echoes a struct and requests collapsed representation in JSON.
+        // @brief Echoes a struct using the standard (non-extracted) JSON representation.
         struct Dimensions {
             uint16_t width;
             uint16_t height;
         };
 
-        // @brief Echoes a struct and requests collapsed representation in JSON.
+        // @brief Echoes a struct using the standard (non-extracted) JSON representation.
         // @param in  Input Dimensions value.
         // @param out Receives echoed Dimensions value.
         // @retval ERROR_NONE Echo completed.
