@@ -29,4 +29,5 @@ class TestJsonUncompliantExtended : public Testing::TestHarness<ITestJsonUncompl
 TEST_F(TestJsonUncompliantExtended, PingExtended) {
     string reply;
     ASSERT_EQ(_proxy->PingExtended("payload", reply), Core::ERROR_NONE);
+    EXPECT_EQ(reply, "payload");
 }
