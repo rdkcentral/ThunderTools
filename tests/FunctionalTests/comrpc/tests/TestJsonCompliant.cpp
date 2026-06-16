@@ -29,4 +29,5 @@ class TestJsonCompliant : public Testing::TestHarness<ITestJsonCompliant> {};
 TEST_F(TestJsonCompliant, Ping) {
     string reply;
     ASSERT_EQ(_proxy->Ping("payload", reply), Core::ERROR_NONE);
+    EXPECT_EQ(reply, "payload");
 }
