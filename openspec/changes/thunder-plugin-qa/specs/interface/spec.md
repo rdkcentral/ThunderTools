@@ -131,9 +131,8 @@ for each command (interface validation output, plugin checkpoint output).
 ---
 
 ### Requirement: Rules can be updated without touching prompt files
-Because rules are loaded at runtime from YAML, any rule change — adding, modifying,
-removing, or bumping severity — requires only editing the relevant YAML file.
-No prompt file (`*.prompt.md`) needs to be changed.
+Because rules are loaded at runtime from YAML, updating existing rule definitions (rewording, logic, or severity) requires only editing the relevant YAML file.
+Adding/removing rules may require updating prompt documentation (e.g., the Quick Reference table).
 
 #### Scenario: Updating an existing interface rule
 - GIVEN a developer needs to strengthen `core_5_1` (return type convention)
@@ -194,7 +193,7 @@ No prompt file (`*.prompt.md`) needs to be changed.
 - THEN they append a new entry to the appropriate phase block:
 
 ```yaml
-  - Rule_ID: "rule_13"
+  - rule_id: "rule_80"
     name: "Short Name in Title Case"
     severity: "violation"      # or: warning / suggestion
     phase: "code_style"

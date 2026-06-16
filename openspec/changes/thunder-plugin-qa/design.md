@@ -112,9 +112,9 @@ Both types produce the same YAML output block in the report. The structural
 difference is an internal implementation detail — users see one unified list
 of findings grouped by file.
 
-## YAML Interface Rule Structure
+## YAML Plugin Rule Structure
 
-Each rule in `thunder-interface-rules.yaml`:
+Each rule in `thunder-plugin-rules.yaml`:
 
 ```yaml
 - rule_id: "rule_17"
@@ -167,8 +167,8 @@ Each rule in `thunder-interface-rules.yaml`:
     This is the most common critical omission. The tag must appear immediately
     above the struct declaration as: // @json 1.0.0
   extraction_logic: |
-    1. Search for '// @json' or '/* @json' comment above the interface struct declaration
-    2. Check the line immediately preceding the 'struct EXTERNAL I...' line
+    1. Read the comment lines immediately above the interface struct declaration and determine whether an @json tag is present
+    2. Verify the @json tag is directly adjacent to the 'struct EXTERNAL I...' line (no blank lines)
   verification_logic: |
     1. Tag must appear as: // @json 1.0.0
     2. Must be immediately above the struct declaration (no blank lines between)
