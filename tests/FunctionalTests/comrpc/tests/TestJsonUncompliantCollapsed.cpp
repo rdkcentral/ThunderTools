@@ -29,4 +29,5 @@ class TestJsonUncompliantCollapsed : public Testing::TestHarness<ITestJsonUncomp
 TEST_F(TestJsonUncompliantCollapsed, PingCollapsed) {
     string reply;
     ASSERT_EQ(_proxy->PingCollapsed("payload", reply), Core::ERROR_NONE);
+    EXPECT_EQ(reply, "payload");
 }
