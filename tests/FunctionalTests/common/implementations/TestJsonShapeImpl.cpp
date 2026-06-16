@@ -45,7 +45,7 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
-        Core::hresult EchoExtractedStruct(
+        Core::hresult EchoStruct(
             const Dimensions& in,
             Dimensions& out) const override
         {

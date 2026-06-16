@@ -41,11 +41,11 @@ TEST_F(TestJsonShape, EchoExtractedList) {
     EXPECT_EQ(output[0], input[0]);
 }
 
-TEST_F(TestJsonShape, EchoExtractedStruct) {
+TEST_F(TestJsonShape, EchoStruct) {
     const ITestJsonShape::Dimensions input { 1920, 1080 };
     ITestJsonShape::Dimensions output { 0, 0 };
 
-    ASSERT_EQ(_proxy->EchoExtractedStruct(input, output), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->EchoStruct(input, output), Core::ERROR_NONE);
     EXPECT_EQ(output.width, input.width);
     EXPECT_EQ(output.height, input.height);
 }

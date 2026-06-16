@@ -40,11 +40,11 @@ TEST_F(TestJsonShapeJsonRpc, EchoExtractedList) {
     EXPECT_NE(response.find("7"), string::npos);
 }
 
-TEST_F(TestJsonShapeJsonRpc, EchoExtractedStruct) {
+TEST_F(TestJsonShapeJsonRpc, EchoStruct) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("echoExtractedStruct", R"({"in":{"width":1920,"height":1080}})", response));
-    // verify both struct fields survive the @extract round-trip
+        CallMethod("echoStruct", R"({"in":{"width":1920,"height":1080}})", response));
+    // verify both struct fields survive the standard (non-extracted) round-trip
     EXPECT_NE(response.find("1920"), string::npos);
     EXPECT_NE(response.find("1080"), string::npos);
 }

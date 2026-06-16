@@ -37,6 +37,6 @@ TEST_F(TestJsonTextKeepJsonRpc, BuildVersionProperty) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("BuildVersion", "{}", response));
-    // impl returns hardcoded version 1
-    EXPECT_NE(response.find("1"), string::npos);
+    // impl returns hardcoded version 1; match the field name to avoid false-positive on "id":1
+    EXPECT_NE(response.find("\"BuildVersion\":1"), string::npos);
 }

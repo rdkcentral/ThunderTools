@@ -39,4 +39,10 @@ TEST_F(TestLengthModes, ReadPayloadHonorsCapacity) {
 
     const uint16_t written = _proxy->ReadPayload(output, static_cast<uint16_t>(sizeof(output)));
     EXPECT_LE(written, static_cast<uint16_t>(sizeof(output)));
+    // impl writes a fixed 4-byte pattern {0xDE, 0xAD, 0xBE, 0xEF}; verify bytes were actually written
+    EXPECT_GT(written, 0u);
+    EXPECT_EQ(output[0], 0xDE);
+    EXPECT_EQ(output[1], 0xAD);
+    EXPECT_EQ(output[2], 0xBE);
+    EXPECT_EQ(output[3], 0xEF);
 }

@@ -58,7 +58,7 @@ namespace FunctionalTest {
         // @param in  Input Dimensions value.
         // @param out Receives echoed Dimensions value.
         // @retval ERROR_NONE Echo completed.
-        virtual Core::hresult EchoExtractedStruct(
+        virtual Core::hresult EchoStruct(
             const Dimensions& in /* @in */,
             Dimensions& out /* @out */) const = 0;
     };
