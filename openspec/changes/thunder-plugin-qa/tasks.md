@@ -191,9 +191,8 @@
         Class Registration (Phase 3) applies ONLY to main plugin class — internal helpers excluded
       - Contextual Judgment section: severity downgrade table with concrete example showing
         reasoning field (required on downgrade, omitted otherwise), no escalation rule
-      - All rules defined inline in the prompt for reference
-        (exact severity, extraction target, question, verification logic,
-        citation format, conditional skip rules).
+      - A shortened inline quick-reference list of all 79 rules is included in the prompt (rule_id + severity + high-level target only).
+        Full rule definitions (extraction, bounded_query, verification_logic, fix_template) are loaded from the YAML files at runtime (source of truth).
         Phase counts:
         Phase 1 Module Structure (3):
           rule_01 (suggestion): "MODULE_NAME Plugin_ Prefix"

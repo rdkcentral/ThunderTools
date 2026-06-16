@@ -328,7 +328,7 @@ virtual Core::hresult Register(INotification* notification) = 0;
 
 // Correct — INotification (1:many):
 virtual Core::hresult Register(INotification* notification) = 0;
-virtual Core::hresult Unregister(const INotification* notification) = 0;
+virtual Core::hresult Unregister(INotification* notification) = 0;
 
 // Correct — ICallback (1:1, nullptr clears):
 virtual Core::hresult Callback(ICallback* callback) = 0;
