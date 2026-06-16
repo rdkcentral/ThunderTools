@@ -167,38 +167,24 @@ if (TEST_JSON_SHAPE)
     AddTestInterface("JsonShape" COM_RPC JSON_RPC)
 endif()
 
-if (TEST_JSON_FORMATTING)
-    # Multiple @json interfaces in one header — register each sub-interface individually
-    # COM-RPC ProxyStubs are also needed for the COM-RPC test harness
-    target_sources(FunctionalTestCommon PRIVATE
-        "${CMAKE_CURRENT_SOURCE_DIR}/implementations/TestJsonFormattingImpl.cpp"
-    )
-    list(APPEND COM_RPC_INTERFACE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/interfaces/ITestJsonFormatting.h")
-    list(APPEND JSON_INTERFACE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/interfaces/ITestJsonFormatting.h")
-    string(APPEND JSON_RPC_REGISTRATIONS
-        "    FunctionalTest::JTestJsonTextKeep::Register(module,\n"
-        "        static_cast<FunctionalTest::ITestJsonTextKeep*>(\n"
-        "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITestJsonTextKeep::ID)));\n\n"
-        "    FunctionalTest::JTestJsonTextCase::Register(module,\n"
-        "        static_cast<FunctionalTest::ITestJsonTextCase*>(\n"
-        "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITestJsonTextCase::ID)));\n\n"
-        "    FunctionalTest::JTestJsonCompliant::Register(module,\n"
-        "        static_cast<FunctionalTest::ITestJsonCompliant*>(\n"
-        "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITestJsonCompliant::ID)));\n\n"
-        "    FunctionalTest::JTestJsonUncompliantExtended::Register(module,\n"
-        "        static_cast<FunctionalTest::ITestJsonUncompliantExtended*>(\n"
-        "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITestJsonUncompliantExtended::ID)));\n\n"
-        "    FunctionalTest::JTestJsonUncompliantCollapsed::Register(module,\n"
-        "        static_cast<FunctionalTest::ITestJsonUncompliantCollapsed*>(\n"
-        "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITestJsonUncompliantCollapsed::ID)));\n\n"
-    )
-    string(APPEND JSON_RPC_UNREGISTRATIONS
-        "    FunctionalTest::JTestJsonTextKeep::Unregister(module);\n"
-        "    FunctionalTest::JTestJsonTextCase::Unregister(module);\n"
-        "    FunctionalTest::JTestJsonCompliant::Unregister(module);\n"
-        "    FunctionalTest::JTestJsonUncompliantExtended::Unregister(module);\n"
-        "    FunctionalTest::JTestJsonUncompliantCollapsed::Unregister(module);\n"
-    )
+if (TEST_JSON_TEXT_KEEP)
+    AddTestInterface("JsonTextKeep" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_TEXT_CASE)
+    AddTestInterface("JsonTextCase" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_COMPLIANT)
+    AddTestInterface("JsonCompliant" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_UNCOMPLIANT_EXT)
+    AddTestInterface("JsonUncompliantExtended" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_UNCOMPLIANT_COL)
+    AddTestInterface("JsonUncompliantCollapsed" COM_RPC JSON_RPC)
 endif()
 
 list(LENGTH COM_RPC_INTERFACE_HEADERS NUM_COM_TESTS)

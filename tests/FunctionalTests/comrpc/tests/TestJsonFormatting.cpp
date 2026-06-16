@@ -19,7 +19,11 @@
 
 #include <gtest/gtest.h>
 #include "TestHarness.h"
-#include <ITestJsonFormatting.h>
+#include <ITestJsonTextKeep.h>
+#include <ITestJsonTextCase.h>
+#include <ITestJsonCompliant.h>
+#include <ITestJsonUncompliantExtended.h>
+#include <ITestJsonUncompliantCollapsed.h>
 
 using namespace Thunder;
 using namespace Thunder::FunctionalTest;

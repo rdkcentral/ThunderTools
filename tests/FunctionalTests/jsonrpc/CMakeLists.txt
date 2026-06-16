@@ -49,7 +49,7 @@ if(TEST_JSON_SHAPE)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonShapeJsonRpc.cpp)
 endif()
 
-if(TEST_JSON_FORMATTING)
+if(TEST_JSON_TEXT_KEEP OR TEST_JSON_TEXT_CASE OR TEST_JSON_COMPLIANT OR TEST_JSON_UNCOMPLIANT_EXT OR TEST_JSON_UNCOMPLIANT_COL)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonFormattingJsonRpc.cpp)
 endif()
 
