@@ -29,6 +29,7 @@ class TestJsonShape : public Testing::TestHarness<ITestJsonShape> {};
 TEST_F(TestJsonShape, GetWrappedCounter) {
     uint32_t counter = 0;
     ASSERT_EQ(_proxy->GetWrappedCounter(counter), Core::ERROR_NONE);
+    EXPECT_EQ(counter, 42u);
 }
 
 TEST_F(TestJsonShape, EchoExtractedList) {
