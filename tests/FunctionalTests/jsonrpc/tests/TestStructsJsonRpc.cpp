@@ -154,3 +154,33 @@ TEST_F(TestStructsJsonRpc, IsValidRectangle) {
     EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
 }
 
+// ===== @opaque — config property passes its JSON blob through without deserialisation =====
+
+TEST_F(TestStructsJsonRpc, Config_Opaque_RoundTrip) {
+    string response;
+    // SET — the opaque blob is passed as the raw params object
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("config", R"({"level":5,"label":"test"})", response));
+
+    response.clear();
+    // GET — the stored blob is returned verbatim
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("config", "{}", response));
+    EXPECT_NE(response.find("level"), string::npos) << "Response: " << response;
+    EXPECT_NE(response.find("test"), string::npos) << "Response: " << response;
+}
+
+// ===== @index — slotPoint@<N> addresses each slot independently =====
+
+TEST_F(TestStructsJsonRpc, SlotPoint_IndexedProperty) {
+    string response;
+    // SET slotPoint@0 — @index makes the slot suffix part of the method name
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("slotPoint@0", R"({"x":7,"y":13})", response));
+
+    response.clear();
+    // GET slotPoint@0
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("slotPoint@0", "{}", response));
+    EXPECT_NE(response.find("7"), string::npos) << "Response: " << response;
+    EXPECT_NE(response.find("13"), string::npos) << "Response: " << response;
+}
+
