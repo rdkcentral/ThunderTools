@@ -158,13 +158,13 @@ TEST_F(TestStructsJsonRpc, IsValidRectangle) {
 
 TEST_F(TestStructsJsonRpc, Config_Opaque_RoundTrip) {
     string response;
-    // SET — the opaque blob is passed as the raw params object
+    // SET — pass the opaque blob as the value of the "config" field
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("config", R"({"level":5,"label":"test"})", response));
+        CallMethod("setConfig", R"({"config":{"level":5,"label":"test"}})", response));
 
     response.clear();
     // GET — the stored blob is returned verbatim
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("config", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("getConfig", "{}", response));
     EXPECT_NE(response.find("level"), string::npos) << "Response: " << response;
     EXPECT_NE(response.find("test"), string::npos) << "Response: " << response;
 }
@@ -173,13 +173,13 @@ TEST_F(TestStructsJsonRpc, Config_Opaque_RoundTrip) {
 
 TEST_F(TestStructsJsonRpc, SlotPoint_IndexedProperty) {
     string response;
-    // SET slotPoint@0 — @index makes the slot suffix part of the method name
+    // SET via setSlotPoint method — slot is a named param, point is the struct
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("slotPoint@0", R"({"x":7,"y":13})", response));
+        CallMethod("setSlotPoint", R"({"slot":0,"point":{"x":7,"y":13}})", response));
 
     response.clear();
-    // GET slotPoint@0
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("slotPoint@0", "{}", response));
+    // GET via getSlotPoint@<index> indexed property
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("getSlotPoint@0", "{}", response));
     EXPECT_NE(response.find("7"), string::npos) << "Response: " << response;
     EXPECT_NE(response.find("13"), string::npos) << "Response: " << response;
 }
