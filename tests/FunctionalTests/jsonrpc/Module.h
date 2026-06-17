@@ -25,7 +25,7 @@
 
 #include <core/core.h>
 #include <com/com.h>
-#include <plugins/JSONRPC.h>
+#include <common/JSONRPC.h>
 
 #undef EXTERNAL
 #define EXTERNAL
