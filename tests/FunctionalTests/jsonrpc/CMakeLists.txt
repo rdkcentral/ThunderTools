@@ -25,6 +25,10 @@ target_include_directories(JsonRpcFunctionalTests
         ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+if(TEST_ASYNC)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAsyncJsonRpc.cpp)
+endif()
+
 if(TEST_ENUMS)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestEnumsJsonRpc.cpp)
 endif() 

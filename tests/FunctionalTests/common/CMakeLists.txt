@@ -65,6 +65,7 @@ target_link_libraries(FunctionalTestJsonSources
     PRIVATE
         FunctionalTestCommon
         ${NAMESPACE}Core::${NAMESPACE}Core
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
 )
 
 macro(AddTestInterface TestName)
@@ -152,7 +153,7 @@ if (TEST_EVENTS)
 endif()
 
 if (TEST_ASYNC)
-    AddTestInterface("Async" COM_RPC)
+    AddTestInterface("Async" COM_RPC JSON_RPC)
 endif()
 
 if (TEST_ENCODING_MAC)
