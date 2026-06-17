@@ -163,7 +163,7 @@ TEST_F(TestStructsJsonRpc, Config_Opaque_RoundTrip) {
         CallMethod("setConfig", R"({"config":{"level":5,"label":"test"}})", response));
 
     response.clear();
-    // GET — the stored blob is returned verbatim
+    // GET — verify the stored blob survives the round-trip (key order/formatting may differ)
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getConfig", "{}", response));
     EXPECT_NE(response.find("level"), string::npos) << "Response: " << response;
     EXPECT_NE(response.find("test"), string::npos) << "Response: " << response;
