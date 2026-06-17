@@ -152,7 +152,7 @@ if (TEST_EVENTS)
 endif()
 
 if (TEST_ASYNC)
-    AddTestInterface("Async" COM_RPC JSON_RPC)
+    AddTestInterface("Async" COM_RPC)
 endif()
 
 if (TEST_ENCODING_MAC)
