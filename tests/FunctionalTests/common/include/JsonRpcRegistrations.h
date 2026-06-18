@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include "Module.h"
+#include <plugins/plugins.h>
 
 namespace Thunder {
 namespace Test {

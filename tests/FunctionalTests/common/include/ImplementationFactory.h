@@ -19,8 +19,7 @@
 
 #pragma once
 
-#include "Module.h"
-
+#include <plugins/plugins.h>
 #include <map>
 
 namespace Thunder {
