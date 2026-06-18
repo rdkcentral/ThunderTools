@@ -41,12 +41,12 @@ namespace FunctionalTest {
             uint8_t output[] /* @out @length:1 @maxlength:1 */) const = 0;
 
         // @brief Fills an output buffer and returns the payload length directly.
-        // @brief Returns a fixed 4-byte payload using @length:return to convey the written byte count.
-        //        Intended to cover the @length:return annotation in a signature
+        // @brief Returns a fixed 4-byte payload using the length:return annotation to convey the written byte count.
+        //        Intended to cover the length:return annotation in a signature
         //        where the return type carries the produced byte count.
         //
         //        NOTE: returning uint16_t instead of Core::hresult is a deliberate trade-off for
-        //        test coverage of the @length:return code path, not an oversight. The downside is
+        //        test coverage of the length:return code path, not an oversight. The downside is
         //        that callers lose the ability to detect transport-level failures: there is no
         //        hresult channel through which such errors can be signalled.
         // @param output  Receives payload bytes.
