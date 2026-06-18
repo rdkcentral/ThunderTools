@@ -36,6 +36,12 @@ option(TEST_JSON_UNCOMPLIANT_COL "Enable @uncompliant:collapsed format tests"   
 
 set(CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}" CACHE BOOL "" FORCE)
 
+# Pre-set generator paths before add_subdirectory(external/thunder) so that
+# find_package(ProxyStubGenerator) inside Thunder does not fail on a fresh build.
+set(PROXYSTUB_GENERATOR "${CMAKE_SOURCE_DIR}/ProxyStubGenerator/StubGenerator.py" CACHE BOOL "" FORCE)
+set(JSON_GENERATOR "${CMAKE_SOURCE_DIR}/JsonGenerator/JsonGenerator.py" CACHE BOOL "" FORCE)
+set(CONFIG_GENERATOR_PATH "${CMAKE_SOURCE_DIR}/ConfigGenerator/" CACHE BOOL "" FORCE)
+
 enable_testing()
 
 add_subdirectory(external/googletest)

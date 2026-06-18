@@ -30,5 +30,5 @@ TEST_F(TestJsonTextCaseJsonRpc, EchoCaseConvention) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("echocaseconvention", R"({"sourcevalue":123})", response));
     // @text:legacy lowercases method/param names; verify the echo-back value is correct
-    EXPECT_NE(response.find("123"), string::npos);
+    EXPECT_EQ(response, "123") << "Response: " << response;
 }

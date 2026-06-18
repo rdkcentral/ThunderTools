@@ -30,5 +30,5 @@ TEST_F(TestJsonUncompliantExtendedJsonRpc, PingExtended) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("pingExtended", R"({"payload":"abc"})", response));
     // impl echoes payload into reply; verify the value survives the extended uncompliant envelope
-    EXPECT_NE(response.find("abc"), string::npos);
+    EXPECT_EQ(response, "\"abc\"") << "Response: " << response;
 }

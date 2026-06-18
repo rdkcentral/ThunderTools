@@ -76,18 +76,18 @@ TEST_F(TestRestrictionsJsonRpc, SetName_TooLongRejected) {
 TEST_F(TestRestrictionsJsonRpc, ClampedAdd_ValidInputs) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("clampedAdd", R"({"a":10,"b":20})", response));
-    EXPECT_NE(response.find("30"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "30") << "Response: " << response;
 }
 
 TEST_F(TestRestrictionsJsonRpc, IsValidPercentage) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("isValidPercentage", R"({"value":50})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("isValidPercentage", R"({"value":150})", response));
-    EXPECT_NE(response.find("false"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "false") << "Response: " << response;
 }
 
 TEST_F(TestRestrictionsJsonRpc, IsValidRatio) {
@@ -95,6 +95,6 @@ TEST_F(TestRestrictionsJsonRpc, IsValidRatio) {
     
     // Parameter name is "ratio" not "value"
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("isValidRatio", R"({"ratio":0.5})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
 }
 

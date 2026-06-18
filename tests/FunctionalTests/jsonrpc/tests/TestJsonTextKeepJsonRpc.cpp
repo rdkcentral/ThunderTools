@@ -30,7 +30,7 @@ TEST_F(TestJsonTextKeepJsonRpc, EchoMixedCaseName) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("EchoMixedCaseName", R"({"InputValue":77})", response));
     // @text:keep preserves exact C++ casing; verify the echo-back value is correct
-    EXPECT_NE(response.find("77"), string::npos);
+    EXPECT_EQ(response, "77") << "Response: " << response;
 }
 
 TEST_F(TestJsonTextKeepJsonRpc, BuildVersionProperty) {
@@ -38,5 +38,5 @@ TEST_F(TestJsonTextKeepJsonRpc, BuildVersionProperty) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("BuildVersion", "{}", response));
     // impl returns hardcoded version 42; search for the bare number (won't appear in the JSON-RPC envelope)
-    EXPECT_NE(response.find("42"), string::npos);
+    EXPECT_EQ(response, "42") << "Response: " << response;
 }

@@ -27,6 +27,10 @@ namespace FunctionalTest {
 
     // @json 1.0.0
     // @uncompliant:collapsed
+    //
+    // NOTE: @uncompliant:collapsed is deprecated (Thunder docs/interfaces/tags.md) and must not
+    // be used in new interfaces. This interface exists solely to pin generator behaviour for
+    // existing consumers that already use this mode. Do not copy PingCollapsed as a usage example.
     struct EXTERNAL ITestJsonUncompliantCollapsed : virtual public Core::IUnknown {
         enum { ID = ID_TEST_JSON_UNCOMPLIANT_COL };
 

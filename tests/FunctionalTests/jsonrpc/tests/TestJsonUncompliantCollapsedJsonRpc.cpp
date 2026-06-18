@@ -30,5 +30,5 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, PingCollapsed) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("pingCollapsed", R"("abc")", response));
     // impl echoes payload; collapsed mode passes and returns raw JSON string
-    EXPECT_NE(response.find("abc"), string::npos);
+    EXPECT_EQ(response, "\"abc\"") << "Response: " << response;
 }

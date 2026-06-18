@@ -34,7 +34,7 @@ TEST_F(TestEncodingMacJsonRpc, SetGetMacAddress) {
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getMacAddress", "{}", response));
     // verify the stored MAC is returned correctly
-    EXPECT_NE(response.find("01:23:45:67:89:ab"), string::npos);
+    EXPECT_EQ(response, "\"01:23:45:67:89:ab\"") << "Response: " << response;
 }
 
 TEST_F(TestEncodingMacJsonRpc, EchoMacAddress) {
@@ -42,5 +42,5 @@ TEST_F(TestEncodingMacJsonRpc, EchoMacAddress) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("echoMacAddress", R"({"input":"de:ad:be:ef:00:01"})", response));
     // verify the echoed MAC matches the input
-    EXPECT_NE(response.find("de:ad:be:ef:00:01"), string::npos);
+    EXPECT_EQ(response, "\"de:ad:be:ef:00:01\"") << "Response: " << response;
 }

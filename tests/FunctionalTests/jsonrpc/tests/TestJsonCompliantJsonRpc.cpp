@@ -29,5 +29,5 @@ TEST_F(TestJsonCompliantJsonRpc, Ping) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("ping", R"({"payload":"abc"})", response));
     // impl echoes payload into reply; verify the value survives the compliant envelope
-    EXPECT_NE(response.find("abc"), string::npos);
+    EXPECT_EQ(response, "\"abc\"") << "Response: " << response;
 }

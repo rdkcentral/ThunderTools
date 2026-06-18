@@ -35,8 +35,7 @@ TEST_F(TestStructsJsonRpc, SetGetPoint_RoundTrip) {
     // Get point back
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getPoint", "{}", response));
-    EXPECT_NE(response.find("100"), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("200"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "{\"x\":100,\"y\":200}") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, SetGetRectangle_RoundTrip) {
@@ -48,8 +47,7 @@ TEST_F(TestStructsJsonRpc, SetGetRectangle_RoundTrip) {
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getRectangle", "{}", response));
-    EXPECT_NE(response.find("10"), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("20"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "{\"topLeft\":{\"x\":10,\"y\":20},\"bottomRight\":{\"x\":310,\"y\":420}}") << "Response: " << response;
 }
 
 // DISABLED: setColor/getColor methods fail with error 30 (not found) despite being registered in JTestStructs.h.
@@ -74,8 +72,7 @@ TEST_F(TestStructsJsonRpc, MovePoint) {
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("movePoint", 
         R"({"point":{"x":100,"y":200},"dx":50,"dy":-30})", response));
-    EXPECT_NE(response.find("150"), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("170"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "{\"x\":150,\"y\":170}") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, DistanceBetweenPoints_Pythagorean) {
@@ -101,8 +98,7 @@ TEST_F(TestStructsJsonRpc, EchoPoint) {
     // echoPoint expects "point" parameter
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoPoint", 
         R"({"point":{"x":42,"y":84}})", response));
-    EXPECT_NE(response.find("42"), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("84"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "{\"x\":42,\"y\":84}") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, IsValidPoint) {
@@ -110,7 +106,7 @@ TEST_F(TestStructsJsonRpc, IsValidPoint) {
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("isValidPoint", 
         R"({"point":{"x":100,"y":200}})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, CalculateRectangleArea) {
@@ -118,7 +114,7 @@ TEST_F(TestStructsJsonRpc, CalculateRectangleArea) {
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("calculateRectangleArea", 
         R"({"rect":{"topLeft":{"x":0,"y":0},"bottomRight":{"x":10,"y":20}}})", response));
-    EXPECT_NE(response.find("200"), string::npos) << "Response: " << response;  // 10 * 20 = 200
+    EXPECT_EQ(response, "200") << "Response: " << response;  // 10 * 20 = 200
 }
 
 TEST_F(TestStructsJsonRpc, GetRectangleCenter) {
@@ -126,7 +122,7 @@ TEST_F(TestStructsJsonRpc, GetRectangleCenter) {
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getRectangleCenter", 
         R"({"rect":{"topLeft":{"x":0,"y":0},"bottomRight":{"x":10,"y":20}}})", response));
-    EXPECT_NE(response.find("5"), string::npos) << "Response: " << response;  // center x=5
+    EXPECT_EQ(response, "{\"x\":5,\"y\":10}") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, RectanglesOverlap) {
@@ -135,7 +131,7 @@ TEST_F(TestStructsJsonRpc, RectanglesOverlap) {
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("rectanglesOverlap", 
         R"({"r1":{"topLeft":{"x":0,"y":0},"bottomRight":{"x":10,"y":10}},
             "r2":{"topLeft":{"x":5,"y":5},"bottomRight":{"x":15,"y":15}}})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, ScaleRectangle) {
@@ -143,7 +139,7 @@ TEST_F(TestStructsJsonRpc, ScaleRectangle) {
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("scaleRectangle", 
         R"({"rect":{"topLeft":{"x":0,"y":0},"bottomRight":{"x":10,"y":10}},"factor":2.0})", response));
-    EXPECT_NE(response.find("20"), string::npos) << "Response: " << response;  // scaled to 20x20
+    EXPECT_EQ(response, "{\"topLeft\":{\"x\":0,\"y\":0},\"bottomRight\":{\"x\":20,\"y\":20}}") << "Response: " << response;
 }
 
 TEST_F(TestStructsJsonRpc, IsValidRectangle) {
@@ -151,7 +147,7 @@ TEST_F(TestStructsJsonRpc, IsValidRectangle) {
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("isValidRectangle", 
         R"({"rect":{"topLeft":{"x":0,"y":0},"bottomRight":{"x":10,"y":10}}})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
 }
 
 // ===== @opaque — config property passes its JSON blob through without deserialisation =====
@@ -165,8 +161,7 @@ TEST_F(TestStructsJsonRpc, Config_Opaque_RoundTrip) {
     response.clear();
     // GET — verify the stored blob survives the round-trip (key order/formatting may differ)
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getConfig", "{}", response));
-    EXPECT_NE(response.find("level"), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("test"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "{\"level\":5,\"label\":\"test\"}") << "Response: " << response;
 }
 
 // ===== @index — slotPoint@<N> addresses each slot independently =====
@@ -180,7 +175,6 @@ TEST_F(TestStructsJsonRpc, SlotPoint_IndexedProperty) {
     response.clear();
     // GET via getSlotPoint@<index> indexed property
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getSlotPoint@0", "{}", response));
-    EXPECT_NE(response.find("7"), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("13"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "{\"x\":7,\"y\":13}") << "Response: " << response;
 }
 

@@ -93,7 +93,7 @@ namespace FunctionalTest {
         // @param result Receives the computed uint32_t value.
         // @retval ERROR_INPROGRESS  The calculation on this slot has not completed yet.
         // @retval ERROR_NOT_EXIST   The slot was never assigned or has already been consumed.
-        virtual Core::hresult SlotResult(const uint8_t slot /* @index @restrict:0..6 */, uint32_t& result /* @out */) const = 0;
+        virtual Core::hresult SlotResult(const uint8_t slot /* @index */, uint32_t& result /* @out */) const = 0;
 
         // @brief Returns whether the given slot is currently running a calculation.
         // @param slot       Slot index (0..6) to query.

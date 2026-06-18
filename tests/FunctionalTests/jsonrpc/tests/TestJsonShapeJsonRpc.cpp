@@ -29,7 +29,7 @@ TEST_F(TestJsonShapeJsonRpc, GetWrappedCounter) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getWrappedCounter", "{}", response));
     // impl counter is initialised to 42; @wrapped encloses it in an object envelope
-    EXPECT_NE(response.find("42"), string::npos);
+    EXPECT_EQ(response, "{\"counter\":42}") << "Response: " << response;
 }
 
 TEST_F(TestJsonShapeJsonRpc, EchoExtractedList) {
@@ -37,7 +37,7 @@ TEST_F(TestJsonShapeJsonRpc, EchoExtractedList) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("echoExtractedList", R"({"input":[7]})", response));
     // verify the echoed list element survives the @extract round-trip
-    EXPECT_NE(response.find("7"), string::npos);
+    EXPECT_EQ(response, "[7]") << "Response: " << response;
 }
 
 TEST_F(TestJsonShapeJsonRpc, EchoStruct) {
@@ -45,6 +45,5 @@ TEST_F(TestJsonShapeJsonRpc, EchoStruct) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("echoStruct", R"({"in":{"width":1920,"height":1080}})", response));
     // verify both struct fields survive the standard (non-extracted) round-trip
-    EXPECT_NE(response.find("1920"), string::npos);
-    EXPECT_NE(response.find("1080"), string::npos);
+    EXPECT_EQ(response, "{\"width\":1920,\"height\":1080}") << "Response: " << response;
 }
