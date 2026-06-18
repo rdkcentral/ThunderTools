@@ -52,6 +52,24 @@ static uint8_t ParseSlot(const string& response)
     return static_cast<uint8_t>(std::stoi(response.substr(pos + 7)));
 }
 
+// Poll slotResult@<slot> until it returns Core::ERROR_NONE or the deadline elapses.
+// Retries every 20 ms so the test is not sensitive to a fixed delay.
+static Core::hresult PollSlotResult(JsonRpcTesting::JsonRpcTestHarness& harness,
+                                    uint8_t slot, string& response,
+                                    std::chrono::milliseconds timeout = std::chrono::milliseconds(2000))
+{
+    const auto deadline = std::chrono::steady_clock::now() + timeout;
+    Core::hresult result = Core::ERROR_GENERAL;
+    do {
+        result = harness.CallMethod("slotResult@" + std::to_string(slot), "{}", response);
+        if (result == Core::ERROR_NONE) {
+            break;
+        }
+        std::this_thread::sleep_for(std::chrono::milliseconds(20));
+    } while (std::chrono::steady_clock::now() < deadline);
+    return result;
+}
+
 // @async — calculate() returns a slot index synchronously in the JSON-RPC response;
 // the ICallback is replaced by the framework's event-delivery mechanism.
 TEST_F(TestAsyncJsonRpc, Calculate_ReturnsSlot)
@@ -76,10 +94,10 @@ TEST_F(TestAsyncJsonRpc, Calculate_DefaultDelay)
     uint8_t slot = ParseSlot(response);
     ASSERT_LE(slot, 6u) << "Slot must be in range [0..6]: " << response;
 
-    // Wait for the default-delay (100 ms) calculation to complete, then consume
-    // the result so the slot is freed before the next test.
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-    CallMethod("slotResult@" + std::to_string(slot), "{}", response);
+    // Poll until the default-delay (100 ms) calculation completes so the slot is
+    // freed before the next test.
+    ASSERT_EQ(Core::ERROR_NONE, PollSlotResult(*this, slot, response))
+        << "SlotResult not ready within timeout for slot " << +slot;
 }
 
 // @async state — inProgress must report true while the calculation is still running.
@@ -110,13 +128,10 @@ TEST_F(TestAsyncJsonRpc, SlotResult_IndexProperty)
     uint8_t slot = ParseSlot(response);
     ASSERT_LE(slot, 6u);
 
-    // Wait for the 50 ms calculation to finish.
-    std::this_thread::sleep_for(std::chrono::milliseconds(300));
-
-    // Read the result via the @index property: slotResult@<N>
+    // Poll until the 50 ms calculation finishes rather than relying on a fixed sleep.
     string resultResponse;
-    ASSERT_EQ(Core::ERROR_NONE,
-        CallMethod("slotResult@" + std::to_string(slot), "{}", resultResponse));
+    ASSERT_EQ(Core::ERROR_NONE, PollSlotResult(*this, slot, resultResponse))
+        << "SlotResult not ready within timeout for slot " << +slot;
     // impl computes value * 2, so 21 * 2 = 42
     EXPECT_NE(resultResponse.find("42"), string::npos) << "Response: " << resultResponse;
 }
