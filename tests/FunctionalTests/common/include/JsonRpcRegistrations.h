@@ -19,7 +19,7 @@
 
 #pragma once
 
-#include <plugins/JSONRPC.h>
+#include <plugins/plugins.h>
 
 namespace Thunder {
 namespace Test {
