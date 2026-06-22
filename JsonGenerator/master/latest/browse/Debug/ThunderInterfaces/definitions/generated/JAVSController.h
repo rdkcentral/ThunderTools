@@ -38,6 +38,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (muted.IsSet() == false) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAVSController"), _T("mute")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -56,6 +57,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (started.IsSet() == false) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAVSController"), _T("record")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {

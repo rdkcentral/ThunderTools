@@ -38,6 +38,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMessagingControl"), _T("enable")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -58,7 +59,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
+                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Modules(_result_);
 

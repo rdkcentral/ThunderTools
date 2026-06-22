@@ -62,6 +62,7 @@ namespace Example {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("acquire")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -87,6 +88,7 @@ namespace Example {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("relinquish")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -171,6 +173,7 @@ namespace Example {
                     else {
 
                         if (params.IsDataValid() == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("device::name")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -234,6 +237,7 @@ namespace Example {
                         else {
 
                             if (params.IsDataValid() == false) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("device::pin")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                             else {

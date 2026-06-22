@@ -38,6 +38,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("install")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -65,6 +66,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("uninstall")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -90,6 +92,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("download")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -116,6 +119,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("reset")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -137,6 +141,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getStorageDetails")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -162,6 +167,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("setAuxMetadata")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -184,6 +190,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("clearAuxMetadata")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -205,6 +212,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getMetadata")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -246,6 +254,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("cancel")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -264,6 +273,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getProgress")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -286,6 +296,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getList")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -318,6 +329,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("lock")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -344,6 +356,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("unlock")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -362,6 +375,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JPackageManager"), _T("getLockInfo")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {

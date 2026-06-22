@@ -47,23 +47,27 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMessenger"), _T("join")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
                             const string _room_{params.Room};
                             const string _user_{params.User};
                             const Exchange::JSONRPC::IMessenger::security _secure_{params.Secure};
-                            ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _acl_{};
+                            ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _acl_{};
                             std::list<string> _aclElements_{};
                             auto _aclIterator_ = params.Acl.Elements();
                             while (_aclIterator_.Next() == true) { _aclElements_.push_back(_aclIterator_.Current()); }
-                            using _aclIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>;
-                            _acl_ = Core::ServiceType<_aclIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>(std::move(_aclElements_));
+                            using _aclIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>;
+                            _acl_ = Core::ServiceType<_aclIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>(std::move(_aclElements_));
                             ASSERT(_acl_ != nullptr);
 
                             string _roomId_{};
 
                             _errorCode__ = _implementation__->Join(context_, _room_, _user_, _secure_, _acl_, _roomId_);
+                            if (_acl_ != nullptr) {
+                                _acl_->Release();
+                            }
 
                             if (_errorCode__ == Core::ERROR_NONE) {
                                 roomId = _roomId_;
@@ -79,6 +83,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMessenger"), _T("leave")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -97,6 +102,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JMessenger"), _T("send")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -210,12 +216,12 @@ namespace Exchange {
                     if (sendIfMethod_ == nullptr) {
                         module_.Notify(_T("userupdate"), params, [&id_](const string& designator_) -> bool {
                             Core::hresult _errorCode__ = Core::ERROR_NONE;
-                            const string designatorId_ = designator_.substr(0, designator_.find('.'));
+                            const string index_ = designator_.substr(0, designator_.find('.'));
 
-                            if (designatorId_.empty() == true) {
+                            if (index_.empty() == true) {
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
-                            return ((_errorCode__ == Core::ERROR_NONE) && (id_ == designatorId_));
+                            return ((_errorCode__ == Core::ERROR_NONE) && (id_ == index_));
                         });
                     }
                     else {
@@ -230,12 +236,12 @@ namespace Exchange {
                     module_.Notify(_T("userupdate"), params, [&id_, &client_](const string& designator_) -> bool {
                         Core::hresult _errorCode__ = Core::ERROR_NONE;
                         const size_t _dot = designator_.find('.');
-                        const string designatorId_ = designator_.substr(0, _dot);
+                        const string index_ = designator_.substr(0, _dot);
 
-                        if (designatorId_.empty() == true) {
+                        if (index_.empty() == true) {
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
-                        return ((_errorCode__ == Core::ERROR_NONE) && ((client_.empty() == true) || (client_ == designator_.substr(_dot + 1))) && (id_ == designatorId_));
+                        return ((_errorCode__ == Core::ERROR_NONE) && ((client_.empty() == true) || (client_ == designator_.substr(_dot + 1))) && (id_ == index_));
                     });
                 }
 
@@ -290,12 +296,12 @@ namespace Exchange {
                     if (sendIfMethod_ == nullptr) {
                         module_.Notify(_T("message"), params, [&id_](const string& designator_) -> bool {
                             Core::hresult _errorCode__ = Core::ERROR_NONE;
-                            const string designatorId_ = designator_.substr(0, designator_.find('.'));
+                            const string index_ = designator_.substr(0, designator_.find('.'));
 
-                            if (designatorId_.empty() == true) {
+                            if (index_.empty() == true) {
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
-                            return ((_errorCode__ == Core::ERROR_NONE) && (id_ == designatorId_));
+                            return ((_errorCode__ == Core::ERROR_NONE) && (id_ == index_));
                         });
                     }
                     else {

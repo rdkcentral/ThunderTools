@@ -38,6 +38,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JDNSServer"), _T("findByKey")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -62,6 +63,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JDNSServer"), _T("countByType")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -85,6 +87,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JDNSServer"), _T("findByType")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -110,6 +113,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JDNSServer"), _T("add")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -128,6 +132,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JDNSServer"), _T("remove")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {

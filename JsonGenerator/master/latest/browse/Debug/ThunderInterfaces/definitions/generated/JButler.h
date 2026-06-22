@@ -40,6 +40,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("name")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -65,6 +66,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("identifier")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -90,6 +92,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("branch")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -108,6 +111,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("move")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -127,6 +131,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("delete")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -145,6 +150,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("source")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -167,6 +173,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("link")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -186,6 +193,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JButler"), _T("orphans")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {

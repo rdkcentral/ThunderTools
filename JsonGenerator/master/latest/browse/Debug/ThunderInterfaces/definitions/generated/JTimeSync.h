@@ -79,6 +79,7 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JTimeSync"), _T("time")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {

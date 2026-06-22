@@ -105,6 +105,7 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAudioStream"), _T("audioprofile")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -153,6 +154,7 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAudioStream"), _T("speed")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {

@@ -48,6 +48,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("setdiscoverable")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -69,6 +70,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("stopdiscoverable")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -87,6 +89,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("scan")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -107,6 +110,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("stopscanning")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -125,6 +129,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("connect")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -144,6 +149,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("disconnect")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -163,6 +169,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("pair")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -184,6 +191,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("unpair")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -203,6 +211,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("abortpairing")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -222,6 +231,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("providepincode")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -242,6 +252,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("confirmpasskey")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -262,6 +273,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("providepasskey")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -282,6 +294,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("forget")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
@@ -323,6 +336,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("getdeviceinfo")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {

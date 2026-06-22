@@ -38,6 +38,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("flush")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -55,7 +56,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
+                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Interfaces(_result_);
 
@@ -123,6 +124,7 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("network")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                             else {
@@ -135,6 +137,9 @@ namespace Exchange {
                                 ASSERT(_value_ != nullptr);
 
                                 _errorCode__ = _implementation__->Network(interface, static_cast<::Thunder::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const&>(_value_));
+                                if (_value_ != nullptr) {
+                                    _value_->Release();
+                                }
 
                             }
 
@@ -151,7 +156,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
+                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
 
                         _errorCode__ = (static_cast<const INetworkControl*>(_implementation__))->DNS(_result_);
 
@@ -168,18 +173,22 @@ namespace Exchange {
                     else {
 
                         if (params.IsDataValid() == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("dns")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
-                            ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _value_{};
+                            ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _value_{};
                             std::list<string> _valueElements_{};
                             auto _valueIterator_ = params.Value.Elements();
                             while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                            using _valueIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>;
-                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
+                            using _valueIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>;
+                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
                             ASSERT(_value_ != nullptr);
 
-                            _errorCode__ = _implementation__->DNS(static_cast<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* const&>(_value_));
+                            _errorCode__ = _implementation__->DNS(static_cast<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* const&>(_value_));
+                            if (_value_ != nullptr) {
+                                _value_->Release();
+                            }
 
                         }
 
@@ -212,6 +221,7 @@ namespace Exchange {
                         else {
 
                             if (params.IsDataValid() == false) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JNetworkControl"), _T("up")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                             else {

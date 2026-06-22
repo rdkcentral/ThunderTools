@@ -37,6 +37,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (message.IsSet() == false) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JAmazonPrime"), _T("send")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {

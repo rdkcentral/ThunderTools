@@ -38,6 +38,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWebBrowserExt"), _T("deletedir")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -58,7 +59,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
+                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
 
                         _errorCode__ = (static_cast<const IWebBrowserExt*>(_implementation__))->Languages(_result_);
 
@@ -73,15 +74,18 @@ namespace Exchange {
                         }
                     }
                     else {
-                        ::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _params_{};
+                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _params_{};
                         std::list<string> _paramsElements_{};
                         auto _paramsIterator_ = params.Elements();
                         while (_paramsIterator_.Next() == true) { _paramsElements_.push_back(_paramsIterator_.Current()); }
-                        using _paramsIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>;
-                        _params_ = Core::ServiceType<_paramsIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>(std::move(_paramsElements_));
+                        using _paramsIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>;
+                        _params_ = Core::ServiceType<_paramsIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>(std::move(_paramsElements_));
                         ASSERT(_params_ != nullptr);
 
-                        _errorCode__ = _implementation__->Languages(static_cast<::Thunder::RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* const&>(_params_));
+                        _errorCode__ = _implementation__->Languages(static_cast<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* const&>(_params_));
+                        if (_params_ != nullptr) {
+                            _params_->Release();
+                        }
 
                         result.Null(true);
                     }

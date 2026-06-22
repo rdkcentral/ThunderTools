@@ -38,6 +38,7 @@ namespace Example {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JCustomErrorCode"), _T("triggerCustomError")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -56,6 +57,7 @@ namespace Example {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JCustomErrorCode"), _T("triggerNonCustomError")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
