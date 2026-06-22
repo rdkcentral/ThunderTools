@@ -7,36 +7,6 @@ FRAMEWORK_NAMESPACE = "Thunder"
 INTERFACES, METHODS, ENUMS, Type = ...
 
 --  ICOM.h
-INTERFACES[5] = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>"
-METHODS[5] = {
-    [3] = { name = "Next", signature = "virtual bool Next(string&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.STRING16, class = "string" } } }, 
-    [4] = { name = "Previous", signature = "virtual bool Previous(string&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.STRING16, class = "string" } } }, 
-    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
-    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
-    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
-    [8] = { name = "Current", signature = "virtual string Current() const = 0", retvals = { { type = Type.STRING16, class = "string" } } } 
-}
-
-INTERFACES[7] = "RPC::IIteratorType<uint32_t, RPC::ID_VALUEITERATOR>"
-METHODS[7] = {
-    [3] = { name = "Next", signature = "virtual bool Next(uint32_t&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } } }, 
-    [4] = { name = "Previous", signature = "virtual bool Previous(uint32_t&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } } }, 
-    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
-    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
-    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
-    [8] = { name = "Current", signature = "virtual uint32_t Current() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } } 
-}
-
-INTERFACES[6] = "RPC::IIteratorType<RPC::Environment, RPC::ID_ENVIRONMENTITERATOR>"
-METHODS[6] = {
-    [3] = { name = "Next", signature = "virtual bool Next(RPC::Environment&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.POD, class = "RPC::Environment", element = { { name = "Key", type = Type.STRING16, class = "string" }, { name = "Value", type = Type.STRING16, class = "string" }, { name = "Scope", type = Type.ENUMU8, class = "RPC::Environment::scope" } } } } }, 
-    [4] = { name = "Previous", signature = "virtual bool Previous(RPC::Environment&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.POD, class = "RPC::Environment", element = { { name = "Key", type = Type.STRING16, class = "string" }, { name = "Value", type = Type.STRING16, class = "string" }, { name = "Scope", type = Type.ENUMU8, class = "RPC::Environment::scope" } } } } }, 
-    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
-    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
-    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
-    [8] = { name = "Current", signature = "virtual RPC::Environment Current() const = 0", retvals = { { type = Type.POD, class = "RPC::Environment", element = { { name = "Key", type = Type.STRING16, class = "string" }, { name = "Value", type = Type.STRING16, class = "string" }, { name = "Scope", type = Type.ENUMU8, class = "RPC::Environment::scope" } } } } } 
-}
-
 INTERFACES[1] = "RPC::IRemoteConnection"
 METHODS[1] = {
     [3] = { name = "Id", signature = "virtual uint32_t Id() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
@@ -55,6 +25,16 @@ METHODS[2] = {
 }
 
 --  IController.h
+INTERFACES[5] = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>"
+METHODS[5] = {
+    [3] = { name = "Next", signature = "virtual bool Next(string&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.STRING16, class = "string" } } }, 
+    [4] = { name = "Previous", signature = "virtual bool Previous(string&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.STRING16, class = "string" } } }, 
+    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
+    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
+    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
+    [8] = { name = "Current", signature = "virtual string Current() const = 0", retvals = { { type = Type.STRING16, class = "string" } } } 
+}
+
 INTERFACES[19] = "RPC::IIteratorType<Exchange::Controller::IDiscovery::Data::DiscoveryResult, RPC::ID_CONTROLLER_DISCOVERY_RESULTS_ITERATOR>"
 METHODS[19] = {
     [3] = { name = "Next", signature = "virtual bool Next(Exchange::Controller::IDiscovery::Data::DiscoveryResult&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.POD, class = "Exchange::Controller::IDiscovery::Data::DiscoveryResult", element = { { name = "Locator", type = Type.STRING16, class = "string" }, { name = "Latency", type = Type.UINT32, class = "uint32_t" }, { name = "Model", type = Type.STRING16, class = "string", optional = true }, { name = "Secure", type = Type.BOOL, class = "bool" } } } } }, 
@@ -240,6 +220,12 @@ METHODS[49] = {
     [5] = { name = "CancelableUnavailable", signature = "virtual Core::hresult CancelableUnavailable(const string&, PluginHost::IShell*)", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
 }
 
+INTERFACES[62] = "PluginHost::IPlugin::INotificationExtended"
+METHODS[62] = {
+    [3] = { name = "CancelableHibernated", signature = "virtual Core::hresult CancelableHibernated(const string&, PluginHost::IShell*)", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
+    [4] = { name = "CancelableDestroyed", signature = "virtual Core::hresult CancelableDestroyed(const string&, PluginHost::IShell*)", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } } 
+}
+
 INTERFACES[58] = "PluginHost::IPlugin::ILifeTime"
 METHODS[58] = {
     [3] = { name = "Initialize", signature = "virtual void Initialize(const string&, PluginHost::IShell*) = 0", params = { { name = "callsign", type = Type.STRING16, class = "string" }, { name = "plugin", type = Type.OBJECT, class = "PluginHost::IShell" } } }, 
@@ -301,15 +287,19 @@ METHODS[64] = {
     [32] = { name = "Unregister", signature = "virtual void Unregister(PluginHost::IPlugin::INotification*, const Core::OptionalType<string>&) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
     [33] = { name = "Register", signature = "virtual void Register(PluginHost::IPlugin::INotification*, const uint32_t) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "interface_id", type = Type.UINT32, class = "uint32_t" } } }, 
     [34] = { name = "Unregister", signature = "virtual void Unregister(PluginHost::IPlugin::INotification*, const uint32_t) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotification" }, { name = "interface_id", type = Type.UINT32, class = "uint32_t" } } }, 
-    [35] = { name = "State", signature = "virtual PluginHost::IShell::state State() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::state" } } }, 
-    [36] = { name = "QueryInterfaceByCallsign", signature = "virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0", retvals = { { type = Type.OBJECT, class = "void", interface_param = 1 } }, params = { { name = "id", type = Type.INTERFACE, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } }, 
-    [37] = { name = "Activate", signature = "virtual Core::hresult Activate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [38] = { name = "Deactivate", signature = "virtual Core::hresult Deactivate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [39] = { name = "Unavailable", signature = "virtual Core::hresult Unavailable(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [40] = { name = "Hibernate", signature = "virtual Core::hresult Hibernate(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "timeout", type = Type.UINT32, class = "uint32_t" } } }, 
-    [41] = { name = "Reason", signature = "virtual PluginHost::IShell::reason Reason() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
-    [42] = { name = "Submit", signature = "virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } }, params = { { name = "Id", type = Type.UINT32, class = "uint32_t" } } }, 
-    [43] = { name = "GetLibrarySearchPaths", signature = "virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0", retvals = { { type = Type.OBJECT, class = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>" } }, params = { { type = Type.STRING16, class = "string" } } } 
+    [35] = { name = "Register", signature = "virtual void Register(PluginHost::IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotificationExtended" }, { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
+    [36] = { name = "Unregister", signature = "virtual void Unregister(PluginHost::IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotificationExtended" }, { name = "callsign", type = Type.STRING16, class = "string", optional = true } } }, 
+    [37] = { name = "Register", signature = "virtual void Register(PluginHost::IPlugin::INotificationExtended*, const uint32_t) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotificationExtended" }, { name = "interface_id", type = Type.UINT32, class = "uint32_t" } } }, 
+    [38] = { name = "Unregister", signature = "virtual void Unregister(PluginHost::IPlugin::INotificationExtended*, const uint32_t) = 0", params = { { name = "sink", type = Type.OBJECT, class = "PluginHost::IPlugin::INotificationExtended" }, { name = "interface_id", type = Type.UINT32, class = "uint32_t" } } }, 
+    [39] = { name = "State", signature = "virtual PluginHost::IShell::state State() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::state" } } }, 
+    [40] = { name = "QueryInterfaceByCallsign", signature = "virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0", retvals = { { type = Type.OBJECT, class = "void", interface_param = 1 } }, params = { { name = "id", type = Type.INTERFACE, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } }, 
+    [41] = { name = "Activate", signature = "virtual Core::hresult Activate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [42] = { name = "Deactivate", signature = "virtual Core::hresult Deactivate(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [43] = { name = "Unavailable", signature = "virtual Core::hresult Unavailable(const PluginHost::IShell::reason) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [44] = { name = "Hibernate", signature = "virtual Core::hresult Hibernate(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "timeout", type = Type.UINT32, class = "uint32_t" } } }, 
+    [45] = { name = "Reason", signature = "virtual PluginHost::IShell::reason Reason() const = 0", retvals = { { type = Type.ENUMU8, class = "PluginHost::IShell::reason" } } }, 
+    [46] = { name = "Submit", signature = "virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } }, params = { { name = "Id", type = Type.UINT32, class = "uint32_t" } } }, 
+    [47] = { name = "GetLibrarySearchPaths", signature = "virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0", retvals = { { type = Type.OBJECT, class = "RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>" } }, params = { { type = Type.STRING16, class = "string" } } } 
 }
 
 INTERFACES[66] = "PluginHost::IShell::IConnectionServer"
@@ -433,6 +423,7 @@ METHODS[88] = {
     [8] = { name = "Current", signature = "virtual string Current() const = 0", retvals = { { type = Type.STRING16, class = "string" } } } 
 }
 
+--  IVirtualInput.h
 --  IAVNClient.h
 INTERFACES[4448] = "Exchange::IAVNClient"
 METHODS[4448] = {
@@ -698,6 +689,16 @@ METHODS[4105] = {
 }
 
 --  IButler.h
+INTERFACES[7] = "RPC::IIteratorType<uint32_t, RPC::ID_VALUEITERATOR>"
+METHODS[7] = {
+    [3] = { name = "Next", signature = "virtual bool Next(uint32_t&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } } }, 
+    [4] = { name = "Previous", signature = "virtual bool Previous(uint32_t&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } } }, 
+    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
+    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
+    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
+    [8] = { name = "Current", signature = "virtual uint32_t Current() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } } 
+}
+
 INTERFACES[5072] = "Exchange::IButler"
 METHODS[5072] = {
     [3] = { name = "Register", signature = "virtual Core::hresult Register(Exchange::IButler::INotification* const) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "sink", type = Type.OBJECT, class = "Exchange::IButler::INotification" } } }, 
@@ -721,6 +722,7 @@ METHODS[5073] = {
 }
 
 --  ICapture.h
+--  ICommand.h
 --  IComposition.h
 INTERFACES[4978] = "RPC::IIteratorType<Exchange::IDeviceAudioCapabilities::AudioOutput, Exchange::ID_DEVICE_CAPABILITIES_AUDIO_OUTPUT>"
 METHODS[4978] = {
@@ -956,6 +958,7 @@ METHODS[5344] = {
     [7] = { name = "Remove", signature = "virtual Core::hresult Remove(const Exchange::IDNSServer::Record&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "record", type = Type.POD, class = "Exchange::IDNSServer::Record", element = { { name = "Type", type = Type.ENUMU8, class = "Exchange::IDNSServer::Record::type" }, { name = "Key", type = Type.STRING16, class = "string" }, { name = "Value", type = Type.STRING16, class = "string" }, { name = "TTL", type = Type.UINT32, class = "uint32_t" }, { name = "Priority", type = Type.UINT8, class = "uint8_t" } } } } } 
 }
 
+--  IDRM.h
 --  IDeviceIdentification.h
 INTERFACES[5440] = "Exchange::IDeviceIdentification"
 METHODS[5440] = {
@@ -1155,12 +1158,14 @@ METHODS[4179] = {
     [4] = { name = "Deactivated", signature = "virtual void Deactivated(Exchange::IExternal*) = 0", params = { { name = "source", type = Type.OBJECT, class = "Exchange::IExternal" } } } 
 }
 
+--  IExternalBase.h
 --  IFocus.h
 INTERFACES[5040] = "Exchange::IFocus"
 METHODS[5040] = {
     [3] = { name = "Focused", signature = "virtual uint32_t Focused(const bool) = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } }, params = { { name = "focused", type = Type.BOOL, class = "bool" } } } 
 }
 
+--  IGraphicsBuffer.h
 --  IGuide.h
 INTERFACES[4336] = "Exchange::IGuide"
 METHODS[4336] = {
@@ -2382,6 +2387,7 @@ METHODS[5136] = {
     [8] = { name = "Metadata", signature = "virtual Core::hresult Metadata(Exchange::IZigWave::Controller&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "metadata", type = Type.POD, class = "Exchange::IZigWave::Controller", element = { { name = "Permutable", type = Type.BOOL, class = "bool" }, { name = "Port", type = Type.STRING16, class = "string" }, { name = "Id", type = Type.UINT32, class = "uint32_t" }, { name = "Major", type = Type.UINT8, class = "uint8_t" }, { name = "Minor", type = Type.UINT8, class = "uint8_t" }, { name = "Nodes", type = Type.UINT16, class = "uint16_t" } } } } } 
 }
 
+--  Ids.h
 --  ITestAutomation.h
 INTERFACES[40960] = "QualityAssurance::IMemory"
 METHODS[40960] = {
@@ -2616,11 +2622,6 @@ METHODS[45090] = {
 }
 
 -- enums
-ENUMS["RPC::Environment::scope"] = {
-    [0] = "LOCAL",
-    [1] = "GLOBAL"
-}
-
 ENUMS["PluginHost::ISubSystem::subsystem"] = {
     [0] = "PLATFORM",
     [1] = "SECURITY",
