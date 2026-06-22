@@ -60,7 +60,7 @@ class CaseConverter:
             if not string.isupper() and '_' not in string:
                 _pascal = [x[0].upper() + x[1:] for x in _split]
             else:
-                _pascal = [x.capitalize() for x in _split]
+                _pascal = [x.title() for x in _split]
 
             if uppercase:
                 if _split[0].isupper() and not string.isupper() and '_' not in string:
