@@ -57,14 +57,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JSystemManagement"), _T("delete")));
                         }
-                        else {
-                            const string _path_{params.Path};
 
-                            _errorCode__ = _implementation__->Delete(_path_);
+                        const string _path_{params.Path};
 
-                        }
+                        _errorCode__ = _implementation__->Delete(_path_);
 
                         return (_errorCode__);
                     });
@@ -75,18 +73,17 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JSystemManagement"), _T("clone")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
-                            const string _newcallsign_{params.Newcallsign};
-                            string _response_{};
 
-                            _errorCode__ = _implementation__->Clone(_callsign_, _newcallsign_, _response_);
+                        const string _callsign_{params.Callsign};
+                        const string _newcallsign_{params.Newcallsign};
+                        string _response_{};
 
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                response = _response_;
-                            }
+                        _errorCode__ = _implementation__->Clone(_callsign_, _newcallsign_, _response_);
+
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            response = _response_;
                         }
 
                         return (_errorCode__);

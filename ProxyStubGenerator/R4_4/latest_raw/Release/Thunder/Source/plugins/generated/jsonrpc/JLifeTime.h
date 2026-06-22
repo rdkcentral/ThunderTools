@@ -37,14 +37,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JLifeTime"), _T("activate")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
 
-                            _errorCode__ = _implementation__->Activate(_callsign_);
+                        const string _callsign_{params.Callsign};
 
-                        }
+                        _errorCode__ = _implementation__->Activate(_callsign_);
 
                         return (_errorCode__);
                     });
@@ -55,14 +53,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JLifeTime"), _T("deactivate")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
 
-                            _errorCode__ = _implementation__->Deactivate(_callsign_);
+                        const string _callsign_{params.Callsign};
 
-                        }
+                        _errorCode__ = _implementation__->Deactivate(_callsign_);
 
                         return (_errorCode__);
                     });
@@ -73,14 +69,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JLifeTime"), _T("unavailable")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
 
-                            _errorCode__ = _implementation__->Unavailable(_callsign_);
+                        const string _callsign_{params.Callsign};
 
-                        }
+                        _errorCode__ = _implementation__->Unavailable(_callsign_);
 
                         return (_errorCode__);
                     });
@@ -91,15 +85,13 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JLifeTime"), _T("hibernate")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
-                            const uint32_t _timeout_{params.Timeout};
 
-                            _errorCode__ = _implementation__->Hibernate(_callsign_, _timeout_);
+                        const string _callsign_{params.Callsign};
+                        const uint32_t _timeout_{params.Timeout};
 
-                        }
+                        _errorCode__ = _implementation__->Hibernate(_callsign_, _timeout_);
 
                         return (_errorCode__);
                     });
@@ -110,14 +102,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JLifeTime"), _T("suspend")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
 
-                            _errorCode__ = _implementation__->Suspend(_callsign_);
+                        const string _callsign_{params.Callsign};
 
-                        }
+                        _errorCode__ = _implementation__->Suspend(_callsign_);
 
                         return (_errorCode__);
                     });
@@ -128,14 +118,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JLifeTime"), _T("resume")));
                         }
-                        else {
-                            const string _callsign_{params.Callsign};
 
-                            _errorCode__ = _implementation__->Resume(_callsign_);
+                        const string _callsign_{params.Callsign};
 
-                        }
+                        _errorCode__ = _implementation__->Resume(_callsign_);
 
                         return (_errorCode__);
                     });

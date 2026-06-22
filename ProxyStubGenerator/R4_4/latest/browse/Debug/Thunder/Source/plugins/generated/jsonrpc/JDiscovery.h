@@ -37,14 +37,12 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if ((params.IsSet() == true) && (params.IsDataValid() == false)) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JDiscovery"), _T("startdiscovery")));
                         }
-                        else {
-                            const uint8_t _ttl_{params.Ttl};
 
-                            _errorCode__ = _implementation__->StartDiscovery(_ttl_);
+                        const uint8_t _ttl_{params.Ttl};
 
-                        }
+                        _errorCode__ = _implementation__->StartDiscovery(_ttl_);
 
                         return (_errorCode__);
                     });
