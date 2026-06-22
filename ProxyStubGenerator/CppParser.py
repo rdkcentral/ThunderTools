@@ -2576,6 +2576,8 @@ def Parse(contents,log = None):
                 new_enum.meta.decorators.append("encode:text")
                 encode_enum_next = False
 
+            text_next = None
+
         # Parse class access specifier...
         elif isinstance(current_block[-1], Class) and tokens[i] == ':':
             current_block[-1]._current_access = tokens[i - 1]
@@ -2803,6 +2805,11 @@ def Parse(contents,log = None):
                         value = entry[where + 1:]
                         del entry[where:]
 
+                    if text_next:
+                        # handle case when @text precedes the first enumerator
+                        entry = entry + ["@TEXT", [text_next]]
+                        text_next = None
+
                     Enumerator(enum, entry, value, enum.type)
                     if tokens[i + 1] == '}':
                         i += 1 # handle ,} situation
@@ -2811,6 +2818,7 @@ def Parse(contents,log = None):
                         break
                     else:
                         j = i + 1
+
                 i += 1
 
             if in_typedef:
