@@ -4,6 +4,7 @@
 // implements COM-RPC proxy stubs for:
 //   - class IPlugin
 //   - class IPlugin::INotification
+//   - class IPlugin::INotificationExtended
 //   - class IPlugin::ILifeTime
 //   - class ICompositPlugin
 //   - class ICompositPlugin::ICallback
@@ -193,6 +194,71 @@ namespace ProxyStubs {
         }
         , nullptr
     }; // PluginNotificationStubMethods
+
+    //
+    // IPlugin::INotificationExtended interface stub definitions
+    //
+    // Methods:
+    //  (0) virtual Core::hresult CancelableHibernated(const string&, IShell*)
+    //  (1) virtual Core::hresult CancelableDestroyed(const string&, IShell*)
+    //
+
+    static ProxyStub::MethodHandler PluginNotificationExtendedStubMethods[] = {
+        // (0) virtual Core::hresult CancelableHibernated(const string&, IShell*)
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            IPlugin::INotificationExtended* implementation = reinterpret_cast<IPlugin::INotificationExtended*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const string _callsign = reader.Text();
+            Core::instance_id _pluginInstanceId__ = reader.Number<Core::instance_id>();
+
+            IShell* _plugin{};
+            ProxyStub::UnknownProxy* _pluginProxy__ = nullptr;
+            if (_pluginInstanceId__ != 0) {
+                _pluginProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _pluginInstanceId__, false, _plugin);
+                ASSERT((_plugin != nullptr) && (_pluginProxy__ != nullptr));
+            }
+
+            Core::hresult result = implementation->CancelableHibernated(static_cast<const string&>(_callsign), _plugin);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
+
+            if (_pluginProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_pluginProxy__, message->Response());
+            }
+        },
+
+        // (1) virtual Core::hresult CancelableDestroyed(const string&, IShell*)
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            IPlugin::INotificationExtended* implementation = reinterpret_cast<IPlugin::INotificationExtended*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const string _callsign = reader.Text();
+            Core::instance_id _pluginInstanceId__ = reader.Number<Core::instance_id>();
+
+            IShell* _plugin{};
+            ProxyStub::UnknownProxy* _pluginProxy__ = nullptr;
+            if (_pluginInstanceId__ != 0) {
+                _pluginProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _pluginInstanceId__, false, _plugin);
+                ASSERT((_plugin != nullptr) && (_pluginProxy__ != nullptr));
+            }
+
+            Core::hresult result = implementation->CancelableDestroyed(static_cast<const string&>(_callsign), _plugin);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
+
+            if (_pluginProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_pluginProxy__, message->Response());
+            }
+        }
+        , nullptr
+    }; // PluginNotificationExtendedStubMethods
 
     //
     // IPlugin::ILifeTime interface stub definitions
@@ -669,6 +735,84 @@ namespace ProxyStubs {
     }; // class PluginNotificationProxy
 
     //
+    // IPlugin::INotificationExtended interface proxy definitions
+    //
+    // Methods:
+    //  (0) virtual Core::hresult CancelableHibernated(const string&, IShell*)
+    //  (1) virtual Core::hresult CancelableDestroyed(const string&, IShell*)
+    //
+
+    class PluginNotificationExtendedProxy final : public ProxyStub::UnknownProxyType<IPlugin::INotificationExtended> {
+    public:
+        PluginNotificationExtendedProxy(const Core::ProxyType<Core::IPCChannel>& channel, const Core::instance_id implementation, const bool otherSideInformed)
+            : BaseClass(channel, implementation, otherSideInformed)
+        {
+        }
+
+        Core::hresult CancelableHibernated(const string& _callsign, IShell* _plugin) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(0));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_callsign);
+            writer.Number<Core::instance_id>(RPC::instance_cast(_plugin));
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult CancelableDestroyed(const string& _callsign, IShell* _plugin) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(1));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Text(_callsign);
+            writer.Number<Core::instance_id>(RPC::instance_cast(_plugin));
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+    private:
+        uint32_t _Complete(RPC::Data::Frame::Reader& reader) const
+        {
+            uint32_t result = Core::ERROR_NONE;
+
+            while (reader.HasData() == true) {
+                const Core::instance_id implementation = reader.Number<Core::instance_id>();
+                ASSERT(implementation != 0);
+
+                const uint32_t id = reader.Number<uint32_t>();
+                const RPC::Data::Output::mode how = reader.Number<RPC::Data::Output::mode>();
+
+                result = static_cast<const ProxyStub::UnknownProxy&>(*this).Complete(implementation, id, how);
+                if (result != Core::ERROR_NONE) { return (COM_ERROR | result); }
+            }
+
+            return (result);
+        }
+
+    }; // class PluginNotificationExtendedProxy
+
+    //
     // IPlugin::ILifeTime interface proxy definitions
     //
     // Methods:
@@ -992,6 +1136,7 @@ namespace ProxyStubs {
 
         typedef ProxyStub::UnknownStubType<IPlugin, PluginStubMethods> PluginStub;
         typedef ProxyStub::UnknownStubType<IPlugin::INotification, PluginNotificationStubMethods> PluginNotificationStub;
+        typedef ProxyStub::UnknownStubType<IPlugin::INotificationExtended, PluginNotificationExtendedStubMethods> PluginNotificationExtendedStub;
         typedef ProxyStub::UnknownStubType<IPlugin::ILifeTime, PluginLifeTimeStubMethods> PluginLifeTimeStub;
         typedef ProxyStub::UnknownStubType<ICompositPlugin, CompositPluginStubMethods> CompositPluginStub;
         typedef ProxyStub::UnknownStubType<ICompositPlugin::ICallback, CompositPluginCallbackStubMethods> CompositPluginCallbackStub;
@@ -1003,6 +1148,7 @@ namespace ProxyStubs {
             {
                 RPC::Administrator::Instance().Announce<IPlugin, PluginProxy, PluginStub>();
                 RPC::Administrator::Instance().Announce<IPlugin::INotification, PluginNotificationProxy, PluginNotificationStub>();
+                RPC::Administrator::Instance().Announce<IPlugin::INotificationExtended, PluginNotificationExtendedProxy, PluginNotificationExtendedStub>();
                 RPC::Administrator::Instance().Announce<IPlugin::ILifeTime, PluginLifeTimeProxy, PluginLifeTimeStub>();
                 RPC::Administrator::Instance().Announce<ICompositPlugin, CompositPluginProxy, CompositPluginStub>();
                 RPC::Administrator::Instance().Announce<ICompositPlugin::ICallback, CompositPluginCallbackProxy, CompositPluginCallbackStub>();
@@ -1012,6 +1158,7 @@ namespace ProxyStubs {
             {
                 RPC::Administrator::Instance().Recall<IPlugin>();
                 RPC::Administrator::Instance().Recall<IPlugin::INotification>();
+                RPC::Administrator::Instance().Recall<IPlugin::INotificationExtended>();
                 RPC::Administrator::Instance().Recall<IPlugin::ILifeTime>();
                 RPC::Administrator::Instance().Recall<ICompositPlugin>();
                 RPC::Administrator::Instance().Recall<ICompositPlugin::ICallback>();

@@ -61,15 +61,19 @@ namespace ProxyStubs {
     //  (29) virtual void Unregister(IPlugin::INotification*, const Core::OptionalType<string>&) = 0
     //  (30) virtual void Register(IPlugin::INotification*, const uint32_t) = 0
     //  (31) virtual void Unregister(IPlugin::INotification*, const uint32_t) = 0
-    //  (32) virtual IShell::state State() const = 0
-    //  (33) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
-    //  (34) virtual Core::hresult Activate(const IShell::reason) = 0
-    //  (35) virtual Core::hresult Deactivate(const IShell::reason) = 0
-    //  (36) virtual Core::hresult Unavailable(const IShell::reason) = 0
-    //  (37) virtual Core::hresult Hibernate(const uint32_t) = 0
-    //  (38) virtual IShell::reason Reason() const = 0
-    //  (39) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
-    //  (40) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
+    //  (32) virtual void Register(IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0
+    //  (33) virtual void Unregister(IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0
+    //  (34) virtual void Register(IPlugin::INotificationExtended*, const uint32_t) = 0
+    //  (35) virtual void Unregister(IPlugin::INotificationExtended*, const uint32_t) = 0
+    //  (36) virtual IShell::state State() const = 0
+    //  (37) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
+    //  (38) virtual Core::hresult Activate(const IShell::reason) = 0
+    //  (39) virtual Core::hresult Deactivate(const IShell::reason) = 0
+    //  (40) virtual Core::hresult Unavailable(const IShell::reason) = 0
+    //  (41) virtual Core::hresult Hibernate(const uint32_t) = 0
+    //  (42) virtual IShell::reason Reason() const = 0
+    //  (43) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
+    //  (44) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
     //
 
     static ProxyStub::MethodHandler ShellStubMethods[] = {
@@ -530,7 +534,109 @@ namespace ProxyStubs {
             }
         },
 
-        // (32) virtual IShell::state State() const = 0
+        // (32) virtual void Register(IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+            Core::OptionalType<string> _callsign{};
+            if (reader.Boolean() == true) {
+                _callsign = reader.Text();
+            }
+
+            IPlugin::INotificationExtended* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+            }
+
+            implementation->Register(_sink, static_cast<const Core::OptionalType<string>&>(_callsign));
+
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+            }
+        },
+
+        // (33) virtual void Unregister(IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+            Core::OptionalType<string> _callsign{};
+            if (reader.Boolean() == true) {
+                _callsign = reader.Text();
+            }
+
+            IPlugin::INotificationExtended* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+            }
+
+            implementation->Unregister(_sink, static_cast<const Core::OptionalType<string>&>(_callsign));
+
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+            }
+        },
+
+        // (34) virtual void Register(IPlugin::INotificationExtended*, const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+            const uint32_t _interface_id = reader.Number<uint32_t>();
+
+            IPlugin::INotificationExtended* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+            }
+
+            implementation->Register(_sink, _interface_id);
+
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+            }
+        },
+
+        // (35) virtual void Unregister(IPlugin::INotificationExtended*, const uint32_t) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::instance_id _sinkInstanceId__ = reader.Number<Core::instance_id>();
+            const uint32_t _interface_id = reader.Number<uint32_t>();
+
+            IPlugin::INotificationExtended* _sink{};
+            ProxyStub::UnknownProxy* _sinkProxy__ = nullptr;
+            if (_sinkInstanceId__ != 0) {
+                _sinkProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _sinkInstanceId__, false, _sink);
+                ASSERT((_sink != nullptr) && (_sinkProxy__ != nullptr));
+            }
+
+            implementation->Unregister(_sink, _interface_id);
+
+            if (_sinkProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_sinkProxy__, message->Response());
+            }
+        },
+
+        // (36) virtual IShell::state State() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             const IShell* implementation = reinterpret_cast<const IShell*>(message->Parameters().Implementation());
@@ -542,7 +648,7 @@ namespace ProxyStubs {
             writer.Number<IShell::state>(result);
         },
 
-        // (33) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
+        // (37) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
@@ -560,7 +666,7 @@ namespace ProxyStubs {
             RPC::Administrator::Instance().RegisterInterface(channel, result, _id);
         },
 
-        // (34) virtual Core::hresult Activate(const IShell::reason) = 0
+        // (38) virtual Core::hresult Activate(const IShell::reason) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
@@ -575,7 +681,7 @@ namespace ProxyStubs {
             writer.Number<Core::hresult>(result);
         },
 
-        // (35) virtual Core::hresult Deactivate(const IShell::reason) = 0
+        // (39) virtual Core::hresult Deactivate(const IShell::reason) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
@@ -590,7 +696,7 @@ namespace ProxyStubs {
             writer.Number<Core::hresult>(result);
         },
 
-        // (36) virtual Core::hresult Unavailable(const IShell::reason) = 0
+        // (40) virtual Core::hresult Unavailable(const IShell::reason) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
@@ -605,7 +711,7 @@ namespace ProxyStubs {
             writer.Number<Core::hresult>(result);
         },
 
-        // (37) virtual Core::hresult Hibernate(const uint32_t) = 0
+        // (41) virtual Core::hresult Hibernate(const uint32_t) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             IShell* implementation = reinterpret_cast<IShell*>(message->Parameters().Implementation());
@@ -620,7 +726,7 @@ namespace ProxyStubs {
             writer.Number<Core::hresult>(result);
         },
 
-        // (38) virtual IShell::reason Reason() const = 0
+        // (42) virtual IShell::reason Reason() const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
             const IShell* implementation = reinterpret_cast<const IShell*>(message->Parameters().Implementation());
@@ -632,13 +738,13 @@ namespace ProxyStubs {
             writer.Number<IShell::reason>(result);
         },
 
-        // (39) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
+        // (43) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& /* message */) {
             // stubbed method, no implementation
         },
 
-        // (40) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
+        // (44) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             const IShell* implementation = reinterpret_cast<const IShell*>(message->Parameters().Implementation());
@@ -789,15 +895,19 @@ namespace ProxyStubs {
     //  (29) virtual void Unregister(IPlugin::INotification*, const Core::OptionalType<string>&) = 0
     //  (30) virtual void Register(IPlugin::INotification*, const uint32_t) = 0
     //  (31) virtual void Unregister(IPlugin::INotification*, const uint32_t) = 0
-    //  (32) virtual IShell::state State() const = 0
-    //  (33) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
-    //  (34) virtual Core::hresult Activate(const IShell::reason) = 0
-    //  (35) virtual Core::hresult Deactivate(const IShell::reason) = 0
-    //  (36) virtual Core::hresult Unavailable(const IShell::reason) = 0
-    //  (37) virtual Core::hresult Hibernate(const uint32_t) = 0
-    //  (38) virtual IShell::reason Reason() const = 0
-    //  (39) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
-    //  (40) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
+    //  (32) virtual void Register(IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0
+    //  (33) virtual void Unregister(IPlugin::INotificationExtended*, const Core::OptionalType<string>&) = 0
+    //  (34) virtual void Register(IPlugin::INotificationExtended*, const uint32_t) = 0
+    //  (35) virtual void Unregister(IPlugin::INotificationExtended*, const uint32_t) = 0
+    //  (36) virtual IShell::state State() const = 0
+    //  (37) virtual void* QueryInterfaceByCallsign(const uint32_t, const string&) = 0
+    //  (38) virtual Core::hresult Activate(const IShell::reason) = 0
+    //  (39) virtual Core::hresult Deactivate(const IShell::reason) = 0
+    //  (40) virtual Core::hresult Unavailable(const IShell::reason) = 0
+    //  (41) virtual Core::hresult Hibernate(const uint32_t) = 0
+    //  (42) virtual IShell::reason Reason() const = 0
+    //  (43) virtual uint32_t Submit(const uint32_t, /* undefined type */ const Core::ProxyType<Core::JSON::IElement>&) = 0
+    //  (44) virtual RPC::IStringIterator* GetLibrarySearchPaths(const string&) const = 0
     //
 
     class ShellProxy final : public ProxyStub::UnknownProxyType<IShell> {
@@ -1345,9 +1455,87 @@ namespace ProxyStubs {
             }
         }
 
-        IShell::state State() const override
+        void Register(IPlugin::INotificationExtended* _sink, const Core::OptionalType<string>& _callsign) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(32));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+            writer.Boolean(_callsign.IsSet());
+            if (_callsign.IsSet() == true) {
+                writer.Text(_callsign.Value());
+            }
+
+            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void Unregister(IPlugin::INotificationExtended* _sink, const Core::OptionalType<string>& _callsign) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(33));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+            writer.Boolean(_callsign.IsSet());
+            if (_callsign.IsSet() == true) {
+                writer.Text(_callsign.Value());
+            }
+
+            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void Register(IPlugin::INotificationExtended* _sink, const uint32_t _interface_id) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(34));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+            writer.Number<uint32_t>(_interface_id);
+
+            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        void Unregister(IPlugin::INotificationExtended* _sink, const uint32_t _interface_id) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(35));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
+            writer.Number<uint32_t>(_interface_id);
+
+            const Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+        }
+
+        IShell::state State() const override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(36));
 
             IShell::state result{};
 
@@ -1364,7 +1552,7 @@ namespace ProxyStubs {
 
         void* QueryInterfaceByCallsign(const uint32_t _id, const string& _name) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(33));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(37));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_id);
@@ -1385,7 +1573,7 @@ namespace ProxyStubs {
 
         Core::hresult Activate(const IShell::reason _parameter_1) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(34));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(38));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<IShell::reason>(_parameter_1);
@@ -1403,7 +1591,7 @@ namespace ProxyStubs {
 
         Core::hresult Deactivate(const IShell::reason _parameter_1) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(35));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(39));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<IShell::reason>(_parameter_1);
@@ -1421,7 +1609,7 @@ namespace ProxyStubs {
 
         Core::hresult Unavailable(const IShell::reason _parameter_1) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(36));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(40));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<IShell::reason>(_parameter_1);
@@ -1439,7 +1627,7 @@ namespace ProxyStubs {
 
         Core::hresult Hibernate(const uint32_t _timeout) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(37));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(41));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<uint32_t>(_timeout);
@@ -1457,7 +1645,7 @@ namespace ProxyStubs {
 
         IShell::reason Reason() const override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(38));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(42));
 
             IShell::reason result{};
 
@@ -1481,7 +1669,7 @@ namespace ProxyStubs {
 
         RPC::IStringIterator* GetLibrarySearchPaths(const string& _parameter_1) const override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(40));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(44));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Text(_parameter_1);
