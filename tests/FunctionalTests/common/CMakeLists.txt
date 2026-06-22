@@ -51,6 +51,13 @@ target_link_libraries(FunctionalTestCommon
         ${NAMESPACE}COM::${NAMESPACE}COM
 )
 
+if(ENABLE_JSON_RPC_TESTS)
+    target_link_libraries(FunctionalTestCommon
+        PUBLIC
+            ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+    )
+endif()
+
 add_library(FunctionalTestProxySources OBJECT)
 add_library(FunctionalTestJsonSources OBJECT)
 
