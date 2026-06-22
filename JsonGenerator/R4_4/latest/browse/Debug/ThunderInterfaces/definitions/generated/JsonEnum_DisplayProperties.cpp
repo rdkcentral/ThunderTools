@@ -45,15 +45,15 @@ ENUM_CONVERSION_END(Exchange::IDisplayProperties::ColourDepthType)
 ENUM_CONVERSION_BEGIN(Exchange::IDisplayProperties::ColorimetryType)
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_UNKNOWN, _TXT("ColorimetryUnknown") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_OTHER, _TXT("ColorimetryOther") },
-    { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_SMPTE170M, _TXT("ColorimetrySmpte170m") },
+    { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_SMPTE170M, _TXT("ColorimetrySmpte170M") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_BT709, _TXT("ColorimetryBt709") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_XVYCC601, _TXT("ColorimetryXvycc601") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_XVYCC709, _TXT("ColorimetryXvycc709") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_SYCC601, _TXT("ColorimetrySycc601") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_OPYCC601, _TXT("ColorimetryOpycc601") },
     { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_OPRGB, _TXT("ColorimetryOprgb") },
-    { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_BT2020YCCBCBRC, _TXT("ColorimetryBt2020yccbcbrc") },
-    { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_BT2020RGB_YCBCR, _TXT("ColorimetryBt2020rgbYcbcr") },
+    { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_BT2020YCCBCBRC, _TXT("ColorimetryBt2020Yccbcbrc") },
+    { Exchange::IDisplayProperties::ColorimetryType::COLORIMETRY_BT2020RGB_YCBCR, _TXT("ColorimetryBt2020RgbYcbcr") },
 ENUM_CONVERSION_END(Exchange::IDisplayProperties::ColorimetryType)
 
 ENUM_CONVERSION_BEGIN(Exchange::IDisplayProperties::QuantizationRangeType)
