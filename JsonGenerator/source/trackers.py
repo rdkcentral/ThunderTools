@@ -23,9 +23,12 @@ log = None
 def SortByDependency(objects):
     sorted_objects = []
 
+    unique_objects = {it.typed_print_name: it for it in filter(lambda o: not o.is_duplicate, objects)}.values()
+
     # This will order objects by their relations
-    for obj in sorted(objects, key=lambda x: x.cpp_class, reverse=False):
+    for obj in sorted(unique_objects, key=lambda x: x.cpp_class, reverse=False):
         found = filter(lambda sorted_obj: obj.cpp_class in map(lambda x: x.cpp_class, sorted_obj.objects), sorted_objects)
+
         try:
             index = min(map(lambda x: sorted_objects.index(x), found))
             movelist = filter(lambda x: x.cpp_class in map(lambda x: x.cpp_class, sorted_objects), obj.objects)
@@ -33,7 +36,10 @@ def SortByDependency(objects):
 
             for m in movelist:
                 if m in sorted_objects:
-                    sorted_objects.insert(index, sorted_objects.pop(sorted_objects.index(m)))
+                    old = sorted_objects.index(m)
+                    if old > index:
+                        sorted_objects.insert(index, sorted_objects.pop(old))
+
         except ValueError:
             sorted_objects.append(obj)
 
@@ -218,7 +224,8 @@ class ObjectTracker:
     def Reset(self):
         self.objects = []
 
-    def CommonObjects(self):
+    @property
+    def common_objects(self):
         return SortByDependency(filter(lambda obj: obj.RefCount() > 1, self.objects))
 
 
@@ -286,7 +293,8 @@ class EnumTracker(ObjectTracker):
 
         return None
 
-    def CommonObjects(self):
+    @property
+    def common_objects(self):
         return SortByDependency(filter(lambda obj: ((obj.RefCount() > 1) or self._IsTopmost(obj)), self.objects))
 
 def SetLogger(logger):
