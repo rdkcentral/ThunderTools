@@ -293,6 +293,14 @@ jobs:
                   "baseline_${name}" "artifacts/PluginSkeleton-${name}" \
                   > "diffs/${name}.diff" || true
 
+                # Strip the differing roots from the hunk headers so both sides share an identical path
+                sed -i -E \
+                  -e "s#^(--- )baseline_${name}/#\\1#" \
+                  -e "s#^(\\+\\+\\+ )artifacts/PluginSkeleton-${name}/#\\1#" \
+                  -e "s#^(--- )artifacts/PluginSkeleton-${name}/#\\1#" \
+                  -e "s#^(\\+\\+\\+ )baseline_${name}/#\\1#" \
+                  "diffs/${name}.diff"
+
                 if [[ -s "diffs/${name}.diff" ]]; then
                   npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/${name}.html" -- "diffs/${name}.diff"
                   echo "$name" >> diffs/plugins_with_diffs.txt
