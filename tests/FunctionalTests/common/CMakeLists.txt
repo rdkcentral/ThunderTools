@@ -49,6 +49,7 @@ target_link_libraries(FunctionalTestCommon
     PUBLIC
         ${NAMESPACE}Core::${NAMESPACE}Core
         ${NAMESPACE}COM::${NAMESPACE}COM
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
 )
 
 add_library(FunctionalTestProxySources OBJECT)
