@@ -225,6 +225,14 @@ jobs:
                   > "diffs/combined.diff" || true
             fi
 
+            # Strip the differing root from the diff's ---/+++ file header lines so both sides share an identical path
+            sed -i -E \
+               -e 's#^(--- )baseline/#\1#' \
+               -e 's#^(\+\+\+ )generated/#\1#' \
+               -e 's#^(--- )generated/#\1#' \
+               -e 's#^(\+\+\+ )baseline/#\1#' \
+               "diffs/combined.diff"
+
             if [[ -s "diffs/combined.diff" ]]; then
                HAS_DIFF="true"
                export HAS_DIFF
