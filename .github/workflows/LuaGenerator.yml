@@ -187,7 +187,7 @@ jobs:
                   > "diffs/combined.diff" || true
             fi
 
-            # Strip the differing root from the hunk headers so both sides share an identical path
+            # Strip the differing root from the diff's ---/+++ file header lines so both sides share an identical path
             sed -i -E \
                -e 's#^(--- )baseline/#\1#' \
                -e 's#^(\+\+\+ )generated/#\1#' \
