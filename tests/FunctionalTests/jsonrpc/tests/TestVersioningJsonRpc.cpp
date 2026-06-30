@@ -21,9 +21,6 @@
 // GetHandler pattern) used in Thunder v4.x and retained for backwards
 // compatibility in Thunder v5.
 //
-// These tests exist specifically to catch regressions like the one observed in
-// Thunder 4.4.6, where versioned handler dispatch broke silently.
-//
 // No generated interface headers are needed.  All handler wiring is handwritten
 // and mirrors the patterns described in JSONRPC_VERSIONING.md.
 //
@@ -93,7 +90,8 @@ static uint32_t PluginCall(PluginHost::IDispatcher& plugin,
 class VersioningPlugin : public PluginHost::JSONRPCSupportsEventStatus {
 public:
     VersioningPlugin()
-        : PluginHost::JSONRPCSupportsEventStatus({ 2, 3, 4 })
+        : PluginHost::JSONRPC({ 2, 3, 4 })  // Must init the virtual base directly
+        , PluginHost::JSONRPCSupportsEventStatus({ 2, 3, 4 })
     {
         // Step 1: register shared methods on the base handler (v2/v3/v4).
         Register<Core::JSON::String, Core::JSON::String>(
@@ -214,7 +212,7 @@ TEST_F(TestVersioningMain, ExplicitV1_RoutesToV1Handler)
 
 // -------------------------------------------------------------------------
 // Unversioned dispatch — must use the FIRST handler (the base), NOT v1
-// This is the most common regression target: callers incorrectly assume
+// A common mistake is to assume
 // that an unversioned call always hits version 1.
 // -------------------------------------------------------------------------
 
@@ -504,7 +502,8 @@ TEST_F(TestVersioningScenarioA, ExplicitV99_Rejected)
 class ScenarioBPlugin : public PluginHost::JSONRPCSupportsEventStatus {
 public:
     ScenarioBPlugin()
-        : PluginHost::JSONRPCSupportsEventStatus({ 1, 2 })
+        : PluginHost::JSONRPC({ 1, 2 })  // Must init the virtual base directly
+        , PluginHost::JSONRPCSupportsEventStatus({ 1, 2 })
     {
         Register<Core::JSON::String, Core::JSON::String>(
             _T("echo"), &ScenarioBPlugin::Echo, this);
@@ -597,7 +596,7 @@ TEST_F(TestVersioningScenarioB, ExplicitV3_Rejected)
 class VersionedValidationPlugin : public PluginHost::JSONRPCSupportsEventStatus {
 public:
     VersionedValidationPlugin()
-        : PluginHost::JSONRPCSupportsEventStatus(
+        : PluginHost::JSONRPC(  // Must init the virtual base directly
             { 2, 3, 4 },
             [](const string& token, const string& method, const string& /*params*/)
                 -> PluginHost::JSONRPC::classification {
@@ -611,6 +610,7 @@ public:
                 }
                 return PluginHost::JSONRPC::classification::VALID;
             })
+        , PluginHost::JSONRPCSupportsEventStatus()
     {
         Register<Core::JSON::String, Core::JSON::String>(
             _T("open"), &VersionedValidationPlugin::Open, this);

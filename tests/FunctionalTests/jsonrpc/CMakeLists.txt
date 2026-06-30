@@ -73,7 +73,7 @@ if(TEST_JSON_UNCOMPLIANT_COL)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsedJsonRpc.cpp)
 endif()
 
-# Versioning regression tests — no generated interface headers required, fully self-contained.
+# Versioning tests — no generated interface headers required, fully self-contained.
 if(TEST_VERSIONING_JSONRPC)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestVersioningJsonRpc.cpp)
 endif()
