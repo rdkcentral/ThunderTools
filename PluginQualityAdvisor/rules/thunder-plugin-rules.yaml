@@ -1,0 +1,2059 @@
+# ===========================================================================================
+# Thunder Plugin Rules
+# ===========================================================================================
+
+metadata:
+  description: "Unified plugin validation rules — 79 rules numbered sequentially (rule_01 to rule_79), organized into 17 phases"
+  approach: "semantic code review"
+  total_rules: 79
+  organization: |
+    rule_01-rule_03: Module Structure (3)
+    rule_04-rule_13: Code Style (10)
+    rule_14-rule_16: Class Registration (3)
+    rule_17-rule_28: Lifecycle (12)
+    rule_29-rule_32: Implementation (4)
+    rule_33-rule_34: Out-of-Process (2)
+    rule_35-rule_37: Configuration (3)
+    rule_38: CMake (1)
+    rule_39: COM Interface (1)
+    rule_40,41,49,77: Conventions & Encapsulation (4)
+    rule_44,45,46,57,70,79: Lifecycle & State Integrity (6)
+    rule_47,50-54,65-68: Concurrency & Threading (10)
+    rule_48,63,71: COM Reference & Memory Safety (3)
+    rule_55,56,69: Resource Management (3)
+    rule_58-62,74,78: JSON-RPC Compliance (7)
+    rule_64,76: Inter-Plugin & OOP Design (2)
+    rule_42,43,72,73,75: Code Quality & Security (5)
+
+  validation_approach:
+    principles:
+      - "ALL 79 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
+      - "Step 1 is ALWAYS: read the full plugin code (all files) and build mental model of architecture, ownership, lifecycle, and threading"
+      - "Step 2 is: with that full understanding, examine the specific concern each rule asks about"
+      - "Never check a specific block in isolation — always reason about it in the context of the full plugin"
+      - "If the developer's approach is correct in the broader context (even if it technically violates the rule's literal question), downgrade severity"
+      - "Never use regex or pattern matching — always semantic understanding"
+      - "Severity is never escalated above the YAML-defined level"
+    workflow:
+      - "Step 1 UNDERSTAND: Read ALL plugin source files. Build a mental model of the plugin's architecture — its lifecycle, threading model, ownership patterns, and data flow"
+      - "Step 2 FOCUS: For the specific rule, examine the relevant code block WITH the full context already understood"
+      - "Step 3 REASON: Ask the rule's question. Reason about the answer using the full plugin context — not just the extracted block in isolation"
+      - "Step 4 JUDGE: If the answer suggests a violation, ask: 'Is the developer's actual approach correct and safe given the full context I already understand?' If yes → downgrade. If genuinely wrong → cite it"
+      - "Step 5 CITE: On violation, give exact file and line (e.g. [Dictionary.cpp:108])"
+      - "Step 6 FIX: Show the corrected code block, not the whole file"
+      - "Step 4 CITE: On violation, give exact file and line (e.g. [Dictionary.cpp:108])"
+      - "Step 5 FIX: Show the corrected code block, not the whole file"
+
+# ===========================================================================================
+# PHASE CHECKPOINTS (39 rules)
+# ===========================================================================================
+
+# -------------------------------------------------------------------------------------------
+# Phase 1: Module Structure
+# -------------------------------------------------------------------------------------------
+
+phase_1_checkpoints:
+  - rule_id: "rule_01"
+    name: "MODULE_NAME Plugin_ Prefix"
+    severity: "suggestion"
+    phase: "module_structure"
+
+    extraction:
+      target: "#define MODULE_NAME in Module.h"
+      method: "Read Module.h and locate the #define MODULE_NAME line"
+      code_block: "The #define MODULE_NAME ... line from Module.h"
+
+    bounded_query:
+      question: "Does the MODULE_NAME value start with the Plugin_ prefix (e.g. Plugin_Dictionary)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read Module.h and find the #define MODULE_NAME line"
+      - "2. Examine the value assigned to MODULE_NAME"
+      - "3. Reason whether the value starts with Plugin_ as a prefix"
+      - "4. If the value does not start with Plugin_ → SUGGESTION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "MODULE_NAME does not start with Plugin_ prefix"
+
+    fix_template: |
+      // WRONG:
+      #define MODULE_NAME Dictionary
+
+      // Correct:
+      #define MODULE_NAME Plugin_Dictionary
+
+    citation:
+      line_format: "[Module.h:LINE] MODULE_NAME value does not use Plugin_ prefix"
+      rule: "thunder-plugin-rules.yaml / rule_01"
+
+  - rule_id: "rule_02"
+    name: "MODULE_NAME_DECLARATION"
+    severity: "violation"
+    phase: "module_structure"
+
+    extraction:
+      target: "MODULE_NAME_DECLARATION(BUILD_REFERENCE) call in Module.cpp"
+      method: "Read Module.cpp and locate the MODULE_NAME_DECLARATION macro call"
+      code_block: "The MODULE_NAME_DECLARATION line in Module.cpp"
+
+    bounded_query:
+      question: "Does Module.cpp contain MODULE_NAME_DECLARATION(BUILD_REFERENCE)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read Module.cpp in full"
+      - "2. Look for the MODULE_NAME_DECLARATION macro invocation"
+      - "3. Verify the argument is BUILD_REFERENCE (not empty, not a hardcoded string)"
+      - "4. If the macro is absent → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "MODULE_NAME_DECLARATION(BUILD_REFERENCE) missing from Module.cpp"
+
+    fix_template: |
+      // WRONG: (missing or using wrong argument)
+      // MODULE_NAME_DECLARATION(BUILD_REFERENCE)  ← not present
+
+      // Correct:
+      MODULE_NAME_DECLARATION(BUILD_REFERENCE)
+
+    citation:
+      line_format: "[Module.cpp:LINE] MODULE_NAME_DECLARATION(BUILD_REFERENCE) not found"
+      rule: "thunder-plugin-rules.yaml / rule_02"
+
+  - rule_id: "rule_03"
+    name: "Module.h Uses #pragma once"
+    severity: "warning"
+    phase: "module_structure"
+
+    extraction:
+      target: "Include guard at top of Module.h"
+      method: "Read the first 10 lines of Module.h and examine the include guard approach"
+      code_block: "The header guard lines at the top of Module.h"
+
+    bounded_query:
+      question: "Does Module.h use #pragma once instead of a legacy #ifndef/#define/#endif guard?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the first 10 lines of Module.h"
+      - "2. Determine whether the include guard is #pragma once or legacy #ifndef style"
+      - "3. If legacy #ifndef guard is used instead of #pragma once → WARNING"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Module.h uses legacy #ifndef include guard instead of #pragma once"
+
+    fix_template: |
+      // WRONG:
+      #ifndef __MODULE_H
+      #define __MODULE_H
+      // ... header content ...
+      #endif
+
+      // Correct:
+      #pragma once
+      // ... header content ...
+
+    citation:
+      line_format: "[Module.h:LINE] Legacy #ifndef guard — use #pragma once"
+      rule: "thunder-plugin-rules.yaml / rule_03"
+
+# -------------------------------------------------------------------------------------------
+# Phase 2: Code Style
+# -------------------------------------------------------------------------------------------
+
+phase_2_checkpoints:
+  - rule_id: "rule_04"
+    name: "VARIABLE_IS_NOT_USED Accuracy"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "All function signatures and bodies where VARIABLE_IS_NOT_USED annotation appears"
+      method: "Read each function in full — signature plus body — and reason about whether annotated parameters are actually used in the body"
+      code_block: "The complete function body for each function that uses VARIABLE_IS_NOT_USED"
+
+    bounded_query:
+      question: "Are all parameters annotated with VARIABLE_IS_NOT_USED (or suppressed via the macro call in the body) genuinely unused in the function body?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read each function that uses VARIABLE_IS_NOT_USED — in any form: inline annotation in signature or macro call in body"
+      - "2. For each such parameter, read the complete function body and reason semantically about whether that parameter is referenced"
+      - "3. Understand Thunder's macro forms: VARIABLE_IS_NOT_USED(param) in the body and /* VARIABLE_IS_NOT_USED */ inline in the parameter list"
+      - "4. A parameter is 'used' if it appears in any expression in the function body that affects behavior"
+      - "5. If any annotated parameter IS actually used in the body → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "VARIABLE_IS_NOT_USED applied to a parameter that is actually used in the function body"
+
+    fix_template: |
+      // WRONG:
+      void Callback(VARIABLE_IS_NOT_USED const string& name, const uint32_t value) {
+          ProcessValue(name, value);  // ← 'name' IS used but annotated as unused
+      }
+
+      // Correct:
+      void Callback(const string& name, const uint32_t value) {
+          ProcessValue(name, value);
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] VARIABLE_IS_NOT_USED on parameter that is actually used"
+      rule: "thunder-plugin-rules.yaml / rule_04"
+
+  - rule_id: "rule_05"
+    name: "Error Code Preservation"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "Function bodies that conditionally set an error code variable"
+      method: "Read each function body in full and reason about control flow — identify where an error code is conditionally assigned and then check whether it is subsequently unconditionally overwritten"
+      code_block: "The function body where conditional error code assignment occurs"
+
+    bounded_query:
+      question: "In every function that conditionally sets an error code, is the error code preserved until the end — never unconditionally overwritten with ERROR_NONE or SUCCESS after being conditionally set?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read each function body that contains an error code variable (result, errorCode, ret, etc.)"
+      - "2. Reason about the control flow: where is the error code assigned conditionally (inside an if block)?"
+      - "3. Check whether the same variable is later unconditionally assigned a success/none value (e.g. result = Core::ERROR_NONE; outside any branch)"
+      - "4. If a conditional error assignment is followed by an unconditional ERROR_NONE assignment → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Error code conditionally set but then unconditionally overwritten with ERROR_NONE/SUCCESS"
+
+    fix_template: |
+      // WRONG:
+      uint32_t result = Core::ERROR_NONE;
+      if (condition) {
+          result = Core::ERROR_GENERAL;
+      }
+      result = Core::ERROR_NONE;  // ← unconditionally overwrites the conditional failure
+
+      // Correct:
+      uint32_t result = Core::ERROR_NONE;
+      if (condition) {
+          result = Core::ERROR_GENERAL;
+      }
+      return result;  // preserve the conditional error
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Error code unconditionally overwritten after conditional failure assignment"
+      rule: "thunder-plugin-rules.yaml / rule_05"
+
+  - rule_id: "rule_06"
+    name: "NULL vs nullptr"
+    severity: "warning"
+    phase: "code_style"
+
+    extraction:
+      target: "All uses of NULL as a null pointer literal in function bodies and variable declarations"
+      method: "Read each function body and variable declaration as a human reviewer, reasoning about the semantic meaning of each null expression — exclude NULL inside string literals and comments by context understanding"
+      code_block: "Each line where NULL appears as a null pointer value"
+
+    bounded_query:
+      question: "Is nullptr used exclusively as the null pointer literal — no uses of NULL as a pointer value in function bodies or declarations?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read through the source files as a human reviewer"
+      - "2. For each occurrence of NULL, reason about context: is it inside a string literal? a comment? or actual code?"
+      - "3. NULL inside string literals (e.g. 'value is NULL') and comments must be excluded"
+      - "4. NULL used as a null pointer value in code (assignments, comparisons, function arguments) → WARNING"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "NULL used as null pointer literal — should use nullptr"
+
+    fix_template: |
+      // WRONG:
+      IPlugin* plugin = NULL;
+      if (service == NULL) { ... }
+
+      // Correct:
+      IPlugin* plugin = nullptr;
+      if (service == nullptr) { ... }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] NULL used as null pointer — use nullptr"
+      rule: "thunder-plugin-rules.yaml / rule_06"
+
+  - rule_id: "rule_07"
+    name: "No delete on COM Interface Pointers"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "All delete or delete[] expressions in function bodies"
+      method: "Read each function body and reason about the type of the pointer being deleted — use the variable's declared type, naming conventions, and class hierarchy context to determine if it is a COM interface type"
+      code_block: "Each delete expression in the function body"
+
+    bounded_query:
+      question: "Are there zero uses of delete or delete[] on COM interface pointer types (I* types)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read each function body and identify all delete/delete[] expressions"
+      - "2. For each delete, reason about the type of the deleted pointer from its declaration, name (I prefix convention), and usage context"
+      - "3. If the pointer is a COM interface type (IPlugin, IShell, IUnknown, or any I* interface) → VIOLATION"
+      - "4. COM interfaces must use Release() for cleanup, not delete"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "delete used on a COM interface pointer — must use Release() instead"
+
+    fix_template: |
+      // WRONG:
+      delete _service;      // COM interfaces must NOT be deleted
+
+      // Correct:
+      _service->Release();  // Use Release() for COM interfaces
+      _service = nullptr;
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] delete used on COM interface pointer — use Release()"
+      rule: "thunder-plugin-rules.yaml / rule_07"
+
+  - rule_id: "rule_08"
+    name: "nullptr After Release"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "All ->Release() calls on member variables in function bodies"
+      method: "Read each function body in full and reason about each Release() call — determine if the pointer is a member variable and whether nullptr is assigned immediately after"
+      code_block: "Each Release() call on a member variable and the statement(s) immediately following it"
+
+    bounded_query:
+      question: "Is nullptr assigned to the member variable immediately after every ->Release() call on a member?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read each function body and identify all ->Release() calls"
+      - "2. For each Release() call, reason about whether the pointer is a member variable (prefixed with _ or this-> by Thunder convention)"
+      - "3. Check that the very next statement assigns nullptr to that pointer"
+      - "4. If the member pointer is not set to nullptr immediately after Release() → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Member pointer not set to nullptr immediately after ->Release()"
+
+    fix_template: |
+      // WRONG:
+      _service->Release();
+      // ... other code, no nullptr assignment
+
+      // Correct:
+      _service->Release();
+      _service = nullptr;
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] _service->Release() not followed by _service = nullptr"
+      rule: "thunder-plugin-rules.yaml / rule_08"
+
+  - rule_id: "rule_09"
+    name: "No QueryInterfaceByCallsign as Member"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "All QueryInterfaceByCallsign() call sites and the storage of their return values"
+      method: "Read function bodies and class declarations and reason about the lifetime of the QueryInterfaceByCallsign() result — transient local use (acquired, used, released in same scope) is acceptable; storing in a member variable is not"
+      code_block: "The QueryInterfaceByCallsign() call and any assignment of its result"
+
+    bounded_query:
+      question: "Is QueryInterfaceByCallsign() result used transiently (acquired, used, and released within the same scope) — never stored as a member variable?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all QueryInterfaceByCallsign() call sites"
+      - "2. Reason about the lifetime of the returned pointer: is it stored in a local variable or a class member?"
+      - "3. If stored in a local variable and released before the function returns → acceptable"
+      - "4. If stored in a class member variable (persists across calls) → VIOLATION"
+
+    conditional: true
+    skip_condition: "No QueryInterfaceByCallsign() calls found in the plugin"
+
+    violation_pattern: "QueryInterfaceByCallsign() result stored as member variable — must be transient (acquired, used, released in same scope)"
+
+    fix_template: |
+      // WRONG:
+      _remotePlugin = _service->QueryInterfaceByCallsign<IPlugin>("RemotePlugin");
+      // _remotePlugin stored as member, not released until Deinitialize
+
+      // Correct:
+      IPlugin* plugin = _service->QueryInterfaceByCallsign<IPlugin>("RemotePlugin");
+      if (plugin != nullptr) {
+          plugin->SomeOperation();
+          plugin->Release();
+          plugin = nullptr;
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] QueryInterfaceByCallsign() result stored as member variable"
+      rule: "thunder-plugin-rules.yaml / rule_09"
+
+  - rule_id: "rule_10"
+    name: "No Smart Pointers on COM Objects"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "Class member declarations and local variable declarations using smart pointer types"
+      method: "Read class member declarations and function bodies and reason about whether any smart pointer wraps a COM interface type"
+      code_block: "Any smart_ptr<I*> or unique_ptr<I*> member declaration"
+
+    bounded_query:
+      question: "Are there zero COM interface pointers (I* types) wrapped in shared_ptr or unique_ptr?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all class member declarations and local variable declarations"
+      - "2. Identify any shared_ptr<T> or unique_ptr<T> where T is a COM interface (I* type)"
+      - "3. COM interfaces manage their own lifetime via AddRef/Release — smart pointers cause double-delete"
+      - "4. If any COM interface is wrapped in a smart pointer → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "COM interface pointer wrapped in shared_ptr or unique_ptr — use raw pointer with explicit Release()"
+
+    fix_template: |
+      // WRONG:
+      std::shared_ptr<IPlugin> _plugin;
+      std::unique_ptr<IDictionary> _dict;
+
+      // Correct:
+      IPlugin* _plugin = nullptr;
+      IDictionary* _dict = nullptr;
+      // Release manually in Deinitialize()
+
+    citation:
+      line_format: "[PluginName.h:LINE] COM interface wrapped in smart pointer"
+      rule: "thunder-plugin-rules.yaml / rule_10"
+
+  - rule_id: "rule_11"
+    name: "No SmartLinkType for COMRPC Plugins"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "Class member declarations and typedef/using aliases for SmartLinkType"
+      method: "Read class declarations and reason about member types — identify any SmartLinkType usage"
+      code_block: "Any SmartLinkType declaration or usage"
+
+    bounded_query:
+      question: "Is SmartLinkType absent from the plugin — no member declarations or typedefs using SmartLinkType?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all class declarations, member variable definitions, and typedef/using statements"
+      - "2. Check for any use of SmartLinkType"
+      - "3. SmartLinkType is a deprecated mechanism — COMRPC plugins must use direct interface pointers"
+      - "4. If SmartLinkType is found → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "SmartLinkType used — deprecated mechanism, use direct COMRPC interface pointer instead"
+
+    fix_template: |
+      // WRONG:
+      SmartLinkType<IPlugin, RPC::ID_PLUGIN, &RPC::metadata<IPlugin>> _link;
+
+      // Correct:
+      IPlugin* _plugin = nullptr;
+      // Acquire via QueryInterface, release in Deinitialize
+
+    citation:
+      line_format: "[PluginName.h:LINE] SmartLinkType used — deprecated, use direct interface pointer"
+      rule: "thunder-plugin-rules.yaml / rule_11"
+
+  - rule_id: "rule_12"
+    name: "No delete on Plugin Object"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "All function bodies in the plugin for delete this or delete on plugin-owned objects"
+      method: "Read all function bodies and reason about ownership — plugin object lifetime is managed by the Thunder framework"
+      code_block: "Any delete this or delete on a plugin-managed object"
+
+    bounded_query:
+      question: "Is delete this absent from the plugin code — plugin lifetime is always managed by the Thunder framework?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all function bodies in the plugin"
+      - "2. Reason about any delete expression — particularly delete this"
+      - "3. The Thunder framework owns plugin object lifetime; plugins must never delete themselves"
+      - "4. If delete this is found → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "delete this used in plugin code — plugin lifetime is managed by the Thunder framework"
+
+    fix_template: |
+      // WRONG:
+      void SomeMethod() {
+          if (done) {
+              delete this;   // ← Thunder framework owns this object
+          }
+      }
+
+      // Correct: signal to the framework instead
+      void SomeMethod() {
+          if (done) {
+              _service->Submit(PluginHost::IShell::DEACTIVATED, this);
+          }
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] delete this used — plugin lifetime is framework-managed"
+      rule: "thunder-plugin-rules.yaml / rule_12"
+
+  - rule_id: "rule_13"
+    name: "No throw Keyword in Plugin Code"
+    severity: "violation"
+    phase: "code_style"
+
+    extraction:
+      target: "All function bodies for throw statements"
+      method: "Read all function bodies as a human reviewer and reason about error-handling patterns — exclude throw inside string literals and comments by context understanding"
+      code_block: "Any throw statement in executable plugin code"
+
+    bounded_query:
+      question: "Is the throw keyword absent from all executable plugin code (not inside string literals or comments)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all function bodies as a human reviewer"
+      - "2. For each occurrence of throw, reason about context: is it in executable code, a string literal, or a comment?"
+      - "3. Throw in string literals and comments must be excluded"
+      - "4. Exceptions cannot cross COM boundaries — any throw in plugin code is a protocol violation"
+      - "5. If throw appears in executable plugin code → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "throw keyword used in plugin code — exceptions cannot cross COM boundaries"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          if (!Init()) throw std::runtime_error("Init failed");
+          return {};
+      }
+
+      // Correct:
+      string Initialize(PluginHost::IShell* service) {
+          if (!Init()) return "Initialization failed";
+          return {};
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] throw keyword used — use return error string instead"
+      rule: "thunder-plugin-rules.yaml / rule_13"
+
+# -------------------------------------------------------------------------------------------
+# Phase 3: Class Registration
+# -------------------------------------------------------------------------------------------
+
+phase_3_checkpoints:
+  - rule_id: "rule_14"
+    name: "Special Members Deleted (Main Class)"
+    severity: "warning"
+    phase: "class_registration"
+
+    extraction:
+      target: "The main plugin class declaration (the class implementing PluginHost::IPlugin)"
+      method: "Read the main plugin class declaration in the plugin header file and check for deleted special members"
+      code_block: "The special member declarations (constructors, assignment operators) in the main class"
+
+    bounded_query:
+      question: "Are all 4 special members deleted in the MAIN plugin class — copy constructor, copy assignment operator, move constructor, and move assignment operator?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the plugin header file and identify the main plugin class (the one inheriting PluginHost::IPlugin)"
+      - "2. Internal helper classes (Notification, Sink, Config, JobWorker, etc.) are explicitly excluded"
+      - "3. Check that the main class has: PluginName(const PluginName&) = delete; PluginName& operator=(const PluginName&) = delete; PluginName(PluginName&&) = delete; PluginName& operator=(PluginName&&) = delete;"
+      - "4. If all 4 are present and deleted → PASS"
+      - "5. If any of the 4 are missing → WARNING"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "One or more of the 4 special members are not explicitly deleted in the main plugin class"
+
+    fix_template: |
+      // WRONG: (one or more missing)
+      class Dictionary : public PluginHost::IPlugin {
+      public:
+          Dictionary() = default;
+          Dictionary(const Dictionary&) = delete;
+          // Missing: move ctor, copy assign, move assign
+
+      // Correct:
+      class Dictionary : public PluginHost::IPlugin {
+      public:
+          Dictionary() = default;
+          Dictionary(const Dictionary&) = delete;
+          Dictionary& operator=(const Dictionary&) = delete;
+          Dictionary(Dictionary&&) = delete;
+          Dictionary& operator=(Dictionary&&) = delete;
+
+    citation:
+      line_format: "[PluginName.h:LINE] Not all 4 special members deleted in main plugin class"
+      rule: "thunder-plugin-rules.yaml / rule_14"
+
+  - rule_id: "rule_15"
+    name: "Plugin Metadata Registration"
+    severity: "violation"
+    phase: "class_registration"
+
+    extraction:
+      target: "Plugin::Metadata<PluginName> instantiation in the plugin .cpp file"
+      method: "Read the plugin .cpp file and look for the Plugin::Metadata<T> static registration"
+      code_block: "The Plugin::Metadata<PluginName> static instance declaration"
+
+    bounded_query:
+      question: "Does the plugin .cpp contain a Plugin::Metadata<PluginName> static registration?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the plugin .cpp file (PluginName.cpp)"
+      - "2. Check for the presence of static Plugin::Metadata<PluginName> registration"
+      - "3. This registers the plugin with the Thunder framework — it must be present"
+      - "4. If absent → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Plugin::Metadata<PluginName> registration missing from plugin .cpp"
+
+    fix_template: |
+      // WRONG: (missing metadata registration)
+
+      // Correct — add to PluginName.cpp:
+      static Plugin::Metadata<Dictionary> metadata(
+          Plugin::Information<Dictionary>::Versions,
+          Plugin::Information<Dictionary>::Instances,
+          Plugin::Information<Dictionary>::Prefix,
+          Plugin::Information<Dictionary>::Interfaces,
+          Plugin::Information<Dictionary>::Configuration,
+          Plugin::Information<Dictionary>::Extends
+      );
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Plugin::Metadata<PluginName> registration absent"
+      rule: "thunder-plugin-rules.yaml / rule_15"
+
+  - rule_id: "rule_16"
+    name: "JSONRPC Inheritance When Used"
+    severity: "violation"
+    phase: "class_registration"
+
+    extraction:
+      target: "Initialize() body for JSON-RPC Register() calls and the class inheritance list"
+      method: "Read Initialize() and the class declaration and reason about whether JSON-RPC handler registration is present and whether the class properly inherits JSONRPC"
+      code_block: "The Register() calls in Initialize() and the class inheritance declarations"
+
+    bounded_query:
+      question: "If the plugin registers JSON-RPC handlers (Register() calls in Initialize()), does the class inherit PluginHost::JSONRPC?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read Initialize() and check for Register() calls that register JSON-RPC handlers"
+      - "2. If no JSON-RPC Register() calls are found → SKIP this checkpoint"
+      - "3. If Register() calls exist, read the class declaration"
+      - "4. Verify the class inherits from PluginHost::JSONRPC (directly or via JSONRPC base)"
+      - "5. If JSON-RPC handlers are registered but the class does not inherit JSONRPC → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not register any JSON-RPC handlers in Initialize()"
+
+    violation_pattern: "JSON-RPC Register() calls present in Initialize() but class does not inherit PluginHost::JSONRPC"
+
+    fix_template: |
+      // WRONG:
+      class Dictionary : public PluginHost::IPlugin {
+          // Missing PluginHost::JSONRPC inheritance
+
+      // Correct:
+      class Dictionary : public PluginHost::IPlugin,
+                         public PluginHost::JSONRPC {
+
+    citation:
+      line_format: "[PluginName.h:LINE] JSON-RPC used but JSONRPC inheritance missing"
+      rule: "thunder-plugin-rules.yaml / rule_16"
+
+# -------------------------------------------------------------------------------------------
+# Phase 4: Lifecycle
+# -------------------------------------------------------------------------------------------
+
+phase_4_checkpoints:
+  - rule_id: "rule_17"
+    name: "IShell AddRef in Initialize"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "IShell* member assignment and AddRef() call in Initialize()"
+      method: "Read Initialize() body looking for IShell* member assignment (e.g. _service = service;) and the AddRef() call immediately after"
+      code_block: "Lines in Initialize() that assign the service pointer and call AddRef"
+
+    bounded_query:
+      question: "Is AddRef() called on the stored IShell* pointer immediately after assignment in Initialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Check if the class has an IShell* member variable (e.g. _service, _shell)"
+      - "2. If no IShell* member exists → SKIP this checkpoint"
+      - "3. If IShell* member exists: find the assignment in Initialize() (e.g. _service = service;)"
+      - "4. Check that AddRef() is called on it immediately after: _service->AddRef();"
+      - "5. If AddRef() is missing → VIOLATION"
+
+    conditional: true
+    skip_condition: "Class has no stored IShell* member variable"
+
+    violation_pattern: "IShell* stored as member but AddRef() not called after assignment in Initialize()"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          _service = service;   // ← AddRef() missing
+          // ...
+      }
+
+      // Correct:
+      string Initialize(PluginHost::IShell* service) {
+          ASSERT(service != nullptr);
+          _service = service;
+          _service->AddRef();   // AddRef when storing the pointer
+          // ...
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] IShell* stored but AddRef() not called after assignment"
+      rule: "thunder-plugin-rules.yaml / rule_17"
+
+  - rule_id: "rule_18"
+    name: "IShell Release in Deinitialize"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "_service->Release() and _service = nullptr in Deinitialize()"
+      method: "Read Deinitialize() body and check that the stored IShell* is released and nulled"
+      code_block: "The _service Release and nullptr assignment lines in Deinitialize()"
+
+    bounded_query:
+      question: "Does Deinitialize() call Release() on the stored IShell* and immediately set it to nullptr?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If the class has no stored IShell* member → SKIP"
+      - "2. Read Deinitialize() in full"
+      - "3. Check for _service->Release() (or equivalent member->Release())"
+      - "4. Check that _service = nullptr follows immediately after Release()"
+      - "5. If Release() or the nullptr assignment is missing → VIOLATION"
+
+    conditional: true
+    skip_condition: "Class has no stored IShell* member variable"
+
+    violation_pattern: "IShell* member not released or not nulled in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      void Deinitialize(PluginHost::IShell* service) {
+          // _service->Release() missing or _service = nullptr missing
+      }
+
+      // Correct:
+      void Deinitialize(PluginHost::IShell* service) {
+          // ... cleanup ...
+          _service->Release();
+          _service = nullptr;
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] IShell* not released or not nulled in Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_18"
+
+  - rule_id: "rule_19"
+    name: "Information() Method"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "string Information() const method in the plugin .cpp"
+      method: "Read the plugin .cpp and check for the Information() const method implementation"
+      code_block: "The Information() method declaration and implementation"
+
+    bounded_query:
+      question: "Does the plugin implement the string Information() const method?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the plugin .cpp and .h files"
+      - "2. Check for a method with signature: string Information() const (or const string& Information() const)"
+      - "3. This method is part of PluginHost::IPlugin and MUST be implemented"
+      - "4. If absent → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "string Information() const method not implemented in plugin .cpp"
+
+    fix_template: |
+      // WRONG: (method missing)
+
+      // Correct — add to PluginName.cpp:
+      string PluginName::Information() const {
+          return string();
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Information() const method not implemented"
+      rule: "thunder-plugin-rules.yaml / rule_19"
+
+  - rule_id: "rule_20"
+    name: "Root<T>() Null Check"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "service->Root<T>() call in Initialize() and the null check on its return"
+      method: "Read Initialize() in full and reason about Root<T>() call sites — check whether the return value is tested for nullptr before use"
+      code_block: "The Root<T>() call and the null check on the returned pointer"
+
+    bounded_query:
+      question: "Is the return value of service->Root<T>() checked for nullptr before it is used?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read Initialize() and check for service->Root<T>() calls"
+      - "2. If no Root<T>() call → SKIP"
+      - "3. If Root<T>() is called, check that the return value is stored and tested for nullptr"
+      - "4. Accessing a potentially-null pointer without checking → VIOLATION"
+
+    conditional: true
+    skip_condition: "Initialize() does not call service->Root<T>()"
+
+    violation_pattern: "service->Root<T>() return value used without nullptr check"
+
+    fix_template: |
+      // WRONG:
+      _implementation = service->Root<IPlugin>();
+      _implementation->DoSomething();  // ← may crash if Root returns nullptr
+
+      // Correct:
+      _implementation = service->Root<IPlugin>();
+      if (_implementation != nullptr) {
+          _implementation->DoSomething();
+      } else {
+          return "Failed to acquire implementation";
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Root<T>() return value not checked for nullptr"
+      rule: "thunder-plugin-rules.yaml / rule_20"
+
+  - rule_id: "rule_21"
+    name: "Root<T>() Release in Deinitialize"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "Release() and nullptr assignment for the Root<T>() pointer in Deinitialize()"
+      method: "Read Deinitialize() and check that the pointer stored from Root<T>() is released and nulled"
+      code_block: "The Release() call and nullptr assignment for the Root pointer in Deinitialize()"
+
+    bounded_query:
+      question: "Is the pointer acquired via Root<T>() released and set to nullptr in Deinitialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no Root<T>() is called in Initialize() → SKIP"
+      - "2. Read Deinitialize() in full"
+      - "3. Identify the member that stores the Root<T>() result"
+      - "4. Check that Release() is called on it and it is then set to nullptr"
+      - "5. If not released or not nulled → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not call service->Root<T>() in Initialize()"
+
+    violation_pattern: "Root<T>() pointer not released or not nulled in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      void Deinitialize(PluginHost::IShell* service) {
+          // _implementation->Release() missing
+      }
+
+      // Correct:
+      void Deinitialize(PluginHost::IShell* service) {
+          if (_implementation != nullptr) {
+              _implementation->Release();
+              _implementation = nullptr;
+          }
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Root<T>() pointer not released in Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_21"
+
+  - rule_id: "rule_22"
+    name: "Observer Cleanup in Deinitialize"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "Observer or notification registration in Initialize() and cleanup in Deinitialize()"
+      method: "Read Initialize() for Register/Subscribe calls and Deinitialize() for the matching Unregister/Unsubscribe cleanup"
+      code_block: "The Register call in Initialize() and the matching Unregister in Deinitialize()"
+
+    bounded_query:
+      question: "Is every observer or notification registered in Initialize() properly unregistered in Deinitialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no observer registration in Initialize() → SKIP"
+      - "2. Read Initialize() and identify all Register/Subscribe calls for notifications"
+      - "3. Read Deinitialize() and check for the matching Unregister/Unsubscribe calls"
+      - "4. Every registered observer MUST be unregistered in Deinitialize() to avoid dangling callbacks"
+      - "5. If any registration lacks a corresponding cleanup → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not register any observers or notifications"
+
+    violation_pattern: "Observer registered in Initialize() but not unregistered in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          service->Register(_notification);
+          // ...
+      }
+      void Deinitialize(PluginHost::IShell* service) {
+          // service->Unregister(_notification) missing
+      }
+
+      // Correct:
+      string Initialize(PluginHost::IShell* service) {
+          service->Register(_notification);
+      }
+      void Deinitialize(PluginHost::IShell* service) {
+          service->Unregister(_notification);
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Observer registered in Initialize() but not cleaned up in Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_22"
+
+  - rule_id: "rule_23"
+    name: "SubSystems() Release in Deinitialize"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "service->SubSystems() usage in Initialize() and cleanup in Deinitialize()"
+      method: "Read Initialize() for SubSystems() acquisition and Deinitialize() for the Release"
+      code_block: "The SubSystems() call and associated Release in Deinitialize()"
+
+    bounded_query:
+      question: "If service->SubSystems() is acquired in Initialize(), is it released in Deinitialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If Initialize() does not call service->SubSystems() → SKIP"
+      - "2. Read Initialize() and find the SubSystems() acquisition and storage"
+      - "3. Read Deinitialize() and check for Release() on the subsystems pointer"
+      - "4. If acquired but not released → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not use service->SubSystems() in Initialize()"
+
+    violation_pattern: "service->SubSystems() acquired in Initialize() but not released in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          _subSystems = service->SubSystems();
+          // ...
+      }
+      void Deinitialize(PluginHost::IShell* service) {
+          // _subSystems->Release() missing
+      }
+
+      // Correct:
+      void Deinitialize(PluginHost::IShell* service) {
+          _subSystems->Release();
+          _subSystems = nullptr;
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] SubSystems() not released in Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_23"
+
+  - rule_id: "rule_24"
+    name: "Constructor Must Be Empty"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "Plugin class constructor body"
+      method: "Read the plugin class constructor implementation and reason about whether it performs any non-trivial initialization"
+      code_block: "The complete constructor body"
+
+    bounded_query:
+      question: "Is the plugin constructor body empty (no initialization logic, only member initializer list with defaults if any)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the plugin constructor definition"
+      - "2. Reason about whether the body performs any work beyond initializing members to null/default values"
+      - "3. Resource acquisition, system calls, and service interactions must be in Initialize(), not the constructor"
+      - "4. If the constructor body contains non-trivial logic → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Plugin constructor contains initialization logic — must be empty; initialization belongs in Initialize()"
+
+    fix_template: |
+      // WRONG:
+      Dictionary::Dictionary() {
+          _config.FromString("...");  // ← initialization logic in constructor
+          _service = GetService();
+      }
+
+      // Correct:
+      Dictionary::Dictionary()
+          : _service(nullptr)
+          , _config()
+      {
+          // empty — all initialization in Initialize()
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Constructor contains initialization logic"
+      rule: "thunder-plugin-rules.yaml / rule_24"
+
+  - rule_id: "rule_25"
+    name: "service->Register/Unregister Pairing"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "service->Register() calls in Initialize() and matching service->Unregister() in Deinitialize()"
+      method: "Read Initialize() for service->Register() calls (for IPlugin notifications) and Deinitialize() for matching Unregister() calls"
+      code_block: "All service->Register() and service->Unregister() calls"
+
+    bounded_query:
+      question: "Is every service->Register() call in Initialize() matched by a service->Unregister() call in Deinitialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no service->Register() in Initialize() → SKIP"
+      - "2. Read Initialize() and count all service->Register() calls"
+      - "3. Read Deinitialize() and count matching service->Unregister() calls"
+      - "4. Every registration must have a corresponding deregistration"
+      - "5. If any registration lacks a matching deregistration → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not call service->Register() in Initialize()"
+
+    violation_pattern: "service->Register() in Initialize() not matched by service->Unregister() in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          service->Register(_notification);
+      }
+      void Deinitialize(PluginHost::IShell* service) {
+          // service->Unregister(_notification) missing
+      }
+
+      // Correct:
+      void Deinitialize(PluginHost::IShell* service) {
+          service->Unregister(_notification);
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] service->Register() without matching Unregister() in Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_25"
+
+  - rule_id: "rule_26"
+    name: "Initialize Returns Error String on Failure"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "Initialize() return statements and error handling"
+      method: "Read Initialize() in full and reason about all return paths — every failure path must return a non-empty error string"
+      code_block: "All return statements in Initialize()"
+
+    bounded_query:
+      question: "Does Initialize() return a non-empty error string on every failure path (never returning empty string when an error condition is detected)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read Initialize() in full"
+      - "2. Identify all error conditions (nullptr checks, failed operations, configuration errors)"
+      - "3. Verify each error path returns a non-empty string describing the failure"
+      - "4. Returning an empty string on failure prevents Thunder from knowing initialization failed"
+      - "5. If any error condition returns empty string or falls through to success → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Initialize() returns empty string on a failure condition — must return non-empty error description"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          if (service == nullptr) {
+              return string();  // ← empty string does not signal failure to Thunder
+          }
+          return string();
+      }
+
+      // Correct:
+      string Initialize(PluginHost::IShell* service) {
+          if (service == nullptr) {
+              return "Service pointer is null";  // non-empty string signals failure
+          }
+          return string();  // success — empty string
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Initialize() returns empty string on failure condition"
+      rule: "thunder-plugin-rules.yaml / rule_26"
+
+  - rule_id: "rule_27"
+    name: "No Manual Deinitialize() in Initialize"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "Initialize() body for any call to Deinitialize()"
+      method: "Read Initialize() body and check for any direct call to Deinitialize()"
+      code_block: "The full Initialize() body, focusing on cleanup paths"
+
+    bounded_query:
+      question: "Is Deinitialize() never called directly from within Initialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read Initialize() in full"
+      - "2. Check whether Initialize() calls Deinitialize() directly at any point"
+      - "3. If Initialize() needs to clean up on failure, it must do so explicitly rather than calling Deinitialize()"
+      - "4. Calling Deinitialize() from Initialize() can leave the system in an inconsistent state"
+      - "5. If Deinitialize() is called inside Initialize() → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Initialize() calls Deinitialize() directly — handle cleanup explicitly on failure paths"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          _service = service;
+          _service->AddRef();
+          if (!Setup()) {
+              Deinitialize(service);  // ← do not call Deinitialize from Initialize
+              return "Setup failed";
+          }
+          return string();
+      }
+
+      // Correct:
+      string Initialize(PluginHost::IShell* service) {
+          _service = service;
+          _service->AddRef();
+          if (!Setup()) {
+              _service->Release();   // explicit cleanup
+              _service = nullptr;
+              return "Setup failed";
+          }
+          return string();
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Initialize() calls Deinitialize() — handle failures explicitly"
+      rule: "thunder-plugin-rules.yaml / rule_27"
+
+  - rule_id: "rule_28"
+    name: "Destructor Must Be Empty"
+    severity: "violation"
+    phase: "lifecycle"
+
+    extraction:
+      target: "Plugin class destructor body"
+      method: "Read the plugin class destructor implementation and reason about whether it performs any non-trivial work"
+      code_block: "The complete destructor body"
+
+    bounded_query:
+      question: "Is the plugin destructor body completely empty (no resource cleanup, no logic — all cleanup is in Deinitialize())?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the plugin destructor definition"
+      - "2. The destructor must be empty — all resource cleanup belongs in Deinitialize()"
+      - "3. If the destructor contains any logic or resource release → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Plugin destructor contains cleanup logic — all cleanup must be in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      Dictionary::~Dictionary() {
+          if (_service != nullptr) {
+              _service->Release();   // ← cleanup in destructor is wrong
+          }
+      }
+
+      // Correct:
+      Dictionary::~Dictionary() {
+          // empty — cleanup is in Deinitialize()
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Destructor contains cleanup logic — move to Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_28"
+
+# -------------------------------------------------------------------------------------------
+# Phase 5: Implementation
+# -------------------------------------------------------------------------------------------
+
+phase_5_checkpoints:
+  - rule_id: "rule_29"
+    name: "JSON-RPC Register/Unregister Pairing"
+    severity: "violation"
+    phase: "implementation"
+
+    extraction:
+      target: "JSON-RPC Register() calls in Initialize() and matching Unregister() in Deinitialize()"
+      method: "Read Initialize() and Deinitialize() and reason about JSON-RPC handler registration balance"
+      code_block: "All JSONRPC Register() and Unregister() calls"
+
+    bounded_query:
+      question: "Is every JSON-RPC handler registered in Initialize() unregistered in Deinitialize()?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no JSONRPC::Register() calls in Initialize() → SKIP"
+      - "2. Read Initialize() and list all JSONRPC::Register() calls and method names"
+      - "3. Read Deinitialize() and verify matching JSONRPC::Unregister() for each registered method"
+      - "4. Missing unregistration causes stale handler references after plugin deactivation"
+      - "5. If any registration lacks a matching unregistration → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not register JSON-RPC handlers"
+
+    violation_pattern: "JSON-RPC handler registered in Initialize() but not unregistered in Deinitialize()"
+
+    fix_template: |
+      // WRONG:
+      string Initialize(PluginHost::IShell* service) {
+          Register<Params, Result>(_T("method"), &PluginName::Method, this);
+      }
+      void Deinitialize(PluginHost::IShell* service) {
+          // Unregister<Result>(_T("method")) missing
+      }
+
+      // Correct:
+      void Deinitialize(PluginHost::IShell* service) {
+          Unregister(_T("method"));
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] JSON-RPC handler registered but not unregistered"
+      rule: "thunder-plugin-rules.yaml / rule_29"
+
+  - rule_id: "rule_30"
+    name: "SinkType Pattern for Subscribers"
+    severity: "violation"
+    phase: "implementation"
+
+    extraction:
+      target: "Classes or structs that subscribe to interface notifications"
+      method: "Read class declarations and reason about notification subscriber classes — they should follow the SinkType pattern"
+      code_block: "Notification subscriber class declarations"
+
+    bounded_query:
+      question: "Do notification subscriber classes follow the SinkType pattern (inheriting from the interface and implementing all required callbacks)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no notification subscription in the plugin → SKIP"
+      - "2. Read all notification handler classes"
+      - "3. Verify they properly inherit from the notification interface (e.g. IPlugin::INotification)"
+      - "4. Verify all pure virtual methods are implemented"
+      - "5. If a subscriber class is missing required methods or inheritance → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not subscribe to any interface notifications"
+
+    violation_pattern: "Notification subscriber class does not properly implement the SinkType pattern"
+
+    fix_template: |
+      // WRONG:
+      class MyNotification {   // ← not inheriting IPlugin::INotification
+
+      // Correct:
+      class Notification : public PluginHost::IPlugin::INotification {
+      public:
+          BEGIN_INTERFACE_MAP(Notification)
+          INTERFACE_ENTRY(PluginHost::IPlugin::INotification)
+          END_INTERFACE_MAP
+          void Activated(const string& callsign, PluginHost::IShell* service) override;
+          void Deactivated(const string& callsign, PluginHost::IShell* service) override;
+          void Unavailable(const string& callsign, PluginHost::IShell* service) override;
+      };
+
+    citation:
+      line_format: "[PluginName.h:LINE] Notification subscriber does not follow SinkType pattern"
+      rule: "thunder-plugin-rules.yaml / rule_30"
+
+  - rule_id: "rule_31"
+    name: "Unavailable() in SinkType Classes"
+    severity: "violation"
+    phase: "implementation"
+
+    extraction:
+      target: "SinkType notification classes that implement IPlugin::INotification"
+      method: "Read SinkType notification class declarations and check for the Unavailable() method implementation"
+      code_block: "The method list in the SinkType class declaration"
+
+    bounded_query:
+      question: "Does every SinkType class implementing IPlugin::INotification also implement the Unavailable() callback?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no SinkType notification classes exist → SKIP"
+      - "2. Read each class that inherits IPlugin::INotification"
+      - "3. Check that Unavailable() is implemented (not just Activated() and Deactivated())"
+      - "4. IPlugin::INotification has 3 pure virtuals: Activated, Deactivated, and Unavailable"
+      - "5. If Unavailable() is missing → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin has no SinkType classes implementing IPlugin::INotification"
+
+    violation_pattern: "SinkType class missing Unavailable() implementation — IPlugin::INotification requires all 3 callbacks"
+
+    fix_template: |
+      // WRONG:
+      class Notification : public PluginHost::IPlugin::INotification {
+          void Activated(const string& callsign, PluginHost::IShell* service) override { ... }
+          void Deactivated(const string& callsign, PluginHost::IShell* service) override { ... }
+          // Unavailable() missing
+      };
+
+      // Correct:
+      class Notification : public PluginHost::IPlugin::INotification {
+          void Activated(const string& callsign, PluginHost::IShell* service) override { ... }
+          void Deactivated(const string& callsign, PluginHost::IShell* service) override { ... }
+          void Unavailable(const string& callsign, PluginHost::IShell* service) override { ... }
+      };
+
+    citation:
+      line_format: "[PluginName.h:LINE] SinkType class missing Unavailable() implementation"
+      rule: "thunder-plugin-rules.yaml / rule_31"
+
+  - rule_id: "rule_32"
+    name: "No Hardcoded Paths"
+    severity: "violation"
+    phase: "implementation"
+
+    extraction:
+      target: "All string literals that contain filesystem paths"
+      method: "Read all function bodies and member initializers and reason about string literals — identify any hardcoded filesystem paths"
+      code_block: "Any string literal containing a filesystem path"
+
+    bounded_query:
+      question: "Are there zero hardcoded filesystem paths in the plugin code (paths come from configuration or Thunder data paths)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all function bodies and class member initializations"
+      - "2. Reason about string literals — identify any that look like filesystem paths (/usr/..., /etc/..., /tmp/..., C:\\...)"
+      - "3. Paths should come from configuration or be constructed from Thunder's data path API"
+      - "4. If any hardcoded path string literal is found in executable code → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Hardcoded filesystem path found in plugin code — use configuration or Thunder data paths"
+
+    fix_template: |
+      // WRONG:
+      string configFile = "/etc/myapp/config.json";
+      string dataDir = "/var/lib/thunder/data/";
+
+      // Correct:
+      string configFile = service->DataPath() + "config.json";
+      // Or use config: _config.DataPath.Value()
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Hardcoded filesystem path"
+      rule: "thunder-plugin-rules.yaml / rule_32"
+
+# -------------------------------------------------------------------------------------------
+# Phase 5C: Out-of-Process (OOP)
+# -------------------------------------------------------------------------------------------
+
+phase_5C_checkpoints:
+  - rule_id: "rule_33"
+    name: "OOP Connection Termination in Deinitialize"
+    severity: "violation"
+    phase: "oop"
+
+    extraction:
+      target: "OOP connection handling in Deinitialize() — IRemoteConnection release and channel shutdown"
+      method: "Read Deinitialize() and reason about OOP connection cleanup — verify the remote connection is properly terminated"
+      code_block: "The OOP connection release and cleanup code in Deinitialize()"
+
+    bounded_query:
+      question: "Does Deinitialize() properly terminate the OOP connection (release the remote implementation and close the connection channel)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Check CMakeLists.txt for PLUGIN_<NAME>_MODE set to 'Local' — if not present or not 'Local' → SKIP"
+      - "2. Read Deinitialize() in full"
+      - "3. Check that the remote implementation interface is released"
+      - "4. Check that the connection channel is terminated (Terminate() called or connection closed)"
+      - "5. If the OOP connection is not properly cleaned up → VIOLATION"
+
+    conditional: true
+    skip_condition: "CMakeLists.txt does not have PLUGIN_<NAME>_MODE set to 'Local'"
+
+    violation_pattern: "OOP connection not properly terminated in Deinitialize() — remote implementation and channel must be cleaned up"
+
+    fix_template: |
+      // WRONG:
+      void Deinitialize(PluginHost::IShell* service) {
+          // OOP connection not cleaned up
+      }
+
+      // Correct:
+      void Deinitialize(PluginHost::IShell* service) {
+          if (_implementation != nullptr) {
+              _implementation->Release();
+              _implementation = nullptr;
+          }
+          if (_connection != nullptr) {
+              _connection->Terminate();
+              _connection->Release();
+              _connection = nullptr;
+          }
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] OOP connection not terminated in Deinitialize()"
+      rule: "thunder-plugin-rules.yaml / rule_33"
+
+  - rule_id: "rule_34"
+    name: "connectionId Checked in IRemoteConnection Callbacks"
+    severity: "violation"
+    phase: "oop"
+
+    extraction:
+      target: "IRemoteConnection::INotification callback implementations (Activated, Deactivated, Terminated)"
+      method: "Read the IRemoteConnection callback implementations and verify that connectionId is checked against the known connection ID before acting"
+      code_block: "The IRemoteConnection callback bodies"
+
+    bounded_query:
+      question: "In every IRemoteConnection callback (Activated, Deactivated, Terminated), is the connectionId parameter checked against the plugin's known connection ID before taking action?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If plugin has no IRemoteConnection::INotification implementation OR CMakeLists.txt does not have PLUGIN_<NAME>_MODE = 'Local' → SKIP"
+      - "2. Read each IRemoteConnection callback body"
+      - "3. Check that the first logic step guards against spurious callbacks by comparing connectionId to the stored connection ID"
+      - "4. Acting on any connectionId without checking causes incorrect behavior when multiple OOP connections exist"
+      - "5. If connectionId is not checked → VIOLATION"
+
+    conditional: true
+    skip_condition: "CMakeLists.txt does not have PLUGIN_<NAME>_MODE = 'Local', or plugin does not implement IRemoteConnection::INotification"
+
+    violation_pattern: "IRemoteConnection callback does not check connectionId before acting"
+
+    fix_template: |
+      // WRONG:
+      void Terminated(const uint32_t id) override {
+          // acts without checking if id matches our connection
+          _parent.ConnectionTerminated();
+      }
+
+      // Correct:
+      void Terminated(const uint32_t id) override {
+          if (id == _parent._connectionId) {
+              _parent.ConnectionTerminated();
+          }
+      }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] connectionId not checked in IRemoteConnection callback"
+      rule: "thunder-plugin-rules.yaml / rule_34"
+
+# -------------------------------------------------------------------------------------------
+# Phase 6: Configuration
+# -------------------------------------------------------------------------------------------
+
+phase_6_checkpoints:
+  - rule_id: "rule_35"
+    name: "Startmode Declaration"
+    severity: "violation"
+    phase: "configuration"
+
+    extraction:
+      target: "startmode field in PluginName.conf.in"
+      method: "Read PluginName.conf.in and check for the startmode field declaration"
+      code_block: "The startmode entry in the .conf.in file"
+
+    bounded_query:
+      question: "Does the .conf.in file declare an explicit startmode (e.g. startmode = Activated or startmode = Deactivated)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If no .conf.in file exists → SKIP"
+      - "2. Read the .conf.in file"
+      - "3. Check for an explicit startmode declaration"
+      - "4. A missing startmode may cause unexpected startup behavior"
+      - "5. If startmode is absent → VIOLATION"
+
+    conditional: true
+    skip_condition: "No .conf.in file present for this plugin"
+
+    violation_pattern: "startmode not declared in .conf.in — explicit startmode is required"
+
+    fix_template: |
+      # WRONG: (startmode absent from .conf.in)
+
+      # Correct — add to PluginName.conf.in:
+      startmode = Activated
+
+    citation:
+      line_format: "[PluginName.conf.in:LINE] startmode field missing"
+      rule: "thunder-plugin-rules.yaml / rule_35"
+
+  - rule_id: "rule_36"
+    name: "Config Core::JSON::Container"
+    severity: "violation"
+    phase: "configuration"
+
+    extraction:
+      target: "Plugin configuration class declaration"
+      method: "Read the plugin configuration class (typically Config inner class or separate Config header) and check if it inherits Core::JSON::Container"
+      code_block: "The Config class declaration"
+
+    bounded_query:
+      question: "Does the plugin configuration class properly inherit Core::JSON::Container?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If plugin has no configuration class → SKIP"
+      - "2. Read the Config class declaration"
+      - "3. Check that it inherits from Core::JSON::Container"
+      - "4. Config classes that don't inherit Core::JSON::Container won't parse configuration correctly"
+      - "5. If Core::JSON::Container inheritance is missing → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin has no configuration class"
+
+    violation_pattern: "Config class does not inherit Core::JSON::Container"
+
+    fix_template: |
+      // WRONG:
+      class Config {   // ← missing Core::JSON::Container
+      public:
+          string Root;
+      };
+
+      // Correct:
+      class Config : public Core::JSON::Container {
+      public:
+          Config() : Core::JSON::Container() {
+              Add(_T("root"), &Root);
+          }
+          Core::JSON::String Root;
+      };
+
+    citation:
+      line_format: "[PluginName.h:LINE] Config class missing Core::JSON::Container inheritance"
+      rule: "thunder-plugin-rules.yaml / rule_36"
+
+  - rule_id: "rule_37"
+    name: "No Hardcoded Numeric Tuning Parameters"
+    severity: "violation"
+    phase: "configuration"
+
+    extraction:
+      target: "Magic number literals in function bodies and member initializations"
+      method: "Read function bodies and member initializations and reason about numeric literals — identify any that represent tunable parameters rather than structural constants"
+      code_block: "Any magic number that should come from configuration"
+
+    bounded_query:
+      question: "Are there zero hardcoded numeric tuning parameters (timeouts, sizes, counts, thresholds) in the plugin code — these come from the Config class?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all function bodies and class member initializations"
+      - "2. Reason about numeric literals: are they structural constants (0, 1, -1) or tunable parameters (timeouts like 5000, buffer sizes like 1024, retry counts like 3)?"
+      - "3. Tunable parameters belong in Config — structural constants (comparison values, array indices) are acceptable inline"
+      - "4. If magic numbers representing tunable values are found → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "Hardcoded numeric tuning parameter — should come from Config class"
+
+    fix_template: |
+      // WRONG:
+      Core::Thread::Run(5000);    // ← hardcoded 5-second timeout
+      if (retries > 3) { ... }    // ← hardcoded retry count
+
+      // Correct:
+      Core::Thread::Run(_config.Timeout.Value());
+      if (retries > _config.MaxRetries.Value()) { ... }
+
+    citation:
+      line_format: "[PluginName.cpp:LINE] Hardcoded numeric tuning parameter — move to Config"
+      rule: "thunder-plugin-rules.yaml / rule_37"
+
+# -------------------------------------------------------------------------------------------
+# Phase 7: CMake
+# -------------------------------------------------------------------------------------------
+
+phase_7_checkpoints:
+  - rule_id: "rule_38"
+    name: "CXX_STANDARD Uses Thunder Variable"
+    severity: "violation"
+    phase: "cmake"
+
+    extraction:
+      target: "CXX_STANDARD property in CMakeLists.txt"
+      method: "Read CMakeLists.txt and check how CXX_STANDARD is set"
+      code_block: "The set_target_properties or set(CMAKE_CXX_STANDARD ...) line in CMakeLists.txt"
+
+    bounded_query:
+      question: "If CXX_STANDARD is set in CMakeLists.txt, does it use the Thunder variable ${CXX_STD} rather than a hardcoded value?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. If CMakeLists.txt does not set CXX_STANDARD → SKIP"
+      - "2. Read CMakeLists.txt and find where CXX_STANDARD is configured"
+      - "3. Check whether it uses the ${CXX_STD} variable (defined by Thunder's build system)"
+      - "4. Using a hardcoded value (e.g. 14, 17) bypasses the Thunder build standard control"
+      - "5. If a hardcoded value is used instead of ${CXX_STD} → VIOLATION"
+
+    conditional: true
+    skip_condition: "CMakeLists.txt does not set CXX_STANDARD"
+
+    violation_pattern: "CXX_STANDARD set to hardcoded value — must use ${CXX_STD} variable"
+
+    fix_template: |
+      # WRONG:
+      set_target_properties(${MODULE_NAME} PROPERTIES CXX_STANDARD 14)
+
+      # Correct:
+      set_target_properties(${MODULE_NAME} PROPERTIES CXX_STANDARD ${CXX_STD})
+
+    citation:
+      line_format: "[CMakeLists.txt:LINE] CXX_STANDARD hardcoded — use ${CXX_STD}"
+      rule: "thunder-plugin-rules.yaml / rule_38"
+
+# -------------------------------------------------------------------------------------------
+# Phase 8: COM Interface Rules
+# -------------------------------------------------------------------------------------------
+
+phase_8_checkpoints:
+  - rule_id: "rule_39"
+    name: "COM Methods Return Core::hresult"
+    severity: "violation"
+    phase: "interfaces"
+
+    extraction:
+      target: "COM interface method return types in plugin interface declarations"
+      method: "Read all interface method declarations in plugin header files and reason about return types — COM interface methods must return Core::hresult"
+      code_block: "All interface method declarations in the plugin's COM interface"
+
+    bounded_query:
+      question: "Do all COM interface methods declared in the plugin use Core::hresult as their return type?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read the plugin's interface header file"
+      - "2. Identify all methods declared in COM interfaces (not class methods — interface pure virtuals)"
+      - "3. Reason about each method's return type: must be Core::hresult for Thunder 5.0+"
+      - "4. Void return types and other return types are not allowed in COM interfaces"
+      - "5. If any COM interface method does not return Core::hresult → VIOLATION"
+
+    conditional: false
+    skip_condition: null
+
+    violation_pattern: "COM interface method does not return Core::hresult — required for Thunder 5.0+"
+
+    fix_template: |
+      // WRONG:
+      virtual void GetValue(const string& key, string& value) = 0;
+      virtual bool SetValue(const string& key, const string& value) = 0;
+
+      // Correct:
+      virtual Core::hresult GetValue(const string& key, string& value /* @out */) = 0;
+      virtual Core::hresult SetValue(const string& key, const string& value) = 0;
+
+    citation:
+      line_format: "[PluginName.h:LINE] COM interface method does not return Core::hresult"
+      rule: "thunder-plugin-rules.yaml / rule_39"
+
+# ===========================================================================================
+# HOLISTIC RULES — 8 sub-phases (40 rules: rule_40 to rule_79)
+# Conventions & Encapsulation | Lifecycle & State Integrity | Concurrency & Threading
+# COM Reference & Memory Safety | Resource Management | JSON-RPC Compliance
+# Inter-Plugin & OOP Design | Code Quality & Security
+# ===========================================================================================
+
+general_rules:
+  - rule_id: "rule_40"
+    name: "#pragma once"
+    severity: "suggestion"
+    category: "conventions"
+    review_question: "Using semantic reasoning over all header files in the plugin, does every header file use #pragma once as its include guard?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_41"
+    name: "Apache 2.0 Copyright Header"
+    severity: "suggestion"
+    category: "conventions"
+    review_question: "Using semantic reasoning over all source files, does every file contain a proper Apache 2.0 copyright header at the top?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_42"
+    name: "STL Types"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over function signatures, class members, and return types, are Thunder type aliases (string, vector) used instead of their std:: equivalents (std::string, std::vector) wherever Thunder aliases are available?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_43"
+    name: "ASSERT vs Error Handling"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over the full code context, is ASSERT used only for programmer invariants (things that must always be true) and not for runtime error handling (things that might fail in production)?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_44"
+    name: "OOP Registration Order"
+    severity: "violation"
+    category: "lifecycle_integrity"
+    review_question: "In out-of-process plugins, using semantic reasoning over Initialize() and Deinitialize(), are service->Register() and service->Unregister() called in the correct order relative to acquiring and releasing the remote implementation?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_45"
+    name: "Complete State Reset in Deinitialize"
+    severity: "violation"
+    category: "lifecycle_integrity"
+    review_question: "Using semantic reasoning over Deinitialize() and the class member variables, is every member variable that was set during Initialize() or operation properly reset to its default/null state in Deinitialize(), such that a subsequent Initialize() call would start from a clean state?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_46"
+    name: "Reverse-Order Cleanup"
+    severity: "suggestion"
+    category: "lifecycle_integrity"
+    review_question: "Using semantic reasoning over Initialize() and Deinitialize(), does Deinitialize() release resources in reverse order of how they were acquired in Initialize()?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_47"
+    name: "Observer Locking"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over the notification observer pattern implementation, are observer lists protected by appropriate locking when iterated and when observers are added/removed, to prevent data races?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_48"
+    name: "AddRef/Release Balance"
+    severity: "violation"
+    category: "com_safety"
+    review_question: "Using semantic reasoning over all code paths including error paths, is every AddRef() call on a COM interface balanced by exactly one Release() call — no leaks and no double-releases?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_49"
+    name: "CMake NAMESPACE Variable"
+    severity: "suggestion"
+    category: "conventions"
+    review_question: "Using semantic reasoning over CMakeLists.txt, does the CMake configuration use the ${NAMESPACE} variable for target naming and installation paths as per Thunder conventions?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_50"
+    name: "Handlers Must Not Block"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all notification handler implementations (IPlugin::INotification callbacks, IRemoteConnection::INotification callbacks), do none of the handlers perform blocking operations (network calls, file I/O, sleep, synchronous waiting) on the framework's callback thread?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_51"
+    name: "No Activate/Deactivate from Handlers"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all notification callback implementations, do none of the callbacks call service->Activate() or service->Deactivate() directly (which would cause deadlock on the framework thread)?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_52"
+    name: "Shared State Protected by CriticalSection"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over the relevant code paths, is every member variable accessed from both the main thread and notification callbacks protected by a Core::CriticalSection lock?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_53"
+    name: "No Lock Held During Framework Callbacks"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all lock acquisition and framework callback invocations, are all locks released before any call back into the Thunder framework (e.g. before calling service->Submit(), Activate(), or notification dispatch) to prevent deadlock?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_54"
+    name: "Worker Jobs Check Deinitialize Guard"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all worker job (IJob, WorkerPool) implementations, do the job Dispatch() methods check a deinitialization guard flag at the start to avoid using stale pointers after Deinitialize() has run?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_55"
+    name: "File Descriptors / Sockets Wrapped in RAII"
+    severity: "violation"
+    category: "resource_management"
+    review_question: "Using semantic reasoning over resource management, are all file descriptors, sockets, and OS handles wrapped in RAII types or explicitly closed in Deinitialize() — never leaked?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_56"
+    name: "No Unbounded Memory Growth"
+    severity: "violation"
+    category: "resource_management"
+    review_question: "Using semantic reasoning over all data structures (maps, vectors, lists, queues) that are populated at runtime, is there a bounded size or eviction policy that prevents unbounded memory growth during sustained plugin operation?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_57"
+    name: "Config Errors Return Non-Empty from Initialize"
+    severity: "violation"
+    category: "lifecycle_integrity"
+    review_question: "Using semantic reasoning over Initialize() and configuration parsing, do all configuration errors (missing required fields, invalid values, out-of-range values) result in Initialize() returning a non-empty error string?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_58"
+    name: "interface->Register/Unregister Pairing"
+    severity: "violation"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over Initialize() and Deinitialize(), is every interface->Register() (registering a notification/callback on a non-service interface) matched by a corresponding interface->Unregister() in Deinitialize()?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_59"
+    name: "Handler Registration Order in Initialize/Deinitialize"
+    severity: "violation"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over Initialize() and Deinitialize(), are notification handlers registered AFTER the interfaces they observe are fully acquired and set up, and unregistered BEFORE those interfaces are released, to avoid callbacks on partially-initialized state?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_60"
+    name: "Use Core::ERROR_* for Handler Failure Codes"
+    severity: "violation"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over all JSON-RPC handler implementations and COM interface method implementations, are failures reported using Core::ERROR_* constants rather than raw numeric literals or Windows error codes?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_61"
+    name: "Input Validation in JSON-RPC Handlers"
+    severity: "violation"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over all JSON-RPC handler implementations, does each handler validate its input parameters (null pointer checks, string length limits, enum range checks) before using them?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_62"
+    name: "Event Constants and Typed JSON Payloads"
+    severity: "warning"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over JSON-RPC event dispatching, are event names defined as named constants rather than inline string literals, and are event payloads typed JSON objects rather than untyped free-form strings?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_63"
+    name: "COM Reference Counting Correctness"
+    severity: "violation"
+    category: "com_safety"
+    review_question: "Using semantic reasoning over all code paths where COM interfaces are passed, returned, or stored, is COM reference counting correctly maintained — AddRef called when storing, Release called when done, and no double-release or leak on any code path including error paths?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_64"
+    name: "No Hard Inter-Plugin Dependencies"
+    severity: "warning"
+    category: "inter_plugin_design"
+    review_question: "Using semantic reasoning over all plugin interactions, does the plugin use the observer pattern and dynamic interface acquisition (QueryInterfaceByCallsign, IPlugin::INotification) for inter-plugin communication, rather than hard compile-time or startup-time dependencies on other specific plugins being present?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_65"
+    name: "JSON-RPC Handlers Are Re-entrant Safe"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all JSON-RPC handler implementations and shared state they access, are all handlers safe for concurrent invocation — either accessing only local state or properly locking shared state?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_66"
+    name: "IPlugin::INotification Callbacks Must Not Block"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all IPlugin::INotification callback implementations (Activated, Deactivated, Unavailable), do none of them block the calling thread — no synchronous waits, no mutex acquisitions that could be contended, no I/O?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_67"
+    name: "Lock Scope Minimized"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all locking patterns in the plugin, are all critical sections held for the minimum time necessary — covering only the actual shared state access, not blocking operations, callbacks, or I/O while holding the lock?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_68"
+    name: "Plugin Threads Joined in Deinitialize"
+    severity: "violation"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over thread lifecycle management, are all threads started by the plugin explicitly stopped and joined (or detached with a lifetime guarantee) in Deinitialize() before the plugin returns from that function?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_69"
+    name: "Memory and Allocation Safety"
+    severity: "warning"
+    category: "resource_management"
+    review_question: "Using semantic reasoning over all dynamic memory allocation and deallocation, are there no memory leaks (every new has a corresponding delete on all code paths), no use-after-free, and no buffer overflows in the plugin?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_70"
+    name: "Framework Pointers Not Accessed After Deinitialize"
+    severity: "violation"
+    category: "lifecycle_integrity"
+    review_question: "Using semantic reasoning over all worker threads, background jobs, and async callbacks, is there a guarantee that none of them can access framework pointers (IShell*, service pointers, notification interfaces) after Deinitialize() has completed and nulled those pointers?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_71"
+    name: "hresult Return Values Checked"
+    severity: "violation"
+    category: "com_safety"
+    review_question: "Using semantic reasoning over all COM interface method calls, are return values of Core::hresult-returning methods checked and errors handled appropriately — not silently discarded?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_72"
+    name: "ASSERT Only for Programmer Invariants"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over all ASSERT usages, is ASSERT used only for conditions that represent programmer errors (invariants that should never be false in correct code) and never for conditions that can legitimately occur at runtime (user input errors, network failures, missing configuration)?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_73"
+    name: "Security: Logging, Shell, Path, and Error Exposure"
+    severity: "violation"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over all logging, error reporting, and external command execution, does the plugin avoid: logging sensitive data (passwords, tokens, PII), executing shell commands with unsanitized input, exposing internal error details through JSON-RPC responses, and path traversal via external inputs?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_74"
+    name: "JSON-RPC Input Validation for Bounds and Types"
+    severity: "violation"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over all JSON-RPC handler implementations, does each handler validate numeric inputs for range bounds and type correctness before using them in operations that could overflow, underflow, or cause undefined behavior?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_75"
+    name: "Config Completeness and Resource Cleanup"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over the Config class and Initialize(), are all configuration fields registered with Add() in the Config constructor, and are all resources acquired based on configuration values properly released in Deinitialize()?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_76"
+    name: "OOP Error Propagation and Method Naming"
+    severity: "warning"
+    category: "inter_plugin_design"
+    review_question: "Using semantic reasoning over OOP plugin implementations, do out-of-process method implementations properly propagate errors from the remote process back to the plugin host, and do method names follow Thunder naming conventions (no abbreviations, clear verb+noun)?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_77"
+    name: "Observer Classes Private and Nested"
+    severity: "suggestion"
+    category: "conventions"
+    review_question: "Using semantic reasoning over observer/notification class declarations, are observer/notification classes declared as private nested classes within the plugin class (not as separate public classes in the header), keeping the plugin's internal observer implementation encapsulated?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_78"
+    name: "No Deprecated JSON-RPC APIs"
+    severity: "violation"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over all JSON-RPC registration and dispatch code, are there no uses of deprecated JSON-RPC APIs (e.g. the legacy Register overloads replaced by typed versions, deprecated event dispatch patterns)?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_79"
+    name: "All Acquired Pointers Cleared After Deinitialize"
+    severity: "violation"
+    category: "lifecycle_integrity"
+    review_question: "Using semantic reasoning over all member pointer variables and Deinitialize(), is every pointer member that was set to a non-null value during the plugin's lifetime explicitly set to nullptr in Deinitialize() (in addition to being released), such that a double-Deinitialize would not cause a double-release?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
