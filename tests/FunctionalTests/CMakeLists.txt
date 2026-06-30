@@ -33,7 +33,7 @@ option(TEST_JSON_TEXT_CASE       "Enable @text:legacy case convention tests"    
 option(TEST_JSON_COMPLIANT       "Enable @compliant format tests"                ON)
 option(TEST_JSON_UNCOMPLIANT_EXT "Enable @uncompliant:extended format tests"     ON)
 option(TEST_JSON_UNCOMPLIANT_COL "Enable @uncompliant:collapsed format tests"    ON)
-option(TEST_VERSIONING_JSONRPC  "Enable JSON-RPC handler versioning tests (CreateHandler/GetHandler dispatch and TokenCheckFunction validation). Requires Thunder R4 — not supported on master." OFF)
+
 set(CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}" CACHE BOOL "" FORCE)
 
 enable_testing()

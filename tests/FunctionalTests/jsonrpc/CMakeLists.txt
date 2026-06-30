@@ -73,11 +73,6 @@ if(TEST_JSON_UNCOMPLIANT_COL)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsedJsonRpc.cpp)
 endif()
 
-# Versioning tests — no generated interface headers required, fully self-contained.
-if(TEST_VERSIONING_JSONRPC)
-    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestVersioningJsonRpc.cpp)
-endif()
-
 # TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support
 
 target_link_libraries(JsonRpcFunctionalTests
