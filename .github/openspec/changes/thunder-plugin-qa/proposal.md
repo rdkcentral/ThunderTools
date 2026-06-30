@@ -102,4 +102,3 @@ ThunderTools/PluginQA/
     └── interface/
         └── {InterfaceName}_{YYYY-MM-DD}.csv
 ```
-    └── interface/

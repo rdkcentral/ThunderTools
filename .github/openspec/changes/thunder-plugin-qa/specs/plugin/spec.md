@@ -36,19 +36,17 @@ ThunderTools/PluginQA/
 
 #### Scenario: Prompt files are registered with VS Code
 - GIVEN `ThunderTools/PluginQA/Prompts/` containing the three `.prompt.md` files
-- WHEN a setup script (`setup-prompts.ps1` / `.sh` / `.py`) is run
-- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQA/Prompts`
 - WHEN `setup-prompts.py` is run
+- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQA/Prompts`
 - AND the three slash commands (`/thunder-plugin-review`, `/thunder-interface-review`,
   `/thunder-generate-plugin`) become available in VS Code Copilot Chat
 - AND the script is safe to run multiple times (idempotent, creates backup of settings)
 
 ---
 
-### Requirement: Setup scripts modify VS Code settings.json to register prompt location
-Three setup scripts MUST modify the user-level VS Code `settings.json` to add
 ### Requirement: Setup script modifies VS Code settings.json to register prompt location
-The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add
+The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add `"ThunderTools/PluginQA/Prompts": true` under `chat.promptFilesLocations`.
+
 #### Scenario: Resulting settings.json structure
 - GIVEN VS Code `settings.json` before the script runs (may be empty `{}` or have existing entries)
 - WHEN `setup-prompts.py` completes successfully
@@ -102,12 +100,12 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 
 ### Requirement: thunder-plugin-rules.yaml (v3.3.0) created under PluginQA/rules/
 The file `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` MUST exist
-with version `3.2.0` and contain all 79 rules numbered sequentially (rule_01 to rule_79).
+with version `3.3.0` and contain all 79 rules numbered sequentially (rule_01 to rule_79).
 
 #### Scenario: Metadata block
 - GIVEN the YAML file
 - THEN it MUST contain a `metadata` block with:
-  `version: "3.0.0"`, `total_rules: 79`, `total_general_rules: 40`,
+  `version: "3.3.0"`, `total_rules: 79`, `total_general_rules: 40`,
   `approach: "semantic code review — understand whole plugin first, then check specifics"`,
   and a `validation_approach` block listing the 5-step workflow
   (understand whole plugin → focus on specific concern → reason in context → cite if genuinely wrong → fix)
@@ -465,11 +463,7 @@ NOT by running regular expressions or keyword searches against raw text.
   a guard checking `connection->Id() == _connectionId`
 - SKIP if plugin has no IRemoteConnection::INotification implementation
 
-#### Scenario: Phase 6 - Configuration (3 checkpoints, conditional)
-- GIVEN the plugin's .conf.in file and Initialize() body
-- IF no .conf.in file exists: SKIP rule_35
-- WHEN checkpoint rule_35 runs (suggestion)
-- THEN it checks the .conf.in file contains a `startmode =` declaration;
+- WHEN checkpoint rule_35 runs (violation, conditional)
   the validator MUST read the file in full and reason about the startup configuration —
   note that `autostart` is not the same as `startmode`
 - WHEN checkpoint rule_36 runs (violation, conditional)
@@ -505,7 +499,7 @@ All rules produce the same output format — there is no separate section for th
   `extracted_code` (with [File:line] prefix where applicable), `violation_line`,
   `citation`, `fix`, `reasoning`
 - AND PASS rules are NOT listed individually — they appear only as counts in the summary table
-- Holistic Rules (8 sub-phases) cover (Rules 1–12 original, Rules 13–40 new):
+- Holistic Rules (rule_40–rule_79) cover:
   1. `#pragma once` in every .h file (suggestion)
   2. Apache 2.0 copyright headers in all source files (suggestion)
   3. No STL types where Thunder equivalents exist (warning)
@@ -556,12 +550,12 @@ All rules produce the same output format — there is no separate section for th
 Every failing checkpoint MUST be output as a YAML block grouped under the source file
 it belongs to. The report structure is:
 
-```
+~~~~text
 ### {FileName} — N issue(s)
 
-```yaml
+~~~yaml
 rule_id: <id>
-status: FAIL
+status: <VIOLATION|WARNING|SUGGESTION|PASS|SKIP>
 severity: violation|warning|suggestion
 question: "..."
 answer: "..."
@@ -573,8 +567,8 @@ citation: "[FileName:line] <description>"
 fix: |
   <fixed code>
 reasoning: "..."
-` ` `
-```
+~~~
+~~~~
 
 #### Scenario: File-wise grouping
 - GIVEN a plugin review that finds issues in Dictionary.cpp, Dictionary.h, and CMakeLists.txt

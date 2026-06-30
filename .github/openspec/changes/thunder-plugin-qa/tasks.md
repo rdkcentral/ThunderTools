@@ -191,9 +191,8 @@
         Class Registration (Phase 3) applies ONLY to main plugin class — internal helpers excluded
       - Contextual Judgment section: severity downgrade table with concrete example showing
         reasoning field (required on downgrade, omitted otherwise), no escalation rule
-      - All rules defined inline in the prompt for reference
-        (exact severity, extraction target, question, verification logic,
-        citation format, conditional skip rules).
+      - A shortened inline quick-reference list of all 79 rules is included in the prompt (rule_id + severity + high-level target only).
+        Full rule definitions (extraction, bounded_query, verification_logic, fix_template) are loaded from the YAML files at runtime (source of truth).
         Phase counts:
         Phase 1 Module Structure (3):
           rule_01 (suggestion): "MODULE_NAME Plugin_ Prefix"
@@ -275,7 +274,7 @@
       - Important Notes: Thunder docs link, validation priorities numbered list
         (@json first through type conventions last)
 
-- [x] 2.4 Create `ThunderTools/PluginQA/Prompts/thunder-plugin-rule-manager.prompt.md`
+- [x] 2.3 Create `ThunderTools/PluginQA/Prompts/thunder-plugin-rule-manager.prompt.md`
       Frontmatter: title: "Thunder Plugin Rule Manager",
         description: "Add, update, or remove plugin rules (automated or manual) via guided questionnaire — keeps YAML, prompt, README, and spec in sync"
       Sections (in order):
@@ -311,7 +310,7 @@
       - Phase vs General Classification table at end: 5 phase checkpoint criteria vs 6
         General criteria; ambiguous cases prompt user before proceeding
 
-- [x] 2.5 Create `ThunderTools/PluginQA/Prompts/thunder-interface-rule-manager.prompt.md`
+- [x] 2.4 Create `ThunderTools/PluginQA/Prompts/thunder-interface-rule-manager.prompt.md`
       Frontmatter: title: "Thunder Interface Rule Manager",
         description: "Add, update, or remove COM interface validation rules via guided questionnaire — keeps YAML, prompt, and spec in sync"
       Sections (in order):
@@ -339,7 +338,7 @@
       - Core vs Advisory Classification table at end: core = codegen/ABI/crash failures;
         advisory = best practice; wrong list auto-corrected with explanation
 
-- [x] 2.3 Create `ThunderTools/PluginQA/Prompts/thunder-generate-plugin.prompt.md`
+- [x] 2.5 Create `ThunderTools/PluginQA/Prompts/thunder-generate-plugin.prompt.md`
       Frontmatter: title: "Thunder Plugin Generator",
         description: "Interactive Thunder plugin skeleton generator using PluginSkeletonGenerator.py"
       Sections:
@@ -424,12 +423,12 @@
       - Appended after Command Examples section
       - File path: `ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
       - Create folder if absent; never overwrite (append _2, _3 suffix)
-      - Columns (14, exact order): No, Plugin, Date, Phase, rule_id, Rule_Name, Status,
+      - Columns (14, exact order): No, Plugin, Date, Phase, Rule_ID, Rule_Name, Status,
         Severity, File, Line, Citation, Issue_Description, Fix_Summary, Reasoning
-      - One row per FAIL/WARNING/SUGGESTION only — PASS and SKIP excluded
+      - One row per VIOLATION/WARNING/SUGGESTION only — PASS and SKIP excluded
       - Status = effective status after JUDGE step (VIOLATION/WARNING/SUGGESTION)
       - Reasoning column populated only when JUDGE downgraded severity; empty otherwise
-      - Formatting: UTF-8, CRLF, fields with commas/dashes quoted, embedded quotes escaped as ""
+      - Formatting: UTF-8, CRLF, fields with commas or double quotes quoted, embedded quotes escaped as ""
       - Empty report (all pass): header row + one comment row
       - Post-generation chat message: file path, issue counts, Start-Process command for Excel
 
