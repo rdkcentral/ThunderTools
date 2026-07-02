@@ -32,7 +32,7 @@ class TestPrimitivesJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 TEST_F(TestPrimitivesJsonRpc, EchoInt8_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt8", R"({"input":42})", response));
-    EXPECT_NE(response.find("42"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "42") << "Response: " << response;
 }
 
 // DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
@@ -50,7 +50,7 @@ TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt8_Boundaries) {
 TEST_F(TestPrimitivesJsonRpc, EchoInt16_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt16", R"({"input":1000})", response));
-    EXPECT_NE(response.find("1000"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "1000") << "Response: " << response;
 }
 
 // DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
@@ -68,7 +68,7 @@ TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt16_Boundaries) {
 TEST_F(TestPrimitivesJsonRpc, EchoInt32_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt32", R"({"input":100000})", response));
-    EXPECT_NE(response.find("100000"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "100000") << "Response: " << response;
 }
 
 // DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
@@ -86,7 +86,7 @@ TEST_F(TestPrimitivesJsonRpc, DISABLED_EchoInt32_Boundaries) {
 TEST_F(TestPrimitivesJsonRpc, EchoInt64_Positive) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoInt64", R"({"input":9223372036854775})", response));
-    EXPECT_NE(response.find("9223372036854775"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "9223372036854775") << "Response: " << response;
 }
 
 // DISABLED: JsonGenerator DecSInt validation bug - boundary values fail with overflow errors
@@ -107,44 +107,44 @@ TEST_F(TestPrimitivesJsonRpc, EchoUInt8_Boundaries) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt8", R"({"input":0})", response));
-    EXPECT_NE(response.find("0"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "0") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt8", R"({"input":255})", response));
-    EXPECT_NE(response.find("255"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "255") << "Response: " << response;
 }
 
 TEST_F(TestPrimitivesJsonRpc, EchoUInt16_Boundaries) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt16", R"({"input":0})", response));
-    EXPECT_NE(response.find("0"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "0") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt16", R"({"input":65535})", response));
-    EXPECT_NE(response.find("65535"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "65535") << "Response: " << response;
 }
 
 TEST_F(TestPrimitivesJsonRpc, EchoUInt32_Boundaries) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt32", R"({"input":0})", response));
-    EXPECT_NE(response.find("0"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "0") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt32", R"({"input":4294967295})", response));
-    EXPECT_NE(response.find("4294967295"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "4294967295") << "Response: " << response;
 }
 
 TEST_F(TestPrimitivesJsonRpc, EchoUInt64_Boundaries) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt64", R"({"input":0})", response));
-    EXPECT_NE(response.find("0"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "0") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoUInt64", R"({"input":18446744073709551615})", response));
-    EXPECT_NE(response.find("18446744073709551615"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "18446744073709551615") << "Response: " << response;
 }
 
 // ===== Floating point =====
@@ -167,11 +167,11 @@ TEST_F(TestPrimitivesJsonRpc, EchoBool) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoBool", R"({"input":true})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoBool", R"({"input":false})", response));
-    EXPECT_NE(response.find("false"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "false") << "Response: " << response;
 }
 
 // ===== String =====
@@ -179,13 +179,13 @@ TEST_F(TestPrimitivesJsonRpc, EchoBool) {
 TEST_F(TestPrimitivesJsonRpc, EchoString_UTF8) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoString", R"({"input":"Hello JSON-RPC!"})", response));
-    EXPECT_NE(response.find("Hello JSON-RPC!"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "\"Hello JSON-RPC!\"") << "Response: " << response;
 }
 
 TEST_F(TestPrimitivesJsonRpc, EchoString_Empty) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("echoString", R"({"input":""})", response));
-    EXPECT_NE(response.find("\""), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "\"\"") << "Response: " << response;
 }
 
 // ===== Special types =====
