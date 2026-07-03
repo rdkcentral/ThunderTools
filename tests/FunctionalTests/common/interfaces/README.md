@@ -36,6 +36,30 @@ Validates the `@async` pattern where a completion callback replaces the return p
 ### ITestInterfaces
 Validates three stub-generator control annotations: `@interface:id` on `void*` return values and output parameters (dynamic interface pointer passing with generated QueryInterface/AddRef/Release), `@stub` (method present server-side only, no proxy emitted), and `@omit` (method excluded from both stub and proxy, vtable slot preserved).
 
+### ITestEncodingMac
+Validates `@encode:mac` on a `Core::MACAddress` parameter: the JSON-RPC layer encodes the six-byte address as a colon-separated hex string (e.g. `"AA:BB:CC:DD:EE:FF"`). Exercises both input (set) and output (get) directions.
+
+### ITestLengthModes
+Covers the two buffer-length variants not in `ITestBuffers`: `@length:void` (no length parameter; caller provides null-terminated or fixed-size data) and `@length:return` (the method return value carries the buffer length rather than a separate parameter). COM-RPC only — `@length:return` is incompatible with `uint32_t` return types used for JSON-RPC error codes.
+
+### ITestJsonShape
+Exercises JSON payload shaping annotations: `@wrapped` (a single scalar output is enclosed in a named object rather than returned bare) and `@extract` (a single-element list may be flattened to a scalar in the JSON response).
+
+### ITestJsonTextKeep
+Validates `@text:keep` at interface level: every method name, parameter name, and POD member name in the generated JSON-RPC interface matches the C++ identifier exactly, with no case transformation applied.
+
+### ITestJsonTextCase
+Validates `@text:legacy` at interface level: all method names, parameter names, and POD member names are lowercased in the generated JSON-RPC interface, matching the pre-5.2 Thunder convention.
+
+### ITestJsonCompliant
+Baseline for the default `@compliant` JSON-RPC format. Single-parameter method inputs are enclosed in a named object (`{"payload":"abc"}`), and the response value is placed in the `"result"` field of the JSON-RPC envelope. Provides a comparison point for the two uncompliant modes below.
+
+### ITestJsonUncompliantExtended ⚠️ deprecated
+Pins the generator behaviour for `@uncompliant:extended` (deprecated — do not use in new interfaces; see Thunder `docs/plugin/interfaces/tags.md`). The essential property contract: the SET request sends the value as a **bare scalar** (e.g. `42`, not `{"value":42}`) while the GET response still uses the `"result"` field. Methods are **not** affected — they remain wrapped just like `@compliant`. Without a `@property`, the mode is indistinguishable from `@compliant` in tests.
+
+### ITestJsonUncompliantCollapsed ⚠️ deprecated
+Pins the generator behaviour for `@uncompliant:collapsed` (deprecated — do not use in new interfaces; see Thunder `docs/plugin/interfaces/tags.md`). Extends the bare-scalar contract to **all** single-parameter methods, properties, and notifications. Property SET sends a bare scalar, and the GET response is placed in the `"params"` field of the JSON-RPC envelope (not `"result"` as in compliant and extended modes). Sending a wrapped object to a collapsed method must be rejected.
+
 ---
 
 ## Annotation Coverage Matrix
@@ -44,12 +68,14 @@ Validates three stub-generator control annotations: `@interface:id` on `void*` r
 |---|---|
 | `@in` / `@out` / `@inout` | All |
 | `@length:param` | ITestBuffers, ITestOptionals, ITestPrimitives |
+| `@length:void` | ITestLengthModes |
+| `@length:return` | ITestLengthModes |
 | `@maxlength:param` | ITestBuffers, ITestOptionals |
 | `@encode:base64` | ITestBuffers |
 | `@encode:hex` | ITestBuffers |
 | `@encode:text` | ITestEnums |
 | `@encode:bitmask` | ITestEnums |
-| `@encode:mac` | ITestAsync (via ICallback::Complete) |
+| `@encode:mac` | ITestEncodingMac |
 | `@opaque` | ITestStructs |
 | `@restrict` (integer range) | ITestRestrictions, ITestBuffers, ITestAsync |
 | `@restrict` (float range) | ITestRestrictions |
@@ -59,7 +85,7 @@ Validates three stub-generator control annotations: `@interface:id` on `void*` r
 | `@restrict` on `std::vector` | ITestStructs, ITestEvents |
 | `@default` | ITestAsync, ITestOptionals |
 | `@optional` / `Core::OptionalType<T>` | ITestAsync, ITestOptionals, ITestEnums, ITestEvents, ITestRestrictions |
-| `@property` (read-write) | ITestEnums, ITestStructs, ITestAsync |
+| `@property` (read-write) | ITestEnums, ITestStructs, ITestAsync, ITestJsonUncompliantExtended, ITestJsonUncompliantCollapsed |
 | `@property` (read-only) | ITestEnums, ITestAsync |
 | `@property` (write-only) | ITestEnums |
 | `@index` | ITestStructs, ITestEvents, ITestAsync |
@@ -71,7 +97,14 @@ Validates three stub-generator control annotations: `@interface:id` on `void*` r
 | `@stub` | ITestInterfaces |
 | `@omit` | ITestInterfaces |
 | `@json:omit` | ITestPrimitives |
-| `@json 1.0.0` | ITestPrimitives, ITestEnums, ITestOptionals, ITestRestrictions, ITestStructs, ITestEvents, ITestAsync |
+| `@wrapped` | ITestJsonShape |
+| `@extract` | ITestJsonShape |
+| `@text:keep` | ITestJsonTextKeep |
+| `@text:legacy` | ITestJsonTextCase |
+| `@compliant` | ITestJsonCompliant |
+| `@uncompliant:extended` ⚠️ deprecated | ITestJsonUncompliantExtended |
+| `@uncompliant:collapsed` ⚠️ deprecated | ITestJsonUncompliantCollapsed |
+| `@json 1.0.0` | ITestPrimitives, ITestEnums, ITestOptionals, ITestRestrictions, ITestStructs, ITestEvents, ITestAsync, ITestEncodingMac, ITestJsonShape, ITestJsonTextKeep, ITestJsonTextCase, ITestJsonCompliant, ITestJsonUncompliantExtended, ITestJsonUncompliantCollapsed |
 | `std::vector<Primitive>` | ITestStructs |
 | `std::vector<Struct>` | ITestStructs, ITestEvents |
 | `RPC::IStringIterator` | ITestIterators |

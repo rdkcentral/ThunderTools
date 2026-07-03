@@ -6,18 +6,26 @@ The build is fully self-contained: Thunder and GoogleTest are fetched automatica
 
 ## Test interfaces
 
-| CMake option | Interface | What it tests |
-|---|---|---|
-| `TEST_PRIMITIVES` | `ITestPrimitives` | Round-trip marshalling of every scalar type: `int8/16/24/32/64`, `uint8/16/24/32/64`, `float`, `double`, `bool`, `instance_id`, `Core::Time`, `Core::MACAddress`, `string` |
-| `TEST_BUFFERS` | `ITestBuffers` | `@length` / `@maxlength` annotations on `uint8_t[]` parameters: input, output, in/out, and multi-buffer patterns |
-| `TEST_OPTIONALS` | `ITestOptionals` | `Core::OptionalType<T>` on input and output parameters, `@default` values, and the optional-buffer convention |
-| `TEST_RESTRICTIONS` | `ITestRestrictions` | `@restrict` range validation on integers (signed/unsigned), floats, strings (length), the `nonempty` shorthand, the `K`-suffix, and `OptionalType` combined with a range |
-| `TEST_ENUMS` | `ITestEnums` | Enum serialisation: `@encode:text`, `@encode:bitmask`, `@property`, in/out/inout parameters, optional enums |
-| `TEST_STRUCTS` | `ITestStructs` | POD struct marshalling: in/out/inout parameters, nested structs, `std::vector<struct>`, `@opaque`, `@index` (property slot), `@restrict` on vectors |
-| `TEST_EVENTS` | `ITestEvents` | Event callback pattern (`@event`, `INotification`): scalar payloads, struct payloads, `std::vector` payloads, `OptionalType` payloads, `@statuslistener` |
-| `TEST_ASYNC` | `ITestAsync` | `@async` pattern: concurrent slots, `ICallback` interface, `@property` with `@index`, `OptionalType` in a callback |
-| `TEST_INTERFACES`  | `ITestInterfacePointers` | Generator control annotations: `@interface` (void\* + ID dynamic typing), `@stub` (server-side only), `@omit` (excluded from both proxy and stub) |
-| `TEST_ITERATORS`  | `ITestIterators` | `RPC::IStringIterator` / `IValueIterator` passing and the store-and-query pattern that avoids COM-RPC channel deadlock |
+| CMake option | Interface | COM-RPC | JSON-RPC | What it tests |
+|---|---|---|---|---|
+| `TEST_PRIMITIVES` | `ITestPrimitives` | ✓ | ✓ | Round-trip marshalling of every scalar type: `int8/16/24/32/64`, `uint8/16/24/32/64`, `float`, `double`, `bool`, `instance_id`, `Core::Time`, `Core::MACAddress`, `string` |
+| `TEST_BUFFERS` | `ITestBuffers` | ✓ | — | `@length` / `@maxlength` annotations on `uint8_t[]` parameters: input, output, in/out, and multi-buffer patterns |
+| `TEST_OPTIONALS` | `ITestOptionals` | ✓ | — | `Core::OptionalType<T>` on input and output parameters, `@default` values, and the optional-buffer convention |
+| `TEST_RESTRICTIONS` | `ITestRestrictions` | ✓ | ✓ | `@restrict` range validation on integers (signed/unsigned), floats, strings (length), the `nonempty` shorthand, the `K`-suffix, and `OptionalType` combined with a range |
+| `TEST_ENUMS` | `ITestEnums` | ✓ | ✓ | Enum serialisation: `@encode:text`, `@encode:bitmask`, `@property`, in/out/inout parameters, optional enums |
+| `TEST_STRUCTS` | `ITestStructs` | ✓ | ✓ | POD struct marshalling: in/out/inout parameters, nested structs, `std::vector<struct>`, `@opaque`, `@index` (property slot), `@restrict` on vectors |
+| `TEST_EVENTS` | `ITestEvents` | ✓ | — | Event callback pattern (`@event`, `INotification`): scalar payloads, struct payloads, `std::vector` payloads, `OptionalType` payloads, `@statuslistener` |
+| `TEST_ASYNC` | `ITestAsync` | ✓ | ✓ | `@async` pattern: concurrent slots, `ICallback` interface, `@property` with `@index`, `OptionalType` in a callback |
+| `TEST_INTERFACES` | `ITestInterfaces` | ✓ | — | Generator control annotations: `@interface` (void\* + ID dynamic typing), `@stub` (server-side only), `@omit` (excluded from both proxy and stub) |
+| `TEST_ITERATORS` | `ITestIterators` | ✓ | — | `RPC::IStringIterator` / `IValueIterator` passing and the store-and-query pattern that avoids COM-RPC channel deadlock |
+| `TEST_ENCODING_MAC` | `ITestEncodingMac` | ✓ | ✓ | `@encode:mac` — MAC address encoding/decoding round-trip |
+| `TEST_LENGTH_MODES` | `ITestLengthModes` | ✓ | — | `@length:void` and `@length:return` — length-less and return-value-as-length buffer modes |
+| `TEST_JSON_SHAPE` | `ITestJsonShape` | ✓ | ✓ | `@wrapped` (single output enclosed in object), `@extract` (list flattening) |
+| `TEST_JSON_TEXT_KEEP` | `ITestJsonTextKeep` | ✓ | ✓ | `@text:keep` — method and parameter names preserved exactly as in C++ |
+| `TEST_JSON_TEXT_CASE` | `ITestJsonTextCase` | ✓ | ✓ | `@text:legacy` — names lowercased per legacy convention |
+| `TEST_JSON_COMPLIANT` | `ITestJsonCompliant` | ✓ | ✓ | `@compliant` — baseline compliant JSON-RPC format (single-param method wrapped in object) |
+| `TEST_JSON_UNCOMPLIANT_EXT` | `ITestJsonUncompliantExtended` | ✓ | ✓ | `@uncompliant:extended` (**deprecated** — tested for regression) — property SET sends bare scalar; method params remain wrapped |
+| `TEST_JSON_UNCOMPLIANT_COL` | `ITestJsonUncompliantCollapsed` | ✓ | ✓ | `@uncompliant:collapsed` (**deprecated** — tested for regression) — property SET and single-param methods both send bare scalars; wrapped method params are rejected |
 
 `TEST_INTERFACES` and `TEST_ITERATORS` are off by default pending a thorough review of the generated code.
 
