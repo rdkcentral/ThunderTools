@@ -37,15 +37,15 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
-        Core::hresult Value(uint32_t& value) const override
+        Core::hresult Value(uint32_t& counter) const override
         {
-            value = _value;
+            counter = _value;
             return Core::ERROR_NONE;
         }
 
-        Core::hresult Value(const uint32_t value) override
+        Core::hresult Value(const uint32_t counter) override
         {
-            _value = value;
+            _value = counter;
             return Core::ERROR_NONE;
         }
 

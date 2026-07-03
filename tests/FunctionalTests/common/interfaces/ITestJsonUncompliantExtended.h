@@ -49,9 +49,9 @@ namespace FunctionalTest {
         //        the SET request sends the value as a *bare* scalar (e.g. 42),
         //        not wrapped in an object (e.g. {"value":42}) as @compliant would.
         //        The GET response still uses the "result" field (same as @compliant).
-        // @param value Counter value to store or retrieve.
-        virtual Core::hresult Value(uint32_t& value /* @out */) const = 0;
-        virtual Core::hresult Value(const uint32_t value /* @in */) = 0;
+        // @param counter Counter value to store or retrieve.
+        virtual Core::hresult Value(uint32_t& counter /* @out */) const = 0;
+        virtual Core::hresult Value(const uint32_t counter /* @in */) = 0;
     };
 
 } // namespace FunctionalTest

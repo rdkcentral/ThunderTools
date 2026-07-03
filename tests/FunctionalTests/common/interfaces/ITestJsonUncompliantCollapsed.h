@@ -49,9 +49,9 @@ namespace FunctionalTest {
         //        not wrapped in an object (e.g. {"value":42}) as @compliant would.
         //        The GET response is placed in the "params" field of the JSON-RPC envelope
         //        (not "result" as in @compliant and @uncompliant:extended).
-        // @param value Counter value to store or retrieve.
-        virtual Core::hresult Value(uint32_t& value /* @out */) const = 0;
-        virtual Core::hresult Value(const uint32_t value /* @in */) = 0;
+        // @param counter Counter value to store or retrieve.
+        virtual Core::hresult Value(uint32_t& counter /* @out */) const = 0;
+        virtual Core::hresult Value(const uint32_t counter /* @in */) = 0;
     };
 
 } // namespace FunctionalTest
