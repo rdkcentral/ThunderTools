@@ -60,13 +60,17 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_Set_BareValue) {
 
 // --- Property GET behaviour ---
 // After a SET the GET must echo the stored value back.
-// GET is triggered by passing null params — the stub checks params.IsSet() == false.
+// GET is triggered by passing an empty params string — this leaves the
+// Core::JSON::DecUInt32 param uninitialized (IsSet()==false), which the
+// stub uses to dispatch to the getter branch. JSON null must NOT be used:
+// Thunder's parser sets the SET flag after consuming all 4 chars of "null",
+// so null would take the setter path and store 0.
 TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_Get_AfterSet) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "33", response));
 
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "", response));
     EXPECT_EQ(response, "33") << "Response: " << response;
 }
 
@@ -75,7 +79,7 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_RoundTrip_Zero) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "0", response));
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "", response));
     EXPECT_EQ(response, "0") << "Response: " << response;
 }
 
@@ -83,6 +87,6 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_RoundTrip_MaxUint32) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "4294967295", response));
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "", response));
     EXPECT_EQ(response, "4294967295") << "Response: " << response;
 }
