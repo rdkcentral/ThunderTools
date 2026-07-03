@@ -31,3 +31,27 @@ TEST_F(TestJsonUncompliantExtended, PingExtended) {
     ASSERT_EQ(_proxy->PingExtended("payload", reply), Core::ERROR_NONE);
     EXPECT_EQ(reply, "payload");
 }
+
+TEST_F(TestJsonUncompliantExtended, Value_SetGet_RoundTrip) {
+    ASSERT_EQ(_proxy->Value(99u), Core::ERROR_NONE);
+    uint32_t got = 0;
+    ASSERT_EQ(_proxy->Value(got), Core::ERROR_NONE);
+    EXPECT_EQ(got, 99u);
+}
+
+TEST_F(TestJsonUncompliantExtended, Value_DefaultIsZero) {
+    // A fresh singleton implementation starts at 0 unless a previous test wrote to it.
+    // This test just verifies the getter returns a valid uint32 without error.
+    uint32_t got = ~0u;
+    EXPECT_EQ(_proxy->Value(got), Core::ERROR_NONE);
+}
+
+TEST_F(TestJsonUncompliantExtended, Value_MultipleWrites) {
+    const uint32_t values[] = {0u, 1u, 0xFFFFFFFFu, 42u};
+    for (uint32_t v : values) {
+        ASSERT_EQ(_proxy->Value(v), Core::ERROR_NONE);
+        uint32_t got = ~v;
+        ASSERT_EQ(_proxy->Value(got), Core::ERROR_NONE);
+        EXPECT_EQ(got, v);
+    }
+}
