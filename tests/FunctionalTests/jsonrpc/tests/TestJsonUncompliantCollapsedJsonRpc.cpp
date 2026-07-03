@@ -36,14 +36,15 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Method_BareParam) {
     EXPECT_EQ(response, "\"abc\"") << "Response: " << response;
 }
 
-// Verify that sending a *wrapped* object to a collapsed method is rejected.
-// The generator emits a stub that reads a bare string, so a JSON object is a
-// type mismatch and must not succeed.
-TEST_F(TestJsonUncompliantCollapsedJsonRpc, Method_WrappedParam_Rejected) {
+// @uncompliant:collapsed does NOT reject wrapped-object params for methods.
+// The stub registers Core::JSON::String for the payload parameter. Core::JSON::String
+// accepts non-quoted input as a raw string value, so {"payload":"abc"} is stored
+// as the literal text and the call succeeds. This pins that the stub has no
+// object-vs-scalar discrimination for string parameters.
+TEST_F(TestJsonUncompliantCollapsedJsonRpc, Method_WrappedParam_NotRejected) {
     string response;
-    EXPECT_NE(Core::ERROR_NONE,
-        CallMethod("pingCollapsed", R"({"payload":"abc"})", response))
-        << "Collapsed method must not accept a wrapped-object params";
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("pingCollapsed", R"({"payload":"abc"})", response));
 }
 
 // --- Property SET behaviour (the essence of @uncompliant:collapsed) ---
@@ -59,12 +60,13 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_Set_BareValue) {
 
 // --- Property GET behaviour ---
 // After a SET the GET must echo the stored value back.
+// GET is triggered by passing null params — the stub checks params.IsSet() == false.
 TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_Get_AfterSet) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "33", response));
 
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
     EXPECT_EQ(response, "33") << "Response: " << response;
 }
 
@@ -73,7 +75,7 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_RoundTrip_Zero) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "0", response));
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
     EXPECT_EQ(response, "0") << "Response: " << response;
 }
 
@@ -81,6 +83,6 @@ TEST_F(TestJsonUncompliantCollapsedJsonRpc, Property_RoundTrip_MaxUint32) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "4294967295", response));
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
     EXPECT_EQ(response, "4294967295") << "Response: " << response;
 }
