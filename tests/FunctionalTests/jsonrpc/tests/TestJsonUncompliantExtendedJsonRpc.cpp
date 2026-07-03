@@ -48,12 +48,13 @@ TEST_F(TestJsonUncompliantExtendedJsonRpc, Property_Set_BareValue) {
 // --- Property GET behaviour ---
 // After a SET with a bare value the GET must return the stored value.
 // The GET response is placed in "result" (same field as @compliant).
+// GET is triggered by passing null params — the stub checks params.IsSet() == false.
 TEST_F(TestJsonUncompliantExtendedJsonRpc, Property_Get_AfterSet) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "55", response));
 
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
     EXPECT_EQ(response, "55") << "Response: " << response;
 }
 
@@ -62,7 +63,7 @@ TEST_F(TestJsonUncompliantExtendedJsonRpc, Property_RoundTrip_Zero) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "0", response));
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
     EXPECT_EQ(response, "0") << "Response: " << response;
 }
 
@@ -70,6 +71,6 @@ TEST_F(TestJsonUncompliantExtendedJsonRpc, Property_RoundTrip_MaxUint32) {
     string response;
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("value", "4294967295", response));
     response.clear();
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "{}", response));
+    EXPECT_EQ(Core::ERROR_NONE, CallMethod("value", "null", response));
     EXPECT_EQ(response, "4294967295") << "Response: " << response;
 }
