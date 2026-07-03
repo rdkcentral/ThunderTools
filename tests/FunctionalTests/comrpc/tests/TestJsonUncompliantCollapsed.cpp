@@ -35,13 +35,13 @@ TEST_F(TestJsonUncompliantCollapsed, PingCollapsed) {
 TEST_F(TestJsonUncompliantCollapsed, Value_SetGet_RoundTrip) {
     ASSERT_EQ(_proxy->Value(77u), Core::ERROR_NONE);
     uint32_t got = 0;
-    ASSERT_EQ(_proxy->Value(got), Core::ERROR_NONE);
+    ASSERT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
     EXPECT_EQ(got, 77u);
 }
 
 TEST_F(TestJsonUncompliantCollapsed, Value_DefaultIsZero) {
     uint32_t got = ~0u;
-    EXPECT_EQ(_proxy->Value(got), Core::ERROR_NONE);
+    EXPECT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
 }
 
 TEST_F(TestJsonUncompliantCollapsed, Value_MultipleWrites) {
@@ -49,7 +49,7 @@ TEST_F(TestJsonUncompliantCollapsed, Value_MultipleWrites) {
     for (uint32_t v : values) {
         ASSERT_EQ(_proxy->Value(v), Core::ERROR_NONE);
         uint32_t got = ~v;
-        ASSERT_EQ(_proxy->Value(got), Core::ERROR_NONE);
+        ASSERT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
         EXPECT_EQ(got, v);
     }
 }
