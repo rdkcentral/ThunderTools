@@ -1,0 +1,81 @@
+'''
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
+
+import os
+from data.FileData import FileData
+from utils.FileUtils import FileUtils
+from utils.Indenter import Indenter
+import core.GlobalVariables as GlobalVariables
+
+class PluginRepositoryGenerator:
+    def __init__(self, blueprint) -> None:
+        self.m_plugin_name = blueprint.name
+        root = getattr(blueprint, "output_dir", None) or os.getcwd()
+        self.m_directory = os.path.join(root, blueprint.name)
+        os.makedirs(self.m_directory, exist_ok=False)
+        self.m_indenter = Indenter()
+
+    def _loadTemplate(self, template_path: str) -> str:
+        return FileUtils.readFile(template_path)
+
+    def _writeFile(self, output_path: str, content: str) -> None:
+        output_full = os.path.join(self.m_directory, output_path)
+        with open(output_full, "w", encoding="utf-8") as f:
+            f.write(content)
+
+    def _generateFile(self, template_path: str, output_filename: str, data: FileData) -> None:
+        try:
+            template = self._loadTemplate(template_path)
+        except Exception as e:
+            print(f"[WARNING] Failed to load: {template_path}")
+            return
+        
+        print(f"Generating file: {output_filename}")
+        code = FileUtils.replaceKeywords(template, data.m_keywords)
+        self.m_indenter.indentType(output_filename)
+        indented = self.m_indenter.processIndent(code)
+        self._writeFile(output_filename, indented)
+
+    def generateHeader(self, header_data: FileData) -> None:
+        self._generateFile(GlobalVariables.PLUGIN_HEADER_PATH, f"{self.m_plugin_name}.h", header_data)
+
+    def generateModuleHeader(self, module_data: FileData) -> None:
+        self._generateFile(GlobalVariables.MODULE_HEADER_PATH, "Module.h", module_data)
+
+    def generateImplementation(self, impl_data: FileData) -> None:
+        self._generateFile(GlobalVariables.PLUGIN_IMPLEMENTATION_PATH, f"{self.m_plugin_name}Implementation.cpp", impl_data)
+
+    def generatePluginSource(self, data: FileData) -> None:
+        self._generateFile(GlobalVariables.PLUGIN_SOURCE_PATH, f"{self.m_plugin_name}.cpp", data)
+
+    def generateModuleSource(self, data: FileData) -> None:
+        self._generateFile(GlobalVariables.MODULE_SOURCE_PATH, "Module.cpp", data)
+
+    def generateCMake(self, data: FileData) -> None:
+        self._generateFile(GlobalVariables.CMAKE_PATH, "CMakeLists.txt", data)
+
+    def generateJSON(self, data: FileData) -> None:
+        self._generateFile(GlobalVariables.PLUGIN_JSON, f"{self.m_plugin_name}Plugin.json", data)
+
+    def generateConfin(self, data: FileData) -> None:
+        self._generateFile(GlobalVariables.PLUGIN_CONF_PATH, f"{self.m_plugin_name}.conf.in", data)
+
+    def generateAllSources(self, data: FileData) -> None:
+        self.generatePluginSource(data)
+        self.generateModuleSource(data)

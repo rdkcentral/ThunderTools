@@ -1,0 +1,15 @@
+"configuration": {
+    "type": "object",
+    "properties": {
+      "configuration": {
+        "type": "object",
+        "required": [],
+        "properties": {
+          "example": {
+            "type": "string",
+            "description": "Note: This is an example!"
+          }
+        }
+      }
+    }
+},
