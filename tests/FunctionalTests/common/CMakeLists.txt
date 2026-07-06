@@ -52,6 +52,13 @@ target_link_libraries(FunctionalTestCommon
         ${NAMESPACE}Plugins::${NAMESPACE}Plugins
 )
 
+if(ENABLE_JSON_RPC_TESTS)
+    target_link_libraries(FunctionalTestCommon
+        PUBLIC
+            ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+    )
+endif()
+
 add_library(FunctionalTestProxySources OBJECT)
 add_library(FunctionalTestJsonSources OBJECT)
 
@@ -66,6 +73,7 @@ target_link_libraries(FunctionalTestJsonSources
     PRIVATE
         FunctionalTestCommon
         ${NAMESPACE}Core::${NAMESPACE}Core
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
 )
 
 macro(AddTestInterface TestName)
@@ -154,6 +162,38 @@ endif()
 
 if (TEST_ASYNC)
     AddTestInterface("Async" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_ENCODING_MAC)
+    AddTestInterface("EncodingMac" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_LENGTH_MODES)
+    AddTestInterface("LengthModes" COM_RPC)  # COM-RPC only — @length:return requires non-uint32_t return type, unsupported by JsonGenerator
+endif()
+
+if (TEST_JSON_SHAPE)
+    AddTestInterface("JsonShape" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_TEXT_KEEP)
+    AddTestInterface("JsonTextKeep" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_TEXT_CASE)
+    AddTestInterface("JsonTextCase" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_COMPLIANT)
+    AddTestInterface("JsonCompliant" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_UNCOMPLIANT_EXT)
+    AddTestInterface("JsonUncompliantExtended" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_JSON_UNCOMPLIANT_COL)
+    AddTestInterface("JsonUncompliantCollapsed" COM_RPC JSON_RPC)
 endif()
 
 list(LENGTH COM_RPC_INTERFACE_HEADERS NUM_COM_TESTS)

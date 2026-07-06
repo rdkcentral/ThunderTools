@@ -39,17 +39,17 @@ TEST_F(TestEnumsJsonRpc, DISABLED_SetGetColor) {
 TEST_F(TestEnumsJsonRpc, ToggleColor) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("toggleColor", R"({"color":"RED"})", response));
-    EXPECT_NE(response.find("GREEN"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "\"GREEN\"") << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, CompareColors) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("compareColors", R"({"color1":"RED","color2":"RED"})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("compareColors", R"({"color1":"RED","color2":"BLUE"})", response));
-    EXPECT_NE(response.find("false"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "false") << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, SetGetState) {
@@ -58,13 +58,13 @@ TEST_F(TestEnumsJsonRpc, SetGetState) {
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getState", "{}", response));
-    EXPECT_NE(response.find("RUNNING"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "\"RUNNING\"") << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, NextState) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("nextState", R"({"state":"IDLE"})", response));
-    EXPECT_NE(response.find("RUNNING"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "\"RUNNING\"") << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, SetGetPriority) {
@@ -73,7 +73,7 @@ TEST_F(TestEnumsJsonRpc, SetGetPriority) {
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getPriority", "{}", response));
-    EXPECT_NE(response.find("HIGH"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "\"HIGH\"") << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, SetGetCapabilities) {
@@ -83,7 +83,9 @@ TEST_F(TestEnumsJsonRpc, SetGetCapabilities) {
     
     response.clear();
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("getCapabilities", "{}", response));
+    // bitmask serialised as array; both flags must be present (order unspecified)
     EXPECT_NE(response.find("CAP_AUDIO"), string::npos) << "Response: " << response;
+    EXPECT_NE(response.find("CAP_VIDEO"), string::npos) << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, CurrentState_PropertyReadOnly) {
@@ -103,19 +105,14 @@ TEST_F(TestEnumsJsonRpc, ComputeState) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("computeState", 
         R"({"current":"RUNNING","desired":"STOPPED"})", response));
-    // Should return derived state - expecting a valid State enum value
-    bool hasValidState = (response.find("IDLE") != string::npos ||
-                          response.find("RUNNING") != string::npos ||
-                          response.find("PAUSED") != string::npos ||
-                          response.find("STOPPED") != string::npos ||
-                          response.find("ERROR") != string::npos);
-    EXPECT_TRUE(hasValidState) << "Response should contain a valid derived State enum value: " << response;
+    // RUNNING != STOPPED → impl returns PAUSED
+    EXPECT_EQ(response, "\"PAUSED\"") << "Response: " << response;
 }
 
 TEST_F(TestEnumsJsonRpc, IsValidState) {
     string response;
     
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("isValidState", R"({"state":"RUNNING"})", response));
-    EXPECT_NE(response.find("true"), string::npos) << "Response: " << response;
+    EXPECT_EQ(response, "true") << "Response: " << response;
 }
 
