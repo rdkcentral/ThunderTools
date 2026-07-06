@@ -19,7 +19,7 @@
 
 {{HEADER_INCLUDES}}
 
-namespace Thunder {
+namespace {{FRAMEWORK_NAMESPACE}} {
 namespace Plugin {
 
     class {{PLUGIN_NAME}}Implementation {{HEADER_INHERITED_CLASS}} {
@@ -56,4 +56,4 @@ namespace Plugin {
     
     SERVICE_REGISTRATION({{PLUGIN_NAME}}Implementation, 1, 0)
 } // Plugin
-} // Thunder
+} // {{FRAMEWORK_NAMESPACE}}
