@@ -18,6 +18,7 @@
 '''
 
 from typing import Dict, List, Tuple
+from core.ThunderProfile import DEFAULT_PROFILE, ThunderProfile
 
 class PluginBlueprint:
     class ParsedPluginInfo:
@@ -121,7 +122,8 @@ class PluginBlueprint:
                  preconditions=None,
                  terminations=None,
                  controls=None,
-                 output_dir=None):
+                 output_dir=None,
+                 profile: ThunderProfile = None):
         self._name = name
         self._out_of_process = out_of_process
         self._configuration = configuration
@@ -129,6 +131,7 @@ class PluginBlueprint:
         self._header_lookup = header_lookup
         self._locations = locations
         self._output_dir = output_dir
+        self._profile = profile or DEFAULT_PROFILE
 
         preconditions = preconditions or []
         terminations = terminations or []
@@ -210,6 +213,10 @@ class PluginBlueprint:
     @property
     def output_dir(self) -> str:
         return self._output_dir
+
+    @property
+    def profile(self) -> ThunderProfile:
+        return self._profile
 
     def isJsonRpcPlugin(self) -> bool:
         return any("json" in cls_data.m_tags for cls_data, _ in self._parsed_data.values())

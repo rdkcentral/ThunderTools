@@ -19,7 +19,7 @@
 
 {{INCLUDE_STATEMENTS}}
 
-namespace Thunder {
+namespace {{FRAMEWORK_NAMESPACE}} {
 namespace Plugin {
 
     namespace {
@@ -52,4 +52,4 @@ string {{PLUGIN_NAME}}::Information() const {
 
 {{SOURCE_NOTIFY_IMPL}}
 } // Plugin
-} // Thunder
+} // {{FRAMEWORK_NAMESPACE}}

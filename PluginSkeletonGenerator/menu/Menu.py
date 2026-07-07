@@ -26,7 +26,7 @@ from typing import Dict, List, Set, Tuple
 from parser.MultiParser import MultiParser
 from parser.Parser import Printer, ClassData
 from core.GeneratorCoordinator import GeneratorCoordinator
-
+from core.ThunderProfile import DEFAULT_PROFILE, ThunderProfile, profile_for_version
 
 ParsedData = Dict[str, Tuple[ClassData, str]]
 
@@ -41,6 +41,7 @@ CLI_GENERATION_FIELDS = (
     "preconditions",
     "terminations",
     "controls",
+    "thunder_version",
 )
 
 @dataclass
@@ -55,7 +56,7 @@ class PluginOptions:
     terminations: List[str]
     controls: List[str]
     output_dir: str
-
+    profile: ThunderProfile
 
 def validatePaths(paths: List[str]) -> None:
     files = [p for p in paths if not os.path.isfile(p)]
@@ -76,7 +77,6 @@ def collectList(label: str) -> List[str]:
         entries.append(entry)
     return entries
 
-
 def _prompt_yes_no(question: str, default: bool = False) -> bool:
     suffix = "[Y/N, Enter defaults to N]" if default is False else "[Y/N, Enter defaults to Y]"
     while True:
@@ -89,7 +89,6 @@ def _prompt_yes_no(question: str, default: bool = False) -> bool:
             return False
         print("[WARN] Invalid input. Please enter Y or N.")
 
-
 def _validate_plugin_name(name: str) -> str:
     name = name.strip()
     if not name:
@@ -100,7 +99,6 @@ def _validate_plugin_name(name: str) -> str:
         sys.exit(1)
     return name
 
-
 def _validate_output_dir(output_dir: str) -> str:
     output_dir = os.path.abspath(output_dir or os.getcwd())
     if not os.path.isdir(output_dir):
@@ -108,6 +106,12 @@ def _validate_output_dir(output_dir: str) -> str:
         sys.exit(1)
     return output_dir
 
+def _parse_thunder_profile(version: str) -> ThunderProfile:
+    try:
+        return profile_for_version(version)
+    except ValueError as error:
+        print(f"[ERROR]: {error}")
+        sys.exit(1)
 
 def prompts() -> PluginOptions:
     print("=== Plugin Generator ===")
@@ -147,15 +151,14 @@ def prompts() -> PluginOptions:
         terminations=collectList("Terminations") if subsystems_enabled else [],
         controls=collectList("Controls") if subsystems_enabled else [],
         output_dir=output_dir,
+        profile=DEFAULT_PROFILE,
     )
-
 
 def _validate_header_requirements(header_files: List[str], out_of_process: bool) -> None:
     if not header_files and out_of_process:
         print("Error: At least one header path must be provided")
         sys.exit(1)
     validatePaths(header_files)
-
 
 def _parse_mapping(values: List[str], option_name: str) -> Dict[str, str]:
     result: Dict[str, str] = {}
@@ -174,7 +177,6 @@ def _parse_mapping(values: List[str], option_name: str) -> Dict[str, str]:
         result[key] = mapped_value
     return result
 
-
 def _parse_select_interfaces(values: List[str]) -> Dict[str, List[str]]:
     result: Dict[str, List[str]] = {}
     for value in values or []:
@@ -192,10 +194,8 @@ def _parse_select_interfaces(values: List[str]) -> Dict[str, List[str]]:
         result.setdefault(header, []).extend(selected)
     return result
 
-
 def _has_cli_arguments(args: argparse.Namespace) -> bool:
     return any(getattr(args, field, None) for field in CLI_GENERATION_FIELDS)
-
 
 def _values_from_cli(args: argparse.Namespace) -> PluginOptions:
     if not args.plugin_name:
@@ -216,15 +216,14 @@ def _values_from_cli(args: argparse.Namespace) -> PluginOptions:
         terminations=args.terminations or [],
         controls=args.controls or [],
         output_dir=_validate_output_dir(args.output_dir),
+        profile=_parse_thunder_profile(args.thunder_version or DEFAULT_PROFILE.version),
     )
-
 
 def parserInterfaces(header_files: List[str]) -> Tuple[ParsedData, Dict[str, str]]:
     parser = MultiParser(header_files)
     parsed_data = parser.parseAll()
     header_lookup = parser.m_header_lookup
     return parsed_data, header_lookup
-
 
 def displayParsedData(parsed_data: ParsedData) -> None:
     print("=" * 30)
@@ -234,10 +233,8 @@ def displayParsedData(parsed_data: ParsedData) -> None:
         Printer.printTree(class_data)
         print("=" * 30)
 
-
 def _root(full_name: str) -> str:
     return full_name.split("::")[-1]
-
 
 def _build_argument_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
@@ -325,6 +322,13 @@ Examples:
             "header. Required for --out-of-process; optional otherwise."
         ),
     )
+    common.add_argument(
+        "--thunder-version",
+        dest="thunder_version",
+        choices=("4", "5"),
+        default=None,
+        help=f"Target Thunder major version for generated code. Default: {DEFAULT_PROFILE.version}.",
+    )
 
     subsystem = parser.add_argument_group("Thunder subsystem options")
     subsystem.add_argument(
@@ -379,13 +383,11 @@ Examples:
 
     return parser
 
-
 def _group_by_header(parsed_data: ParsedData) -> Dict[str, List[str]]:
     by_header: Dict[str, List[str]] = {}
     for full_name, (_, header_path) in parsed_data.items():
         by_header.setdefault(header_path, []).append(full_name)
     return by_header
-
 
 def _select_from_cli(by_header: Dict[str, List[str]], select_map: Dict[str, List[str]]) -> Set[str]:
     selected_full_names: Set[str] = set()
@@ -403,7 +405,6 @@ def _select_from_cli(by_header: Dict[str, List[str]], select_map: Dict[str, List
         if missing:
             print(f"[WARN] Interfaces not found in {header_path}: {', '.join(sorted(missing))}")
     return selected_full_names
-
 
 def _select_interactively(by_header: Dict[str, List[str]]) -> Set[str]:
     selected_full_names: Set[str] = set()
@@ -436,7 +437,6 @@ def _select_interactively(by_header: Dict[str, List[str]]) -> Set[str]:
         selected_full_names.update(chosen)
     return selected_full_names
 
-
 def _select_interfaces(
     by_header: Dict[str, List[str]],
     select_map: Dict[str, List[str]],
@@ -445,7 +445,6 @@ def _select_interfaces(
     if direct_cli:
         return _select_from_cli(by_header, select_map)
     return _select_interactively(by_header)
-
 
 def _collect_locations(parsed_data: ParsedData, raw_locations: Dict[str, str]) -> Dict[str, str]:
     locations: Dict[str, str] = {}
@@ -456,7 +455,6 @@ def _collect_locations(parsed_data: ParsedData, raw_locations: Dict[str, str]) -
         if location:
             locations[iface_name] = location
     return locations
-
 
 def _prompt_include_locations(
     by_header: Dict[str, List[str]],
@@ -480,7 +478,6 @@ def _prompt_include_locations(
             for root_name in roots_in_header:
                 locations[root_name] = loc
     return header_filenames
-
 
 def _generate(options: PluginOptions, direct_cli: bool) -> None:
     plugin_root = os.path.join(options.output_dir, options.name)
@@ -512,9 +509,9 @@ def _generate(options: PluginOptions, direct_cli: bool) -> None:
         options.terminations,
         options.controls,
         output_dir=options.output_dir,
+        profile=options.profile,
     )
     coordinator.generateAll()
-
 
 def menu() -> None:
     parser = _build_argument_parser()
