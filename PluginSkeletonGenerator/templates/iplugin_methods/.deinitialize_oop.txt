@@ -1,0 +1,10 @@
+
+ASSERT(_service == service);
+
+{{UNREGISTER_NOTIFICATION}}
+
+{{DEINITIALIZE_OOP}}
+
+_service->Release();
+_service = nullptr;
+_connectionId = 0;

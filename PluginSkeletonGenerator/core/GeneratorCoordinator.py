@@ -1,0 +1,74 @@
+'''
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+'''
+
+from core.PluginBlueprint import PluginBlueprint
+from core.ThunderProfile import DEFAULT_PROFILE, ThunderProfile
+from data.FileData import HeaderData, SourceData, CMakeData, JSONData, ConfData
+from generators.PluginRepositoryGenerator import PluginRepositoryGenerator
+from dataclasses import dataclass
+from typing import Callable, List
+
+@dataclass
+class GenerationTask:
+    name: str
+    generator_method: Callable[[object], None]
+    data_object: object
+
+class GeneratorCoordinator:
+    def __init__(self, name, out_of_process, configuration, parsed_data, header_lookup, locations,
+                 preconditions=None, terminations=None, controls=None, output_dir=None,
+                 profile: ThunderProfile = DEFAULT_PROFILE):
+        self.m_blueprint = PluginBlueprint(
+            name=name,
+            out_of_process=out_of_process,
+            configuration=configuration,
+            parsed_data=parsed_data,
+            header_lookup=header_lookup,
+            locations=locations,
+            preconditions=preconditions,
+            terminations=terminations,
+            controls=controls,
+            output_dir=output_dir,
+            profile=profile,
+        )
+
+    def generateAll(self):
+        gen = PluginRepositoryGenerator(self.m_blueprint)
+
+        tasks: List[GenerationTask] = [
+            GenerationTask("Header", gen.generateHeader, HeaderData(self.m_blueprint, HeaderData.HeaderType.HEADER)),
+            GenerationTask("ModuleHeader", gen.generateModuleHeader, HeaderData(self.m_blueprint, HeaderData.HeaderType.HEADER)),
+            GenerationTask("Source", gen.generatePluginSource, SourceData(self.m_blueprint)),
+            GenerationTask("ModuleSource", gen.generateModuleSource, SourceData(self.m_blueprint)),
+            GenerationTask("CMake", gen.generateCMake, CMakeData(self.m_blueprint)),
+            GenerationTask("Conf", gen.generateConfin, ConfData(self.m_blueprint)),
+            GenerationTask("JSON", gen.generateJSON, JSONData(self.m_blueprint))
+        ]
+
+        if self.m_blueprint.out_of_process:
+            tasks.append(GenerationTask(
+                "Implementation",
+                gen.generateImplementation,
+                HeaderData(self.m_blueprint, HeaderData.HeaderType.HEADER_IMPLEMENTATION)
+            ))
+
+        for task in tasks:
+            print(f"Generating {task.name}")
+            task.data_object.prepare()
+            task.generator_method(task.data_object)
