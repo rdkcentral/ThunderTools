@@ -49,7 +49,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     needs_move = False
     error_condition_emitted = False
 
-    converted = param.TempName("conv_") if has_conversion else param.original_name
+    converted = param.TempName("conv_") if has_conversion else param.local_name
     converted_result = param.TempName("convResult_")
     converted_enum = param.TempName("convEnum_")
     array_size = param.schema.get("@arraysize")
@@ -78,12 +78,12 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    default_conditions.extend("%s.empty() == true" % param.original_name)
+    default_conditions.extend("%s.empty() == true" % param.local_name)
 
     emit.If(default_conditions)
     if param.default_value:
         emit.Line("%s = %s;" % (opt_name, param.default_value))
-    elif is_optional_type:
+    elif is_optional_type or is_legacy_optional:
         emit.Line("// no error, optional")
     else:
         emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
@@ -101,12 +101,12 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
             if encode == "base64":
                 converted_length_param = param.TempName("convLength_")
                 emit.Line("%s %s(%s);" % (length_type, converted_length_param, length))
-                emit.Line("Core::FromString(%s, %s, %s);" % (param.original_name, converted, converted_length_param))
+                emit.Line("Core::FromString(%s, %s, %s);" % (param.local_name, converted, converted_length_param))
                 emit.Line("const bool %s = (%s != 0);" % (converted_result, converted_length_param))
             elif encode == "hex":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0));" % (converted_result, param.original_name, converted, length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0);" % (converted_result, param.local_name, converted, length))
             elif encode == "mac":
-                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.original_name, converted, length))
+                emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.local_name, converted, length))
             else:
                 assert False, "bad encode method"
 
@@ -119,10 +119,10 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
             needs_move = True
 
     elif isinstance(param, (JsonInteger, JsonBoolean)):
-        emit.Line("const bool %s = Core::FromString(%s, %s);" % (converted_result, param.original_name, converted))
+        emit.Line("const bool %s = Core::FromString(%s, %s);" % (converted_result, param.local_name, converted))
 
     elif isinstance(param, JsonEnum):
-        emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (param.cpp_native_type, converted_enum, param.original_name))
+        emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (param.cpp_native_type, converted_enum, param.local_name))
         emit.Line("%s %s{%s.Value()};" % (param.cpp_native_type, converted, converted_enum))
         emit.Line("const bool %s = %s.IsSet();" % (converted_result, converted_enum))
 
@@ -156,7 +156,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
 
     emit.Endif(default_conditions)
 
-    if converted != param.original_name:
+    if converted != param.local_name:
         emit.Line()
 
     return converted, error_condition_emitted
@@ -176,7 +176,6 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
     names['designator'] = "designator_"
     names['sendif'] = "sendIfMethod_"
     names["index"] = "index_"
-    names['designator_id'] = "designatorId_"
 
     prefix = ("%s." % names.module)
 
@@ -275,7 +274,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                     optional_conditions = Restrictions(json=False, original_name=True)
                     if IsObjectOptional(p) and not IsObjectOptionalOrOpaque(p):
                         optional_conditions.check_set(p)
-                        local_name += ".Value()"
+                        if p.optional:
+                            local_name += ".Value()"
                     elif IsObjectOptionalOrOpaque(p):
                         optional_conditions.check_not_null(p)
 
@@ -490,11 +490,11 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
             if event.sendif_type and event.sendif_deprecated:
                 if event.is_status_listener and has_client:
                     emit.Line("const size_t _dot = %s.find('.');" % (names.designator))
-                    emit.Line("const string %s = %s.substr(0, _dot);" % (names.designator_id, names.designator))
+                    emit.Line("const string %s = %s.substr(0, _dot);" % (names.index, names.designator))
                     check = ("%s.substr(_dot + 1)" % (names.designator))
                     cond.append("((%s.empty() == true) || (%s == %s))" % (names.client, names.client, check))
                 else:
-                    emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.designator_id, names.designator, names.designator))
+                    emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.index, names.designator, names.designator))
 
                 converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
 
@@ -998,6 +998,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
             emit.Line("if (%s) {" % restrictions.join())
             emit.Indent()
+            emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(method.name)))
             emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
             emit.Unindent()
             emit.Line("}")
@@ -1271,9 +1272,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         else:
                             # fallback to @length
                             alloca_param = size
-                            conditions.check_set(maxlength_param[0])
-                            conditions.check_not_null(maxlength_param[0])
-                            if maxlength_param[0].size > 16:
+                            conditions.check_set(length_param[0])
+                            conditions.check_not_null(length_param[0])
+                            if length_param[0].size > 16:
                                 conditions.extend("%s <= 0x100000" % size)
 
                         emit.EnterBlock(conditions)
@@ -1303,7 +1304,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("%s %s;" % (param.original_type, vector))
 
                         emit.Line("auto %s = %s.Elements();" % (temp, parent + param.cpp_name))
-                        # Removed extra paranthesis from the below line leading to compilation failure
                         emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (temp, vector, temp))
 
                         if param.optional:
@@ -1397,12 +1397,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line("else {")
             emit.Indent()
             emit.Line("%s = %s;" % (error_code.temp_name, CoreError("unknown_key")))
-            for c in cleanup:
-                emit.Line("if (%s != nullptr) {" % c)
-                emit.Indent()
-                emit.Line("%s->Release();" % c)
-                emit.Unindent()
-                emit.Line("}")
+            emit.Unindent()
+            emit.Line("}")
+
+        for c in cleanup:
+            emit.Line("if (%s != nullptr) {" % c)
+            emit.Indent()
+            emit.Line("%s->Release();" % c)
             emit.Unindent()
             emit.Line("}")
 

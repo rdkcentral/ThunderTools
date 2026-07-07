@@ -6,11 +6,13 @@ on:
     branches: [ master ]
     paths:
       - "JsonGenerator/**"
+      - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
   pull_request:
     branches: [ master ]
     paths:
       - "JsonGenerator/**"
+      - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
 
 permissions:
@@ -38,7 +40,7 @@ jobs:
           fi
           relevant=$(gh api \
             "repos/${{ github.repository }}/compare/${{ github.event.before }}...${{ github.event.after }}" \
-            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
+            --jq '[.files[].filename] | map(select(startswith("JsonGenerator/") or startswith("ProxyStubGenerator/") or . == ".github/workflows/JsonGenerator.yml")) | length > 0')
           echo "relevant=$relevant" >> "$GITHUB_OUTPUT"
 
   Thunder:
@@ -208,19 +210,28 @@ jobs:
             mkdir -p diffs "site/$RUN_DIR/diff"
 
             if [[ -d "$BASELINE_ROOT" ]]; then
-               git diff --no-index -U5 \
-                  --src-prefix=baseline/ \
-                  --dst-prefix=generated/ \
-                  -- "$BASELINE_ROOT" "generated" \
+               # Copy baseline to a local dir named 'baseline' so diff headers read
+               # 'baseline/...' vs 'generated/...' rather than the full absolute path.
+               # diff -rN: -r recurses into subdirs, -N treats absent files as empty so
+               # new files (only in generated) are shown as full additions in the diff.
+               cp -r "$BASELINE_ROOT" baseline
+               diff -rN -U5 \
+                  baseline "generated" \
                   > "diffs/combined.diff" || true
             else
-               mkdir empty_dir
-               git diff --no-index -U5 \
-                  --src-prefix=baseline/ \
-                  --dst-prefix=generated/ \
-                  -- "empty_dir" "generated" \
+               mkdir baseline
+               diff -rN -U5 \
+                  baseline "generated" \
                   > "diffs/combined.diff" || true
             fi
+
+            # Strip the differing root from the diff's ---/+++ file header lines so both sides share an identical path
+            sed -i -E \
+               -e 's#^(--- )baseline/#\1#' \
+               -e 's#^(\+\+\+ )generated/#\1#' \
+               -e 's#^(--- )generated/#\1#' \
+               -e 's#^(\+\+\+ )baseline/#\1#' \
+               "diffs/combined.diff"
 
             if [[ -s "diffs/combined.diff" ]]; then
                HAS_DIFF="true"

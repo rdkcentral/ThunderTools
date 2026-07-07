@@ -18,6 +18,7 @@
 '''
 
 from core.PluginBlueprint import PluginBlueprint
+from core.ThunderProfile import DEFAULT_PROFILE, ThunderProfile
 from data.FileData import HeaderData, SourceData, CMakeData, JSONData, ConfData
 from generators.PluginRepositoryGenerator import PluginRepositoryGenerator
 from dataclasses import dataclass
@@ -31,7 +32,8 @@ class GenerationTask:
 
 class GeneratorCoordinator:
     def __init__(self, name, out_of_process, configuration, parsed_data, header_lookup, locations,
-                 preconditions=None, terminations=None, controls=None, output_dir=None):
+                 preconditions=None, terminations=None, controls=None, output_dir=None,
+                 profile: ThunderProfile = DEFAULT_PROFILE):
         self.m_blueprint = PluginBlueprint(
             name=name,
             out_of_process=out_of_process,
@@ -43,6 +45,7 @@ class GeneratorCoordinator:
             terminations=terminations,
             controls=controls,
             output_dir=output_dir,
+            profile=profile,
         )
 
     def generateAll(self):

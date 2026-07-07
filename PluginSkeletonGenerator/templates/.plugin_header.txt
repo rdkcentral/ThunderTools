@@ -21,7 +21,7 @@
 
 {{HEADER_INCLUDES}}
 
-namespace Thunder {
+namespace {{FRAMEWORK_NAMESPACE}} {
 namespace Plugin {
 
     class {{PLUGIN_NAME}} {{HEADER_INHERITED_CLASS}} {
@@ -64,4 +64,4 @@ namespace Plugin {
     {{HEADER_MEMBERS}}
     };
 } // Plugin
-} // Thunder
+} // {{FRAMEWORK_NAMESPACE}}

@@ -127,7 +127,7 @@ jobs:
                   pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
               ) },
 
-            { "name": "OutOfProcessPreconditions", "header": "IMessageControl.h",
+            { "name": "OutOfProcessPreconditions", "header": "IMessagingControl.h",
               "answers": mk_answers(
                   "OutOfProcessPreconditions", "Y", "N",
                   pre={"pre": ["GRAPHICS"], "term": ["NOT_GRAPHICS"], "ctrl": ["TIME"]}
@@ -284,11 +284,22 @@ jobs:
 
             while read -r name; do
               if [[ -d "${BASELINE_ROOT}/${name}" ]]; then
-                git diff --no-index -U5 \
-                  --src-prefix=baseline/ \
-                  --dst-prefix=generated/ \
-                  -- "${BASELINE_ROOT}/${name}" "artifacts/PluginSkeleton-${name}" \
+                # Copy to a local dir named 'baseline' so diff headers read
+                # 'baseline/...' vs 'generated/...' rather than the full absolute path.
+                # diff -rN: -r recurses into subdirs, -N treats absent files as empty so
+                # new files (only in generated) are shown as full additions in the diff.
+                cp -r "${BASELINE_ROOT}/${name}" "baseline_${name}"
+                diff -rN -U5 \
+                  "baseline_${name}" "artifacts/PluginSkeleton-${name}" \
                   > "diffs/${name}.diff" || true
+
+                # Strip the differing roots from the diff's ---/+++ file header lines so both sides share an identical path
+                sed -i -E \
+                  -e "s#^(--- )baseline_${name}/#\\1#" \
+                  -e "s#^(\\+\\+\\+ )artifacts/PluginSkeleton-${name}/#\\1#" \
+                  -e "s#^(--- )artifacts/PluginSkeleton-${name}/#\\1#" \
+                  -e "s#^(\\+\\+\\+ )baseline_${name}/#\\1#" \
+                  "diffs/${name}.diff"
 
                 if [[ -s "diffs/${name}.diff" ]]; then
                   npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/${name}.html" -- "diffs/${name}.diff"
