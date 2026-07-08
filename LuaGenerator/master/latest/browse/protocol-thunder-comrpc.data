@@ -2388,6 +2388,72 @@ METHODS[5136] = {
 }
 
 --  Ids.h
+--  IBenchmark.h
+INTERFACES[41026] = "RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>"
+METHODS[41026] = {
+    [3] = { name = "Next", signature = "virtual bool Next(QualityAssurance::IBenchmark::BenchmarkResult&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.POD, class = "QualityAssurance::IBenchmark::BenchmarkResult", element = { { name = "apiName", type = Type.STRING16, class = "string" }, { name = "iterations", type = Type.UINT32, class = "uint32_t" }, { name = "roundTrip", type = Type.POD, class = "QualityAssurance::IBenchmark::RoundTripStats", element = { { name = "minNs", type = Type.UINT64, class = "uint64_t" }, { name = "avgNs", type = Type.UINT64, class = "uint64_t" }, { name = "maxNs", type = Type.UINT64, class = "uint64_t" }, { name = "stddevNs", type = Type.UINT64, class = "uint64_t" } } }, { name = "memory", type = Type.POD, class = "QualityAssurance::IBenchmark::MemoryStats", element = { { name = "residentBefore", type = Type.UINT64, class = "uint64_t" }, { name = "residentAfter", type = Type.UINT64, class = "uint64_t" }, { name = "allocatedBefore", type = Type.UINT64, class = "uint64_t" }, { name = "allocatedAfter", type = Type.UINT64, class = "uint64_t" } } }, { name = "passed", type = Type.BOOL, class = "bool" }, { name = "failureReason", type = Type.ENUMU8, class = "QualityAssurance::IBenchmark::FailureReason", optional = true } } } } }, 
+    [4] = { name = "Previous", signature = "virtual bool Previous(QualityAssurance::IBenchmark::BenchmarkResult&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.POD, class = "QualityAssurance::IBenchmark::BenchmarkResult", element = { { name = "apiName", type = Type.STRING16, class = "string" }, { name = "iterations", type = Type.UINT32, class = "uint32_t" }, { name = "roundTrip", type = Type.POD, class = "QualityAssurance::IBenchmark::RoundTripStats", element = { { name = "minNs", type = Type.UINT64, class = "uint64_t" }, { name = "avgNs", type = Type.UINT64, class = "uint64_t" }, { name = "maxNs", type = Type.UINT64, class = "uint64_t" }, { name = "stddevNs", type = Type.UINT64, class = "uint64_t" } } }, { name = "memory", type = Type.POD, class = "QualityAssurance::IBenchmark::MemoryStats", element = { { name = "residentBefore", type = Type.UINT64, class = "uint64_t" }, { name = "residentAfter", type = Type.UINT64, class = "uint64_t" }, { name = "allocatedBefore", type = Type.UINT64, class = "uint64_t" }, { name = "allocatedAfter", type = Type.UINT64, class = "uint64_t" } } }, { name = "passed", type = Type.BOOL, class = "bool" }, { name = "failureReason", type = Type.ENUMU8, class = "QualityAssurance::IBenchmark::FailureReason", optional = true } } } } }, 
+    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
+    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
+    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
+    [8] = { name = "Current", signature = "virtual QualityAssurance::IBenchmark::BenchmarkResult Current() const = 0", retvals = { { type = Type.POD, class = "QualityAssurance::IBenchmark::BenchmarkResult", element = { { name = "apiName", type = Type.STRING16, class = "string" }, { name = "iterations", type = Type.UINT32, class = "uint32_t" }, { name = "roundTrip", type = Type.POD, class = "QualityAssurance::IBenchmark::RoundTripStats", element = { { name = "minNs", type = Type.UINT64, class = "uint64_t" }, { name = "avgNs", type = Type.UINT64, class = "uint64_t" }, { name = "maxNs", type = Type.UINT64, class = "uint64_t" }, { name = "stddevNs", type = Type.UINT64, class = "uint64_t" } } }, { name = "memory", type = Type.POD, class = "QualityAssurance::IBenchmark::MemoryStats", element = { { name = "residentBefore", type = Type.UINT64, class = "uint64_t" }, { name = "residentAfter", type = Type.UINT64, class = "uint64_t" }, { name = "allocatedBefore", type = Type.UINT64, class = "uint64_t" }, { name = "allocatedAfter", type = Type.UINT64, class = "uint64_t" } } }, { name = "passed", type = Type.BOOL, class = "bool" }, { name = "failureReason", type = Type.ENUMU8, class = "QualityAssurance::IBenchmark::FailureReason", optional = true } } } } } 
+}
+
+INTERFACES[41024] = "QualityAssurance::IBenchmark"
+METHODS[41024] = {
+    [3] = { name = "Trigger", signature = "virtual Core::hresult Trigger(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "iterations", type = Type.UINT32, class = "uint32_t" } } }, 
+    [4] = { name = "CollectData", signature = "virtual Core::hresult CollectData(QualityAssurance::IBenchmark::IBenchmarkResultIterator*&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "report", type = Type.OBJECT, class = "RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>" } } }, 
+    [5] = { name = "LatencyThreshold", signature = "virtual Core::hresult LatencyThreshold(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "maxLatencyDeviationPct", type = Type.UINT32, class = "uint32_t" } } }, 
+    [6] = { name = "LatencyThreshold", signature = "virtual Core::hresult LatencyThreshold(uint32_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "maxLatencyDeviationPct", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } } }, 
+    [7] = { name = "MemoryThreshold", signature = "virtual Core::hresult MemoryThreshold(const uint64_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "maxMemoryGrowthBytes", type = Type.UINT64, class = "uint64_t" } } }, 
+    [8] = { name = "MemoryThreshold", signature = "virtual Core::hresult MemoryThreshold(uint64_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "maxMemoryGrowthBytes", type = Type.UINT64, class = "uint64_t", proto = "uint64_t&" } } }, 
+    [9] = { name = "Register", signature = "virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "sink", type = Type.OBJECT, class = "QualityAssurance::IBenchmark::INotification" } } }, 
+    [10] = { name = "Unregister", signature = "virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "sink", type = Type.OBJECT, class = "QualityAssurance::IBenchmark::INotification" } } } 
+}
+
+INTERFACES[41025] = "QualityAssurance::IBenchmark::INotification"
+METHODS[41025] = {
+    [3] = { name = "PerformanceCheckCompleted", signature = "virtual void PerformanceCheckCompleted() = 0" } 
+}
+
+--  IBenchmarkPayload.h
+INTERFACES[41041] = "RPC::IIteratorType<QualityAssurance::IBenchmarkPayload::PayloadType, QualityAssurance::ID_BENCHMARK_PAYLOADTYPE_ITERATOR>"
+METHODS[41041] = {
+    [3] = { name = "Next", signature = "virtual bool Next(QualityAssurance::IBenchmarkPayload::PayloadType&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.ENUMU8, class = "QualityAssurance::IBenchmarkPayload::PayloadType" } } }, 
+    [4] = { name = "Previous", signature = "virtual bool Previous(QualityAssurance::IBenchmarkPayload::PayloadType&) = 0", retvals = { { type = Type.BOOL, class = "bool" }, { name = "info", type = Type.ENUMU8, class = "QualityAssurance::IBenchmarkPayload::PayloadType" } } }, 
+    [5] = { name = "Reset", signature = "virtual void Reset(const uint32_t) = 0", params = { { name = "position", type = Type.UINT32, class = "uint32_t" } } }, 
+    [6] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
+    [7] = { name = "Count", signature = "virtual uint32_t Count() const = 0", retvals = { { type = Type.UINT32, class = "uint32_t" } } }, 
+    [8] = { name = "Current", signature = "virtual QualityAssurance::IBenchmarkPayload::PayloadType Current() const = 0", retvals = { { type = Type.ENUMU8, class = "QualityAssurance::IBenchmarkPayload::PayloadType" } } } 
+}
+
+INTERFACES[41040] = "QualityAssurance::IBenchmarkPayload"
+METHODS[41040] = {
+    [3] = { name = "GetPayloadTypes", signature = "virtual Core::hresult GetPayloadTypes(QualityAssurance::IBenchmarkPayload::IPayloadTypeIterator*&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "types", type = Type.OBJECT, class = "RPC::IIteratorType<QualityAssurance::IBenchmarkPayload::PayloadType, QualityAssurance::ID_BENCHMARK_PAYLOADTYPE_ITERATOR>" } } }, 
+    [4] = { name = "SendUint16", signature = "virtual Core::hresult SendUint16(const uint16_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.UINT16, class = "uint16_t" } } }, 
+    [5] = { name = "SendUint32", signature = "virtual Core::hresult SendUint32(const uint32_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.UINT32, class = "uint32_t" } } }, 
+    [6] = { name = "SendUint64", signature = "virtual Core::hresult SendUint64(const uint64_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.UINT64, class = "uint64_t" } } }, 
+    [7] = { name = "SendBool", signature = "virtual Core::hresult SendBool(const bool) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.BOOL, class = "bool" } } }, 
+    [8] = { name = "SendFloat", signature = "virtual Core::hresult SendFloat(const float) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.FLOAT32, class = "float" } } }, 
+    [9] = { name = "SendDouble", signature = "virtual Core::hresult SendDouble(const double) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.FLOAT64, class = "double" } } }, 
+    [10] = { name = "SendString", signature = "virtual Core::hresult SendString(const string&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "value", type = Type.STRING16, class = "string" } } }, 
+    [11] = { name = "SendSampleData", signature = "virtual Core::hresult SendSampleData(const QualityAssurance::IBenchmarkPayload::SampleData&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "data", type = Type.POD, class = "QualityAssurance::IBenchmarkPayload::SampleData", element = { { name = "id", type = Type.UINT32, class = "uint32_t" }, { name = "value", type = Type.UINT32, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } } } }, 
+    [12] = { name = "SendNoPayload", signature = "virtual Core::hresult SendNoPayload() = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } } }, 
+    [13] = { name = "SendBuffer", signature = "virtual Core::hresult SendBuffer(const uint16_t, const uint8_t*) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "buffer", type = Type.BUFFER16, class = "uint8_t", proto = "uint8_t*" } } }, 
+    [14] = { name = "SendUint32Vector", signature = "virtual Core::hresult SendUint32Vector(const std::vector<uint32_t>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "data", type = Type.VECTOR16, class = "std::vector<uint32_t>", proto = "std::vector<uint32_t>&", element = { type = Type.UINT32, class = "uint32_t" }, restrict = { min = 1, max = 1024 } } } }, 
+    [15] = { name = "SendReceiveUint16", signature = "virtual Core::hresult SendReceiveUint16(const uint16_t, uint16_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.UINT16, class = "uint16_t", proto = "uint16_t&" } }, params = { { name = "input", type = Type.UINT16, class = "uint16_t" } } }, 
+    [16] = { name = "SendReceiveUint32", signature = "virtual Core::hresult SendReceiveUint32(const uint32_t, uint32_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } }, params = { { name = "input", type = Type.UINT32, class = "uint32_t" } } }, 
+    [17] = { name = "SendReceiveUint64", signature = "virtual Core::hresult SendReceiveUint64(const uint64_t, uint64_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.UINT64, class = "uint64_t", proto = "uint64_t&" } }, params = { { name = "input", type = Type.UINT64, class = "uint64_t" } } }, 
+    [18] = { name = "SendReceiveBool", signature = "virtual Core::hresult SendReceiveBool(const bool, bool&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.BOOL, class = "bool" } }, params = { { name = "input", type = Type.BOOL, class = "bool" } } }, 
+    [19] = { name = "SendReceiveFloat", signature = "virtual Core::hresult SendReceiveFloat(const float, float&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.FLOAT32, class = "float" } }, params = { { name = "input", type = Type.FLOAT32, class = "float" } } }, 
+    [20] = { name = "SendReceiveDouble", signature = "virtual Core::hresult SendReceiveDouble(const double, double&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.FLOAT64, class = "double" } }, params = { { name = "input", type = Type.FLOAT64, class = "double" } } }, 
+    [21] = { name = "SendReceiveString", signature = "virtual Core::hresult SendReceiveString(const string&, string&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.STRING16, class = "string" } }, params = { { name = "input", type = Type.STRING16, class = "string" } } }, 
+    [22] = { name = "SendReceiveSampleData", signature = "virtual Core::hresult SendReceiveSampleData(const QualityAssurance::IBenchmarkPayload::SampleData&, QualityAssurance::IBenchmarkPayload::SampleData&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.POD, class = "QualityAssurance::IBenchmarkPayload::SampleData", element = { { name = "id", type = Type.UINT32, class = "uint32_t" }, { name = "value", type = Type.UINT32, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } } }, params = { { name = "input", type = Type.POD, class = "QualityAssurance::IBenchmarkPayload::SampleData", element = { { name = "id", type = Type.UINT32, class = "uint32_t" }, { name = "value", type = Type.UINT32, class = "uint32_t" }, { name = "name", type = Type.STRING16, class = "string" } } } } }, 
+    [23] = { name = "SendReceiveBuffer", signature = "virtual Core::hresult SendReceiveBuffer(uint16_t&, uint8_t*) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "buffer", type = Type.BUFFER16, class = "uint8_t", proto = "uint8_t*" } }, params = { { name = "buffer", type = Type.BUFFER16, class = "uint8_t", proto = "uint8_t*" } } }, 
+    [24] = { name = "SendReceiveUint32Vector", signature = "virtual Core::hresult SendReceiveUint32Vector(const std::vector<uint32_t>&, std::vector<uint32_t>&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.VECTOR16, class = "std::vector<uint32_t>", proto = "std::vector<uint32_t>&", element = { type = Type.UINT32, class = "uint32_t" }, restrict = { min = 1, max = 1024 } } }, params = { { name = "input", type = Type.VECTOR16, class = "std::vector<uint32_t>", proto = "std::vector<uint32_t>&", element = { type = Type.UINT32, class = "uint32_t" }, restrict = { min = 1, max = 1024 } } } }, 
+    [25] = { name = "Add", signature = "virtual Core::hresult Add(const uint32_t, const uint32_t, uint32_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "result", type = Type.UINT32, class = "uint32_t", proto = "uint32_t&" } }, params = { { name = "a", type = Type.UINT32, class = "uint32_t" }, { name = "b", type = Type.UINT32, class = "uint32_t" } } } 
+}
+
 --  ITestAutomation.h
 INTERFACES[40960] = "QualityAssurance::IMemory"
 METHODS[40960] = {
@@ -2491,6 +2557,20 @@ METHODS[40980] = {
     [4] = { name = "IsValid", signature = "virtual bool IsValid() const = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
     [5] = { name = "Next", signature = "virtual bool Next() = 0", retvals = { { type = Type.BOOL, class = "bool" } } }, 
     [6] = { name = "Category", signature = "virtual QualityAssurance::ITestController::ICategory* Category() const = 0", retvals = { { type = Type.OBJECT, class = "QualityAssurance::ITestController::ICategory" } } } 
+}
+
+--  ITestPlugin.h
+INTERFACES[41056] = "QualityAssurance::ITestPlugin"
+METHODS[41056] = {
+    [3] = { name = "Register", signature = "virtual Core::hresult Register(QualityAssurance::ITestPlugin::INotification*) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "notification", type = Type.OBJECT, class = "QualityAssurance::ITestPlugin::INotification" } } }, 
+    [4] = { name = "Unregister", signature = "virtual Core::hresult Unregister(QualityAssurance::ITestPlugin::INotification*) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "notification", type = Type.OBJECT, class = "QualityAssurance::ITestPlugin::INotification" } } }, 
+    [5] = { name = "Echo", signature = "virtual Core::hresult Echo(const string&, string&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "output", type = Type.STRING16, class = "string" } }, params = { { name = "input", type = Type.STRING16, class = "string" } } }, 
+    [6] = { name = "Greet", signature = "virtual Core::hresult Greet(const string&, string&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "message", type = Type.STRING16, class = "string" } }, params = { { name = "name", type = Type.STRING16, class = "string" } } } 
+}
+
+INTERFACES[41057] = "QualityAssurance::ITestPlugin::INotification"
+METHODS[41057] = {
+    [3] = { name = "OnGreeting", signature = "virtual void OnGreeting(const string&) = 0", params = { { name = "message", type = Type.STRING16, class = "string" } } } 
 }
 
 --  ITestUtility.h
@@ -3536,6 +3616,19 @@ ENUMS["Exchange::IZigWave::Device::type"] = {
     [0] = "END_DEVICE",
     [1] = "ROUTER",
     [2] = "CONTROLLER"
+}
+
+ENUMS["QualityAssurance::IBenchmark::FailureReason"] = {
+    [0] = "LATENCY_THRESHOLD_EXCEEDED",
+    [1] = "MEMORY_THRESHOLD_EXCEEDED",
+    [2] = "LATENCY_AND_MEMORY_THRESHOLD_EXCEEDED"
+}
+
+ENUMS["QualityAssurance::IBenchmarkPayload::PayloadType"] = {
+    [0] = "PAYLOAD_UNKNOWN",
+    [1] = "PAYLOAD_SMALL",
+    [2] = "PAYLOAD_MEDIUM",
+    [3] = "PAYLOAD_LARGE"
 }
 
 ENUMS["QualityAssurance::ITestTextOptions::EnumTextOptions"] = {
