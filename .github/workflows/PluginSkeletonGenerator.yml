@@ -164,10 +164,10 @@ jobs:
 
     steps:
       - name: Checkout this repo
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Checkout ThunderInterfaces
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: rdkcentral/ThunderInterfaces
           path: ThunderInterfaces
@@ -222,7 +222,7 @@ jobs:
       - name: Checkout gh-pages (baseline for PR diffs)
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: gh-pages
           path: ghpages_baseline
