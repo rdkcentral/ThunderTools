@@ -7,7 +7,7 @@ This prompt performs **semantic code review** — reading plugin source code as 
 ❌ Open-ended (never do this): "Check this file for issues"
 ✅ Bounded (always this): "Is AddRef() called on the stored IShell* pointer immediately after assignment in Initialize()?"
 
-**Holistic rules (32):** Each requires holistic analysis — understanding control flow, ownership, lifecycle, and threading across multiple code paths. Cannot be reduced to a single bounded query.
+**Holistic rules (46):** Each requires holistic analysis — understanding control flow, ownership, lifecycle, and threading across multiple code paths. Cannot be reduced to a single bounded query.
 
 ---
 
@@ -64,9 +64,9 @@ Examples:
 
 ### Step 1 — Load Rules
 
-Load `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`. This file contains all 70 rules:
+Load `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`. This file contains all 84 rules:
 - `phase_1_checkpoints` through `phase_8_checkpoints` — 38 rules with bounded queries
-- `general_rules` — 32 holistic rules across 8 sub-phases (rule_39 to rule_70)
+- `general_rules` — 46 holistic rules across 8 sub-phases (rule_39 to rule_84)
 
 All rules produce the same output format. There is no distinction between "phase checkpoint" and "holistic" in the report.
 
@@ -97,7 +97,7 @@ This affects which rules apply:
 - **rule_38** (COM Methods Return Core::hresult): Only applies to Thunder 5.0+ plugins. Pre-5.0 plugins correctly use `uint32_t` — do NOT flag as a violation.
 - **rule_31** (No Hardcoded Paths): Linux kernel virtual filesystems (`/proc/`, `/sys/`, `/dev/`) are fixed OS paths, not deployment-specific — do NOT flag these.
 
-**Review philosophy for ALL 70 rules:**
+**Review philosophy for ALL 84 rules:**
 
 1. **UNDERSTAND FIRST** — Read ALL plugin source files. Build a complete mental model of the plugin's architecture: its lifecycle flow, threading model, ownership patterns, data flow, and how Initialize/Deinitialize relate to each other. Do this ONCE before checking any rule.
 2. **FOCUS** — For each rule, look at the specific concern it asks about. But reason about it WITH the full context you already understand — never in isolation.
@@ -171,7 +171,7 @@ Group all issues (from any rule) by source file. For files with failures:
 ### {ActualFileName} — N issue(s)
 ```
 
-Under each file heading, list every failing rule as a YAML block (same format for all 70 rules):
+Under each file heading, list every failing rule as a YAML block (same format for all 84 rules):
 
 ``yaml
 rule_id: rule_XX
@@ -197,7 +197,7 @@ Status symbols (prefix the `status:` field value with these):
 **Format:** `status: ❌ VIOLATION` or `status: ⚠️ WARNING` or `status: 💡 SUGGESTION`
 
 When severity is downgraded (e.g. violation → suggestion), the symbol matches the **effective** (downgraded) status, not the original YAML severity.
-### Summary Table (single unified table for all 70 rules)
+### Summary Table (single unified table for all 84 rules)
 
 | Phase | PASS | FAIL | SKIP |
 |-------|------|------|------|
@@ -211,7 +211,7 @@ When severity is downgraded (e.g. violation → suggestion), the symbol matches 
 | Phase 7 — CMake | N | N | N |
 | Phase 8 — COM Interfaces | N | N | N |
 | Holistic Rules (8 sub-phases) | N | N | N |
-| **Total (70 rules)** | **N** | **N** | **N** |
+| **Total (84 rules)** | **N** | **N** | **N** |
 
 Followed by a numbered **Next Steps** list citing `[File:line]` for each action item.
 
@@ -229,7 +229,7 @@ Followed by a numbered **Next Steps** list citing `[File:line]` for each action 
 1. Load `thunder-plugin-rules.yaml` at the start of every review run — rules may have been updated
 2. Never embed rule data in this prompt — always load from YAML at runtime
 3. If a plugin is not found in `ThunderNanoServices/`, search workspace before asking
-4. Total: 70 rules (rule_01 to rule_70), all sequential, all producing unified output
+4. Total: 84 rules (rule_01 to rule_84), all sequential, all producing unified output
 5. Rule IDs in reports use the format `rule_XX` — no phase prefixes
 
 ## Command Examples

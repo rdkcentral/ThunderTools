@@ -1,4 +1,4 @@
-# Thunder Plugin Rules — v3.3.0
+# Thunder Plugin Rules — v3.4.0
 
 ### Severity Levels
 
@@ -75,6 +75,7 @@
 | [rule_59](#rule_59) | IPlugin::INotification Callbacks Must Not Block | violation | Concurrency |
 | [rule_60](#rule_60) | Lock Scope Minimized | violation | Concurrency |
 | [rule_61](#rule_61) | Plugin Threads Joined in Deinitialize | violation | Concurrency |
+| [rule_62](#rule_62) | Deinitialize Pointer Safety | violation | Lifecycle Integrity |
 | [rule_63](#rule_63) | hresult Return Values Checked | violation | COM Safety |
 | [rule_64](#rule_64) | ASSERT Only for Programmer Invariants | warning | Code Quality |
 | [rule_65](#rule_65) | Security: Logging, Shell, Path, and Error Exposure | violation | Code Quality |
@@ -83,6 +84,20 @@
 | [rule_68](#rule_68) | No Deprecated JSON-RPC APIs | violation | JSON-RPC Compliance |
 | [rule_69](#rule_69) | INTERFACE_MAP Mandatory | violation | Conventions |
 | [rule_70](#rule_70) | No printf — Use Thunder Tracing | warning | Code Quality |
+| [rule_71](#rule_71) | No ILocalDispatcher Usage | violation | Inter-Plugin Design |
+| [rule_72](#rule_72) | No AddRef/Release/QueryInterface Override | violation | COM Safety |
+| [rule_73](#rule_73) | Use PluginSmartInterfaceType for Persistent COMRPC Proxies | warning | Inter-Plugin Design |
+| [rule_74](#rule_74) | Prefer WorkerPool for Background Tasks | warning | Concurrency |
+| [rule_75](#rule_75) | No COMRPC Call Inside COMRPC Notification | warning | Concurrency |
+| [rule_76](#rule_76) | No IController::Persist Calls | warning | Inter-Plugin Design |
+| [rule_77](#rule_77) | No Direct curl / libcurl Usage | warning | Code Quality |
+| [rule_78](#rule_78) | No Process Spawning from Plugins | violation | Code Quality |
+| [rule_79](#rule_79) | No Hardcoded Plugin Callsigns | warning | Inter-Plugin Design |
+| [rule_80](#rule_80) | Use ProxyType for COM Interface Parameters | warning | COM Safety |
+| [rule_81](#rule_81) | Use Core::GetEnvironment / SetEnvironment | warning | Code Quality |
+| [rule_82](#rule_82) | No sleep() in Plugin Code | warning | Concurrency |
+| [rule_83](#rule_83) | No Heavy Work in Initialize() | violation | Lifecycle Integrity |
+| [rule_84](#rule_84) | No Override of JSONRPC Dispatch Methods | warning | JSON-RPC Compliance |
 
 ---
 
@@ -2098,6 +2113,211 @@ Register<JsonData::SetParams, JsonData::SetResult>(_T("method"), &Plugin::Method
 **Violation pattern:** Direct output call (`printf`, `std::cout`, etc.) found in plugin code.
 
 **Citation format:** `[PluginName.cpp:LINE] printf/cout used — use Thunder TRACE/SYSLOG`
+
+---
+
+
+---
+
+## Extended Rules (rule_71 – rule_84)
+
+These rules were added from field review and cover advanced patterns: ILocalDispatcher misuse, AddRef/Release override, COMRPC proxy safety, WorkerPool preference, COMRPC re-entrancy, IController misuse, no curl, no process spawning, no hardcoded callsigns, ProxyType, Core env APIs, no sleep, heavy Initialize, and JSONRPC dispatch override.
+
+---
+
+### rule_71
+
+**No ILocalDispatcher Usage** | `violation` | Category: Inter-Plugin Design
+
+**What to check:** The plugin must not use ILocalDispatcher for any communication. ILocalDispatcher bypasses Thunder's security token validation, removes per-plugin permission enforcement, and adds unnecessary JSON serialise/deserialise overhead.
+
+**Where to look:** All COMRPC and JSON-RPC call paths.
+
+**Violation pattern:** ILocalDispatcher used for plugin communication.
+
+**Citation format:** `[PluginName.cpp:LINE] ILocalDispatcher used — use direct COMRPC interface`
+
+---
+
+### rule_72
+
+**No AddRef/Release/QueryInterface Override** | `violation` | Category: COM Safety
+
+**What to check:** The plugin must not provide its own implementations of AddRef(), Release(), or QueryInterface(). These are provided by Thunder's reference counting base classes and overriding them breaks COM lifetime correctness.
+
+**Where to look:** All class declarations in the plugin.
+
+**Violation pattern:** Custom AddRef(), Release(), or QueryInterface() implementation found.
+
+**Citation format:** `[PluginName.h:LINE] Custom AddRef/Release/QueryInterface override — use framework base class`
+
+---
+
+### rule_73
+
+**Use PluginSmartInterfaceType for Persistent COMRPC Proxies** | `warning` | Category: Inter-Plugin Design
+
+**What to check:** Persistent COMRPC proxy storage (member variables holding a COMRPC interface to another plugin) should use PluginSmartInterfaceType rather than a raw pointer. PluginSmartInterfaceType automatically handles dangling when the remote plugin deactivates.
+
+**Where to look:** All member variables storing COMRPC interfaces to other plugins.
+
+**Violation pattern:** Raw pointer member stores a persistent COMRPC proxy to another plugin.
+
+**Citation format:** `[PluginName.h:LINE] Raw COMRPC proxy member — use PluginSmartInterfaceType`
+
+---
+
+### rule_74
+
+**Prefer WorkerPool for Background Tasks** | `warning` | Category: Concurrency
+
+**What to check:** The plugin should prefer Core::WorkerPool jobs over raw thread spawning (std::thread, pthread_create) for one-shot or periodic background tasks. WorkerPool jobs are managed, thread-pooled, and integrate with Thunder's shutdown.
+
+**Where to look:** All background work and thread usage.
+
+**Violation pattern:** Raw thread used where WorkerPool job would be more appropriate.
+
+**Citation format:** `[PluginName.cpp:LINE] Raw thread — prefer Core::WorkerPool job`
+
+---
+
+### rule_75
+
+**No COMRPC Call Inside COMRPC Notification** | `warning` | Category: Concurrency
+
+**What to check:** The plugin must avoid making outbound COMRPC calls from within a COMRPC notification callback. This causes re-entrancy on the same channel, leading to deadlock. Dispatch asynchronously via WorkerPool if needed.
+
+**Where to look:** All COMRPC notification/callback implementations.
+
+**Violation pattern:** Outbound COMRPC call made from within inbound COMRPC callback.
+
+**Citation format:** `[PluginName.cpp:LINE] COMRPC call inside COMRPC notification — dispatch async`
+
+---
+
+### rule_76
+
+**No IController::Persist Calls** | `warning` | Category: Inter-Plugin Design
+
+**What to check:** The plugin must avoid calling IController::Persist(). The Persist/Override feature is disabled on non-debug builds — calling it silently does nothing in production.
+
+**Where to look:** All IController method calls.
+
+**Violation pattern:** IController::Persist() called.
+
+**Citation format:** `[PluginName.cpp:LINE] IController::Persist() — disabled in production builds`
+
+---
+
+### rule_77
+
+**No Direct curl / libcurl Usage** | `warning` | Category: Code Quality
+
+**What to check:** The plugin must not use curl/libcurl directly. Use Thunder's HTTP utilities (Web::Request, Web::Response, Web::WebClient) which provide consistent TLS configuration, proxy handling, and error reporting.
+
+**Where to look:** All HTTP and network calls.
+
+**Violation pattern:** Direct curl/libcurl usage found.
+
+**Citation format:** `[PluginName.cpp:LINE] Direct curl usage — use Thunder Web:: utilities`
+
+---
+
+### rule_78
+
+**No Process Spawning from Plugins** | `violation` | Category: Code Quality
+
+**What to check:** The plugin must not spawn child processes via popen(), system(), fork(), exec() or equivalent. Process spawning blocks the Thunder main thread, leaks file descriptors across OOP boundaries, and is a security risk with unsanitized input.
+
+**Where to look:** All system interaction code.
+
+**Violation pattern:** popen(), system(), fork(), or exec() called from plugin code.
+
+**Citation format:** `[PluginName.cpp:LINE] Process spawning (popen/system/fork) — not allowed in plugins`
+
+---
+
+### rule_79
+
+**No Hardcoded Plugin Callsigns** | `warning` | Category: Inter-Plugin Design
+
+**What to check:** The plugin must not hardcode callsign strings (e.g. "org.rdk.DeviceInfo", "LocationSync"). Hardcoded callsigns create brittle dependencies. Callsigns should come from configuration.
+
+**Where to look:** All inter-plugin communication code.
+
+**Violation pattern:** Hardcoded callsign string literal found.
+
+**Citation format:** `[PluginName.cpp:LINE] Hardcoded callsign — use configuration`
+
+---
+
+### rule_80
+
+**Use ProxyType for COM Interface Parameters** | `warning` | Category: COM Safety
+
+**What to check:** When a method returns or accepts a COM interface pointer as an out-parameter, Core::ProxyType<T> should be used to ensure reference-counted lifetime management.
+
+**Where to look:** All COM interface method signatures and implementations.
+
+**Violation pattern:** Bare COM interface pointer returned without ProxyType.
+
+**Citation format:** `[PluginName.cpp:LINE] Bare COM pointer returned — use Core::ProxyType`
+
+---
+
+### rule_81
+
+**Use Core::GetEnvironment / SetEnvironment** | `warning` | Category: Code Quality
+
+**What to check:** The plugin must use Core::GetEnvironment() and Core::SetEnvironment() instead of POSIX getenv()/setenv(). The POSIX versions are not thread-safe; Thunder's wrappers are thread-safe.
+
+**Where to look:** All environment variable access.
+
+**Violation pattern:** getenv() or setenv() used instead of Core::GetEnvironment/SetEnvironment.
+
+**Citation format:** `[PluginName.cpp:LINE] getenv/setenv — use Core::GetEnvironment/SetEnvironment`
+
+---
+
+### rule_82
+
+**No sleep() in Plugin Code** | `warning` | Category: Concurrency
+
+**What to check:** The plugin must not use sleep(), usleep(), std::this_thread::sleep_for(), or equivalent busy-wait delays. Use Core::WorkerPool timers, condition variables, or framework event notifications instead.
+
+**Where to look:** All time-delay or polling patterns.
+
+**Violation pattern:** sleep/usleep/sleep_for found in plugin code.
+
+**Citation format:** `[PluginName.cpp:LINE] sleep() used — use WorkerPool timer or event`
+
+---
+
+### rule_83
+
+**No Heavy Work in Initialize()** | `violation` | Category: Lifecycle Integrity
+
+**What to check:** Initialize() and Configure() must not perform heavy blocking operations (synchronous network calls, popen, long filesystem scans). Initialize() runs on the Thunder main thread and blocks all other plugin activation. Heavy work must be deferred to a WorkerPool job.
+
+**Where to look:** Initialize() and Configure() implementations.
+
+**Violation pattern:** Blocking operation in Initialize() that could take more than a few milliseconds.
+
+**Citation format:** `[PluginName.cpp:LINE] Heavy blocking work in Initialize() — defer to WorkerPool`
+
+---
+
+### rule_84
+
+**No Override of JSONRPC Dispatch Methods** | `warning` | Category: JSON-RPC Compliance
+
+**What to check:** The plugin must not override internal JSONRPC dispatch or callback methods (Dispatch(), Callback(), or internal handler hooks) from the JSONRPC base class. The correct approach is to register handlers via Register() in Initialize().
+
+**Where to look:** Plugin class hierarchy and method overrides.
+
+**Violation pattern:** Override of internal JSONRPC dispatch method found.
+
+**Citation format:** `[PluginName.cpp:LINE] JSONRPC Dispatch override — use Register() pattern`
 
 ---
 

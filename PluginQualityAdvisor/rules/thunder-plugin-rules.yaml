@@ -3,9 +3,9 @@
 # ===========================================================================================
 
 metadata:
-  description: "Unified plugin validation rules — 70 rules numbered sequentially (rule_01 to rule_70), organized into 17 phases"
+  description: "Unified plugin validation rules — 84 rules numbered sequentially (rule_01 to rule_84), organized into 17 phases plus extended rules"
   approach: "semantic code review"
-  total_rules: 70
+  total_rules: 84
   organization: |
     rule_01-rule_03: Module Structure (3)
     rule_04-rule_13: Code Style (10)
@@ -17,17 +17,17 @@ metadata:
     rule_37: CMake (1)
     rule_38: COM Interface (1)
     rule_39,40,44,67,69: Conventions & Encapsulation (5)
-    rule_41,51,62: Lifecycle & State Integrity (3)
-    rule_42,45-49,58-61: Concurrency & Threading (10)
-    rule_43,56,63: COM Reference & Memory Safety (3)
+    rule_41,51,62,83: Lifecycle & State Integrity (4)
+    rule_42,45-49,58-61,74,75,82: Concurrency & Threading (13)
+    rule_43,56,63,72,80: COM Reference & Memory Safety (5)
     rule_50: Resource Management (1)
-    rule_52-55,68: JSON-RPC Compliance (5)
-    rule_57: Inter-Plugin & OOP Design (1)
-    rule_64-66,70: Code Quality & Security (4)
+    rule_52-55,68,84: JSON-RPC Compliance (6)
+    rule_57,71,73,76,79: Inter-Plugin & OOP Design (5)
+    rule_64-66,70,77,78,81: Code Quality & Security (7)
 
   validation_approach:
     principles:
-      - "ALL 70 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
+      - "ALL 84 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
       - "Step 1 is ALWAYS: read the full plugin code (all files) and build mental model of architecture, ownership, lifecycle, and threading"
       - "Step 2 is: with that full understanding, examine the specific concern each rule asks about"
       - "Never check a specific block in isolation — always reason about it in the context of the full plugin"
@@ -383,7 +383,10 @@ phase_2_checkpoints:
       - "1. Read all QueryInterfaceByCallsign() call sites"
       - "2. Reason about the lifetime of the returned pointer: is it stored in a local variable or a class member?"
       - "3. If stored in a local variable and released before the function returns → acceptable"
-      - "4. If stored in a class member variable (persists across calls) → VIOLATION"
+      - "4. If stored in a class member variable as a raw pointer (persists across calls) → VIOLATION"
+      - "5. If stored via PluginSmartInterfaceType → acceptable (handles plugin deactivation/dangling automatically)"
+      - "6. Also check: is the result checked for nullptr before use? Null result means the plugin is unavailable."
+      - "7. If QueryInterfaceByCallsign() result is used without a nullptr check → flag as additional finding"
 
     conditional: true
     skip_condition: "No QueryInterfaceByCallsign() calls found in the plugin"
@@ -1697,7 +1700,8 @@ phase_8_checkpoints:
       rule: "thunder-plugin-rules.yaml / rule_38"
 
 # ===========================================================================================
-# HOLISTIC RULES — 8 sub-phases (32 rules: rule_39 to rule_70)
+# HOLISTIC RULES — 8 sub-phases (46 rules: rule_39 to rule_84)
+# EXTENDED RULES — rule_71 to rule_84 (14 rules added from field review)
 # Conventions & Encapsulation | Lifecycle & State Integrity | Concurrency & Threading
 # COM Reference & Memory Safety | Resource Management | JSON-RPC Compliance
 # Inter-Plugin & OOP Design | Code Quality & Security
@@ -1957,5 +1961,117 @@ general_rules:
     severity: "warning"
     category: "code_quality_security"
     review_question: "Using semantic reasoning over all source files, is the plugin free of printf, fprintf, std::cout, std::cerr, and similar direct output calls — using Thunder tracing (TRACE, TRACE_L1, etc.) exclusively for logging and debug output?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_71"
+    name: "No ILocalDispatcher Usage"
+    severity: "violation"
+    category: "inter_plugin_design"
+    review_question: "Using semantic reasoning over all COMRPC and JSON-RPC call paths, does the plugin avoid using ILocalDispatcher for any communication? ILocalDispatcher bypasses Thunder's security token validation, removes the ability to enforce per-plugin permissions, and adds unnecessary JSON serialise/deserialise overhead for what should be a direct in-process COMRPC call."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_72"
+    name: "No AddRef/Release/QueryInterface Override"
+    severity: "violation"
+    category: "com_safety"
+    review_question: "Using semantic reasoning over all class declarations in the plugin, does the plugin avoid providing its own implementations of AddRef(), Release(), or QueryInterface()? These methods are provided by Thunder's reference counting base classes (Core::Unknown, RPC::Administrator) and overriding them breaks COM lifetime correctness and interferes with Thunder's internal bookkeeping."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_73"
+    name: "Use PluginSmartInterfaceType for Persistent COMRPC Proxies"
+    severity: "warning"
+    category: "inter_plugin_design"
+    review_question: "Using semantic reasoning over all persistent COMRPC proxy storage (member variables holding a COMRPC interface to another plugin), does the plugin use PluginSmartInterfaceType to store such proxies rather than a raw pointer? PluginSmartInterfaceType automatically handles the case where the remote plugin is deactivated (dangling proxy), invalidating the local reference safely. Exception: proxies to IController interfaces do not require this."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_74"
+    name: "Prefer WorkerPool for Background Tasks"
+    severity: "warning"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all background work and thread usage, does the plugin prefer Core::WorkerPool jobs over raw thread spawning (std::thread, pthread_create) for one-shot or periodic background tasks? WorkerPool jobs are managed, thread-pooled, and integrate with Thunder's shutdown sequence. Raw threads require manual join/detach in Deinitialize and do not participate in Thunder's cooperative shutdown."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_75"
+    name: "No COMRPC Call Inside COMRPC Notification"
+    severity: "warning"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all COMRPC notification/callback implementations, does the plugin avoid making outbound COMRPC calls from within a COMRPC notification callback? An outbound COMRPC call from within an inbound COMRPC callback can cause re-entrancy in the same direction on the same channel, leading to deadlock or undefined behaviour. If such a call is genuinely needed, it must be dispatched asynchronously via WorkerPool."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_76"
+    name: "No IController::Persist Calls"
+    severity: "warning"
+    category: "inter_plugin_design"
+    review_question: "Using semantic reasoning over all IController method calls in the plugin, does the plugin avoid calling IController::Persist()? The Persist/Override feature is disabled on non-debug builds — calling Persist() in production code silently does nothing, masking a broken assumption about plugin configuration persistence."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_77"
+    name: "No Direct curl / libcurl Usage"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over all HTTP and network calls, does the plugin avoid using curl/libcurl directly? Direct libcurl usage bypasses Thunder's HTTP utilities (Web::Request, Web::Response, Web::WebClient), which provide consistent TLS configuration, proxy handling, and error reporting. Direct curl also adds an untracked external library dependency."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_78"
+    name: "No Process Spawning from Plugins"
+    severity: "violation"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over all system interaction in the plugin, does the plugin avoid spawning child processes via popen(), system(), fork(), exec() or equivalent? Process spawning from a plugin (especially in Initialize() or Configure()) blocks the Thunder main thread, leaks file descriptors across OOP process boundaries, introduces unmanaged child process lifetimes, and is a security risk if the command includes any unsanitized input."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_79"
+    name: "No Hardcoded Plugin Callsigns"
+    severity: "warning"
+    category: "inter_plugin_design"
+    review_question: "Using semantic reasoning over all inter-plugin communication, does the plugin avoid hardcoding callsign strings (e.g. \"org.rdk.DeviceInfo\", \"LocationSync\") directly in code? Hardcoded callsigns create brittle dependencies on specific plugin names that may differ across platforms or deployments. Callsigns should come from plugin configuration."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_80"
+    name: "Use ProxyType for COM Interface Parameters"
+    severity: "warning"
+    category: "com_safety"
+    review_question: "Using semantic reasoning over all COM interface method signatures and implementations, when a method returns or accepts a COM interface pointer as an out-parameter, is Core::ProxyType<T> used to ensure reference-counted lifetime management? Returning a bare COM interface pointer from a method without ProxyType is a memory safety hazard — the caller may not know whether to AddRef or whether the pointer's lifetime is already managed."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_81"
+    name: "Use Core::GetEnvironment / SetEnvironment"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over all environment variable access in the plugin, does the plugin use Core::GetEnvironment() and Core::SetEnvironment() instead of the C standard library getenv() and setenv()? The POSIX getenv/setenv are not thread-safe; Thunder's Core::GetEnvironment and Core::SetEnvironment are thread-safe wrappers that are now mandated by the framework."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_82"
+    name: "No sleep() in Plugin Code"
+    severity: "warning"
+    category: "concurrency"
+    review_question: "Using semantic reasoning over all time-delay or polling patterns, does the plugin avoid sleep(), usleep(), std::this_thread::sleep_for(), or equivalent busy-wait delays? sleep() in a plugin indicates polling or busy-waiting instead of event-driven design. Use Core::WorkerPool timers, condition variables, or framework event notifications instead."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_83"
+    name: "No Heavy Work in Initialize()"
+    severity: "violation"
+    category: "lifecycle_integrity"
+    review_question: "Using semantic reasoning over Initialize() and Configure() implementations, do they avoid heavy blocking operations such as: synchronous network calls, popen() or shell script execution, long-running filesystem scans, or any operation that could take more than a few milliseconds? Initialize() runs on the Thunder main thread and blocks activation of all other plugins until it returns. Heavy work must be deferred to a WorkerPool job dispatched from Initialize()."
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_84"
+    name: "No Override of JSONRPC Dispatch Methods"
+    severity: "warning"
+    category: "jsonrpc_compliance"
+    review_question: "Using semantic reasoning over the plugin class hierarchy and method overrides, does the plugin avoid overriding internal JSONRPC dispatch or callback methods (such as Dispatch(), Callback(), or internal JSONRPC handler hooks) from the JSONRPC base class? Such overrides are rarely valid and typically indicate a misunderstanding of the JSONRPC registration pattern. The correct approach is to register handlers via Register() in Initialize() and Unregister() in Deinitialize()."
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."

@@ -85,7 +85,7 @@ Skip when:
 
 ## Template B — Holistic Rule
 
-Holistic rules check broader plugin behavior such as thread safety, resource handling, and cleanup flow by looking at related code together. They are organized under 8 sub-phases (rule_39 to rule_70).
+Holistic rules check broader plugin behavior such as thread safety, resource handling, and cleanup flow by looking at related code together. They are organized under 8 sub-phases (rule_39 to rule_84).
 
 ### Blank template
 
@@ -135,7 +135,7 @@ Sequential identifier in the format `rule_XX` (e.g. `rule_17`, `rule_41`).
 
 Current rule ranges:
 - rule_01 to rule_38: Phase checkpoints
-- rule_39 to rule_70: Holistic rules
+- rule_39 to rule_84: Holistic rules
 
 ---
 

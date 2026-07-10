@@ -100,12 +100,12 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 
 ### Requirement: thunder-plugin-rules.yaml (v3.3.0) created under PluginQualityAdvisor/rules/
 The file `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` MUST exist
-with version `3.3.0` and contain all 70 rules numbered sequentially (rule_01 to rule_70).
+with version `3.3.0` and contain all 84 rules numbered sequentially (rule_01 to rule_84).
 
 #### Scenario: Metadata block
 - GIVEN the YAML file
 - THEN it MUST contain a `metadata` block with:
-  `version: "3.3.0"`, `total_rules: 70`, `total_general_rules: 32`,
+  `version: "3.3.0"`, `total_rules: 84`, `total_general_rules: 46`,
   `approach: "semantic code review — understand whole plugin first, then check specifics"`,
   and a `validation_approach` block listing the 5-step workflow
   (understand whole plugin → focus on specific concern → reason in context → cite if genuinely wrong → fix)
@@ -122,7 +122,7 @@ with version `3.3.0` and contain all 70 rules numbered sequentially (rule_01 to 
 - AND conditional rules MUST include a `conditional: true` flag and
   a `skip_condition` describing when to skip
 
-#### Scenario: All 32 holistic rules (8 sub-phases) present with required fields
+#### Scenario: All 46 holistic rules (8 sub-phases) present with required fields
 - GIVEN each General rule entry in the YAML (under `general_rules` section)
 - THEN it MUST contain: `rule_id` (e.g. "rule_39"), `name` (Title Case),
   `severity`, `category: "<sub-phase>" (conventions|lifecycle_integrity|concurrency|com_safety|resource_management|jsonrpc_compliance|inter_plugin_design|code_quality_security)`,
@@ -133,11 +133,11 @@ with version `3.3.0` and contain all 70 rules numbered sequentially (rule_01 to 
 - AND Holistic Rules (8 sub-phases) MUST NOT have `extraction`, `bounded_query`, or `verification_logic` fields
 
 #### Scenario: Report output is unified — no "automated" vs "manual" split
-- GIVEN any review run completing all 70 rules
+- GIVEN any review run completing all 84 rules
 - THEN the report MUST present ONE unified list of findings grouped by file
 - AND there MUST NOT be separate "Part 1" / "Part 2" or "Automated" / "Manual" sections
-- AND the summary table MUST include all 70 rules in a single table with rows for each
-  phase plus "Holistic Rules (8 sub-phases)" and a "Total (70 rules)" footer row
+- AND the summary table MUST include all 84 rules in a single table with rows for each
+  phase plus "Holistic Rules (8 sub-phases)" and a "Total (84 rules)" footer row
 
 #### Scenario: Phase breakdown matches spec
 - GIVEN the 38 checkpoints distributed across phases
@@ -193,7 +193,7 @@ with version `3.2.2` and contain all 19 interface rule definitions (16 core + 3 
 
 ### Requirement: Plugin validation command with unified output
 The system MUST provide a `/thunder-plugin-review <PluginName>` slash command
-in VS Code Copilot Chat that validates a Thunder plugin against all 70 rules
+in VS Code Copilot Chat that validates a Thunder plugin against all 84 rules
 using semantic code review, producing a single unified report.
 
 #### Scenario: Plugin found and reviewed
@@ -202,7 +202,7 @@ using semantic code review, producing a single unified report.
 - THEN it locates `ThunderNanoServices/Dictionary/` automatically
 - AND identifies Dictionary.h, Dictionary.cpp, Module.h, Module.cpp, CMakeLists.txt,
   Dictionary.conf.in, and any OOP implementation files
-- AND executes all 70 rules in order (phase checkpoints first, then General)
+- AND executes all 84 rules in order (phase checkpoints first, then General)
 - AND outputs a single unified report showing ONLY failures with exact line citations
 
 #### Scenario: No plugin name provided
@@ -277,14 +277,14 @@ after contextual judgment — not always the raw YAML severity.
 
 ---
 
-### Requirement: 70 unified rules organised across phase groups and General concerns
+### Requirement: 84 unified rules organised across phase groups and General concerns
 The prompt MUST load rule definitions from
 `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` at runtime.
 Each rule definition includes sufficient information for semantic validation.
-All 70 rules produce the same output format.
+All 84 rules produce the same output format.
 
 Phase breakdown: Phase 1: 3, Phase 2: 10, Phase 3: 3, Phase 4: 12, Phase 5: 4,
-Phase 5C: 2, Phase 6: 3, Phase 7: 1, Phase 8: 1 = 38 phase rules + 32 holistic rules = 70 total.
+Phase 5C: 2, Phase 6: 3, Phase 7: 1, Phase 8: 1 = 38 phase rules + 46 holistic rules = 84 total.
 
 ---
 
@@ -480,14 +480,14 @@ NOT by running regular expressions or keyword searches against raw text.
 
 ---
 
-### Requirement: 32 holistic rules (8 sub-phases) loaded from YAML and reported in unified output
-After the 38 phase checkpoints, the validator MUST also run the 32 holistic rules (8 sub-phases)
+### Requirement: 46 holistic rules (8 sub-phases) loaded from YAML and reported in unified output
+After the 38 phase checkpoints, the validator MUST also run the 46 holistic rules (8 sub-phases)
 loaded from the `general_rules` section of `thunder-plugin-rules.yaml`.
 All rules produce the same output format — there is no separate section for these rules.
 
 #### Scenario: Holistic Rules (8 sub-phases) integrated into unified output
 - GIVEN the phase checkpoint evaluation is complete
-- WHEN the validator runs the 32 holistic rules (8 sub-phases)
+- WHEN the validator runs the 46 holistic rules (8 sub-phases)
 - THEN any failures appear in the same file-grouped findings list as phase checkpoint failures
 - AND the summary table includes a "Holistic Rules (8 sub-phases)" row with PASS/FAIL/SKIP counts
 - AND there is NO separate "Part 2" or "Manual Review" heading in the output
@@ -495,7 +495,7 @@ All rules produce the same output format — there is no separate section for th
   `extracted_code` (with [File:line] prefix where applicable), `violation_line`,
   `citation`, `fix`, `reasoning`
 - AND PASS rules are NOT listed individually — they appear only as counts in the summary table
-- Holistic Rules (rule_39–rule_70) cover:
+- Holistic Rules (rule_39–rule_84) cover:
   1. `#pragma once` in every .h file (suggestion)
   2. Apache 2.0 copyright headers in all source files (suggestion)
   3. No STL types where Thunder equivalents exist (warning)

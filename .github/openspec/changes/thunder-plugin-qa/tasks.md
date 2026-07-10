@@ -4,7 +4,7 @@
 
 - [x] 1.1 Create `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` (v3.3.0)
       - metadata block: version, description, approach,
-        total_rules: 70, total_general_rules: 32,
+        total_rules: 84, total_general_rules: 46,
         organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4, Phase5C:2, Phase6:3, Phase7:1, Phase8:1"
       - validation_approach block: principles list + 5-step workflow (including
         Step 3b JUDGE: contextual judgment — if developer's approach technically
@@ -145,9 +145,9 @@
 ## Phase 2: Prompt files
 
 - [x] 2.1 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
-      Frontmatter: title: "Thunder Plugin Rule Review", description (mention 70 unified rules, semantic review)
+      Frontmatter: title: "Thunder Plugin Rule Review", description (mention 84 unified rules, semantic review)
       Sections (in order):
-      - Core Principle: semantic code review for all 70 rules. NEVER pattern-match.
+      - Core Principle: semantic code review for all 84 rules. NEVER pattern-match.
         ❌ open-ended vs ✅ bounded examples. All rules produce the same output format.
       - Report Output Philosophy: CRITICAL note — only report issues; PASS/SKIP as summary counts only;
         line numbers always required; always use ACTUAL plugin name in citations, NEVER {PluginName}
@@ -172,7 +172,7 @@
         5-step workflow (accept name + optional file → locate folder → identify target files
         → run applicable rules only → report)
       - Methodology: Step 1 (load YAML from ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml —
-        contains all 70 rules in phase_X_checkpoints and general_rules sections),
+        contains all 84 rules in phase_X_checkpoints and general_rules sections),
         Step 2 (identify plugin files — primary: ThunderNanoServices/{PluginName}/, fallback: workspace search,
         last resort: ask user; files table: Module.cpp, Module.h, {PluginName}.h, {PluginName}.cpp,
         CMakeLists.txt, {PluginName}.conf.in (optional), {PluginName}Implementation.h/cpp (optional)),
@@ -181,7 +181,7 @@
         Class Registration (Phase 3) applies ONLY to main plugin class — internal helpers excluded
       - Contextual Judgment section: severity downgrade table with concrete example showing
         reasoning field (required on downgrade, omitted otherwise), no escalation rule
-      - A shortened inline quick-reference list of all 70 rules is included in the prompt (rule_id + severity + high-level target only).
+      - A shortened inline quick-reference list of all 84 rules is included in the prompt (rule_id + severity + high-level target only).
         Full rule definitions (extraction, bounded_query, verification_logic, fix_template) are loaded from the YAML files at runtime (source of truth).
         Phase counts:
         Phase 1 Module Structure (3):
@@ -231,7 +231,7 @@
           rule_37 (violation conditional): "CXX_STANDARD Uses Thunder Variable"
         Phase 8 COM Interface Rules (1):
           rule_38 (violation): "COM Methods Return Core::hresult"
-      - Output Format: UNIFIED FILE-WISE grouping — all issues from all 70 rules grouped by
+      - Output Format: UNIFIED FILE-WISE grouping — all issues from all 84 rules grouped by
         source file with a header "### {FileName} — N issue(s)" for each file that has failures;
         within each file group, each failing rule is a YAML block with fields:
         rule_id, status (FAIL/PASS/SKIP), severity (violation/warning/suggestion),

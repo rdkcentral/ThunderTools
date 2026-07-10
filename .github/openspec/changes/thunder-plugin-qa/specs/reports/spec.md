@@ -12,7 +12,7 @@ with all fields needed to understand, prioritise, and track fixes.
 
 ### REQ-R1 — Plugin review CSV
 
-**Scenario:** `/thunder-plugin-review` completes all 70 rules
+**Scenario:** `/thunder-plugin-review` completes all 84 rules
 - The system MUST generate a CSV file at:
   `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
 - If a file with that name already exists, append `_2`, `_3` etc. (never overwrite)

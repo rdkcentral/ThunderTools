@@ -14,7 +14,7 @@ User types /thunder-plugin-review Dictionary
 thunder-plugin-review.prompt.md
        │
        ▼
-rules/thunder-plugin-rules.yaml   ← 70 unified rules (rule_01 to rule_70)
+rules/thunder-plugin-rules.yaml   ← 84 unified rules (rule_01 to rule_84)
        │
        ▼
 Plugin files in ThunderNanoServices/Dictionary/
@@ -61,7 +61,7 @@ description: Semantic code review for Thunder plugins — understand first, then
 ---
 ```
 
-## Unified Review Methodology (ALL 70 rules)
+## Unified Review Methodology (ALL 84 rules)
 
 Every rule — whether it targets a specific block (rule_01–39) or a broader concern
 (rule_39–70) — uses the same "understand first, then check" approach:
