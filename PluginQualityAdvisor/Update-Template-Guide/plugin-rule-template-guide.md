@@ -4,10 +4,10 @@ Use this guide to fill in a rule template and pass it to `/thunder-plugin-rule-m
 A filled template lets you skip the interactive questionnaire entirely — the manager parses your document,
 validates it, and updates all four files in one shot:
 
-- `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml`
-- `ThunderTools/PluginQA/Prompts/thunder-plugin-review.prompt.md`
-- `ThunderTools/PluginQA/README.md`
-- `ThunderTools/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md`
+- `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`
+- `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
+- `ThunderTools/PluginQualityAdvisor/README.md`
+- `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md`
 
 ---
 
@@ -40,7 +40,7 @@ If your rule could go either way, the manager will offer you both options and as
 
 ## Template A — Phase Checkpoint Rule
 
-Phase checkpoint rules are organized under phase sections (rule_01 to rule_39).
+Phase checkpoint rules are organized under phase sections (rule_01 to rule_38).
 
 ### Blank template
 
@@ -85,7 +85,7 @@ Skip when:
 
 ## Template B — Holistic Rule
 
-Holistic rules check broader plugin behavior such as thread safety, resource handling, and cleanup flow by looking at related code together. They are organized under 8 sub-phases (rule_40 to rule_79).
+Holistic rules check broader plugin behavior such as thread safety, resource handling, and cleanup flow by looking at related code together. They are organized under 8 sub-phases (rule_39 to rule_70).
 
 ### Blank template
 
@@ -128,14 +128,14 @@ Severity: violation
 
 ### `Rule_ID` *(required for Update/Remove; optional for Add)*
 
-Sequential identifier in the format `rule_XX` (e.g. `rule_17`, `rule_45`).
+Sequential identifier in the format `rule_XX` (e.g. `rule_17`, `rule_41`).
 
 - **Add** — leave blank to auto-assign the next available number, or specify your own
 - **Update/Remove** — mandatory; this is how the manager finds the rule
 
 Current rule ranges:
-- rule_01 to rule_39: Phase checkpoints
-- rule_40 to rule_79: Holistic rules
+- rule_01 to rule_38: Phase checkpoints
+- rule_39 to rule_70: Holistic rules
 
 ---
 
@@ -148,11 +148,11 @@ Phase 1 — Module Structure       (currently: rule_01 to rule_03)
 Phase 2 — Code Style             (currently: rule_04 to rule_13)
 Phase 3 — Class Registration     (currently: rule_14 to rule_16)
 Phase 4 — Lifecycle              (currently: rule_17 to rule_28)
-Phase 5 — Implementation         (currently: rule_29 to rule_32)
-Phase 5C — Out-of-Process        (currently: rule_33 to rule_34)
-Phase 6 — Configuration          (currently: rule_35 to rule_37)
-Phase 7 — CMake                  (currently: rule_38)
-Phase 8 — COM Interface Rules    (currently: rule_39)
+Phase 5 — Implementation         (currently: rule_29 to rule_31)
+Phase 5C — Out-of-Process        (currently: rule_32 to rule_33)
+Phase 6 — Configuration          (currently: rule_34 to rule_36)
+Phase 7 — CMake                  (currently: rule_37)
+Phase 8 — COM Interface Rules    (currently: rule_38)
 ```
 
 ---
@@ -368,7 +368,7 @@ The manager confirms the rule name and phase before deleting.
 PHASE CHECKPOINT (Template A)         HOLISTIC RULE (Template B)
 
 Action:    Add | Update | Remove      Action:    Add | Update | Remove
-Rule_ID:   e.g. rule_17              Rule_ID:   e.g. rule_52
+Rule_ID:   e.g. rule_17              Rule_ID:   e.g. rule_48
 Phase:     Phase 4 — Lifecycle        Category:  concurrency
 Name:      Title Case, 2-5 words      Name:      Title Case, 2-5 words
 Severity:  violation|warning|suggestion   Severity:  violation|warning|suggestion

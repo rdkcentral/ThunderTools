@@ -4,17 +4,17 @@
 
 ---
 
-### Requirement: PluginQA folder created inside ThunderTools
-A `PluginQA/` directory MUST be created inside the existing `ThunderTools/` folder,
+### Requirement: PluginQualityAdvisor folder created inside ThunderTools
+A `PluginQualityAdvisor/` directory MUST be created inside the existing `ThunderTools/` folder,
 containing all prompts, rules, setup script, and documentation for the QA system.
 
 #### Scenario: Directory structure created
 - GIVEN the ThunderTools repository
-- WHEN the PluginQA system is delivered
+- WHEN the PluginQualityAdvisor system is delivered
 - THEN the following structure MUST exist inside `ThunderTools/`:
 
 ```
-ThunderTools/PluginQA/
+ThunderTools/PluginQualityAdvisor/
 ├── README.md
 ├── PLUGIN_GENERATOR_GUIDE.md
 ├── setup-prompts.py               (cross-platform Python 3)
@@ -28,16 +28,16 @@ ThunderTools/PluginQA/
 ```
 
 #### Scenario: Rules files are the source of truth
-- GIVEN the two YAML files under `ThunderTools/PluginQA/rules/`
+- GIVEN the two YAML files under `ThunderTools/PluginQualityAdvisor/rules/`
 - WHEN any prompt runs
 - THEN it MUST load rules at runtime from those YAML files
 - AND rules MUST NOT be embedded directly inside the prompt files
 - AND updating a YAML file updates validation behaviour without touching prompt logic
 
 #### Scenario: Prompt files are registered with VS Code
-- GIVEN `ThunderTools/PluginQA/Prompts/` containing the three `.prompt.md` files
+- GIVEN `ThunderTools/PluginQualityAdvisor/Prompts/` containing the three `.prompt.md` files
 - WHEN `setup-prompts.py` is run
-- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQA/Prompts`
+- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQualityAdvisor/Prompts`
 - AND the three slash commands (`/thunder-plugin-review`, `/thunder-interface-review`,
   `/thunder-generate-plugin`) become available in VS Code Copilot Chat
 - AND the script is safe to run multiple times (idempotent, creates backup of settings)
@@ -45,7 +45,7 @@ ThunderTools/PluginQA/
 ---
 
 ### Requirement: Setup script modifies VS Code settings.json to register prompt location
-The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add `"ThunderTools/PluginQA/Prompts": true` under `chat.promptFilesLocations`.
+The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add `"ThunderTools/PluginQualityAdvisor/Prompts": true` under `chat.promptFilesLocations`.
 
 #### Scenario: Resulting settings.json structure
 - GIVEN VS Code `settings.json` before the script runs (may be empty `{}` or have existing entries)
@@ -55,7 +55,7 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 ```json
 {
   "chat.promptFilesLocations": {
-    "ThunderTools/PluginQA/Prompts": true
+    "ThunderTools/PluginQualityAdvisor/Prompts": true
   }
 }
 ```
@@ -81,7 +81,7 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 - AND if the backup already exists from a previous run, it MUST NOT be overwritten
 
 #### Scenario: Script is idempotent
-- GIVEN `chat.promptFilesLocations` already contains `"ThunderTools/PluginQA/Prompts": true`
+- GIVEN `chat.promptFilesLocations` already contains `"ThunderTools/PluginQualityAdvisor/Prompts": true`
 - WHEN the setup script is run again
 - THEN it MUST NOT add a duplicate entry
 - AND it MUST print a message indicating the entry is already present
@@ -98,19 +98,19 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 
 ---
 
-### Requirement: thunder-plugin-rules.yaml (v3.3.0) created under PluginQA/rules/
-The file `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` MUST exist
-with version `3.3.0` and contain all 79 rules numbered sequentially (rule_01 to rule_79).
+### Requirement: thunder-plugin-rules.yaml (v3.3.0) created under PluginQualityAdvisor/rules/
+The file `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` MUST exist
+with version `3.3.0` and contain all 70 rules numbered sequentially (rule_01 to rule_70).
 
 #### Scenario: Metadata block
 - GIVEN the YAML file
 - THEN it MUST contain a `metadata` block with:
-  `version: "3.3.0"`, `total_rules: 79`, `total_general_rules: 40`,
+  `version: "3.3.0"`, `total_rules: 70`, `total_general_rules: 32`,
   `approach: "semantic code review — understand whole plugin first, then check specifics"`,
   and a `validation_approach` block listing the 5-step workflow
   (understand whole plugin → focus on specific concern → reason in context → cite if genuinely wrong → fix)
 
-#### Scenario: All 39 phase checkpoints present with required fields
+#### Scenario: All 38 phase checkpoints present with required fields
 - GIVEN each phase checkpoint entry in the YAML (under phase sections)
 - THEN it MUST contain: `rule_id`, `name` (Title Case), `severity`, `phase`,
   `extraction` block (target / method / code_block),
@@ -122,9 +122,9 @@ with version `3.3.0` and contain all 79 rules numbered sequentially (rule_01 to 
 - AND conditional rules MUST include a `conditional: true` flag and
   a `skip_condition` describing when to skip
 
-#### Scenario: All 40 Holistic Rules (8 sub-phases) present with required fields
+#### Scenario: All 32 holistic rules (8 sub-phases) present with required fields
 - GIVEN each General rule entry in the YAML (under `general_rules` section)
-- THEN it MUST contain: `rule_id` (e.g. "rule_40"), `name` (Title Case),
+- THEN it MUST contain: `rule_id` (e.g. "rule_39"), `name` (Title Case),
   `severity`, `category: "<sub-phase>" (conventions|lifecycle_integrity|concurrency|com_safety|resource_management|jsonrpc_compliance|inter_plugin_design|code_quality_security)`,
   `review_question` (semantic question about what to verify),
   `review_method` (must state "Read the full relevant code context...
@@ -133,14 +133,14 @@ with version `3.3.0` and contain all 79 rules numbered sequentially (rule_01 to 
 - AND Holistic Rules (8 sub-phases) MUST NOT have `extraction`, `bounded_query`, or `verification_logic` fields
 
 #### Scenario: Report output is unified — no "automated" vs "manual" split
-- GIVEN any review run completing all 79 rules
+- GIVEN any review run completing all 70 rules
 - THEN the report MUST present ONE unified list of findings grouped by file
 - AND there MUST NOT be separate "Part 1" / "Part 2" or "Automated" / "Manual" sections
-- AND the summary table MUST include all 79 rules in a single table with rows for each
-  phase plus "Holistic Rules (8 sub-phases)" and a "Total (79 rules)" footer row
+- AND the summary table MUST include all 70 rules in a single table with rows for each
+  phase plus "Holistic Rules (8 sub-phases)" and a "Total (70 rules)" footer row
 
 #### Scenario: Phase breakdown matches spec
-- GIVEN the 39 checkpoints distributed across phases
+- GIVEN the 38 checkpoints distributed across phases
 - THEN the counts MUST be:
   Phase 1 (module_structure): 3 — `rule_01`, `rule_02`, `rule_03`
   Phase 2 (code_style): 10 — `rule_04`, `rule_05`, `rule_06`,
@@ -154,17 +154,16 @@ with version `3.3.0` and contain all 79 rules numbered sequentially (rule_01 to 
                              `rule_24`, `rule_25`, `rule_26`, `rule_27`,
                              `rule_28`
   Phase 5 (implementation): 4 — `rule_29`, `rule_30`,
-                                  `rule_31`, `rule_32`
-  Phase 5C (oop): 2 — `rule_33`, `rule_34`
-  Phase 6 (configuration): 3 — `rule_35`, `rule_36`, `rule_37`
-  Phase 7 (cmake): 1 — `rule_38`
-  Phase 8 (interfaces): 1 — `rule_39`
+  Phase 5C (oop): 2 — `rule_32`, `rule_33`
+  Phase 6 (configuration): 3 — `rule_34`, `rule_35`, `rule_36`
+  Phase 7 (cmake): 1 — `rule_37`
+  Phase 8 (interfaces): 1 — `rule_38`
 
 ---
 
-### Requirement: thunder-interface-rules.yaml (v3.2.2) created under PluginQA/rules/
-The file `ThunderTools/PluginQA/rules/thunder-interface-rules.yaml` MUST exist
-with version `3.2.2` and contain all 19 interface rule definitions (15 core + 4 advisory).
+### Requirement: thunder-interface-rules.yaml (v3.2.2) created under PluginQualityAdvisor/rules/
+The file `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml` MUST exist
+with version `3.2.2` and contain all 19 interface rule definitions (16 core + 3 advisory).
 
 #### Scenario: File header present
 - GIVEN the YAML file
@@ -172,23 +171,21 @@ with version `3.2.2` and contain all 19 interface rule definitions (15 core + 4 
   `version: 3.2.2`, `title`, `description` including the full CHANGELOG
   covering v3.2.2, v3.2.1, v3.2.0, v3.1.0, and v3.0.2
 
-#### Scenario: All 15 core rules present with required fields
+#### Scenario: All 16 core rules present with required fields
 - GIVEN the `core_rules` list
 - THEN it MUST contain exactly these IDs in order:
   `core_1_1`, `core_2_1`, `core_3_1`, `core_4_1`, `core_5_1`, `core_6_1`,
-  `core_9_1`, `core_10_1`, `core_11_1`, `core_12_1`, `core_13_1`, `core_14_1`,
-  `core_15_1`, `core_16_1`, `core_17_1`
-- AND each rule MUST contain: `id`, `name`, `severity: violation`,
+  `core_9_1`, `core_10_1`, `core_11_1`, `core_12_1`, `core_13_1`,
+  `core_14_1`, `core_15_1`, `core_16_1`
+- AND each rule MUST contain: `id`, `name`, `severity`,
   `description`, `extraction_logic`, `verification_logic`, `violation_pattern`,
   `fix_template`, `citation` (with real Thunder interface file references)
 
-#### Scenario: All 4 advisory rules present with required fields
+#### Scenario: All 3 advisory rules present with required fields
 - GIVEN the `advisory_rules` list
 - THEN it MUST contain exactly these IDs:
-  `advisory_m1_1` (SRP — violation), `advisory_m2_1` (enum underlying types — warning),
-  `advisory_m3_1` (no exceptions — violation),
-  `advisory_m5_1` (@restrict for non-vector params — warning,
-                   explicitly stating it does NOT apply to `std::vector`)
+  `advisory_m1_1` (SRP — warning), `advisory_m2_1` (enum underlying types — warning),
+  `advisory_m3_1` (no exceptions — violation)
 - AND each advisory rule MUST contain the same fields as core rules
 
 ---
@@ -196,7 +193,7 @@ with version `3.2.2` and contain all 19 interface rule definitions (15 core + 4 
 
 ### Requirement: Plugin validation command with unified output
 The system MUST provide a `/thunder-plugin-review <PluginName>` slash command
-in VS Code Copilot Chat that validates a Thunder plugin against all 79 rules
+in VS Code Copilot Chat that validates a Thunder plugin against all 70 rules
 using semantic code review, producing a single unified report.
 
 #### Scenario: Plugin found and reviewed
@@ -205,7 +202,7 @@ using semantic code review, producing a single unified report.
 - THEN it locates `ThunderNanoServices/Dictionary/` automatically
 - AND identifies Dictionary.h, Dictionary.cpp, Module.h, Module.cpp, CMakeLists.txt,
   Dictionary.conf.in, and any OOP implementation files
-- AND executes all 79 rules in order (phase checkpoints first, then General)
+- AND executes all 70 rules in order (phase checkpoints first, then General)
 - AND outputs a single unified report showing ONLY failures with exact line citations
 
 #### Scenario: No plugin name provided
@@ -280,14 +277,14 @@ after contextual judgment — not always the raw YAML severity.
 
 ---
 
-### Requirement: 79 unified rules organised across phase groups and General concerns
+### Requirement: 70 unified rules organised across phase groups and General concerns
 The prompt MUST load rule definitions from
-`ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` at runtime.
+`ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` at runtime.
 Each rule definition includes sufficient information for semantic validation.
-All 79 rules produce the same output format.
+All 70 rules produce the same output format.
 
 Phase breakdown: Phase 1: 3, Phase 2: 10, Phase 3: 3, Phase 4: 12, Phase 5: 4,
-Phase 5C: 2, Phase 6: 3, Phase 7: 1, Phase 8: 1 = 39 phase rules + 40 holistic rules = 79 total.
+Phase 5C: 2, Phase 6: 3, Phase 7: 1, Phase 8: 1 = 38 phase rules + 32 holistic rules = 70 total.
 
 ---
 
@@ -437,17 +434,16 @@ NOT by running regular expressions or keyword searches against raw text.
   (e.g. `class NetworkNotification : public Exchange::INetwork::INotification`) to listen
   to an external service. That inner class member MUST be `Core::SinkType<ClassName>`,
   NOT a raw pointer (`ClassName* _member`)
-- WHEN checkpoint rule_31 runs (violation, conditional)
 - IF any `Core::SinkType<>` subscriber class found: checks each class implements `void Unavailable()`;
   the validator MUST read the full class declaration and reason about whether the method exists —
   NOT by searching for the string "Unavailable"
 - SKIP if no Core::SinkType<> subscriber classes in plugin
-- WHEN checkpoint rule_32 runs (violation)
+- WHEN checkpoint rule_31 runs (violation)
 - THEN it checks for hardcoded absolute paths; the validator MUST read function bodies and
   reason about how paths are constructed from context — NOT by searching for path substrings
 #### Scenario: Phase 8 - COM Interface Rules (1 checkpoint)
 - GIVEN interface struct definitions in the plugin
-- WHEN checkpoint rule_39 runs (violation)
+- WHEN checkpoint rule_38 runs (violation)
 - THEN it checks that action/non-getter virtual methods on COM interfaces return `Core::hresult`
 - NOTE: The "no delete on COM interface pointers" rule is enforced in Phase 2
   as checkpoint `rule_07` (applies to all .cpp files, not only interface structs)
@@ -455,22 +451,22 @@ NOT by running regular expressions or keyword searches against raw text.
 #### Scenario: Phase 5C - Out-of-Process (2 checkpoints, conditional)
 - GIVEN Deinitialize() and IRemoteConnection::INotification callbacks of an OOP plugin
 - IF plugin is in-process: SKIP the entire phase
-- WHEN checkpoint rule_33 runs
+- WHEN checkpoint rule_32 runs
 - THEN it checks `service->RemoteConnection()` and `connection->Terminate()` and
   `connection->Release()` all present in Deinitialize()
-- WHEN checkpoint rule_34 runs (violation, conditional)
+- WHEN checkpoint rule_33 runs (violation, conditional)
 - THEN it checks that the very first action in every `Activated()` and `Deactivated()` callback is
   a guard checking `connection->Id() == _connectionId`
 - SKIP if plugin has no IRemoteConnection::INotification implementation
 
-- WHEN checkpoint rule_35 runs (violation, conditional)
+- WHEN checkpoint rule_34 runs (violation, conditional)
   the validator MUST read the file in full and reason about the startup configuration —
   note that `autostart` is not the same as `startmode`
-- WHEN checkpoint rule_36 runs (violation, conditional)
+- WHEN checkpoint rule_35 runs (violation, conditional)
 - IF `service->ConfigLine()` is called in Initialize(): checks that a typed
   `Config : public Core::JSON::Container` struct exists and its `FromString()` is called
 - SKIP if plugin does not call `service->ConfigLine()`
-- WHEN checkpoint rule_37 runs (violation)
+- WHEN checkpoint rule_36 runs (violation)
 - THEN it checks for hardcoded numeric tuning parameters (timeouts, retry counts, buffer sizes)
   as inline literals; the validator MUST read Initialize() in full and reason about the semantic
   meaning of each numeric value in context — NOT by searching for number patterns;
@@ -478,20 +474,20 @@ NOT by running regular expressions or keyword searches against raw text.
 
 #### Scenario: Phase 7 - CMake (1 checkpoint)
 - GIVEN CMakeLists.txt
-- WHEN checkpoint rule_38 runs
+- WHEN checkpoint rule_37 runs
 - THEN it checks `CXX_STANDARD` is set to `${CXX_STD}` (Thunder variable), not a literal like `11` or `14`;
   the validator MUST read CMakeLists.txt in full and reason about each target's property settings
 
 ---
 
-### Requirement: 40 Holistic Rules (8 sub-phases) loaded from YAML and reported in unified output
-After the 39 phase checkpoints, the validator MUST also run the 40 Holistic Rules (8 sub-phases)
+### Requirement: 32 holistic rules (8 sub-phases) loaded from YAML and reported in unified output
+After the 38 phase checkpoints, the validator MUST also run the 32 holistic rules (8 sub-phases)
 loaded from the `general_rules` section of `thunder-plugin-rules.yaml`.
 All rules produce the same output format — there is no separate section for these rules.
 
 #### Scenario: Holistic Rules (8 sub-phases) integrated into unified output
 - GIVEN the phase checkpoint evaluation is complete
-- WHEN the validator runs the 40 Holistic Rules (8 sub-phases)
+- WHEN the validator runs the 32 holistic rules (8 sub-phases)
 - THEN any failures appear in the same file-grouped findings list as phase checkpoint failures
 - AND the summary table includes a "Holistic Rules (8 sub-phases)" row with PASS/FAIL/SKIP counts
 - AND there is NO separate "Part 2" or "Manual Review" heading in the output
@@ -499,7 +495,7 @@ All rules produce the same output format — there is no separate section for th
   `extracted_code` (with [File:line] prefix where applicable), `violation_line`,
   `citation`, `fix`, `reasoning`
 - AND PASS rules are NOT listed individually — they appear only as counts in the summary table
-- Holistic Rules (rule_40–rule_79) cover:
+- Holistic Rules (rule_39–rule_70) cover:
   1. `#pragma once` in every .h file (suggestion)
   2. Apache 2.0 copyright headers in all source files (suggestion)
   3. No STL types where Thunder equivalents exist (warning)
@@ -510,7 +506,7 @@ All rules produce the same output format — there is no separate section for th
   8. Observer AddRef before Register, Release after Unregister (violation)
   9. AddRef/Release balance across plugin lifetime (violation)
   10. Config struct used for all configuration (warning)
-  11. CMake NAMESPACE variable set to WPEFramework (violation)
+  11. CMake NAMESPACE variable set to Thunder (violation)
   12. write_config() called LAST in CMakeLists.txt (suggestion)
   13. Handlers must not block — dispatch to WorkerPool (violation)
   14. No Activate/Deactivate calls from notification handlers (violation)
@@ -518,7 +514,6 @@ All rules produce the same output format — there is no separate section for th
   16. No framework callbacks (Notify, Submit, Register) called while holding _adminLock (violation)
   17. WorkerPool jobs guard against post-Deinitialize execution (violation)
   18. File descriptors and sockets wrapped in RAII (violation)
-  19. No unbounded memory growth in event-fed containers (violation)
   20. Config validation failures return non-empty string from Initialize (violation)
   21. Notify() only called after Initialize() has completed (violation)
   22. interface->Register paired with interface->Unregister in Deinitialize (violation)

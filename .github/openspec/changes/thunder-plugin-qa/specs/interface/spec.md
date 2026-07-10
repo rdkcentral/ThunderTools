@@ -6,7 +6,7 @@
 
 ### Requirement: COM interface validator command
 The system MUST provide a `/thunder-interface-review` slash command that validates
-a Thunder COM interface header against 19 rules (15 core + 4 advisory).
+a Thunder COM interface header against 19 rules (16 core + 3 advisory).
 
 #### Scenario: Interface with critical violations
 - GIVEN a Thunder interface file with a missing `@json` tag
@@ -17,7 +17,7 @@ a Thunder COM interface header against 19 rules (15 core + 4 advisory).
 
 #### Scenario: Interface with vector without @restrict
 - GIVEN an interface method with a `std::vector` parameter lacking `@restrict`
-- WHEN validation runs checkpoint core_17_1
+- WHEN validation runs checkpoint core_16_1
 - THEN it reports VIOLATION: `std::vector without @restrict (MANDATORY)`
 - AND shows the fix: add `/* @restrict:... */` annotation
 
@@ -25,7 +25,7 @@ a Thunder COM interface header against 19 rules (15 core + 4 advisory).
 - GIVEN any Thunder interface file
 - WHEN the validator runs
 - THEN it applies all 19 rules loaded from `thunder-interface-rules.yaml` in order:
-  core_1_1 through core_17_1 (15 core), then advisory_m1_1 through advisory_m5_1 (4 advisory)
+  core_1_1 through core_18_1 (16 core), then advisory_m1_1 through advisory_m3_1 (3 advisory)
 - AND groups output into: 🔴 Violations, 🟡 Warnings, 🟢 Suggestions, ✅ Validated, Compatibility Notes
 
 ---
@@ -53,21 +53,22 @@ After a downgrade the downgraded level is used. Emoji prefix must match: 🔴 VI
 🟡 WARNING, 🟢 SUGGESTION.
 
 #### Scenario: Core rules covered
-- 15 core rules at violation level: file/namespace structure, interface declaration shape,
+- 16 core rules: file/namespace structure, interface declaration shape,
   interface ID registration (nested INotification + ICallback), pure virtual methods,
   return type conventions (Core::hresult mandatory for @json interfaces in Thunder 5.0+),
   const correctness, Thunder type conventions (string not std::string),
-  Register/Unregister patterns, nested event interfaces (@event tag required),
-  @json tag (CRITICAL — without it zero RPC code is generated), binary compatibility,
-  no AddRef/Release redeclaration, no std::map, explicit integer widths (uint32_t not int),
-  @restrict mandatory with all std::vector parameters
+  Register/Unregister patterns, event interfaces (@event tag required),
+  @json tag (CRITICAL — without it zero RPC code is generated),
+  no IUnknown/IReferenceCounted method redeclaration, no std::map,
+  explicit integer widths (uint32_t not int),
+  @restrict mandatory with all std::vector parameters,
+  no method overloads in @json interfaces (JSON-RPC dispatches by name only),
+  no reserved JSON-RPC method names (version/versions/exists)
 
 #### Scenario: Advisory rules covered
-- advisory_m1_1: Single responsibility principle (violation)
+- advisory_m1_1: Single responsibility principle (warning)
 - advisory_m2_1: Enum underlying types — exclude anonymous ID enum (warning)
 - advisory_m3_1: No C++ exceptions (violation)
-- advisory_m5_1: @restrict for non-vector parameter constraints — explicitly excludes
-  std::vector (that is covered by core_17_1) (warning)
 
 ---
 
@@ -107,7 +108,7 @@ PluginSkeletonGenerator.py in interactive mode.
 
 ### Requirement: Setup script registers prompts with VS Code
 The `setup-prompts.py` script MUST modify VS Code settings.json to add
-`chat.promptFilesLocations` pointing to `ThunderTools/PluginQA/Prompts`.
+`chat.promptFilesLocations` pointing to `ThunderTools/PluginQualityAdvisor/Prompts`.
 
 #### Scenario: Python cross-platform setup
 - GIVEN any OS with Python 3
@@ -136,7 +137,7 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
 
 #### Scenario: Updating an existing interface rule
 - GIVEN a developer needs to strengthen `core_5_1` (return type convention)
-- WHEN they open `ThunderTools/PluginQA/rules/thunder-interface-rules.yaml`
+- WHEN they open `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml`
 - THEN they edit the relevant fields directly in the rule entry:
 
 ```yaml

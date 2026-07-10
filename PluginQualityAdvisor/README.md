@@ -15,12 +15,12 @@ AI-driven validation tools for Thunder plugin and COM interface development, pow
 ```json
    {
      "chat.promptFilesLocations": {
-       "ThunderTools/PluginQA/Prompts": true
+       "ThunderTools/PluginQualityAdvisor/Prompts": true
      }
    }
 ```
 
-The path should point to the `Prompts` folder inside PluginQA. Use the path relative to your workspace root, or an absolute path if ThunderTools is outside the workspace.
+The path should point to the `Prompts` folder inside PluginQualityAdvisor. Use the path relative to your workspace root, or an absolute path if ThunderTools is outside the workspace.
 
 4. **Reload VS Code** — press `Ctrl+Shift+P` -> `Developer: Reload Window`
 
@@ -106,7 +106,7 @@ Add, update, or remove plugin validation rules.
 
 **Two ways to provide input:**
 - **Interactive** — answers questions via VS Code dropdowns
-- **Document template** — paste a filled template from `plugin-rule-template-guide.md`
+- **Document template** — paste a filled template from `Update-Template-Guide/plugin-rule-template-guide.md`
 
 Updates `thunder-plugin-rules.yaml` and `thunder-plugin-review.prompt.md` atomically.
 
@@ -123,7 +123,7 @@ Add, update, or remove interface validation rules.
 
 **Two ways to provide input:**
 - **Interactive** — answers questions via VS Code dropdowns
-- **Document template** — paste a filled template from `interface-rule-template-guide.md`
+- **Document template** — paste a filled template from `Update-Template-Guide/interface-rule-template-guide.md`
 
 Updates `thunder-interface-rules.yaml` and `thunder-interface-review.prompt.md` atomically.
 
@@ -132,12 +132,12 @@ Updates `thunder-interface-rules.yaml` and `thunder-interface-review.prompt.md` 
 ## Project Structure
 
 ```
-ThunderTools/PluginQA/
+ThunderTools/PluginQualityAdvisor/
 +-- README.md
 +-- setup-prompts.py
-+-- plugin-rule-template-guide.md
-+-- interface-rule-template-guide.md
-+-- wiki.md
++-- Update-Template-Guide/
+|   +-- plugin-rule-template-guide.md
+|   +-- interface-rule-template-guide.md
 +-- Prompts/
 |   +-- thunder-plugin-review.prompt.md
 |   +-- thunder-interface-review.prompt.md

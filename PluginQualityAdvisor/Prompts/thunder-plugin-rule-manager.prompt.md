@@ -1,16 +1,11 @@
----
-title: "Thunder Plugin Rule Manager"
-description: "Add, update, or remove plugin rules (phase checkpoint or holistic) via guided questionnaire — keeps YAML, prompt, README, and spec in sync"
----
-
 ## Purpose
 
-This prompt manages rules in `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` and keeps all related files in sync atomically:
+This prompt manages rules in `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` and keeps all related files in sync atomically:
 
-1. `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` — rule data
-2. `ThunderTools/PluginQA/Prompts/thunder-plugin-review.prompt.md` — checkpoint descriptions
-3. `ThunderTools/PluginQA/README.md` — documentation
-4. `ThunderTools/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md` — spec requirements
+1. `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` — rule data
+2. `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md` — checkpoint descriptions
+3. `ThunderTools/PluginQualityAdvisor/README.md` — documentation
+4. `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md` — spec requirements
 
 ---
 
@@ -272,4 +267,3 @@ After completing all changes, display:
 6. Cannot be reduced to a single bounded yes/no query?
 
 **Ambiguous cases:** If the classification is not clear, ask the user before proceeding. Display the classification criteria above and explain which criteria pull each way.
-

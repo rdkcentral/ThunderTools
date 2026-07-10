@@ -1,4 +1,4 @@
-# Proposal: Thunder PluginQA System
+# Proposal: Thunder PluginQualityAdvisor System
 
 ## Intent
 
@@ -22,7 +22,7 @@ automatically.
 - Keeps all affected files in sync atomically: YAML + prompt + README + spec
 
 **Plugin checkpoint validation (`/thunder-plugin-review`)**
-- 79 unified rules numbered sequentially (rule_01 to rule_79)
+- 70 unified rules numbered sequentially (rule_01 to rule_70)
 - Each rule: read code semantically -> decide pass/fail -> cite exact line on failure
 - Phases: Module Structure, Code Style, Class Registration, Lifecycle, Implementation,
   COM Interface Rules, Out-of-Process, Configuration, CMake, General
@@ -30,10 +30,10 @@ automatically.
 - Report shows ONLY failures - PASS/SKIP appear as counts in summary table only
 
 **COM interface validator (`/thunder-interface-review`)**
-- 19 rules: 15 core (VIOLATION level) + 4 advisory
+- 19 rules: 16 core + 3 advisory
 - Validates Thunder COM interfaces in ThunderInterfaces/interfaces/
 - Covers: file structure, @json tag, @restrict on vectors, return types, ID registration,
-  nested event interfaces, binary compatibility, no std::map, explicit integer widths
+  event interfaces, no std::map, explicit integer widths
 
 **Plugin skeleton generator (`/thunder-generate-plugin`)**
 - Interactive: collects parameters via VS Code `vscode_askQuestions` (NOT chat)
@@ -46,7 +46,7 @@ automatically.
 - Safe: creates timestamped backup, preserves existing settings, idempotent
 
 **YAML rule definitions** (loaded by prompts at runtime, not embedded)
-- `thunder-plugin-rules.yaml` — 79 unified rules (v3.3.0)
+- `thunder-plugin-rules.yaml` — 70 unified rules (v3.3.0)
 - `thunder-interface-rules.yaml` — 19 interface rules (v3.2.2)
 
 **Review reports** (CSV, generated after each review run)
@@ -68,7 +68,7 @@ automatically.
 Use VS Code `.prompt.md` files as slash commands. Each prompt loads its YAML
 rule definitions at runtime so rules can be updated without touching prompt
 logic. Plugin validation uses semantic code review: read code as a human
-developer and reason about meaning. All 79 rules produce the same unified
+developer and reason about meaning. All 70 rules produce the same unified
 output format — no distinction between "automated" and "manual" in the report.
 
 All checkpoint verification uses semantic reasoning — the validator reads code
@@ -84,7 +84,7 @@ it is acceptable. Severity is never escalated above what the YAML defines.
 ## Delivery Structure
 
 ```
-ThunderTools/PluginQA/
+ThunderTools/PluginQualityAdvisor/
 ├── README.md
 ├── setup-prompts.py           (cross-platform, Python 3)
 ├── Prompts/

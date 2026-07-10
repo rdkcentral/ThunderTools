@@ -1,15 +1,10 @@
----
-title: "Thunder Interface Rule Manager"
-description: "Add, update, or remove COM interface validation rules via guided questionnaire — keeps YAML, prompt, and spec in sync"
----
-
 ## Purpose
 
-This prompt manages rules in `ThunderTools/PluginQA/rules/thunder-interface-rules.yaml` and keeps all related files in sync atomically:
+This prompt manages rules in `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml` and keeps all related files in sync atomically:
 
-1. `ThunderTools/PluginQA/rules/thunder-interface-rules.yaml` — rule data
-2. `ThunderTools/PluginQA/Prompts/thunder-interface-review.prompt.md` — Quick Reference table + rule detail blocks
-3. `ThunderTools/openspec/changes/thunder-plugin-qa/specs/interface/spec.md` — spec requirements
+1. `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml` — rule data
+2. `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md` — Quick Reference table + rule detail blocks
+3. `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/interface/spec.md` — spec requirements
 
 ---
 
@@ -202,5 +197,3 @@ After completing all changes, display:
 | Improves maintainability or SRP | ❌ | ✅ |
 
 **Wrong-list correction:** If a submitted rule clearly belongs in the other list (e.g. a crash-causing rule submitted as advisory), move it to the correct list and explain the reclassification to the user before applying changes.
-
-

@@ -2,9 +2,9 @@
 
 ## Phase 1: YAML rule definitions
 
-- [x] 1.1 Create `ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml` (v3.3.0)
+- [x] 1.1 Create `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` (v3.3.0)
       - metadata block: version, description, approach,
-        total_rules: 79, total_general_rules: 40,
+        total_rules: 70, total_general_rules: 32,
         organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4, Phase5C:2, Phase6:3, Phase7:1, Phase8:1"
       - validation_approach block: principles list + 5-step workflow (including
         Step 3b JUDGE: contextual judgment — if developer's approach technically
@@ -14,7 +14,7 @@
         Never pattern-match. Always read the full relevant code context (control flow,
         ownership, lifecycle, threading) before deciding PASS/FAIL.
 
-      YAML STRUCTURE — PHASE RULES (39 rules, rule_01 to rule_39):
+      YAML STRUCTURE — PHASE RULES (38 rules, rule_01 to rule_38):
         - rule_id, name (Title Case), severity, phase
         - extraction: { target, method, code_block }
         - bounded_query: { question: "...", expected_answer: "Yes" }  ← MUST be object, NOT plain string
@@ -27,7 +27,7 @@
         - citation: { line_format: "[PluginName.cpp:LINE] ...", rule: "thunder-plugin-rules.yaml / {id}" }
 
       YAML STRUCTURE — MANUAL RULES (semantic review, 40 rules):
-        - rule_id (e.g. "rule_40"), name (Title Case), severity, category: "<sub-phase>" (conventions|lifecycle_integrity|concurrency|com_safety|resource_management|jsonrpc_compliance|inter_plugin_design|code_quality_security)
+        - rule_id (e.g. "rule_39"), name (Title Case), severity, category: "<sub-phase>" (conventions|lifecycle_integrity|concurrency|com_safety|resource_management|jsonrpc_compliance|inter_plugin_design|code_quality_security)
         - review_question: semantic question describing what to verify
         - review_method: "Read the full relevant code context (control flow, ownership,
           lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST.
@@ -60,7 +60,7 @@
         rule_17 (violation conditional): "IShell AddRef in Initialize"
         rule_18 (violation conditional): "IShell Release in Deinitialize"
         rule_19 (violation): "Information() Method" — string Information() const implemented
-        rule_20 (violation conditional): "Root<T>() Null Check"
+        rule_20 (violation conditional): "Root<T>() nullptr Check"
         rule_21 (violation conditional): "Root<T>() Release in Deinitialize"
         rule_22 (violation conditional): "Observer Cleanup in Deinitialize"
         rule_23 (violation conditional): "SubSystems() Release in Deinitialize"
@@ -72,81 +72,71 @@
       - phase_5_checkpoints (4):
         rule_29 (violation conditional): "JSON-RPC Register/Unregister Pairing"
         rule_30 (violation conditional): "SinkType Pattern for Subscribers"
-        rule_31 (violation conditional): "Unavailable() in SinkType Classes"
-        rule_32 (violation): "No Hardcoded Paths"
+        rule_31 (violation): "No Hardcoded Paths"
       - phase_5C_checkpoints (2):
-        rule_33 (violation conditional): OOP connection termination in Deinitialize
-        rule_34 (violation conditional): connectionId checked first in IRemoteConnection callbacks
+        rule_32 (violation conditional): OOP connection termination in Deinitialize
+        rule_33 (violation conditional): connectionId checked first in IRemoteConnection callbacks
       - phase_6_checkpoints (3):
-        rule_35 (violation conditional): startmode declaration
-        rule_36 (violation conditional): Config Core::JSON::Container
-        rule_37 (violation): no hardcoded numeric tuning params
-      - phase_7_checkpoints (1): rule_38 (violation conditional): CXX_STANDARD uses ${CXX_STD}
-      - phase_8_checkpoints (1): rule_39 (violation): "COM Methods Return Core::hresult"
+        rule_34 (violation conditional): startmode declaration
+        rule_35 (violation conditional): Config Core::JSON::Container
+        rule_36 (violation): no hardcoded numeric tuning params
+      - phase_7_checkpoints (1): rule_37 (violation conditional): CXX_STANDARD uses ${CXX_STD}
+      - phase_8_checkpoints (1): rule_38 (violation): "COM Methods Return Core::hresult"
 
       Holistic Rules (8 sub-phases) (40, all in general_rules section):
-        rule_40 (suggestion): "#pragma once"
-        rule_41 (suggestion): "Apache 2.0 Copyright Header"
-        rule_42 (warning): "STL Types"
-        rule_43 (warning): "ASSERT vs Error Handling"
-        rule_44 (violation): "OOP Registration Order"
-        rule_45 (violation): "Complete State Reset in Deinitialize"
-        rule_46 (suggestion): "Reverse-Order Cleanup"
-        rule_47 (violation): "Observer Locking"
-        rule_48 (violation): "AddRef/Release Balance"
-        rule_49 (suggestion): "CMake NAMESPACE Variable"
-        rule_50 (violation): "Handlers Must Not Block"
-        rule_51 (violation): "No Activate/Deactivate from Handlers"
-        rule_52 (violation): "Shared State Protected by CriticalSection"
-        rule_53 (violation): "No Lock Held During Framework Callbacks"
-        rule_54 (violation): "Worker Jobs Check Deinitialize Guard"
-        rule_55 (violation): "File Descriptors / Sockets Wrapped in RAII"
-        rule_56 (violation): "No Unbounded Memory Growth"
-        rule_57 (violation): "Config Errors Return Non-Empty from Initialize"
-        rule_58 (violation): "interface->Register/Unregister Pairing"
-        rule_59 (violation): "Handler Registration Order in Initialize/Deinitialize"
-        rule_60 (violation): "Use Core::ERROR_* for Handler Failure Codes"
-        rule_61 (violation): "Input Validation in JSON-RPC Handlers"
-        rule_62 (warning): "Event Constants and Typed JSON Payloads"
-        rule_63 (violation): "COM Reference Counting Correctness"
-        rule_64 (warning): "No Hard Inter-Plugin Dependencies"
-        rule_65 (violation): "JSON-RPC Handlers Are Re-entrant Safe"
-        rule_66 (violation): "IPlugin::INotification Callbacks Must Not Block"
-        rule_67 (violation): "Lock Scope Minimized"
-        rule_68 (violation): "Plugin Threads Joined in Deinitialize"
-        rule_69 (warning): "Memory and Allocation Safety"
-        rule_70 (violation): "Framework Pointers Not Accessed After Deinitialize"
-        rule_71 (violation): "hresult Return Values Checked"
-        rule_72 (warning): "ASSERT Only for Programmer Invariants"
-        rule_73 (violation): "Security: Logging, Shell, Path, and Error Exposure"
-        rule_74 (violation): "JSON-RPC Input Validation for Bounds and Types"
-        rule_75 (warning): "Config Completeness and Resource Cleanup"
-        rule_76 (warning): "OOP Error Propagation and Method Naming"
-        rule_77 (suggestion): "Observer Classes Private and Nested"
-        rule_78 (violation): "No Deprecated JSON-RPC APIs"
-        rule_79 (violation): "All Acquired Pointers Cleared After Deinitialize"
+        rule_39 (suggestion): "#pragma once"
+        rule_40 (suggestion): "Apache 2.0 Copyright Header"
+        rule_41 (warning): "STL Types"
+        rule_42 (warning): "ASSERT vs Error Handling"
+        rule_43 (violation): "OOP Registration Order"
+        rule_44 (violation): "Complete State Reset in Deinitialize"
+        rule_41 (suggestion): "Reverse-Order Cleanup"
+        rule_42 (violation): "Observer Locking"
+        rule_43 (violation): "AddRef/Release Balance"
+        rule_44 (suggestion): "CMake NAMESPACE Variable"
+        rule_45 (violation): "Handlers Must Not Block"
+        rule_46 (violation): "No Activate/Deactivate from Handlers"
+        rule_47 (violation): "Shared State Protected by CriticalSection"
+        rule_48 (violation): "No Lock Held During Framework Callbacks"
+        rule_49 (violation): "Worker Jobs Safe After Deinitialize"
+        rule_50 (violation): "File Descriptors / Sockets Wrapped in RAII"
+        rule_51 (violation): "Config Errors Return Non-Empty from Initialize"
+        rule_52 (violation): "interface->Register/Unregister Pairing"
+        rule_53 (violation): "Handler Registration Order in Initialize/Deinitialize"
+        rule_54 (violation): "Use Core::ERROR_* for Handler Failure Codes"
+        rule_55 (warning): "Event Constants and Typed JSON Payloads"
+        rule_56 (violation): "COM Reference Counting Correctness"
+        rule_57 (warning): "No Hard Inter-Plugin Dependencies"
+        rule_58 (violation): "JSON-RPC Handlers Are Re-entrant Safe"
+        rule_59 (violation): "IPlugin::INotification Callbacks Must Not Block"
+        rule_60 (violation): "Lock Scope Minimized"
+        rule_61 (violation): "Plugin Threads Joined in Deinitialize"
+        rule_63 (violation): "hresult Return Values Checked"
+        rule_64 (warning): "ASSERT Only for Programmer Invariants"
+        rule_65 (violation): "Security: Logging, Shell, Path, and Error Exposure"
+        rule_66 (warning): "Config Completeness and Resource Cleanup"
+        rule_67 (suggestion): "Observer Classes Private and Nested"
+        rule_68 (violation): "No Deprecated JSON-RPC APIs"
 
-- [x] 1.2 Create `ThunderTools/PluginQA/rules/thunder-interface-rules.yaml` (v3.2.2)
+- [x] 1.2 Create `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml` (v3.2.2)
       - File header: version (unquoted number: 3.2.2, NOT quoted string "3.2.2"), title, description
         with full CHANGELOG using format: `v3.2.2 (current):` (NOT dates like `v3.2.2 (2026-06-08):`)
       - Section headers use `# ===...===` style (NOT `# ───...───`)
       - Rule names use Title Case (e.g. "File and Namespace Structure" not "File and namespace structure")
-      - core_rules list (15 rules, all severity: violation):
-        core_1_1 ("File and Namespace Structure"), core_2_1 ("Interface Declaration Shape"),
-        core_3_1 ("Interface ID Registration"), core_4_1 ("Pure Virtual Methods Only"),
+      - core_rules list (14 rules):
+        core_1_1 ("File and Namespace Structure"), core_2_1 ("Interface Declaration Shape" — warning),
+        core_3_1 ("Interface ID Registration"), core_4_1 ("Pure Virtual Methods Only" — warning),
         core_5_1 ("Return Type Conventions" — Core::hresult mandatory for @json in Thunder 5.0+),
         core_6_1 ("Const Correctness"), core_9_1 ("Thunder Type Conventions" — string not std::string),
         core_10_1 ("Register/Unregister Patterns" — INotification 1:many + ICallback 1:1),
-        core_11_1 ("Nested Event Interfaces" — @event tag, EXTERNAL, ID required),
-        core_12_1 ("@json Tag (CRITICAL)"), core_13_1 ("Binary Compatibility"),
-        core_14_1 ("No AddRef/Release Redeclaration"), core_15_1 ("No std::map in Interfaces"),
-        core_16_1 ("Explicit Integer Widths"), core_17_1 ("@restrict Mandatory with std::vector")
-      - advisory_rules list (4 rules):
-        advisory_m1_1 ("Single Responsibility Principle" — violation),
+        core_11_1 ("Event Interfaces" — @event tag, EXTERNAL, ID required),
+        core_12_1 ("@json Tag (CRITICAL)" — warning),
+        core_13_1 ("No IUnknown/IReferenceCounted Methods in Interfaces"), core_14_1 ("No std::map in Interfaces"),
+        core_15_1 ("Explicit Integer Widths"), core_16_1 ("@restrict Mandatory with std::vector")
+      - advisory_rules list (3 rules):
+        advisory_m1_1 ("Single Responsibility Principle" — warning),
         advisory_m2_1 ("Enum Underlying Types" — warning, exclude anonymous ID enum),
-        advisory_m3_1 ("No Exceptions" — violation),
-        advisory_m5_1 ("@restrict for Non-vector Params" — warning,
-                       explicitly states: does NOT apply to std::vector, that is covered by core_17_1)
+        advisory_m3_1 ("No Exceptions" — violation)
       - Each rule structure: id, name, severity, description (multiline), extraction_logic (numbered steps),
         verification_logic (numbered steps), violation_pattern (single-line string NOT bullet list),
         fix_template (shows // WRONG: + // Correct: pattern), citation (reference to real Thunder file)
@@ -154,10 +144,10 @@
 
 ## Phase 2: Prompt files
 
-- [x] 2.1 Create `ThunderTools/PluginQA/Prompts/thunder-plugin-review.prompt.md`
-      Frontmatter: title: "Thunder Plugin Rule Review", description (mention 79 unified rules, semantic review)
+- [x] 2.1 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
+      Frontmatter: title: "Thunder Plugin Rule Review", description (mention 70 unified rules, semantic review)
       Sections (in order):
-      - Core Principle: semantic code review for all 79 rules. NEVER pattern-match.
+      - Core Principle: semantic code review for all 70 rules. NEVER pattern-match.
         ❌ open-ended vs ✅ bounded examples. All rules produce the same output format.
       - Report Output Philosophy: CRITICAL note — only report issues; PASS/SKIP as summary counts only;
         line numbers always required; always use ACTUAL plugin name in citations, NEVER {PluginName}
@@ -181,8 +171,8 @@
           - For any file: run applicable Holistic Rules (8 sub-phases) that match the file type
         5-step workflow (accept name + optional file → locate folder → identify target files
         → run applicable rules only → report)
-      - Methodology: Step 1 (load YAML from ThunderTools/PluginQA/rules/thunder-plugin-rules.yaml —
-        contains all 79 rules in phase_X_checkpoints and general_rules sections),
+      - Methodology: Step 1 (load YAML from ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml —
+        contains all 70 rules in phase_X_checkpoints and general_rules sections),
         Step 2 (identify plugin files — primary: ThunderNanoServices/{PluginName}/, fallback: workspace search,
         last resort: ask user; files table: Module.cpp, Module.h, {PluginName}.h, {PluginName}.cpp,
         CMakeLists.txt, {PluginName}.conf.in (optional), {PluginName}Implementation.h/cpp (optional)),
@@ -191,7 +181,7 @@
         Class Registration (Phase 3) applies ONLY to main plugin class — internal helpers excluded
       - Contextual Judgment section: severity downgrade table with concrete example showing
         reasoning field (required on downgrade, omitted otherwise), no escalation rule
-      - A shortened inline quick-reference list of all 79 rules is included in the prompt (rule_id + severity + high-level target only).
+      - A shortened inline quick-reference list of all 70 rules is included in the prompt (rule_id + severity + high-level target only).
         Full rule definitions (extraction, bounded_query, verification_logic, fix_template) are loaded from the YAML files at runtime (source of truth).
         Phase counts:
         Phase 1 Module Structure (3):
@@ -217,7 +207,7 @@
           rule_17 (violation conditional): "IShell AddRef in Initialize"
           rule_18 (violation conditional): "IShell Release in Deinitialize"
           rule_19 (violation): "Information() Method"
-          rule_20 (violation conditional): "Root<T>() Null Check"
+          rule_20 (violation conditional): "Root<T>() nullptr Check"
           rule_21 (violation conditional): "Root<T>() Release in Deinitialize"
           rule_22 (violation conditional): "Observer Cleanup in Deinitialize"
           rule_23 (violation conditional): "SubSystems() Release in Deinitialize"
@@ -229,20 +219,19 @@
         Phase 5 Implementation (4):
           rule_29 (violation conditional): "JSON-RPC Register/Unregister Pairing"
           rule_30 (violation conditional): "SinkType Pattern for Subscribers"
-          rule_31 (violation conditional): "Unavailable() in SinkType Classes"
-          rule_32 (violation): "No Hardcoded Paths"
+          rule_31 (violation): "No Hardcoded Paths"
         Phase 5C Out-of-Process (2 conditional):
-          rule_33: "OOP Connection Termination in Deinitialize"
-          rule_34: "connectionId Checked in IRemoteConnection Callbacks"
+          rule_32: "OOP Connection Termination in Deinitialize"
+          rule_33: "connectionId Checked in IRemoteConnection Callbacks"
         Phase 6 Configuration (3):
-          rule_35 (violation conditional): startmode declaration
-          rule_36 (violation conditional): Config Core::JSON::Container
-          rule_37 (violation): no hardcoded numeric tuning params
+          rule_34 (violation conditional): startmode declaration
+          rule_35 (violation conditional): Config Core::JSON::Container
+          rule_36 (violation): no hardcoded numeric tuning params
         Phase 7 CMake (1):
-          rule_38 (violation conditional): "CXX_STANDARD Uses Thunder Variable"
+          rule_37 (violation conditional): "CXX_STANDARD Uses Thunder Variable"
         Phase 8 COM Interface Rules (1):
-          rule_39 (violation): "COM Methods Return Core::hresult"
-      - Output Format: UNIFIED FILE-WISE grouping — all issues from all 79 rules grouped by
+          rule_38 (violation): "COM Methods Return Core::hresult"
+      - Output Format: UNIFIED FILE-WISE grouping — all issues from all 70 rules grouped by
         source file with a header "### {FileName} — N issue(s)" for each file that has failures;
         within each file group, each failing rule is a YAML block with fields:
         rule_id, status (FAIL/PASS/SKIP), severity (violation/warning/suggestion),
@@ -250,18 +239,18 @@
         citation using ACTUAL plugin filename, fix, reasoning.
         NO separate "Part 1" / "Part 2" sections — all findings in one list.
       - Summary Format: Single unified Summary TABLE with columns Phase | PASS | FAIL | SKIP
-        (one row per phase + one row for "Holistic Rules (8 sub-phases)" + a Total row showing all 79),
+        (one row per phase + one row for "Holistic Rules (8 sub-phases)" + a Total row showing all 70),
         followed by a numbered Next Steps list referencing [File:line] for each action item
       - Key Advantages section, Important Notes section
       - Command Examples at end
 
-- [x] 2.2 Create `ThunderTools/PluginQA/Prompts/thunder-interface-review.prompt.md`
-      Frontmatter: title: "Thunder Interface Validator", description (mention 19 rules, 15 core + 4 advisory)
+- [x] 2.2 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
+      Frontmatter: title: "Thunder Interface Validator", description (mention 19 rules, 16 core + 3 advisory)
       Sections (in order):
       - Context: Thunder uses COM-style interfaces, rules in thunder-interface-rules.yaml (v3.2.2)
-      - Quick Reference table: all 19 rules (15 core + 4 advisory) as a markdown table
+      - Quick Reference table: all 19 rules (16 core + 3 advisory) as a markdown table
         with ID, Rule name (Title Case matching YAML), Key Point
-      - CRITICAL note: load ThunderTools/PluginQA/rules/thunder-interface-rules.yaml for full
+      - CRITICAL note: load ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml for full
         rule definitions, extraction logic, verification logic, and fix templates before validating
       - Your Task: 5 steps (identify file → load YAML → validate all 19 rules →
         report with 🔴/🟡/🟢/✅/Compatibility Notes sections → provide specific fixes)
@@ -274,7 +263,7 @@
       - Important Notes: Thunder docs link, validation priorities numbered list
         (@json first through type conventions last)
 
-- [x] 2.3 Create `ThunderTools/PluginQA/Prompts/thunder-plugin-rule-manager.prompt.md`
+- [x] 2.3 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-rule-manager.prompt.md`
       Frontmatter: title: "Thunder Plugin Rule Manager",
         description: "Add, update, or remove plugin rules (automated or manual) via guided questionnaire — keeps YAML, prompt, README, and spec in sync"
       Sections (in order):
@@ -310,7 +299,7 @@
       - Phase vs General Classification table at end: 5 phase checkpoint criteria vs 6
         General criteria; ambiguous cases prompt user before proceeding
 
-- [x] 2.4 Create `ThunderTools/PluginQA/Prompts/thunder-interface-rule-manager.prompt.md`
+- [x] 2.4 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-rule-manager.prompt.md`
       Frontmatter: title: "Thunder Interface Rule Manager",
         description: "Add, update, or remove COM interface validation rules via guided questionnaire — keeps YAML, prompt, and spec in sync"
       Sections (in order):
@@ -338,7 +327,7 @@
       - Core vs Advisory Classification table at end: core = codegen/ABI/crash failures;
         advisory = best practice; wrong list auto-corrected with explanation
 
-- [x] 2.5 Create `ThunderTools/PluginQA/Prompts/thunder-generate-plugin.prompt.md`
+- [x] 2.5 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-generate-plugin.prompt.md`
       Frontmatter: title: "Thunder Plugin Generator",
         description: "Interactive Thunder plugin skeleton generator using PluginSkeletonGenerator.py"
       Sections:
@@ -360,13 +349,13 @@
 
 ## Phase 3: Setup script
 
-- [x] 3.1 Create `ThunderTools/PluginQA/setup-prompts.py` (cross-platform Python 3)
+- [x] 3.1 Create `ThunderTools/PluginQualityAdvisor/setup-prompts.py` (cross-platform Python 3)
       - No external dependencies (stdlib only: json, os, sys, shutil, platform, datetime)
       - Detect platform (Windows/Mac/Linux) and find settings.json accordingly
       - Also detect VS Code Insiders variant
       - Backup: copy settings.json to settings.json.backup.{timestamp}
       - Parse JSON (handle missing or empty file: default to {})
-      - Merge: add "ThunderTools/PluginQA/Prompts": true under chat.promptFilesLocations
+      - Merge: add "ThunderTools/PluginQualityAdvisor/Prompts": true under chat.promptFilesLocations
       - Write back with indent=4
       - Idempotent: skip if key already present
       - Print clear next steps
@@ -374,15 +363,15 @@
 
 ## Phase 4: Documentation
 
-- [x] 4.1 Create `ThunderTools/PluginQA/README.md`
-      Sections (in order, matching final PluginQA README exactly):
-      - Title: Thunder PluginQA
+- [x] 4.1 Create `ThunderTools/PluginQualityAdvisor/README.md`
+      Sections (in order, matching final PluginQualityAdvisor README exactly):
+      - Title: Thunder PluginQualityAdvisor
       - Overview: automated validation tools, bullet list: Thunder COM Interfaces (19 rules),
-        Thunder Plugins (39 checkpoints, 8 phases)
+        Thunder Plugins (38 checkpoints, 8 phases)
       - Quick Start: Setup (3 platform options with code blocks), Reload VS Code (2 steps + note),
         Use the Prompts (/thunder-interface-review, /thunder-plugin-review, /thunder-generate-plugin)
         each with description
-      - Directory Structure: tree diagram of ThunderTools/PluginQA/
+      - Directory Structure: tree diagram of ThunderTools/PluginQualityAdvisor/
       - Interface Validation section: intro, Core Rules table (15 rows: ID, Rule, Critical Issues),
         Advisory Rules list (4 bullets), link to YAML
       - Plugin Validation section: intro, Validation Phases table by phase name with checkpoint count,
@@ -401,7 +390,7 @@
       - Support: 3 bullet points including Thunder docs URL
       - Footer: Made with ⚡ for Thunder developers
 
-- [x] 4.2 Create `ThunderTools/PluginQA/PLUGIN_GENERATOR_GUIDE.md`
+- [x] 4.2 Create `ThunderTools/PluginQualityAdvisor/PLUGIN_GENERATOR_GUIDE.md`
       Sections:
       - Title, Overview paragraph
       - Quick Start: 5 numbered steps
@@ -412,16 +401,16 @@
       - Troubleshooting: common issues (PSG not found, include path errors)
       - Integration with validation commands
 
-- [x] 4.3 Create `ThunderTools/PluginQA/Prompts/README-interface-rules-manager.md`
+- [x] 4.3 Create `ThunderTools/PluginQualityAdvisor/Prompts/README-interface-rules-manager.md`
       - Documentation for the interface rules manager (optional supplemental prompt)
       - Covers: how to add new rules to thunder-interface-rules.yaml,
         rule structure reference, testing new rules against example interfaces
 
 ## Phase 5: Report generation
 
-- [x] 5.1 Add Step 6 (CSV report) to `ThunderTools/PluginQA/Prompts/thunder-plugin-review.prompt.md`
+- [x] 5.1 Add Step 6 (CSV report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
       - Appended after Command Examples section
-      - File path: `ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
+      - File path: `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
       - Create folder if absent; never overwrite (append _2, _3 suffix)
       - Columns (14, exact order): No, Plugin, Date, Phase, Rule_ID, Rule_Name, Status,
         Severity, File, Line, Citation, Issue_Description, Fix_Summary, Reasoning
@@ -432,9 +421,9 @@
       - Empty report (all pass): header row + one comment row
       - Post-generation chat message: file path, issue counts, Start-Process command for Excel
 
-- [x] 5.2 Add Step 6 (CSV report) to `ThunderTools/PluginQA/Prompts/thunder-interface-review.prompt.md`
+- [x] 5.2 Add Step 6 (CSV report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
       - Appended after Important Notes section
-      - File path: `ThunderTools/PluginQA/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
+      - File path: `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
       - Same no-overwrite rule, same formatting rules
       - Columns (13, exact order): No, Interface, Date, Rule_ID, Rule_Name, Status,
         Severity, File, Line, Citation, Issue_Description, Fix_Summary, Reasoning

@@ -1,4 +1,4 @@
-# Spec: Thunder PluginQA Report Generation
+# Spec: Thunder PluginQualityAdvisor Report Generation
 
 ## Purpose
 
@@ -12,9 +12,9 @@ with all fields needed to understand, prioritise, and track fixes.
 
 ### REQ-R1 — Plugin review CSV
 
-**Scenario:** `/thunder-plugin-review` completes all 79 rules
+**Scenario:** `/thunder-plugin-review` completes all 70 rules
 - The system MUST generate a CSV file at:
-  `ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
+  `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
 - If a file with that name already exists, append `_2`, `_3` etc. (never overwrite)
 - The CSV MUST contain one header row followed by one data row per VIOLATION or WARNING or SUGGESTION
 - PASS and SKIP rows are NOT included in the CSV (they appear only in the phase summary in chat)
@@ -23,7 +23,7 @@ with all fields needed to understand, prioritise, and track fixes.
 
 **Scenario:** `/thunder-interface-review` completes all 19 rules
 - The system MUST generate a CSV file at:
-  `ThunderTools/PluginQA/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
+  `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
 - Same no-overwrite rule applies
 - One row per violated rule only
 
@@ -83,7 +83,7 @@ No,Interface,Date,Rule_ID,Rule_Name,Status,Severity,File,Line,Citation,Issue_Des
 
 ### REQ-R6 — Folder creation
 
-- `ThunderTools/PluginQA/Reports/plugin/` and `ThunderTools/PluginQA/Reports/interface/`
+- `ThunderTools/PluginQualityAdvisor/Reports/plugin/` and `ThunderTools/PluginQualityAdvisor/Reports/interface/`
   MUST be created if they do not exist before writing the file
 
 ### REQ-R7 — Post-generation message
@@ -92,11 +92,11 @@ After saving the CSV, the prompt MUST display in chat:
 
 ```
 📊 Report saved:
-   ThunderTools/PluginQA/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv
+   ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv
    {N} issue(s) logged — {violations} violations, {warnings} warnings, {suggestions} suggestions
 
 To open in Excel (Windows):
-   Start-Process "ThunderTools\PluginQA\Reports\plugin\{PluginName}_{YYYY-MM-DD}.csv"
+   Start-Process "ThunderTools\PluginQualityAdvisor\Reports\plugin\{PluginName}_{YYYY-MM-DD}.csv"
 ```
 
 ### REQ-R8 — Empty report (all PASS)
@@ -113,7 +113,7 @@ No,Plugin,Date,Phase,Rule_ID,Rule_Name,Status,Severity,File,Line,Citation,Issue_
 ## Folder structure
 
 ```
-ThunderTools/PluginQA/
+ThunderTools/PluginQualityAdvisor/
 └── Reports/
     ├── plugin/
     │   ├── HdmiCecSink_2026-06-05.csv

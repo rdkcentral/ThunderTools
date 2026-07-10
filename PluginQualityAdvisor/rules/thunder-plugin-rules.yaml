@@ -3,31 +3,31 @@
 # ===========================================================================================
 
 metadata:
-  description: "Unified plugin validation rules — 79 rules numbered sequentially (rule_01 to rule_79), organized into 17 phases"
+  description: "Unified plugin validation rules — 70 rules numbered sequentially (rule_01 to rule_70), organized into 17 phases"
   approach: "semantic code review"
-  total_rules: 79
+  total_rules: 70
   organization: |
     rule_01-rule_03: Module Structure (3)
     rule_04-rule_13: Code Style (10)
     rule_14-rule_16: Class Registration (3)
     rule_17-rule_28: Lifecycle (12)
-    rule_29-rule_32: Implementation (4)
-    rule_33-rule_34: Out-of-Process (2)
-    rule_35-rule_37: Configuration (3)
-    rule_38: CMake (1)
-    rule_39: COM Interface (1)
-    rule_40,41,49,77: Conventions & Encapsulation (4)
-    rule_44,45,46,57,70,79: Lifecycle & State Integrity (6)
-    rule_47,50-54,65-68: Concurrency & Threading (10)
-    rule_48,63,71: COM Reference & Memory Safety (3)
-    rule_55,56,69: Resource Management (3)
-    rule_58-62,74,78: JSON-RPC Compliance (7)
-    rule_64,76: Inter-Plugin & OOP Design (2)
-    rule_42,43,72,73,75: Code Quality & Security (5)
+    rule_29-rule_31: Implementation (3)
+    rule_32-rule_33: Out-of-Process (2)
+    rule_34-rule_36: Configuration (3)
+    rule_37: CMake (1)
+    rule_38: COM Interface (1)
+    rule_39,40,44,67,69: Conventions & Encapsulation (5)
+    rule_41,51,62: Lifecycle & State Integrity (3)
+    rule_42,45-49,58-61: Concurrency & Threading (10)
+    rule_43,56,63: COM Reference & Memory Safety (3)
+    rule_50: Resource Management (1)
+    rule_52-55,68: JSON-RPC Compliance (5)
+    rule_57: Inter-Plugin & OOP Design (1)
+    rule_64-66,70: Code Quality & Security (4)
 
   validation_approach:
     principles:
-      - "ALL 79 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
+      - "ALL 70 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
       - "Step 1 is ALWAYS: read the full plugin code (all files) and build mental model of architecture, ownership, lifecycle, and threading"
       - "Step 2 is: with that full understanding, examine the specific concern each rule asks about"
       - "Never check a specific block in isolation — always reason about it in the context of the full plugin"
@@ -41,11 +41,9 @@ metadata:
       - "Step 4 JUDGE: If the answer suggests a violation, ask: 'Is the developer's actual approach correct and safe given the full context I already understand?' If yes → downgrade. If genuinely wrong → cite it"
       - "Step 5 CITE: On violation, give exact file and line (e.g. [Dictionary.cpp:108])"
       - "Step 6 FIX: Show the corrected code block, not the whole file"
-      - "Step 4 CITE: On violation, give exact file and line (e.g. [Dictionary.cpp:108])"
-      - "Step 5 FIX: Show the corrected code block, not the whole file"
 
 # ===========================================================================================
-# PHASE CHECKPOINTS (39 rules)
+# PHASE CHECKPOINTS (38 rules)
 # ===========================================================================================
 
 # -------------------------------------------------------------------------------------------
@@ -630,29 +628,33 @@ phase_3_checkpoints:
     phase: "class_registration"
 
     extraction:
-      target: "Plugin::Metadata<PluginName> instantiation in the plugin .cpp file"
-      method: "Read the plugin .cpp file and look for the Plugin::Metadata<T> static registration"
-      code_block: "The Plugin::Metadata<PluginName> static instance declaration"
+      target: "Plugin::Metadata<PluginName> instantiation in the plugin .cpp file and SERVICE_REGISTRATION usage"
+      method: "Read the plugin .cpp file and any OOP implementation files; check for Plugin::Metadata<T> and SERVICE_REGISTRATION"
+      code_block: "The Plugin::Metadata<PluginName> static instance declaration and any SERVICE_REGISTRATION calls"
 
     bounded_query:
-      question: "Does the plugin .cpp contain a Plugin::Metadata<PluginName> static registration?"
+      question: "Does the plugin .cpp contain exactly one Plugin::Metadata<PluginName> static registration, and do all other registration points (including OOP parts) use SERVICE_REGISTRATION instead?"
       expected_answer: "Yes"
 
     verification_logic:
       - "1. Read the plugin .cpp file (PluginName.cpp)"
-      - "2. Check for the presence of static Plugin::Metadata<PluginName> registration"
-      - "3. This registers the plugin with the Thunder framework — it must be present"
-      - "4. If absent → VIOLATION"
+      - "2. Check for the presence of exactly ONE static Plugin::Metadata<PluginName> registration"
+      - "3. Plugin::Metadata must appear only ONCE for the entire plugin — not in multiple files"
+      - "4. All other places (e.g. OOP implementation files) must use SERVICE_REGISTRATION macro instead"
+      - "5. For OOP plugins (PLUGIN_<NAME>_MODE = 'Local'): verify at least one SERVICE_REGISTRATION exists in the OOP part"
+      - "6. If Plugin::Metadata is absent → VIOLATION"
+      - "7. If Plugin::Metadata appears more than once → VIOLATION"
+      - "8. If OOP part lacks SERVICE_REGISTRATION → VIOLATION"
 
     conditional: false
     skip_condition: null
 
-    violation_pattern: "Plugin::Metadata<PluginName> registration missing from plugin .cpp"
+    violation_pattern: "Plugin::Metadata<PluginName> registration missing, duplicated, or OOP part missing SERVICE_REGISTRATION"
 
     fix_template: |
-      // WRONG: (missing metadata registration)
+      // WRONG: (missing metadata registration or duplicated)
 
-      // Correct — add to PluginName.cpp:
+      // Correct — exactly ONE in PluginName.cpp:
       static Plugin::Metadata<Dictionary> metadata(
           Plugin::Information<Dictionary>::Versions,
           Plugin::Information<Dictionary>::Instances,
@@ -662,8 +664,11 @@ phase_3_checkpoints:
           Plugin::Information<Dictionary>::Extends
       );
 
+      // For OOP implementation files, use SERVICE_REGISTRATION instead:
+      SERVICE_REGISTRATION(DictionaryImplementation, 1, 0)
+
     citation:
-      line_format: "[PluginName.cpp:LINE] Plugin::Metadata<PluginName> registration absent"
+      line_format: "[PluginName.cpp:LINE] Plugin::Metadata<PluginName> registration issue"
       rule: "thunder-plugin-rules.yaml / rule_15"
 
   - rule_id: "rule_16"
@@ -677,29 +682,33 @@ phase_3_checkpoints:
       code_block: "The Register() calls in Initialize() and the class inheritance declarations"
 
     bounded_query:
-      question: "If the plugin registers JSON-RPC handlers (Register() calls in Initialize()), does the class inherit PluginHost::JSONRPC?"
+      question: "If the plugin registers JSON-RPC handlers (Register() calls in Initialize()), does the class inherit PluginHost::JSONRPC or a class derived from it?"
       expected_answer: "Yes"
 
     verification_logic:
       - "1. Read Initialize() and check for Register() calls that register JSON-RPC handlers"
       - "2. If no JSON-RPC Register() calls are found → SKIP this checkpoint"
       - "3. If Register() calls exist, read the class declaration"
-      - "4. Verify the class inherits from PluginHost::JSONRPC (directly or via JSONRPC base)"
-      - "5. If JSON-RPC handlers are registered but the class does not inherit JSONRPC → VIOLATION"
+      - "4. Verify the class inherits from PluginHost::JSONRPC directly OR from a class derived from PluginHost::JSONRPC"
+      - "5. If JSON-RPC handlers are registered but the class does not inherit JSONRPC (or a derived class) → VIOLATION"
 
     conditional: true
     skip_condition: "Plugin does not register any JSON-RPC handlers in Initialize()"
 
-    violation_pattern: "JSON-RPC Register() calls present in Initialize() but class does not inherit PluginHost::JSONRPC"
+    violation_pattern: "JSON-RPC Register() calls present in Initialize() but class does not inherit PluginHost::JSONRPC or a derived class"
 
     fix_template: |
       // WRONG:
       class Dictionary : public PluginHost::IPlugin {
           // Missing PluginHost::JSONRPC inheritance
 
-      // Correct:
+      // Correct (direct inheritance):
       class Dictionary : public PluginHost::IPlugin,
                          public PluginHost::JSONRPC {
+
+      // Also correct (inheriting from a JSONRPC-derived class):
+      class Dictionary : public PluginHost::IPlugin,
+                         public MyCustomJSONRPCBase {  // where MyCustomJSONRPCBase derives from PluginHost::JSONRPC
 
     citation:
       line_format: "[PluginName.h:LINE] JSON-RPC used but JSONRPC inheritance missing"
@@ -836,7 +845,7 @@ phase_4_checkpoints:
       rule: "thunder-plugin-rules.yaml / rule_19"
 
   - rule_id: "rule_20"
-    name: "Root<T>() Null Check"
+    name: "Root<T>() nullptr Check"
     severity: "violation"
     phase: "lifecycle"
 
@@ -1016,7 +1025,7 @@ phase_4_checkpoints:
 
   - rule_id: "rule_24"
     name: "Constructor Must Be Empty"
-    severity: "violation"
+    severity: "suggestion"
     phase: "lifecycle"
 
     extraction:
@@ -1339,51 +1348,6 @@ phase_5_checkpoints:
       rule: "thunder-plugin-rules.yaml / rule_30"
 
   - rule_id: "rule_31"
-    name: "Unavailable() in SinkType Classes"
-    severity: "violation"
-    phase: "implementation"
-
-    extraction:
-      target: "SinkType notification classes that implement IPlugin::INotification"
-      method: "Read SinkType notification class declarations and check for the Unavailable() method implementation"
-      code_block: "The method list in the SinkType class declaration"
-
-    bounded_query:
-      question: "Does every SinkType class implementing IPlugin::INotification also implement the Unavailable() callback?"
-      expected_answer: "Yes"
-
-    verification_logic:
-      - "1. If no SinkType notification classes exist → SKIP"
-      - "2. Read each class that inherits IPlugin::INotification"
-      - "3. Check that Unavailable() is implemented (not just Activated() and Deactivated())"
-      - "4. IPlugin::INotification has 3 pure virtuals: Activated, Deactivated, and Unavailable"
-      - "5. If Unavailable() is missing → VIOLATION"
-
-    conditional: true
-    skip_condition: "Plugin has no SinkType classes implementing IPlugin::INotification"
-
-    violation_pattern: "SinkType class missing Unavailable() implementation — IPlugin::INotification requires all 3 callbacks"
-
-    fix_template: |
-      // WRONG:
-      class Notification : public PluginHost::IPlugin::INotification {
-          void Activated(const string& callsign, PluginHost::IShell* service) override { ... }
-          void Deactivated(const string& callsign, PluginHost::IShell* service) override { ... }
-          // Unavailable() missing
-      };
-
-      // Correct:
-      class Notification : public PluginHost::IPlugin::INotification {
-          void Activated(const string& callsign, PluginHost::IShell* service) override { ... }
-          void Deactivated(const string& callsign, PluginHost::IShell* service) override { ... }
-          void Unavailable(const string& callsign, PluginHost::IShell* service) override { ... }
-      };
-
-    citation:
-      line_format: "[PluginName.h:LINE] SinkType class missing Unavailable() implementation"
-      rule: "thunder-plugin-rules.yaml / rule_31"
-
-  - rule_id: "rule_32"
     name: "No Hardcoded Paths"
     severity: "violation"
     phase: "implementation"
@@ -1419,14 +1383,14 @@ phase_5_checkpoints:
 
     citation:
       line_format: "[PluginName.cpp:LINE] Hardcoded filesystem path"
-      rule: "thunder-plugin-rules.yaml / rule_32"
+      rule: "thunder-plugin-rules.yaml / rule_31"
 
 # -------------------------------------------------------------------------------------------
 # Phase 5C: Out-of-Process (OOP)
 # -------------------------------------------------------------------------------------------
 
 phase_5C_checkpoints:
-  - rule_id: "rule_33"
+  - rule_id: "rule_32"
     name: "OOP Connection Termination in Deinitialize"
     severity: "violation"
     phase: "oop"
@@ -1473,9 +1437,9 @@ phase_5C_checkpoints:
 
     citation:
       line_format: "[PluginName.cpp:LINE] OOP connection not terminated in Deinitialize()"
-      rule: "thunder-plugin-rules.yaml / rule_33"
+      rule: "thunder-plugin-rules.yaml / rule_32"
 
-  - rule_id: "rule_34"
+  - rule_id: "rule_33"
     name: "connectionId Checked in IRemoteConnection Callbacks"
     severity: "violation"
     phase: "oop"
@@ -1517,14 +1481,14 @@ phase_5C_checkpoints:
 
     citation:
       line_format: "[PluginName.cpp:LINE] connectionId not checked in IRemoteConnection callback"
-      rule: "thunder-plugin-rules.yaml / rule_34"
+      rule: "thunder-plugin-rules.yaml / rule_33"
 
 # -------------------------------------------------------------------------------------------
 # Phase 6: Configuration
 # -------------------------------------------------------------------------------------------
 
 phase_6_checkpoints:
-  - rule_id: "rule_35"
+  - rule_id: "rule_34"
     name: "Startmode Declaration"
     severity: "violation"
     phase: "configuration"
@@ -1558,9 +1522,9 @@ phase_6_checkpoints:
 
     citation:
       line_format: "[PluginName.conf.in:LINE] startmode field missing"
-      rule: "thunder-plugin-rules.yaml / rule_35"
+      rule: "thunder-plugin-rules.yaml / rule_34"
 
-  - rule_id: "rule_36"
+  - rule_id: "rule_35"
     name: "Config Core::JSON::Container"
     severity: "violation"
     phase: "configuration"
@@ -1604,11 +1568,11 @@ phase_6_checkpoints:
 
     citation:
       line_format: "[PluginName.h:LINE] Config class missing Core::JSON::Container inheritance"
-      rule: "thunder-plugin-rules.yaml / rule_36"
+      rule: "thunder-plugin-rules.yaml / rule_35"
 
-  - rule_id: "rule_37"
+  - rule_id: "rule_36"
     name: "No Hardcoded Numeric Tuning Parameters"
-    severity: "violation"
+    severity: "suggestion"
     phase: "configuration"
 
     extraction:
@@ -1624,7 +1588,8 @@ phase_6_checkpoints:
       - "1. Read all function bodies and class member initializations"
       - "2. Reason about numeric literals: are they structural constants (0, 1, -1) or tunable parameters (timeouts like 5000, buffer sizes like 1024, retry counts like 3)?"
       - "3. Tunable parameters belong in Config — structural constants (comparison values, array indices) are acceptable inline"
-      - "4. If magic numbers representing tunable values are found → VIOLATION"
+      - "4. Universally known constants (e.g. MAC address size = 6, IP address lengths, protocol-defined fixed sizes) are acceptable inline — no reason to store these in config"
+      - "5. If magic numbers representing tunable values are found → SUGGESTION"
 
     conditional: false
     skip_condition: null
@@ -1642,14 +1607,14 @@ phase_6_checkpoints:
 
     citation:
       line_format: "[PluginName.cpp:LINE] Hardcoded numeric tuning parameter — move to Config"
-      rule: "thunder-plugin-rules.yaml / rule_37"
+      rule: "thunder-plugin-rules.yaml / rule_36"
 
 # -------------------------------------------------------------------------------------------
 # Phase 7: CMake
 # -------------------------------------------------------------------------------------------
 
 phase_7_checkpoints:
-  - rule_id: "rule_38"
+  - rule_id: "rule_37"
     name: "CXX_STANDARD Uses Thunder Variable"
     severity: "violation"
     phase: "cmake"
@@ -1684,14 +1649,14 @@ phase_7_checkpoints:
 
     citation:
       line_format: "[CMakeLists.txt:LINE] CXX_STANDARD hardcoded — use ${CXX_STD}"
-      rule: "thunder-plugin-rules.yaml / rule_38"
+      rule: "thunder-plugin-rules.yaml / rule_37"
 
 # -------------------------------------------------------------------------------------------
 # Phase 8: COM Interface Rules
 # -------------------------------------------------------------------------------------------
 
 phase_8_checkpoints:
-  - rule_id: "rule_39"
+  - rule_id: "rule_38"
     name: "COM Methods Return Core::hresult"
     severity: "violation"
     phase: "interfaces"
@@ -1708,9 +1673,10 @@ phase_8_checkpoints:
     verification_logic:
       - "1. Read the plugin's interface header file"
       - "2. Identify all methods declared in COM interfaces (not class methods — interface pure virtuals)"
-      - "3. Reason about each method's return type: must be Core::hresult for Thunder 5.0+"
-      - "4. Void return types and other return types are not allowed in COM interfaces"
-      - "5. If any COM interface method does not return Core::hresult → VIOLATION"
+      - "3. Determine if the interface is tagged with @json (JSON-RPC generating)"
+      - "4. For @json-tagged interfaces: Core::hresult is MANDATORY — non-hresult return types → VIOLATION"
+      - "5. For COM-RPC only interfaces (no @json): Core::hresult is recommended but not mandatory — non-hresult return types → SUGGESTION"
+      - "6. Exception: notification/event methods (@event) should return void, not Core::hresult"
 
     conditional: false
     skip_condition: null
@@ -1728,17 +1694,17 @@ phase_8_checkpoints:
 
     citation:
       line_format: "[PluginName.h:LINE] COM interface method does not return Core::hresult"
-      rule: "thunder-plugin-rules.yaml / rule_39"
+      rule: "thunder-plugin-rules.yaml / rule_38"
 
 # ===========================================================================================
-# HOLISTIC RULES — 8 sub-phases (40 rules: rule_40 to rule_79)
+# HOLISTIC RULES — 8 sub-phases (32 rules: rule_39 to rule_70)
 # Conventions & Encapsulation | Lifecycle & State Integrity | Concurrency & Threading
 # COM Reference & Memory Safety | Resource Management | JSON-RPC Compliance
 # Inter-Plugin & OOP Design | Code Quality & Security
 # ===========================================================================================
 
 general_rules:
-  - rule_id: "rule_40"
+  - rule_id: "rule_39"
     name: "#pragma once"
     severity: "suggestion"
     category: "conventions"
@@ -1746,7 +1712,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_41"
+  - rule_id: "rule_40"
     name: "Apache 2.0 Copyright Header"
     severity: "suggestion"
     category: "conventions"
@@ -1754,39 +1720,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_42"
-    name: "STL Types"
-    severity: "warning"
-    category: "code_quality_security"
-    review_question: "Using semantic reasoning over function signatures, class members, and return types, are Thunder type aliases (string, vector) used instead of their std:: equivalents (std::string, std::vector) wherever Thunder aliases are available?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_43"
-    name: "ASSERT vs Error Handling"
-    severity: "warning"
-    category: "code_quality_security"
-    review_question: "Using semantic reasoning over the full code context, is ASSERT used only for programmer invariants (things that must always be true) and not for runtime error handling (things that might fail in production)?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_44"
-    name: "OOP Registration Order"
-    severity: "violation"
-    category: "lifecycle_integrity"
-    review_question: "In out-of-process plugins, using semantic reasoning over Initialize() and Deinitialize(), are service->Register() and service->Unregister() called in the correct order relative to acquiring and releasing the remote implementation?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_45"
-    name: "Complete State Reset in Deinitialize"
-    severity: "violation"
-    category: "lifecycle_integrity"
-    review_question: "Using semantic reasoning over Deinitialize() and the class member variables, is every member variable that was set during Initialize() or operation properly reset to its default/null state in Deinitialize(), such that a subsequent Initialize() call would start from a clean state?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_46"
+  - rule_id: "rule_41"
     name: "Reverse-Order Cleanup"
     severity: "suggestion"
     category: "lifecycle_integrity"
@@ -1794,7 +1728,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_47"
+  - rule_id: "rule_42"
     name: "Observer Locking"
     severity: "violation"
     category: "concurrency"
@@ -1802,7 +1736,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_48"
+  - rule_id: "rule_43"
     name: "AddRef/Release Balance"
     severity: "violation"
     category: "com_safety"
@@ -1810,7 +1744,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_49"
+  - rule_id: "rule_44"
     name: "CMake NAMESPACE Variable"
     severity: "suggestion"
     category: "conventions"
@@ -1818,7 +1752,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_50"
+  - rule_id: "rule_45"
     name: "Handlers Must Not Block"
     severity: "violation"
     category: "concurrency"
@@ -1826,7 +1760,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_51"
+  - rule_id: "rule_46"
     name: "No Activate/Deactivate from Handlers"
     severity: "violation"
     category: "concurrency"
@@ -1834,7 +1768,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_52"
+  - rule_id: "rule_47"
     name: "Shared State Protected by CriticalSection"
     severity: "violation"
     category: "concurrency"
@@ -1842,7 +1776,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_53"
+  - rule_id: "rule_48"
     name: "No Lock Held During Framework Callbacks"
     severity: "violation"
     category: "concurrency"
@@ -1850,31 +1784,23 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_54"
-    name: "Worker Jobs Check Deinitialize Guard"
-    severity: "violation"
+  - rule_id: "rule_49"
+    name: "Worker Jobs Safe After Deinitialize"
+    severity: "warning"
     category: "concurrency"
-    review_question: "Using semantic reasoning over all worker job (IJob, WorkerPool) implementations, do the job Dispatch() methods check a deinitialization guard flag at the start to avoid using stale pointers after Deinitialize() has run?"
+    review_question: "Using semantic reasoning over all worker job (IJob, WorkerPool) implementations, is there a mechanism to ensure Dispatch() methods cannot access stale/null framework pointers after Deinitialize() has run? The specific mechanism is implementation-dependent (flag check, job cancellation, thread join, atomic state, etc.) — what matters is that the outcome is guaranteed."
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_55"
+  - rule_id: "rule_50"
     name: "File Descriptors / Sockets Wrapped in RAII"
     severity: "violation"
     category: "resource_management"
-    review_question: "Using semantic reasoning over resource management, are all file descriptors, sockets, and OS handles wrapped in RAII types or explicitly closed in Deinitialize() — never leaked?"
+    review_question: "Using semantic reasoning over resource management, are all file descriptors, sockets, and OS handles wrapped in RAII types or explicitly closed in Deinitialize() — never leaked? More broadly, prefer Thunder-provided abstractions (Core::DataElementFile, Core::SocketPort, etc.) over raw system calls (open, socket, fopen) wherever Thunder provides an equivalent."
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_56"
-    name: "No Unbounded Memory Growth"
-    severity: "violation"
-    category: "resource_management"
-    review_question: "Using semantic reasoning over all data structures (maps, vectors, lists, queues) that are populated at runtime, is there a bounded size or eviction policy that prevents unbounded memory growth during sustained plugin operation?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_57"
+  - rule_id: "rule_51"
     name: "Config Errors Return Non-Empty from Initialize"
     severity: "violation"
     category: "lifecycle_integrity"
@@ -1882,7 +1808,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_58"
+  - rule_id: "rule_52"
     name: "interface->Register/Unregister Pairing"
     severity: "violation"
     category: "jsonrpc_compliance"
@@ -1890,7 +1816,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_59"
+  - rule_id: "rule_53"
     name: "Handler Registration Order in Initialize/Deinitialize"
     severity: "violation"
     category: "jsonrpc_compliance"
@@ -1898,7 +1824,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_60"
+  - rule_id: "rule_54"
     name: "Use Core::ERROR_* for Handler Failure Codes"
     severity: "violation"
     category: "jsonrpc_compliance"
@@ -1906,23 +1832,15 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_61"
-    name: "Input Validation in JSON-RPC Handlers"
-    severity: "violation"
-    category: "jsonrpc_compliance"
-    review_question: "Using semantic reasoning over all JSON-RPC handler implementations, does each handler validate its input parameters (null pointer checks, string length limits, enum range checks) before using them?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_62"
+  - rule_id: "rule_55"
     name: "Event Constants and Typed JSON Payloads"
     severity: "warning"
     category: "jsonrpc_compliance"
-    review_question: "Using semantic reasoning over JSON-RPC event dispatching, are event names defined as named constants rather than inline string literals, and are event payloads typed JSON objects rather than untyped free-form strings?"
+    review_question: "Using semantic reasoning over JSON-RPC event dispatching, are event names defined as named constants rather than inline string literals? Do NOT recommend using JsonData::* classes directly — these are internal generated glue code that can change. Let the generated event methods handle serialization; plugin code should use the generated Notify/Event methods, not raw Notify() with manually constructed JSON."
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_63"
+  - rule_id: "rule_56"
     name: "COM Reference Counting Correctness"
     severity: "violation"
     category: "com_safety"
@@ -1930,7 +1848,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_64"
+  - rule_id: "rule_57"
     name: "No Hard Inter-Plugin Dependencies"
     severity: "warning"
     category: "inter_plugin_design"
@@ -1938,7 +1856,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_65"
+  - rule_id: "rule_58"
     name: "JSON-RPC Handlers Are Re-entrant Safe"
     severity: "violation"
     category: "concurrency"
@@ -1946,7 +1864,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_66"
+  - rule_id: "rule_59"
     name: "IPlugin::INotification Callbacks Must Not Block"
     severity: "violation"
     category: "concurrency"
@@ -1954,7 +1872,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_67"
+  - rule_id: "rule_60"
     name: "Lock Scope Minimized"
     severity: "violation"
     category: "concurrency"
@@ -1962,7 +1880,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_68"
+  - rule_id: "rule_61"
     name: "Plugin Threads Joined in Deinitialize"
     severity: "violation"
     category: "concurrency"
@@ -1970,23 +1888,15 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_69"
-    name: "Memory and Allocation Safety"
-    severity: "warning"
-    category: "resource_management"
-    review_question: "Using semantic reasoning over all dynamic memory allocation and deallocation, are there no memory leaks (every new has a corresponding delete on all code paths), no use-after-free, and no buffer overflows in the plugin?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_70"
-    name: "Framework Pointers Not Accessed After Deinitialize"
+  - rule_id: "rule_62"
+    name: "Deinitialize Pointer Safety"
     severity: "violation"
     category: "lifecycle_integrity"
-    review_question: "Using semantic reasoning over all worker threads, background jobs, and async callbacks, is there a guarantee that none of them can access framework pointers (IShell*, service pointers, notification interfaces) after Deinitialize() has completed and nulled those pointers?"
+    review_question: "Using semantic reasoning over Deinitialize() and all background tasks: (1) Is every pointer member explicitly set to nullptr in Deinitialize() after being released, so a double-Deinitialize cannot cause a double-release? (2) Is there a guarantee that no worker thread, background job, or async callback can access framework pointers (IShell*, service pointers, notification interfaces) after Deinitialize() has completed and nulled them?"
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_71"
+  - rule_id: "rule_63"
     name: "hresult Return Values Checked"
     severity: "violation"
     category: "com_safety"
@@ -1994,7 +1904,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_72"
+  - rule_id: "rule_64"
     name: "ASSERT Only for Programmer Invariants"
     severity: "warning"
     category: "code_quality_security"
@@ -2002,7 +1912,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_73"
+  - rule_id: "rule_65"
     name: "Security: Logging, Shell, Path, and Error Exposure"
     severity: "violation"
     category: "code_quality_security"
@@ -2010,15 +1920,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_74"
-    name: "JSON-RPC Input Validation for Bounds and Types"
-    severity: "violation"
-    category: "jsonrpc_compliance"
-    review_question: "Using semantic reasoning over all JSON-RPC handler implementations, does each handler validate numeric inputs for range bounds and type correctness before using them in operations that could overflow, underflow, or cause undefined behavior?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_75"
+  - rule_id: "rule_66"
     name: "Config Completeness and Resource Cleanup"
     severity: "warning"
     category: "code_quality_security"
@@ -2026,15 +1928,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_76"
-    name: "OOP Error Propagation and Method Naming"
-    severity: "warning"
-    category: "inter_plugin_design"
-    review_question: "Using semantic reasoning over OOP plugin implementations, do out-of-process method implementations properly propagate errors from the remote process back to the plugin host, and do method names follow Thunder naming conventions (no abbreviations, clear verb+noun)?"
-    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure."
-
-  - rule_id: "rule_77"
+  - rule_id: "rule_67"
     name: "Observer Classes Private and Nested"
     severity: "suggestion"
     category: "conventions"
@@ -2042,7 +1936,7 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_78"
+  - rule_id: "rule_68"
     name: "No Deprecated JSON-RPC APIs"
     severity: "violation"
     category: "jsonrpc_compliance"
@@ -2050,10 +1944,18 @@ general_rules:
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."
 
-  - rule_id: "rule_79"
-    name: "All Acquired Pointers Cleared After Deinitialize"
+  - rule_id: "rule_69"
+    name: "INTERFACE_MAP Mandatory"
     severity: "violation"
-    category: "lifecycle_integrity"
-    review_question: "Using semantic reasoning over all member pointer variables and Deinitialize(), is every pointer member that was set to a non-null value during the plugin's lifetime explicitly set to nullptr in Deinitialize() (in addition to being released), such that a double-Deinitialize would not cause a double-release?"
+    category: "conventions"
+    review_question: "Using semantic reasoning over the plugin class declaration, does every class that implements COM interfaces have a proper INTERFACE_MAP (BEGIN_INTERFACE_MAP / END_INTERFACE_MAP), and if the class implements a JSON-RPC interface, is IDispatch listed in the interface map?"
+    review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
+    evidence_requirement: "Provide exact [File:line] citation for any failure."
+
+  - rule_id: "rule_70"
+    name: "No printf — Use Thunder Tracing"
+    severity: "warning"
+    category: "code_quality_security"
+    review_question: "Using semantic reasoning over all source files, is the plugin free of printf, fprintf, std::cout, std::cerr, and similar direct output calls — using Thunder tracing (TRACE, TRACE_L1, etc.) exclusively for logging and debug output?"
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
     evidence_requirement: "Provide exact [File:line] citation for any failure."

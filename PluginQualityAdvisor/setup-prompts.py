@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-setup-prompts.py — Registers ThunderTools PluginQA prompts with VS Code.
+setup-prompts.py — Registers ThunderTools PluginQualityAdvisor prompts with VS Code.
 
-Adds "ThunderTools/PluginQA/Prompts": true to chat.promptFilesLocations
+Adds "ThunderTools/PluginQualityAdvisor/Prompts": true to chat.promptFilesLocations
 in VS Code settings.json. Works on Windows, macOS, and Linux.
 
 No external dependencies — stdlib only.
@@ -16,7 +16,7 @@ import shutil
 import sys
 from datetime import datetime
 
-PROMPTS_KEY = "ThunderTools/PluginQA/Prompts"
+PROMPTS_KEY = "ThunderTools/PluginQualityAdvisor/Prompts"
 
 
 def find_settings_path():
@@ -96,13 +96,15 @@ def main():
     prompt_locations = settings.get("chat.promptFilesLocations", {})
     if isinstance(prompt_locations, dict) and prompt_locations.get(PROMPTS_KEY) is True:
         print()
-        print("Already configured — 'ThunderTools/PluginQA/Prompts' is already in chat.promptFilesLocations.")
+        print("Already configured — 'ThunderTools/PluginQualityAdvisor/Prompts' is already in chat.promptFilesLocations.")
         print("No changes needed.")
         print()
         print("Available slash commands:")
         print("  /thunder-plugin-review <PluginName>")
         print("  /thunder-interface-review <InterfaceName>")
         print("  /thunder-generate-plugin")
+        print("  /thunder-plugin-rule-manager")
+        print("  /thunder-interface-rule-manager")
         sys.exit(0)
 
     # Create backup before modifying
@@ -136,6 +138,8 @@ def main():
     print("  /thunder-plugin-review <PluginName>")
     print("  /thunder-interface-review <InterfaceName>")
     print("  /thunder-generate-plugin")
+    print("  /thunder-plugin-rule-manager")
+    print("  /thunder-interface-rule-manager")
     print()
 
 

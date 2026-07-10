@@ -14,7 +14,7 @@ User types /thunder-plugin-review Dictionary
 thunder-plugin-review.prompt.md
        │
        ▼
-rules/thunder-plugin-rules.yaml   ← 79 unified rules (rule_01 to rule_79)
+rules/thunder-plugin-rules.yaml   ← 70 unified rules (rule_01 to rule_70)
        │
        ▼
 Plugin files in ThunderNanoServices/Dictionary/
@@ -47,7 +47,7 @@ Atomically updates 4 files:
 
 **File type:** VS Code Copilot Chat prompt files (`.prompt.md`)
 **Registration:** `chat.promptFilesLocations` key in VS Code `settings.json`
-  set to `ThunderTools/PluginQA/Prompts: true`
+  set to `ThunderTools/PluginQualityAdvisor/Prompts: true`
 **Invocation:** User types `/thunder-plugin-review`, `/thunder-interface-review`,
   `/thunder-generate-plugin`, `/thunder-plugin-rule-manager`, or
   `/thunder-interface-rule-manager` in Copilot Chat
@@ -61,10 +61,10 @@ description: Semantic code review for Thunder plugins — understand first, then
 ---
 ```
 
-## Unified Review Methodology (ALL 79 rules)
+## Unified Review Methodology (ALL 70 rules)
 
 Every rule — whether it targets a specific block (rule_01–39) or a broader concern
-(rule_40–79) — uses the same "understand first, then check" approach:
+(rule_39–70) — uses the same "understand first, then check" approach:
 
 1. **UNDERSTAND** — Read ALL plugin source files first. Build a complete mental model
    of the plugin's architecture: lifecycle flow, threading model, ownership patterns,
@@ -102,7 +102,7 @@ defined in the YAML source.
 
 The YAML file contains two sections that produce identical report output:
 
-**Phase checkpoints** (39 rules, under `phase_X_checkpoints` keys):
+**Phase checkpoints** (38 rules, under `phase_X_checkpoints` keys):
 - Fields: `rule_id`, `name`, `severity`, `phase`, `extraction`, `bounded_query`, `verification_logic`, `conditional`, `skip_condition`, `citation`, `fix_template`
 
 **Holistic Rules (8 sub-phases)** (40 rules, under `general_rules` key):
@@ -221,7 +221,6 @@ text like `{PluginName}` in output.
 - Internal helper classes (Notification, Sink, Config, etc.) are excluded
 
 **Conditional checkpoints:**
-Checkpoints rule_09, rule_16, rule_17, rule_18, rule_20, rule_21, rule_22, rule_23, rule_25, rule_29, rule_30, rule_31, rule_33, rule_34, rule_35, rule_36, and rule_38 are conditional.
 If the prerequisite is not found (e.g. no stored IShell pointer for rule_17), the checkpoint SKIPS — it does not fail.
 
 ## Plugin Generator Design
@@ -253,7 +252,7 @@ The `setup-prompts.py` script does the following:
 1. Detect VS Code settings.json location (platform-specific paths, also checks VS Code Insiders)
 2. Create a timestamped backup of existing settings.json
 3. Parse the JSON safely (handle missing file, handle existing `chat.promptFilesLocations`)
-4. Merge the new entry: `"ThunderTools/PluginQA/Prompts": true`
+4. Merge the new entry: `"ThunderTools/PluginQualityAdvisor/Prompts": true`
 5. Write back to settings.json
 6. Print success message and next steps (Ctrl+Shift+P → Reload Window)
 
@@ -263,15 +262,14 @@ The `setup-prompts.py` script does the following:
 ## YAML File Versioning
 
 - `thunder-plugin-rules.yaml`: version 3.3.0
-  - 39 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4,
+  - 38 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4,
     Phase5C:2, Phase6:3, Phase7:1, Phase8:1
   - New checkpoints added over v1.0.0: rule_08 (nullptr after Release), rule_09–10 (COM ownership + no-throw), rule_16
-    (INTERFACE_MAP + JSONRPC), rule_20–rule_23 (full lifecycle correctness), rule_31 (Unavailable in SinkType),
-    rule_34 (connectionId guard),
-    rule_36 (JSON::Container configuration), rule_37 (no hardcoded numeric tuning parameters)
+    rule_33 (connectionId guard),
+    rule_35 (JSON::Container configuration), rule_36 (no hardcoded numeric tuning parameters)
 
 - `thunder-interface-rules.yaml`: version 3.2.2
-  - 15 core rules + 4 advisory = 19 total
+  - 16 core rules + 3 advisory = 17 total
   - Core::hresult MANDATORY for Thunder 5.0+ @json interfaces
-  - advisory_m5_1 explicitly excludes std::vector (core_17_1 covers that)
+  - advisory_m3_1 explicitly excludes std::vector (core_16_1 covers that)
   - No `category` field — removed in v3.2.2

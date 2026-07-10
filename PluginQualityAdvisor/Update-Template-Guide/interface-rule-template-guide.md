@@ -4,9 +4,9 @@ Use this guide to fill in a rule template and pass it to `/thunder-interface-rul
 A filled template lets you skip the interactive questionnaire entirely — the manager parses your document,
 validates it, and updates all three files in one shot:
 
-- `ThunderTools/PluginQA/rules/thunder-interface-rules.yaml`
-- `ThunderTools/PluginQA/Prompts/thunder-interface-review.prompt.md`
-- `ThunderTools/openspec/changes/thunder-plugin-qa/specs/interface/spec.md`
+- `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml`
+- `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
+- `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/interface/spec.md`
 
 ---
 
@@ -96,8 +96,8 @@ ThunderInterfaces/interfaces/IExample.h — description
 
 Format: `core_X_1` for core rules or `advisory_mX_1` for advisory rules.
 
-Current core rules: `core_1_1` through `core_17_1` (15 rules)
-Current advisory rules: `advisory_m1_1`, `advisory_m2_1`, `advisory_m3_1`, `advisory_m5_1` (4 rules)
+Current core rules: `core_1_1` through `core_18_1` (16 rules)
+Current advisory rules: `advisory_m1_1`, `advisory_m2_1`, `advisory_m3_1` (3 rules)
 
 - **Add** — leave blank to auto-assign the next available ID, or specify your own
 - **Update/Remove** — mandatory; this is how the manager finds the rule
@@ -130,7 +130,7 @@ Short descriptive title in Title Case. 2-5 words.
 | `warning` | Should fix — best practice with real risk |
 | `suggestion` | Optional — style or convention preference |
 
-Note: All 15 core rules currently use `violation`. Advisory rules use mixed severities.
+Note: Core rules use mixed severities (suggestion, warning, or violation). Advisory rules also use mixed severities.
 
 ---
 
