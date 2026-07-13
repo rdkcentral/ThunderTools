@@ -6,7 +6,7 @@ permissions:
 on:
   workflow_dispatch:
   push:
-    branches: [ "master", "Development/Test-Thunder-Tags" ] #temp change
+    branches: [ master ]
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
