@@ -6,13 +6,13 @@ permissions:
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ "master", "Development/Test-Thunder-Tags" ] #temp change
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
   pull_request:
-    branches: [ master ]
+    branches: [ "master", "Development/Test-Thunder-Tags" ] #temp change
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
