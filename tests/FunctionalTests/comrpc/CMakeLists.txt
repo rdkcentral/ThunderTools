@@ -91,6 +91,14 @@ if(TEST_JSON_UNCOMPLIANT_COL)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsed.cpp)
 endif()
 
+if(TEST_ANNOTATIONS)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestAnnotations.cpp)
+endif()
+
+if(TEST_EXTENDED_FORMAT)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestExtendedFormat.cpp)
+endif()
+
 target_include_directories(ComRpcFunctionalTests
     PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}              # For interfaces/ prefix (generated code)

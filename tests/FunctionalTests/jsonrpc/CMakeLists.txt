@@ -73,6 +73,14 @@ if(TEST_JSON_UNCOMPLIANT_COL)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsedJsonRpc.cpp)
 endif()
 
+if(TEST_ANNOTATIONS)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAnnotationsJsonRpc.cpp)
+endif()
+
+if(TEST_EXTENDED_FORMAT)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestExtendedFormatJsonRpc.cpp)
+endif()
+
 # TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support
 
 target_link_libraries(JsonRpcFunctionalTests
