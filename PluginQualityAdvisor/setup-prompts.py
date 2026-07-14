@@ -2,7 +2,7 @@
 """
 setup-prompts.py — Registers ThunderTools PluginQualityAdvisor prompts with VS Code.
 
-Adds "ThunderTools/PluginQualityAdvisor/Prompts": true to chat.promptFilesLocations
+Adds the absolute path to the Prompts folder to chat.promptFilesLocations
 in VS Code settings.json. Works on Windows, macOS, and Linux.
 
 No external dependencies — stdlib only.
@@ -15,8 +15,13 @@ import platform
 import shutil
 import sys
 from datetime import datetime
+from pathlib import Path
 
-PROMPTS_KEY = "ThunderTools/PluginQualityAdvisor/Prompts"
+# Compute absolute path to the Prompts folder relative to this script's location
+_SCRIPT_DIR = Path(__file__).resolve().parent
+_PROMPTS_DIR = _SCRIPT_DIR / "Prompts"
+# Use forward slashes for VS Code compatibility on all platforms
+PROMPTS_KEY = str(_PROMPTS_DIR).replace("\\", "/")
 
 
 def find_settings_path():
@@ -96,7 +101,7 @@ def main():
     prompt_locations = settings.get("chat.promptFilesLocations", {})
     if isinstance(prompt_locations, dict) and prompt_locations.get(PROMPTS_KEY) is True:
         print()
-        print("Already configured — 'ThunderTools/PluginQualityAdvisor/Prompts' is already in chat.promptFilesLocations.")
+        print(f"Already configured — '{PROMPTS_KEY}' is already in chat.promptFilesLocations.")
         print("No changes needed.")
         print()
         print("Available slash commands:")

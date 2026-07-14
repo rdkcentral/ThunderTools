@@ -10,17 +10,24 @@ AI-driven validation tools for Thunder plugin and COM interface development, pow
 2. **ThunderNanoServices** and **ThunderInterfaces** repositories in your workspace (or specify the path when prompted)
 3. Register the prompt file location in VS Code:
 
-   Open your VS Code `settings.json` (`Ctrl+Shift+P` -> `Preferences: Open User Settings (JSON)`) and add:
+   **Option A — Manual (recommended):**
+   Open your VS Code `settings.json` (`Ctrl+Shift+P` -> `Preferences: Open User Settings (JSON)`) and add the absolute path to the Prompts folder:
 
-```json
+   ```json
    {
      "chat.promptFilesLocations": {
-       "ThunderTools/PluginQualityAdvisor/Prompts": true
+       "/full/path/to/ThunderTools/PluginQualityAdvisor/Prompts": true
      }
    }
-```
+   ```
 
-The path should point to the `Prompts` folder inside PluginQualityAdvisor. Use the path relative to your workspace root, or an absolute path if ThunderTools is outside the workspace.
+   The path must be the **absolute path** to the `Prompts` folder.
+
+   **Option B — Automated (Python script):**
+   ```bash
+   python3 PluginQualityAdvisor/setup-prompts.py
+   ```
+   This detects the absolute path to the `Prompts` folder and writes it to your VS Code `settings.json` automatically.
 
 4. **Reload VS Code** — press `Ctrl+Shift+P` -> `Developer: Reload Window`
 
