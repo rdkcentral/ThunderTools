@@ -27,6 +27,15 @@
 namespace Thunder {
 namespace ComRpcServer {
 
+    // Returns the Unix socket path for COM-RPC communication.
+    // Configurable via COMRPC_SOCKET_PATH env variable to allow parallel CI
+    // matrix builds (e.g. 32-bit and 64-bit) to run without socket collisions.
+    static const char* SocketPath()
+    {
+        const char* path = ::getenv("COMRPC_SOCKET_PATH");
+        return path ? path : "/tmp/comrpc_test.socket";
+    }
+
     // RPC::Communicator-based server using Acquire() pattern
     class ComRpcServer : public RPC::Communicator {
     public:
@@ -35,7 +44,7 @@ namespace ComRpcServer {
 
         ComRpcServer()
             : RPC::Communicator(
-                Core::NodeId("/tmp/comrpc_test.socket"),
+                Core::NodeId(SocketPath()),
                 _T(""),           // connector
                 _T("ComRpcServer")) // callsign
         {
@@ -44,7 +53,7 @@ namespace ComRpcServer {
             if (result != Core::ERROR_NONE) {
                 printf("Failed to open RPC Communicator: %u\n", result);
             } else {
-                printf("ComRpcServer RPC Communicator opened on /tmp/comrpc_test.socket\n");
+                printf("ComRpcServer RPC Communicator opened on %s\n", SocketPath());
             }
         }
 
