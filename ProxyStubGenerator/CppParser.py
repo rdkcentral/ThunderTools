@@ -405,6 +405,16 @@ def LookupIdentifier(identifier, scope=None):
         assert len(found) == 1, "Too many references found, need scope for %s" % identifier
         selected = found[-1]
 
+    if selected:
+        # count references to instantiated template classes, we might not want to emit proxystubs for unused templates
+        if isinstance(selected, InstantiatedTemplateClass):
+            selected.AddRef()
+        elif isinstance(selected, Typedef):
+            resolved = selected.DataType()
+            if not isinstance(resolved, str):
+                if isinstance(resolved.type, InstantiatedTemplateClass):
+                    resolved.type.AddRef()
+
     return selected
 
 
@@ -557,6 +567,8 @@ class Identifier():
                     self.meta.decorators.append("encode:ip")
                 elif tag == "ENCODEMAC":
                     self.meta.decorators.append("encode:mac")
+                elif tag == "ENCODEARRAY":
+                    self.meta.decorators.append("encode:array")
                 elif tag == "OPTIONAL":
                     self.meta.decorators.append("optional")
                 elif tag == "EXTRACT":
@@ -1681,6 +1693,10 @@ class InstantiatedTemplateClass(Class):
         self.args = args
         self.resolvedArgs = [Identifier(parent_block, self, [x], []) for x in args]
         self.type = self.TypeName()
+        self.refs = 0
+
+    def AddRef(self):
+        self.refs += 1
 
     def TypeName(self):
         return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join([str(x) for x in p.type]) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
@@ -1855,10 +1871,10 @@ def __Tokenize(contents,log = None):
     inComment = 0
     for token in tokens:
         if token.startswith("// @_file:"):
-            line = 1
+            line = int(token[11:].split(',')[1])
             eoltokens.append(token)
         else:
-            if not inComment:
+            if not inComment and token.strip() and not token.lstrip().startswith("//"):
                 eoltokens.append("// @_line:" + str(line) + " ")
 
             if (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
@@ -1867,7 +1883,8 @@ def __Tokenize(contents,log = None):
             else:
                 eoltokens.append(token)
 
-            line += 1
+            if not token.startswith("// @_"):
+                line += 1
 
             inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
@@ -1913,7 +1930,7 @@ def __Tokenize(contents,log = None):
             if skipmode:
                 if "@_file" in token:
                     skipmode = False
-                else:
+                elif token not in ['}', '{', ';'] and not token.startswith("// @_"):
                     continue
 
             def __ParseParameterValue(string, tag, mandatory=True, append=True, relay=None):
@@ -2092,6 +2109,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ENCODEIP")
                 elif _find("@encode:mac", token):
                     tagtokens.append("@ENCODEMAC")
+                elif _find("@encode:array", token):
+                    tagtokens.append("@ENCODEARRAY")
 
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
@@ -2152,8 +2171,9 @@ def __Tokenize(contents,log = None):
 
                 if _find("@_file", token):
                     idx = token.index("@_file:") + 7
-                    tagtokens.append("@FILE:" + token[idx:])
-                    current_file = token[idx:]
+                    _current_file = token[idx:].split(',')[0]
+                    tagtokens.append("@FILE:" + _current_file)
+                    current_file = _current_file
                 if _find("@_line", token):
                     idx = token.index("@_line:") + 7
                     if len(tagtokens) and not isinstance(tagtokens[-1],list) and tagtokens[-1].startswith("@LINE:"):
@@ -2206,6 +2226,7 @@ def CurrentLine():
 
 # Builds a syntax tree (data structures only) of C++ source code
 def Parse(contents,log = None):
+
     # Start in global namespace.
     global global_namespace
     global current_file
@@ -2230,14 +2251,11 @@ def Parse(contents,log = None):
             current_line = int(token[6:].split()[0])
         elif isinstance(token, str) and token.startswith("@FILE:"):
             current_file = token[6:]
-            tokens.append("@GLOBAL")
-            line_numbers.append(current_line)
             files.append(current_file)
         else:
             tokens.append(token)
             line_numbers.append(current_line)
             files.append(current_file)
-
 
     global_namespace = Namespace(None)
 
@@ -2260,6 +2278,7 @@ def Parse(contents,log = None):
     collapsed_next = False
     compliant_next = False
     iterator_next = False
+    wrap_next = False
     sourcelocation_next = False
     text_next = None
     in_typedef = False
@@ -2347,32 +2366,6 @@ def Parse(contents,log = None):
             i += 2
         elif tokens[i] == "@ITERATOR":
             iterator_next = True
-            tokens[i] = ";"
-            i += 1
-        elif tokens[i] == "@GLOBAL":
-            current_block = [global_namespace]
-            next_block = None
-            last_template_def = []
-            min_index = 0
-            omit_mode = False
-            omit_next = False
-            stub_next = False
-            json_next = False
-            object_next = False
-            autoobject_next = False
-            encode_enum_next = False
-            wrap_next = False
-            json_version = ""
-            prefix_next = False
-            prefix_string = ""
-            event_next = False
-            extended_next = False
-            collapsed_next = False
-            compliant_next = False
-            iterator_next = False
-            sourcelocation_next = False
-            text_next = None
-            in_typedef = False
             tokens[i] = ";"
             i += 1
 
@@ -2628,6 +2621,8 @@ def Parse(contents,log = None):
                 new_enum.meta.decorators.append("encode:text")
                 encode_enum_next = False
 
+            text_next = None
+
         # Parse class access specifier...
         elif isinstance(current_block[-1], Class) and tokens[i] == ':':
             current_block[-1]._current_access = tokens[i - 1]
@@ -2856,6 +2851,11 @@ def Parse(contents,log = None):
                         value = entry[where + 1:]
                         del entry[where:]
 
+                    if text_next:
+                        # handle case when @text precedes the first enumerator
+                        entry = entry + ["@TEXT", [text_next]]
+                        text_next = None
+
                     Enumerator(enum, entry, value, enum.type)
                     if tokens[i + 1] == '}':
                         i += 1 # handle ,} situation
@@ -2864,6 +2864,7 @@ def Parse(contents,log = None):
                         break
                     else:
                         j = i + 1
+
                 i += 1
 
             if in_typedef:
@@ -2877,77 +2878,77 @@ def Parse(contents,log = None):
 
 # -------------------------------------------------------------------------
 
-
-def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
+def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=None, quiet=False, omit=False, use_includes=False):
     contents = ""
-    global current_file
+    file_path = None
+
+    if inclusions is None:
+        inclusions = []
+
+    if source_file[0] == '@':
+        quiet = True
+        source_file = source_file[1:]
+
+    if not parent_file:
+        parent_file = source_file
+
     abs_source_file = os.path.abspath(source_file)
 
-    if abs_source_file not in initial:
-        try:
-            with open(source_file) as file:
-                file_content = file.read()
-                pos = 0
-                while True:
-                    idx = file_content.find("@stubgen:include", pos)
-                    if idx == -1:
-                        idx = file_content.find("@insert", pos)
+    if os.path.isfile(abs_source_file):
+        file_path = abs_source_file
 
-                    if idx != -1:
-                        pos = idx + 1
-                        line = file_content[idx:].split("\n", 1)[0]
-                        match = re.search(r' \"(.+?)\"', line)
+    elif not os.path.isabs(source_file) and use_includes:
+        for path in include_paths:
+            abs_source_file = os.path.abspath(os.path.join(path, source_file))
+            if os.path.isfile(abs_source_file):
+                file_path = abs_source_file
+                break
 
-                        if match:
-                            if match.group(1) != os.path.basename(os.path.realpath(source_file)):
-                                tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
+    if file_path in inclusions:
+        pass
 
-                                if os.path.isfile(tryPath):
-                                    prev = current_file
-                                    current_file = source_file
-                                    contents += ReadFile(tryPath, includePaths, False, contents, True)
-                                    current_file = prev
-                                else:
-                                    raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
-                            else:
-                                raise LoaderError(source_file, "can't recursively include self")
-                        else:
-                            match = re.search(r' <(.+?)>', line)
+    elif file_path:
+        inclusions.append(file_path)
 
-                            if match:
-                                found = False
-                                for ipath in includePaths:
-                                    tryPath = os.path.join(ipath, match.group(1))
-
-                                    if os.path.isfile(tryPath):
-                                        prev = current_file
-                                        current_file = source_file
-                                        contents += ReadFile(tryPath, includePaths, True, contents, True)
-                                        current_file = prev
-                                        found = True
-                                if not found:
-                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
-                            else:
-                                raise LoaderError(source_file, "syntax error at '%s'" % source_file)
-                    else:
-                        break
-
-                contents += "// @_file:%s\n" % abs_source_file
-
-                if omit:
-                    contents += "// @_omit_start\n"
-                    contents += file_content
-                    contents += "// @_omit_end\n"
+        with open(file_path) as file:
+            file_content = file.readlines()
+            for i,line in enumerate(file_content):
+                match = re.search(r'@(?:insert|stubgen:include)\s*"([^"]+)"', line)
+                if match:
+                    included_file = os.path.join(os.path.dirname(os.path.realpath(file_path)), match.group(1))
+                    included_content = ReadFile(included_file, include_paths, file_path, (i + 2), inclusions, quiet=False, omit=True, use_includes=False)
+                    file_content[i] = included_content
                 else:
-                    contents += file_content
+                    match = re.search(r'@(?:insert|stubgen:include)\s*<([^>]+)>', line)
+                    if match:
+                        included_content = ReadFile(match.group(1), include_paths, file_path, (i + 2), inclusions, quiet=False, omit=True, use_includes=True)
+                        file_content[i] = included_content
+                    else:
+                        match = re.search(r'@insert:weak\s*<([^>]+)>', line)
+                        if match:
+                            included_content = ReadFile(match.group(1), include_paths, file_path, (i + 2), inclusions, quiet=True, omit=True, use_includes=True)
+                            file_content[i] = included_content
 
-                return contents
+            contents = "// @_file:%s,1\n" % (file_path)
 
-        except FileNotFoundError:
-            if not quiet:
-                raise LoaderError(source_file, "failed to open file")
+            if omit:
+                contents += "// @_omit_start\n"
 
-    return ""
+            contents += "".join(file_content)
+
+            if omit:
+                contents += "// @_omit_end\n"
+
+            if index:
+                contents += "// @_file:%s,%i\n" % (parent_file,index)
+
+    elif not quiet:
+        if use_includes:
+            raise LoaderError(parent_file, "can't find '%s' in any of the include paths" % source_file)
+        else:
+            raise LoaderError(parent_file, "failed to open file %s" % source_file)
+
+    return contents
 
 
 def Locate(block_name, tree=None):
@@ -2978,10 +2979,10 @@ def ParseFile(source_file, includePaths = []):
 
 def ParseFiles(source_files, framework_namespace, includePaths = [], log = None):
     contents = ""
+
     for source_file in source_files:
         if source_file:
-            quiet = (source_file[0] == "@")
-            contents += ReadFile((source_file[1:] if quiet else source_file), includePaths, quiet, "")
+            contents += ReadFile(source_file, includePaths, inclusions=[])
             contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
     return Parse(contents, log)

@@ -156,7 +156,7 @@ jobs:
       - name: Checkout gh-pages (baseline)
         if: github.event_name == 'pull_request'
         continue-on-error: true
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: gh-pages
           path: ghpages_baseline
@@ -224,6 +224,14 @@ jobs:
                   baseline "generated" \
                   > "diffs/combined.diff" || true
             fi
+
+            # Strip the differing root from the diff's ---/+++ file header lines so both sides share an identical path
+            sed -i -E \
+               -e 's#^(--- )baseline/#\1#' \
+               -e 's#^(\+\+\+ )generated/#\1#' \
+               -e 's#^(--- )generated/#\1#' \
+               -e 's#^(\+\+\+ )baseline/#\1#' \
+               "diffs/combined.diff"
 
             if [[ -s "diffs/combined.diff" ]]; then
                HAS_DIFF="true"

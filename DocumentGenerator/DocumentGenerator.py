@@ -364,10 +364,9 @@ if __name__ == "__main__":
         try:
             # unless DOCS_REPO_URL is changed the documentation will be deployed in this location:
             # https://webplatformforembedded.github.io/ServicesInterfaceDocumentation/
-            commands = ["mike", "deploy", branch_name, "-p"]
+            commands = ["mike", "deploy", "--push", branch_name]
             if tag:
-                cmd = tag, "-u"
-                commands.extend(cmd)
+                commands.extend(["--update-aliases", tag])
                 
             os.chdir(docs_path)
             ret_val = subprocess.run(commands)

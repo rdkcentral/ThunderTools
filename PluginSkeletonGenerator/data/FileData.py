@@ -52,6 +52,7 @@ class FileData(ABC):
         self.m_terminations = blueprint._TERMINATIONS
         self.m_controls = blueprint._CONTROLS
         self.m_event_notification_entries = getattr(blueprint, "event_notification_entries", [])
+        self.m_profile = blueprint.profile
         self.m_warnings: List[str] = []
 
     @staticmethod
@@ -68,9 +69,9 @@ class FileData(ABC):
 
     def _extractStrippedNamespace(self, full_name: str) -> str:
         parts = full_name.split("::")
-        if parts[0] == "Thunder":
+        if parts[0] in ("Thunder", "WPEFramework"):
             return "::".join(parts[1:-1])
-        return "::".join(parts[:-1])  # for interfaces that might not have Thunder::, I don't know if they exist
+        return "::".join(parts[:-1])  # for interfaces that might use a custom root namespace
     
     def resolveFullName(self, short_name: str):
         """Resolve a short interface name to its parsed fully-qualified name."""
@@ -261,6 +262,10 @@ class FileData(ABC):
             "{{PLUGIN_NAME}}": self.m_plugin_name,
             "{{PLUGIN_NAME_CAPS}}": self.m_plugin_name.upper(),
             "{{YEAR_OF_GENERATION}}": self.m_current_year,
+            "{{FRAMEWORK_NAMESPACE}}": self.m_profile.framework_namespace,
+            "{{FRAMEWORK_CMAKE_PACKAGE}}": self.m_profile.cmake_package,
+            "{{FRAMEWORK_LIBRARY_PREFIX}}": self.m_profile.library_prefix,
+            "{{FRAMEWORK_SINK_TYPE}}": self.m_profile.sink_type,
         }
 
     def static_keys(self) -> Dict[str, str]:
@@ -454,12 +459,20 @@ class HeaderData(FileData):
         result: List[str] = []
 
         if all_notif_entries:
+            method = self.m_profile.remote_connection_revocation_method
             result.append(
-                "void Dangling(const Core::IUnknown* remote, const uint32_t interfaceId) override {\n"
-                "    _parent.Dangling(remote, interfaceId);\n"
+                f"void {method}(const Core::IUnknown* remote, const uint32_t interfaceId) override {{\n"
+                f"    _parent.{method}(remote, interfaceId);\n"
                 "}"
             )
             result.append("")
+
+            for method in self.m_profile.remote_connection_noop_methods:
+                result.append(
+                    f"void {method}(const Core::IUnknown* /* remote */, const uint32_t /* interfaceId */) override {{\n"
+                    "}"
+                )
+                result.append("")
 
         for fq_name, cls_data in all_notif_entries:
             is_event = fq_name in event_map
@@ -597,7 +610,7 @@ class HeaderData(FileData):
                     ns = self._iface_namespace(iface)
                     lines.append(f"{ns}::{iface}* _impl{convertToBaseName(iface)};")
 
-                lines.append("Core::SinkType<Notification> _notification;")
+                lines.append(f"{self.m_profile.sink_type}<Notification> _notification;")
 
             if self.m_notification_interfaces and not self.m_out_of_process:
                 lines.append("mutable Core::CriticalSection _adminLock;")

@@ -244,6 +244,10 @@ class JsonType():
         return self.cpp_type.replace("%s::%s::" % (config.DATA_NAMESPACE, self.root.cpp_class), "")
 
     @property
+    def typed_print_name(self):
+        return self.print_name
+
+    @property
     def cpp_class(self): # C++ class type of the object
         raise RuntimeError("Can't instantiate '%s'" % self.print_name)
 
@@ -255,6 +259,8 @@ class JsonType():
     def cpp_native_type_cv(self):
         if self.schema.get("@cv"):
             return self.schema.get("@cv") + " " + self.cpp_native_type
+        else:
+            return self.cpp_native_type
 
     @property
     def cpp_native_type_opt(self):
@@ -293,8 +299,10 @@ class JsonType():
 
     @property
     def local_proto(self):
-        assert self.schema.get("@proto")
-        return self.cpp_native_type_proto.replace('@', self.local_name)
+        if "@proto" in self.schema:
+            return self.cpp_native_type_proto.replace('@', self.local_name)
+        else:
+            return "%s %s" % (self.cpp_native_type_opt_cv, self.local_name)
 
     @property
     def cpp_concrete_type(self):
@@ -442,7 +450,6 @@ class JsonRefCounted():
 
     def RefCount(self):
         return len(self.refs)
-
 
 class JsonTime(JsonNative, JsonType):
     def __init__(self, name, parent, schema, time_type):
@@ -946,6 +953,10 @@ class JsonMethod(JsonObject):
 
         return (_name[0].upper() + _name[1:])
 
+    @property
+    def typed_print_name(self):
+        return "method " + super().print_name
+
     def Headline(self):
         return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
                            " (DEPRECATED)" if self.deprecated else " (OBSOLETE)" if self.obsolete else "")
@@ -967,6 +978,10 @@ class JsonNotification(JsonMethod):
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
 
+    @property
+    def typed_print_name(self):
+        return "event " + super().print_name
+
     def _Check(self):
         pass
 
@@ -976,6 +991,11 @@ class JsonCallback(JsonMethod):
         self.notification = notification
         self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
         self.notification.sendif_deprecated = False
+
+    @property
+    def typed_print_name(self):
+        return "callback " + super().print_name
+
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
@@ -1003,6 +1023,10 @@ class JsonProperty(JsonMethod):
                 self.index[1] = self.index[0]
         else:
             self.index = None
+
+    @property
+    def typed_print_name(self):
+        return "property " + super().print_name
 
 
 class JsonRpcSchema(JsonType):
@@ -1071,7 +1095,7 @@ class JsonRpcSchema(JsonType):
         _AddMethods("events", schema, lambda name, obj, method: JsonNotification(name, obj, method))
 
         if not self.methods:
-            raise JsonParseError("no methods, properties or events defined in %s" % self.schema["@fullname"] if "@fullname" in self.schema else self.name)
+            raise JsonParseError("no methods, properties or events defined in %s" % (self.schema["@fullname"] if "@fullname" in self.schema else self.name))
 
     @property
     def root(self):
