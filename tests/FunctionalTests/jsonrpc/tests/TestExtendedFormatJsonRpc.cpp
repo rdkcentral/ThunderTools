@@ -69,9 +69,10 @@ TEST_F(TestExtendedFormatJsonRpc, Property_Get_ReturnsDirectValue) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("volume", R"(88)", response));
-    // Then GET should return the value directly (not wrapped in {"value":88})
+    // In @extended format, property GET uses empty params (not "{}")
+    // because the collapsed format interprets "{}" as a value to parse
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("volume", R"({})", response));
+        CallMethod("volume", "", response));
     EXPECT_EQ(response, "88") << "Response: " << response;
 }
 
@@ -79,7 +80,7 @@ TEST_F(TestExtendedFormatJsonRpc, Property_ReadOnly_Get_ReturnsDirectString) {
     // Read-only string property — returns the string directly
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("name", R"({})", response));
+        CallMethod("name", "", response));
     EXPECT_NE(response.find("DefaultDevice"), string::npos)
         << "Response: " << response;
 }
@@ -92,9 +93,9 @@ TEST_F(TestExtendedFormatJsonRpc, Property_Get_NotWrappedInValueObject) {
     // Set volume first
     string response;
     CallMethod("volume", R"(42)", response);
-    // GET should NOT return {"value":42} — it should return just 42
+    // In @extended format, property GET uses empty params
     EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("volume", R"({})", response));
+        CallMethod("volume", "", response));
     // The response should be the bare value, not wrapped
     EXPECT_EQ(response.find("\"value\""), string::npos)
         << "Properties in @extended should NOT be wrapped in {\"value\":...}. Response: " << response;

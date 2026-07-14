@@ -136,11 +136,11 @@ namespace FunctionalTest {
 
         // @brief Set active features using bitmask.
         // @param features Active feature flags.
-        virtual Core::hresult SetFeatures(const Features features /* @in */) = 0;
+        virtual Core::hresult SetFeatures(const Features features /* @in @encode:bitmask */) = 0;
 
         // @brief Get active features.
         // @param features Receives the active feature flags.
-        virtual Core::hresult GetFeatures(Features& features /* @out */) const = 0;
+        virtual Core::hresult GetFeatures(Features& features /* @out @encode:bitmask */) const = 0;
 
         // =================================================================
         // encode:base64 — variable-length buffer encoding
@@ -248,7 +248,7 @@ namespace FunctionalTest {
 
         // @brief Trigger a feature change event (for testing).
         // @param features New features to report.
-        virtual Core::hresult TriggerFeaturesEvent(const Features features /* @in */) = 0;
+        virtual Core::hresult TriggerFeaturesEvent(const Features features /* @in @encode:bitmask */) = 0;
     };
 
 } // namespace FunctionalTest
