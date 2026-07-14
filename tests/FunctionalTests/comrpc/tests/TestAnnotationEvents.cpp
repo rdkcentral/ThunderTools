@@ -148,12 +148,18 @@ protected:
         Testing::TestHarness<ITestAnnotationEvents>::SetUp();
         _sink = new AnnotationEventSink();
         ASSERT_EQ(_proxy->Register(_sink), Core::ERROR_NONE);
+        // Wait for the @statuslistener background thread to complete its
+        // reverse-proxy call before proceeding with the test
+        _sink->WaitForCount(1);
     }
 
     void TearDown() override
     {
         if (_sink != nullptr) {
             _proxy->Unregister(_sink);
+            // Allow the COM-RPC channel to fully reset after Unregister
+            // before the next test's Register call (avoids channel state race)
+            SleepMs(150);
             delete _sink;
             _sink = nullptr;
         }
