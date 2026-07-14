@@ -70,12 +70,19 @@ namespace TestImplementation {
             return Core::ERROR_NOT_EXIST;
         }
 
+        // All notification callbacks are dispatched on background threads to avoid
+        // COM-RPC channel deadlock. The server's worker thread cannot make a reverse-proxy
+        // call on the same channel it's currently serving a request on.
+
         Core::hresult SetCaps(const Caps caps) override
         {
             _caps = caps;
             std::lock_guard<std::mutex> lock(_mutex);
             if (_notification) {
-                _notification->OnCapsChanged(_caps);
+                INotification* sink = _notification;
+                sink->AddRef();
+                Caps c = _caps;
+                std::thread([sink, c]() { sink->OnCapsChanged(c); sink->Release(); }).detach();
             }
             return Core::ERROR_NONE;
         }
@@ -90,7 +97,9 @@ namespace TestImplementation {
         {
             std::lock_guard<std::mutex> lock(_mutex);
             if (_notification) {
-                _notification->OnPortStateChanged(port, state);
+                INotification* sink = _notification;
+                sink->AddRef();
+                std::thread([sink, port, state]() { sink->OnPortStateChanged(port, state); sink->Release(); }).detach();
             }
             return Core::ERROR_NONE;
         }
@@ -99,7 +108,10 @@ namespace TestImplementation {
         {
             std::lock_guard<std::mutex> lock(_mutex);
             if (_notification) {
-                _notification->OnStatusUpdate(message);
+                INotification* sink = _notification;
+                sink->AddRef();
+                string msg = message;
+                std::thread([sink, msg]() { sink->OnStatusUpdate(msg); sink->Release(); }).detach();
             }
             return Core::ERROR_NONE;
         }
@@ -108,7 +120,9 @@ namespace TestImplementation {
         {
             std::lock_guard<std::mutex> lock(_mutex);
             if (_notification) {
-                _notification->OnLegacyChannelEvent(channel, level);
+                INotification* sink = _notification;
+                sink->AddRef();
+                std::thread([sink, channel, level]() { sink->OnLegacyChannelEvent(channel, level); sink->Release(); }).detach();
             }
             return Core::ERROR_NONE;
         }
