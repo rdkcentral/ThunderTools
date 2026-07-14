@@ -133,8 +133,6 @@ namespace TestImplementation {
                     sink->Release();
                 }).detach();
             }
-                _notification->OnLegacyChannelEvent(channel, level);
-            }
             return Core::ERROR_NONE;
         }
 
