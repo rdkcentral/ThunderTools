@@ -148,10 +148,9 @@ TEST_F(TestAnnotationsJsonRpc, TextStructMembers_OriginalCppNames_Rejected) {
     uint32_t result = CallMethod("tags::echoDeviceInfo",
         R"({"input":{"Name":"MyDevice","Version":42,"Active":true}})",
         response);
-    // Either fails entirely or produces empty/default output fields
+    // Either fails entirely or produces default-valued output (empty string, 0, false)
     if (result == Core::ERROR_NONE) {
-        // Fields should be absent or default-valued since the keys don't match
-        EXPECT_EQ(response.find("\"MyDevice\""), string::npos)
+        EXPECT_EQ(response, R"({"deviceName":"","firmwareVersion":0,"isActive":false})")
             << "Original C++ names should not be recognized. Response: " << response;
     }
 }
@@ -309,9 +308,7 @@ TEST_F(TestAnnotationsJsonRpc, DISABLED_ExtractStructArray_SingleElement_Unwrapp
         CallMethod("tags::echoPoints",
             R"({"input":[{"x":10,"y":20}]})", response));
     // Response should be a single object, NOT wrapped in array
-    EXPECT_NE(response.find("\"x\""), string::npos) << "Response: " << response;
-    EXPECT_NE(response.find("\"y\""), string::npos) << "Response: " << response;
-    EXPECT_EQ(response.find("["), string::npos)
+    EXPECT_EQ(response, R"({"x":10,"y":20})")
         << "Single element should be unwrapped. Response: " << response;
 }
 

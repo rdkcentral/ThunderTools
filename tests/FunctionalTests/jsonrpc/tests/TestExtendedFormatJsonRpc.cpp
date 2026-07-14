@@ -81,8 +81,7 @@ TEST_F(TestExtendedFormatJsonRpc, Property_ReadOnly_Get_ReturnsDirectString) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("name", "", response));
-    EXPECT_NE(response.find("DefaultDevice"), string::npos)
-        << "Response: " << response;
+    EXPECT_EQ(response, R"("DefaultDevice")") << "Response: " << response;
 }
 
 // ===========================================================================
@@ -96,7 +95,5 @@ TEST_F(TestExtendedFormatJsonRpc, Property_Get_NotWrappedInValueObject) {
     // In @extended format, property GET uses empty params
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("volume", "", response));
-    // The response should be the bare value, not wrapped
-    EXPECT_EQ(response.find("\"value\""), string::npos)
-        << "Properties in @extended should NOT be wrapped in {\"value\":...}. Response: " << response;
+    EXPECT_EQ(response, "42") << "Response: " << response;
 }

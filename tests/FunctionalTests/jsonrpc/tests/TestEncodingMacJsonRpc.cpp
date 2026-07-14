@@ -56,8 +56,8 @@ TEST_F(TestEncodingMacJsonRpc, VariableMac_8Bytes_SetGet) {
         CallMethod("setVariableMac", R"({"data":"01:02:03:04:05:06:07:08","size":8})", response));
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("getVariableMac", R"({"maxSize":32})", response));
-    EXPECT_NE(response.find("01:02:03:04:05:06:07:08"), string::npos)
-        << "8-byte mac encoding failed. Response: " << response;
+    EXPECT_EQ(response, R"({"data":"01:02:03:04:05:06:07:08","written":8})")
+        << "Response: " << response;
 }
 
 TEST_F(TestEncodingMacJsonRpc, VariableMac_1Byte_SetGet) {
@@ -67,8 +67,8 @@ TEST_F(TestEncodingMacJsonRpc, VariableMac_1Byte_SetGet) {
         CallMethod("setVariableMac", R"({"data":"ff","size":1})", response));
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("getVariableMac", R"({"maxSize":32})", response));
-    EXPECT_NE(response.find("ff"), string::npos)
-        << "1-byte mac encoding failed. Response: " << response;
+    EXPECT_EQ(response, R"({"data":"ff","written":1})")
+        << "Response: " << response;
 }
 
 TEST_F(TestEncodingMacJsonRpc, VariableMac_4Bytes_SetGet) {
@@ -78,6 +78,6 @@ TEST_F(TestEncodingMacJsonRpc, VariableMac_4Bytes_SetGet) {
         CallMethod("setVariableMac", R"({"data":"de:ad:be:ef","size":4})", response));
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("getVariableMac", R"({"maxSize":32})", response));
-    EXPECT_NE(response.find("de:ad:be:ef"), string::npos)
-        << "4-byte mac encoding failed. Response: " << response;
+    EXPECT_EQ(response, R"({"data":"de:ad:be:ef","written":4})")
+        << "Response: " << response;
 }
