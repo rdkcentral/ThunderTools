@@ -213,3 +213,11 @@ TEST_F(TestAnnotations, OptionalBool_SetFalse) {
     ASSERT_EQ(_proxy->FormatText("Hello", uppercase, result), Core::ERROR_NONE);
     EXPECT_EQ(result, "Hello");
 }
+
+// ===========================================================================
+// Empty parameter list (C5) — void method round-trip
+// ===========================================================================
+
+TEST_F(TestAnnotations, Ping_EmptyParams_Succeeds) {
+    EXPECT_EQ(_proxy->Ping(), Core::ERROR_NONE);
+}

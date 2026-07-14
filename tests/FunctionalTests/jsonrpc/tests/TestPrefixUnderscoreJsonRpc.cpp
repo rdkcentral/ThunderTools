@@ -41,16 +41,17 @@ TEST_F(TestPrefixUnderscoreJsonRpc, Add_WithFlatPrefix) {
     EXPECT_EQ(response, "30") << "Response: " << response;
 }
 
-TEST_F(TestPrefixUnderscoreJsonRpc, Echo_WithoutPrefix_Rejected) {
+TEST_F(TestPrefixUnderscoreJsonRpc, Add_WithoutPrefix_Rejected) {
     // Calling without the flat_ prefix should fail
+    // (uses 'add' which is unique enough — no other interface has unprefixed 'add')
     string response;
     EXPECT_NE(Core::ERROR_NONE,
-        CallMethod("echo", R"({"value":123})", response));
+        CallMethod("add", R"({"a":10,"b":20})", response));
 }
 
-TEST_F(TestPrefixUnderscoreJsonRpc, Echo_WithColonPrefix_Rejected) {
+TEST_F(TestPrefixUnderscoreJsonRpc, Add_WithColonPrefix_Rejected) {
     // Using :: separator should NOT work for underscore prefix
     string response;
     EXPECT_NE(Core::ERROR_NONE,
-        CallMethod("flat::echo", R"({"value":123})", response));
+        CallMethod("flat::add", R"({"a":10,"b":20})", response));
 }

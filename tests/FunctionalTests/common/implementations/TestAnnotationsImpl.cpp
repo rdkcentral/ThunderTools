@@ -152,6 +152,12 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        // --- Empty parameter list (C5) ---
+        Core::hresult Ping() const override
+        {
+            return Core::ERROR_NONE;
+        }
+
         // --- Events ---
         Core::hresult Register(INotification* notification) override
         {

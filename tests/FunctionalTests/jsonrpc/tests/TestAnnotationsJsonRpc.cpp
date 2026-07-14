@@ -376,6 +376,18 @@ TEST_F(TestAnnotationsJsonRpc, StrictTypeMatching_IntForEnumString_Rejected) {
 }
 
 // ===========================================================================
+// Empty parameter list (Constraint C5) — method with no params still callable
+// ===========================================================================
+
+TEST_F(TestAnnotationsJsonRpc, EmptyParameterList_Ping_Callable) {
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("tags::ping", R"({})", response));
+    // Void method returns no data — response should be empty
+    EXPECT_TRUE(response.empty()) << "Response: " << response;
+}
+
+// ===========================================================================
 // Events via JSON-RPC — @event, @index on events, @statuslistener
 // ===========================================================================
 

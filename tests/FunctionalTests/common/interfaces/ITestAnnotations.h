@@ -249,6 +249,15 @@ namespace FunctionalTest {
         // @brief Trigger a feature change event (for testing).
         // @param features New features to report.
         virtual Core::hresult TriggerFeaturesEvent(const Features features /* @in @encode:bitmask */) = 0;
+
+        // =================================================================
+        // Empty parameter list (Constraint C5)
+        // A method with no input or output params. Verifies the generator
+        // produces a callable handler that simply returns success.
+        // =================================================================
+
+        // @brief No-op method with empty parameter list.
+        virtual Core::hresult Ping() const = 0;
     };
 
 } // namespace FunctionalTest
