@@ -95,6 +95,15 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult TriggerLegacyChannel(const uint8_t channel, const uint32_t level) override
+        {
+            std::lock_guard<std::mutex> lock(_mutex);
+            if (_notification) {
+                _notification->OnLegacyChannelEvent(channel, level);
+            }
+            return Core::ERROR_NONE;
+        }
+
         BEGIN_INTERFACE_MAP(TestAnnotationEventsImpl)
         INTERFACE_ENTRY(FunctionalTest::ITestAnnotationEvents)
         END_INTERFACE_MAP

@@ -216,6 +216,10 @@ if (TEST_ANNOTATIONS)
     AddTestInterface("Annotations" COM_RPC JSON_RPC HAS_EVENTS)
 endif()
 
+if (TEST_ANNOTATION_EVENTS)
+    AddTestInterface("AnnotationEvents" COM_RPC)
+endif()
+
 if (TEST_EXTENDED_FORMAT)
     AddTestInterface("ExtendedFormat" COM_RPC JSON_RPC)
 endif()

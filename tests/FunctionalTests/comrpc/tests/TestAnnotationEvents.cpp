@@ -107,14 +107,27 @@ public:
         _notifEvent.SetEvent();
     }
 
+    void OnLegacyChannelEvent(const uint8_t channel, const uint32_t level) override
+    {
+        _legacyEvents.push_back({channel, level});
+        _notifCount++;
+        _notifEvent.SetEvent();
+    }
+
     struct PortEvent {
         uint8_t port;
         ITestAnnotationEvents::State state;
     };
 
+    struct LegacyEvent {
+        uint8_t channel;
+        uint32_t level;
+    };
+
     std::vector<PortEvent> _portEvents;
     std::vector<ITestAnnotationEvents::Caps> _capsEvents;
     std::vector<string> _statusMessages;
+    std::vector<LegacyEvent> _legacyEvents;
 
     BEGIN_INTERFACE_MAP(AnnotationEventSink)
     INTERFACE_ENTRY(ITestAnnotationEvents::INotification)
@@ -291,4 +304,44 @@ TEST_F(TestAnnotationEvents, MixedEvents_AllDelivered) {
     EXPECT_EQ(_sink->_portEvents.size(), 1u);
     EXPECT_EQ(_sink->_capsEvents.size(), 1u);
     EXPECT_EQ(_sink->_statusMessages.size(), 1u);
+}
+
+// ===========================================================================
+// @index:deprecated — broadcast-to-all semantics
+// The event has @index:deprecated on the channel parameter.
+// Despite having an index value, the event should be delivered to ALL
+// registered clients regardless of which channel they subscribed to.
+// ===========================================================================
+
+TEST_F(TestAnnotationEvents, IndexDeprecated_DeliveredRegardlessOfChannel) {
+    _sink->WaitForCount(1);
+    _sink->Reset();
+
+    // Trigger legacy channel event with different channel values
+    ASSERT_EQ(_proxy->TriggerLegacyChannel(1, 100), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->TriggerLegacyChannel(5, 200), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->TriggerLegacyChannel(99, 300), Core::ERROR_NONE);
+
+    // All events should be delivered to our single subscriber
+    // regardless of channel value (deprecated index = broadcast)
+    ASSERT_TRUE(_sink->WaitForCount(3));
+    ASSERT_EQ(_sink->_legacyEvents.size(), 3u);
+    EXPECT_EQ(_sink->_legacyEvents[0].channel, 1u);
+    EXPECT_EQ(_sink->_legacyEvents[0].level, 100u);
+    EXPECT_EQ(_sink->_legacyEvents[1].channel, 5u);
+    EXPECT_EQ(_sink->_legacyEvents[1].level, 200u);
+    EXPECT_EQ(_sink->_legacyEvents[2].channel, 99u);
+    EXPECT_EQ(_sink->_legacyEvents[2].level, 300u);
+}
+
+TEST_F(TestAnnotationEvents, IndexDeprecated_PayloadIncludesChannel) {
+    _sink->WaitForCount(1);
+    _sink->Reset();
+
+    ASSERT_EQ(_proxy->TriggerLegacyChannel(42, 999), Core::ERROR_NONE);
+
+    ASSERT_TRUE(_sink->WaitForCount(1));
+    // The channel value is still passed in the event payload
+    EXPECT_EQ(_sink->_legacyEvents[0].channel, 42u);
+    EXPECT_EQ(_sink->_legacyEvents[0].level, 999u);
 }

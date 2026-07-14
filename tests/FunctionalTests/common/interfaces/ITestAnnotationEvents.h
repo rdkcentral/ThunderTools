@@ -81,6 +81,15 @@ namespace FunctionalTest {
             // @brief Fired when a global status update occurs (broadcast, no index).
             // @param message Status message.
             virtual void OnStatusUpdate(const string& message) = 0;
+
+            // @brief Fired when a legacy channel event occurs.
+            //        The index is deprecated — event is delivered to all clients
+            //        regardless of channel value (broadcast-to-all semantics).
+            // @param channel Legacy channel identifier (deprecated index).
+            // @param level Signal level.
+            virtual void OnLegacyChannelEvent(
+                const uint8_t channel /* @index:deprecated */,
+                const uint32_t level) = 0;
         };
 
         // @brief Register for event notifications.
@@ -105,6 +114,13 @@ namespace FunctionalTest {
         // @brief Trigger a global status message for testing.
         // @param message Message to broadcast.
         virtual Core::hresult TriggerStatus(const string& message /* @in */) = 0;
+
+        // @brief Trigger a legacy channel event for testing.
+        //        Despite having an index parameter, the event is delivered to all
+        //        subscribers because the index is marked deprecated.
+        // @param channel Channel value (ignored for filtering due to deprecated index).
+        // @param level Signal level to report.
+        virtual Core::hresult TriggerLegacyChannel(const uint8_t channel /* @in */, const uint32_t level /* @in */) = 0;
     };
 
 } // namespace FunctionalTest

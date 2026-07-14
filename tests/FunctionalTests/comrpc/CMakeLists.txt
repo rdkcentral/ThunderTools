@@ -95,6 +95,10 @@ if(TEST_ANNOTATIONS)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestAnnotations.cpp)
 endif()
 
+if(TEST_ANNOTATION_EVENTS)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestAnnotationEvents.cpp)
+endif()
+
 if(TEST_EXTENDED_FORMAT)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestExtendedFormat.cpp)
 endif()
