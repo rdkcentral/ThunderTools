@@ -112,8 +112,6 @@ namespace TestImplementation {
             }
             return Core::ERROR_NONE;
         }
-            return Core::ERROR_NONE;
-        }
 
         BEGIN_INTERFACE_MAP(TestAnnotationEventsImpl)
         INTERFACE_ENTRY(FunctionalTest::ITestAnnotationEvents)
