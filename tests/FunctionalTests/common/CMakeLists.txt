@@ -224,6 +224,14 @@ if (TEST_EXTENDED_FORMAT)
     AddTestInterface("ExtendedFormat" COM_RPC JSON_RPC)
 endif()
 
+if (TEST_PREFIX_UNDERSCORE)
+    AddTestInterface("PrefixUnderscore" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_WRAPPED_INTERFACE)
+    AddTestInterface("WrappedInterface" COM_RPC JSON_RPC)
+endif()
+
 list(LENGTH COM_RPC_INTERFACE_HEADERS NUM_COM_TESTS)
 list(LENGTH JSON_INTERFACE_HEADERS NUM_JSON_TESTS)
 

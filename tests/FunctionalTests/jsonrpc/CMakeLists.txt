@@ -75,10 +75,19 @@ endif()
 
 if(TEST_ANNOTATIONS)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAnnotationsJsonRpc.cpp)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAnnotationsEventsJsonRpc.cpp)
 endif()
 
 if(TEST_EXTENDED_FORMAT)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestExtendedFormatJsonRpc.cpp)
+endif()
+
+if(TEST_PREFIX_UNDERSCORE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestPrefixUnderscoreJsonRpc.cpp)
+endif()
+
+if(TEST_WRAPPED_INTERFACE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestWrappedInterfaceJsonRpc.cpp)
 endif()
 
 # TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support

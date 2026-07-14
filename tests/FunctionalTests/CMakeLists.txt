@@ -36,6 +36,8 @@ option(TEST_JSON_UNCOMPLIANT_COL "Enable @uncompliant:collapsed format tests"   
 option(TEST_ANNOTATIONS           "Enable comprehensive annotation coverage tests" ON)
 option(TEST_ANNOTATION_EVENTS    "Enable @index on events + @statuslistener COM-RPC tests" ON)
 option(TEST_EXTENDED_FORMAT      "Enable @extended format semantics tests"        ON)
+option(TEST_PREFIX_UNDERSCORE    "Enable @prefix with _ separator tests"          ON)
+option(TEST_WRAPPED_INTERFACE    "Enable interface-level @wrapped tests"          ON)
 
 set(CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}" CACHE BOOL "" FORCE)
 
