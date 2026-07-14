@@ -169,7 +169,9 @@ protected:
     void SetUp() override
     {
         ASSERT_NE(_sink, nullptr) << "Sink not registered";
-        // Reset sink state between tests but keep registration alive
+        // Allow any in-flight background threads from the previous test to drain
+        // before resetting the sink state
+        SleepMs(100);
         _sink->Reset();
     }
 
