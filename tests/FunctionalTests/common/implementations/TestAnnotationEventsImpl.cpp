@@ -20,6 +20,7 @@
 #include <ImplementationFactory.h>
 #include <ITestAnnotationEvents.h>
 #include <mutex>
+#include <thread>
 
 namespace Thunder {
 namespace TestImplementation {
@@ -45,8 +46,16 @@ namespace TestImplementation {
             }
             _notification = notification;
             _notification->AddRef();
-            // @statuslistener: deliver current caps immediately
-            _notification->OnCapsChanged(_caps);
+            // @statuslistener: deliver current caps on a background thread to avoid
+            // COM-RPC channel deadlock (cannot make a reverse call on the same channel
+            // that is still processing the Register request).
+            Caps currentCaps = _caps;
+            INotification* sink = _notification;
+            sink->AddRef();
+            std::thread([sink, currentCaps]() {
+                sink->OnCapsChanged(currentCaps);
+                sink->Release();
+            }).detach();
             return Core::ERROR_NONE;
         }
 
