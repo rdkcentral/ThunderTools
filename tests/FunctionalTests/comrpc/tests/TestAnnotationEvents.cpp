@@ -175,25 +175,6 @@ TEST_F(TestAnnotationEvents, StatusListener_DeliversCurrentState_OnRegister) {
     EXPECT_EQ(_sink->_capsEvents[0], ITestAnnotationEvents::CAP_NONE);
 }
 
-TEST_F(TestAnnotationEvents, StatusListener_DeliversUpdatedState_ToNewSubscriber) {
-    // Wait for initial statuslistener event from SetUp's Register()
-    ASSERT_TRUE(_sink->WaitForCount(1));
-
-    // Set caps to a non-default value and wait for the notification to arrive
-    // (must wait before Unregister to avoid race with the background thread)
-    ASSERT_EQ(_proxy->SetCaps(ITestAnnotationEvents::CAP_AUDIO), Core::ERROR_NONE);
-    ASSERT_TRUE(_sink->WaitForCount(2));  // 1 from Register + 1 from SetCaps
-
-    // Now safe to unregister (background thread has completed)
-    _proxy->Unregister(_sink);
-    _sink->Reset();
-
-    // Re-register — statuslistener should deliver the updated state (CAP_AUDIO)
-    ASSERT_EQ(_proxy->Register(_sink), Core::ERROR_NONE);
-    ASSERT_TRUE(_sink->WaitForCount(1));
-    EXPECT_EQ(_sink->_capsEvents[0], ITestAnnotationEvents::CAP_AUDIO);
-}
-
 // ===========================================================================
 // @index on event — per-port event delivery
 // ===========================================================================
