@@ -41,7 +41,7 @@ namespace FunctionalTest {
     // Splitting events into a dedicated COM-RPC-only interface avoids this
     // and matches the pattern used by ITestEvents.
     //
-    // NOTE: No @json tag here — this interface is COM-RPC only.
+    // @json 1.0.0
     // =========================================================================
     struct EXTERNAL ITestAnnotationEvents : virtual public Core::IUnknown {
         enum { ID = ID_TEST_ANNOTATION_EVENTS };
