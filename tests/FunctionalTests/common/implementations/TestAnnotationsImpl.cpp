@@ -161,40 +161,69 @@ namespace TestImplementation {
         // --- Events ---
         Core::hresult Register(INotification* notification) override
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            _notification = notification;
-            if (_notification) {
+            ASSERT(notification != nullptr);
+
+            Features currentFeatures;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                if (_notification != nullptr) {
+                    return Core::ERROR_UNAVAILABLE;
+                }
+                _notification = notification;
                 _notification->AddRef();
-                // statuslistener: deliver current features immediately on registration
-                _notification->OnFeaturesChanged(_features);
+                currentFeatures = _features;
             }
+
+            // statuslistener: deliver current features immediately on registration.
+            // Called outside _mutex to prevent deadlock if callback re-enters.
+            notification->OnFeaturesChanged(currentFeatures);
+
             return Core::ERROR_NONE;
         }
 
         Core::hresult Unregister(INotification* notification) override
         {
+            ASSERT(notification != nullptr);
+
             std::lock_guard<std::mutex> lock(_mutex);
-            if (_notification == notification) {
-                _notification->Release();
-                _notification = nullptr;
+            if (_notification != notification) {
+                return Core::ERROR_UNAVAILABLE;
             }
+            _notification->Release();
+            _notification = nullptr;
             return Core::ERROR_NONE;
         }
 
         Core::hresult TriggerPortEvent(const uint8_t port, const ConnectionState state) override
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_notification) {
-                _notification->OnPortStateChanged(port, state);
+            INotification* sink = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                sink = _notification;
+                if (sink) {
+                    sink->AddRef();
+                }
+            }
+            if (sink) {
+                sink->OnPortStateChanged(port, state);
+                sink->Release();
             }
             return Core::ERROR_NONE;
         }
 
         Core::hresult TriggerFeaturesEvent(const Features features) override
         {
-            std::lock_guard<std::mutex> lock(_mutex);
-            if (_notification) {
-                _notification->OnFeaturesChanged(features);
+            INotification* sink = nullptr;
+            {
+                std::lock_guard<std::mutex> lock(_mutex);
+                sink = _notification;
+                if (sink) {
+                    sink->AddRef();
+                }
+            }
+            if (sink) {
+                sink->OnFeaturesChanged(features);
+                sink->Release();
             }
             return Core::ERROR_NONE;
         }

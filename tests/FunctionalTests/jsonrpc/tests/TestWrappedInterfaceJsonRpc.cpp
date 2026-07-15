@@ -25,7 +25,7 @@ using namespace Thunder;
 
 class TestWrappedInterfaceJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {};
 
-// Interface-level wrapped — ALL single-value returns wrapped in {"value":...}
+// Interface-level wrapped — ALL single-value returns wrapped using parameter name as key
 
 TEST_F(TestWrappedInterfaceJsonRpc, GetCounter_WrappedInObject) {
     string response;

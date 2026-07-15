@@ -115,9 +115,8 @@ TEST_F(TestAnnotationsEventsJsonRpc, SubscribeAndReceivePortEvent) {
         CallMethod("tags::triggerPortEvent", R"({"port":1,"state":"connecting"})", response));
 
     // Wait for the event to be delivered
-    if (collector->WaitForEvents(1)) {
-        EXPECT_EQ(collector->_events[0].event, "tags::onPortStateChanged");
-    }
+    ASSERT_TRUE(collector->WaitForEvents(1)) << "Timed out waiting for onPortStateChanged event";
+    EXPECT_EQ(collector->_events[0].event, "tags::onPortStateChanged");
 
     UnsubscribeEvent(collector, "tags::onPortStateChanged", callsign);
     collector->Release();
@@ -140,9 +139,8 @@ TEST_F(TestAnnotationsEventsJsonRpc, SubscribeAndReceiveFeaturesEvent) {
     EXPECT_EQ(Core::ERROR_NONE,
         CallMethod("tags::triggerFeaturesEvent", R"({"features":["FEAT_WIFI","FEAT_NFC"]})", response));
 
-    if (collector->WaitForEvents(1)) {
-        EXPECT_EQ(collector->_events[0].event, "tags::onFeaturesChanged");
-    }
+    ASSERT_TRUE(collector->WaitForEvents(1)) << "Timed out waiting for onFeaturesChanged event";
+    EXPECT_EQ(collector->_events[0].event, "tags::onFeaturesChanged");
 
     UnsubscribeEvent(collector, "tags::onFeaturesChanged", callsign);
     collector->Release();

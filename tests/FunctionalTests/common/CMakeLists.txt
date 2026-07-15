@@ -77,7 +77,7 @@ target_link_libraries(FunctionalTestJsonSources
 )
 
 macro(AddTestInterface TestName)
-    cmake_parse_arguments(ARG "COM_RPC;JSON_RPC;HAS_EVENTS" "" "" ${ARGN})
+    cmake_parse_arguments(ARG "COM_RPC;JSON_RPC;HAS_EVENTS" "" "EVENT_HANDLERS" ${ARGN})
     
     message(STATUS "Enabling ${TestName} test")
     
@@ -96,10 +96,26 @@ macro(AddTestInterface TestName)
             # Event-bearing interfaces require a 3-parameter Register() call
             # with an IHandler* for statuslistener / event dispatch.
             # We provide a minimal no-op handler that satisfies the non-null assertion.
+            #
+            # EVENT_HANDLERS must list the statuslistener event names (e.g. "OnFeaturesChanged")
+            # so the generated NoOpHandler overrides the correct IHandler methods.
+            # The generated IHandler method name follows the pattern:
+            #   On<EventName>EventRegistration(const string&, Status)
+            if(NOT ARG_EVENT_HANDLERS)
+                message(FATAL_ERROR "HAS_EVENTS requires EVENT_HANDLERS listing the statuslistener event names for ${TestName}")
+            endif()
+
+            set(_handler_overrides "")
+            foreach(_event ${ARG_EVENT_HANDLERS})
+                string(APPEND _handler_overrides
+                    "            void On${_event}EventRegistration(const string&, const PluginHost::JSONRPCSupportsEventStatus::Status) override {}\n"
+                )
+            endforeach()
+
             string(APPEND JSON_RPC_REGISTRATIONS
                 "    {\n"
                 "        struct NoOpHandler : FunctionalTest::JTest${TestName}::IHandler {\n"
-                "            void OnOnFeaturesChangedEventRegistration(const string&, const PluginHost::JSONRPCSupportsEventStatus::Status) override {}\n"
+                "${_handler_overrides}"
                 "        };\n"
                 "        static NoOpHandler handler;\n"
                 "        auto* impl = static_cast<FunctionalTest::ITest${TestName}*>(\n"
@@ -213,7 +229,7 @@ if (TEST_JSON_UNCOMPLIANT_COL)
 endif()
 
 if (TEST_ANNOTATIONS)
-    AddTestInterface("Annotations" COM_RPC JSON_RPC HAS_EVENTS)
+    AddTestInterface("Annotations" COM_RPC JSON_RPC HAS_EVENTS EVENT_HANDLERS "OnFeaturesChanged")
 endif()
 
 if (TEST_ANNOTATION_EVENTS)

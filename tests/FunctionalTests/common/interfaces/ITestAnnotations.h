@@ -193,7 +193,10 @@ namespace FunctionalTest {
         };
 
         // @brief Echo a list of points with extraction.
-        //        When a single point is returned, the array wrapper is omitted.
+        //        Each Point struct's fields are extracted (flattened) into the
+        //        enclosing array elements. Multi-element arrays are verified.
+        //        NOTE: single-element unwrapping is NOT currently implemented
+        //        in compliant format (see DISABLED_ExtractStructArray_SingleElement_Unwrapped).
         // @param input Input points.
         // @param output Receives echoed points.
         virtual Core::hresult EchoPoints(

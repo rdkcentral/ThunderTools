@@ -26,23 +26,24 @@ namespace Thunder {
 namespace FunctionalTest {
 
     // Tests interface-level wrapped annotation.
-    // ALL single-value returns should be wrapped in {"value":...} objects,
-    // without needing per-method wrapped tag on each method.
+    // ALL single-value returns are wrapped in an object using the output
+    // parameter name as key, e.g. GetCounter returns {"counter":N},
+    // GetName returns {"name":"..."}, Echo returns {"result":N}.
     //
     // @json 1.0.0
     // @wrapped
     struct EXTERNAL ITestWrappedInterface : virtual public Core::IUnknown {
         enum { ID = ID_TEST_WRAPPED_INTERFACE };
 
-        // @brief Get a counter value. Should return {"value":N} not just N.
+        // @brief Get a counter value. Returns {"counter":N} on the wire.
         // @param counter Receives the counter value.
         virtual Core::hresult GetCounter(uint32_t& counter /* @out */) const = 0;
 
-        // @brief Get a name string. Should return {"value":"..."} not just "...".
+        // @brief Get a name string. Returns {"name":"..."} on the wire.
         // @param name Receives the name.
         virtual Core::hresult GetName(string& name /* @out */) const = 0;
 
-        // @brief Echo a value. Should return {"value":N} not just N.
+        // @brief Echo a value. Returns {"result":N} on the wire.
         // @param value Input value.
         // @param result Receives echoed value.
         virtual Core::hresult Echo(const uint32_t value /* @in */, uint32_t& result /* @out */) const = 0;
