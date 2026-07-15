@@ -1,12 +1,12 @@
-# Interface Rule Manager — Rule Template Guide
+# Interface Rule Manager - Rule Template Guide
 
 Use this guide to fill in a rule template and pass it to `/thunder-interface-rule-manager`.
-A filled template lets you skip the interactive questionnaire entirely — the manager parses your document,
+A filled template lets you skip the interactive questionnaire entirely - the manager parses your document,
 validates it, and updates all three files in one shot:
 
-- `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml`
-- `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
-- `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/interface/spec.md`
+- `PluginQualityAdvisor/rules/thunder-interface-rules.yaml`
+- `PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
+- `.github/openspec/changes/thunder-plugin-qa/specs/interface/spec.md`
 
 ---
 
@@ -17,29 +17,6 @@ validates it, and updates all three files in one shot:
 | Does the violation break code generation (e.g. no JSON-RPC output)? | Yes | No |
 | Does it cause ABI/binary compatibility issues? | Yes | No |
 | Does it cause crashes or undefined behaviour at runtime? | Yes | No |
-| Is it a structural requirement for Thunder COM interfaces? | Yes | No |
-| Is it a design best practice that improves quality but does not break anything? | No | Yes |
-| Is it a style/convention preference? | No | Yes |
-
-**Core rules** enforce strict COM interface correctness — structural requirements that MUST be satisfied for the interface to function correctly with Thunder's code generators and runtime.
-
-**Advisory rules** are design-quality checks that address broader best practices (single responsibility, no exceptions, enum types, @restrict usage) — violations here indicate design concerns rather than broken code generation.
-
-If the manager determines your rule is in the wrong list, it will auto-correct with an explanation.
-
----
-
-## How to use this template
-
-1. Copy the blank template below into a new `.md` file
-2. Set `Action` to `Add`, `Update`, or `Remove`
-3. Fill in the fields that apply to your action (see field reference below)
-4. Attach the file — or paste its contents — when you open `/thunder-interface-rule-manager`
-5. The manager confirms what it parsed before making any changes
-
----
-
-## Blank template
 
 ```markdown
 ## Interface Rule
@@ -75,14 +52,14 @@ Severity: violation
 
 ### Example Citation
 <!-- Reference to a real Thunder interface file -->
-ThunderInterfaces/interfaces/IExample.h — description
+ThunderInterfaces/interfaces/IExample.h - description
 ```
 
 ---
 
 ## Field Reference
 
-### `Action` *(required — must be the first field)*
+### `Action` *(required - must be the first field)*
 
 | Value | When to use |
 |---|---|
@@ -99,8 +76,8 @@ Format: `core_X_1` for core rules or `advisory_mX_1` for advisory rules.
 Current core rules: `core_1_1` through `core_18_1` (16 rules)
 Current advisory rules: `advisory_m1_1`, `advisory_m2_1`, `advisory_m3_1` (3 rules)
 
-- **Add** — leave blank to auto-assign the next available ID, or specify your own
-- **Update/Remove** — mandatory; this is how the manager finds the rule
+- **Add** - leave blank to auto-assign the next available ID, or specify your own
+- **Update/Remove** - mandatory; this is how the manager finds the rule
 
 ---
 
@@ -126,9 +103,9 @@ Short descriptive title in Title Case. 2-5 words.
 
 | Value | Meaning |
 |---|---|
-| `violation` | Must fix — breaks code generation, ABI, or causes crashes |
-| `warning` | Should fix — best practice with real risk |
-| `suggestion` | Optional — style or convention preference |
+| `violation` | Must fix - breaks code generation, ABI, or causes crashes |
+| `warning` | Should fix - best practice with real risk |
+| `suggestion` | Optional - style or convention preference |
 
 Note: Core rules use mixed severities (suggestion, warning, or violation). Advisory rules also use mixed severities.
 
@@ -162,7 +139,7 @@ Must describe reading and understanding the code, NOT searching for text pattern
 ### `### How to Verify It (Verification Logic)` *(required for Add; optional for Update)*
 
 Numbered steps describing what constitutes a pass vs fail.
-Must use semantic reasoning — understand the code, don't pattern match.
+Must use semantic reasoning - understand the code, don't pattern match.
 
 ---
 
@@ -170,7 +147,7 @@ Must use semantic reasoning — understand the code, don't pattern match.
 
 Single-line string describing the wrong pattern. Shown in the violation output.
 
-**Good:** `No @json comment found above interface struct — no RPC code will be generated`
+**Good:** `No @json comment found above interface struct - no RPC code will be generated`
 **Avoid:** Multi-line descriptions or bullet lists
 
 ---
@@ -184,7 +161,7 @@ Show corrected code using `// WRONG:` and `// Correct:` markers.
 ### `### Example Citation` *(required for Add; optional for Update)*
 
 Reference to a real Thunder interface file showing where this rule applies.
-Format: `ThunderInterfaces/interfaces/IFileName.h — description`
+Format: `ThunderInterfaces/interfaces/IFileName.h - description`
 
 ---
 
@@ -194,18 +171,18 @@ Format: `ThunderInterfaces/interfaces/IFileName.h — description`
 |---|---|---|---|
 | `Action` | Required | Required | Required |
 | `Rule_ID` | Optional | Required | Required |
-| `Rule_List` | Required | Only if moving | — |
-| `Name` | Required | Only if changing | — |
-| `Severity` | Required | Only if changing | — |
-| Content sections | All | Only changed ones | — |
+| `Rule_List` | Required | Only if moving | - |
+| `Name` | Required | Only if changing | - |
+| `Severity` | Required | Only if changing | - |
+| Content sections | All | Only changed ones | - |
 
-**Update rule:** fill only the fields you want to change — leave everything else blank.
+**Update rule:** fill only the fields you want to change - leave everything else blank.
 
 ---
 
 ## Examples
 
-### Add — Core rule
+### Add - Core rule
 
 ```markdown
 ## Interface Rule
@@ -219,7 +196,7 @@ Severity: violation
 
 ### Description
 Interface methods must not return raw pointers. Raw pointer returns create ownership
-ambiguity — callers don't know whether to call Release() on the result. All pointer
+ambiguity - callers don't know whether to call Release() on the result. All pointer
 returns must use the COM pattern: pass an output pointer parameter and return Core::hresult.
 
 ### How to Find It (Extraction Logic)
@@ -228,13 +205,13 @@ returns must use the COM pattern: pass an output pointer parameter and return Co
 
 ### How to Verify It (Verification Logic)
 1. For each virtual method, check if the return type is a raw pointer (T*)
-2. Exclude Core::hresult and void returns — those are correct
-3. Exclude string_view and similar value types — those are not ownership transfers
+2. Exclude Core::hresult and void returns - those are correct
+3. Exclude string_view and similar value types - those are not ownership transfers
 4. If any method returns a raw pointer type -> VIOLATION
 5. Otherwise -> PASS
 
 ### Violation Pattern
-Interface method returns raw pointer — ownership ambiguity
+Interface method returns raw pointer - ownership ambiguity
 
 ### Fix
 // WRONG:
@@ -244,12 +221,12 @@ virtual IConnection* GetConnection(const uint32_t id) = 0;
 virtual Core::hresult GetConnection(const uint32_t id, IConnection*& connection /* @out */) = 0;
 
 ### Example Citation
-ThunderInterfaces/interfaces/INetworkControl.h — method return types
+ThunderInterfaces/interfaces/INetworkControl.h - method return types
 ```
 
 ---
 
-### Add — Advisory rule
+### Add - Advisory rule
 
 ```markdown
 ## Interface Rule
@@ -276,7 +253,7 @@ test, and version safely.
 3. If count is 12 or fewer -> PASS
 
 ### Violation Pattern
-Interface has more than 12 methods — consider splitting
+Interface has more than 12 methods - consider splitting
 
 ### Fix
 // WRONG:
@@ -293,12 +270,12 @@ struct EXTERNAL IMediaPlayerMetadata : virtual public Core::IUnknown {
 };
 
 ### Example Citation
-ThunderInterfaces/interfaces/IMediaPlayer.h — interface method count
+ThunderInterfaces/interfaces/IMediaPlayer.h - interface method count
 ```
 
 ---
 
-### Update — change severity and verification logic
+### Update - change severity and verification logic
 
 ```markdown
 ## Interface Rule
@@ -355,10 +332,10 @@ Rule_List:   core | advisory
 Name:        Title Case, 2-5 words
 Severity:    violation | warning | suggestion
 
-### Description              — the WHY (required for Add)
-### How to Find It           — extraction steps (required for Add)
-### How to Verify It         — verification steps (required for Add)
-### Violation Pattern        — single-line summary (required for Add)
-### Fix                      — WRONG / Correct code (required for Add)
-### Example Citation         — real Thunder interface reference (required for Add)
+### Description              - the WHY (required for Add)
+### How to Find It           - extraction steps (required for Add)
+### How to Verify It         - verification steps (required for Add)
+### Violation Pattern        - single-line summary (required for Add)
+### Fix                      - WRONG / Correct code (required for Add)
+### Example Citation         - real Thunder interface reference (required for Add)
 ```

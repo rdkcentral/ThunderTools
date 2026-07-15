@@ -37,7 +37,7 @@ ThunderTools/PluginQualityAdvisor/
 #### Scenario: Prompt files are registered with VS Code
 - GIVEN `ThunderTools/PluginQualityAdvisor/Prompts/` containing the three `.prompt.md` files
 - WHEN `setup-prompts.py` is run
-- THEN it modifies VS Code `settings.json` to add `ThunderTools/PluginQualityAdvisor/Prompts`
+- THEN it modifies VS Code `settings.json` to add the absolute path to `PluginQualityAdvisor/Prompts`
 - AND the three slash commands (`/thunder-plugin-review`, `/thunder-interface-review`,
   `/thunder-generate-plugin`) become available in VS Code Copilot Chat
 - AND the script is safe to run multiple times (idempotent, creates backup of settings)
@@ -45,7 +45,7 @@ ThunderTools/PluginQualityAdvisor/
 ---
 
 ### Requirement: Setup script modifies VS Code settings.json to register prompt location
-The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add `"ThunderTools/PluginQualityAdvisor/Prompts": true` under `chat.promptFilesLocations`.
+The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json` to add the absolute path to the `PluginQualityAdvisor/Prompts` folder (using forward slashes), with value `true`, under `chat.promptFilesLocations`.
 
 #### Scenario: Resulting settings.json structure
 - GIVEN VS Code `settings.json` before the script runs (may be empty `{}` or have existing entries)
@@ -55,7 +55,7 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 ```json
 {
   "chat.promptFilesLocations": {
-    "ThunderTools/PluginQualityAdvisor/Prompts": true
+    "/full/path/to/ThunderTools/PluginQualityAdvisor/Prompts": true
   }
 }
 ```
@@ -81,7 +81,7 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 - AND if the backup already exists from a previous run, it MUST NOT be overwritten
 
 #### Scenario: Script is idempotent
-- GIVEN `chat.promptFilesLocations` already contains `"ThunderTools/PluginQualityAdvisor/Prompts": true`
+- GIVEN `chat.promptFilesLocations` already contains the absolute `PluginQualityAdvisor/Prompts` path with value `true`
 - WHEN the setup script is run again
 - THEN it MUST NOT add a duplicate entry
 - AND it MUST print a message indicating the entry is already present

@@ -1,14 +1,19 @@
+---
+title: "Thunder Interface Rule Manager"
+description: "Add, update, or remove Thunder interface validation rules and keep related files in sync."
+---
+
 ## Purpose
 
-This prompt manages rules in `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml` and keeps all related files in sync atomically:
+This prompt manages rules in `PluginQualityAdvisor/rules/thunder-interface-rules.yaml` and keeps all related files in sync atomically:
 
-1. `ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml` — rule data
-2. `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md` — Quick Reference table + rule detail blocks
-3. `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/interface/spec.md` — spec requirements
+1. `PluginQualityAdvisor/rules/thunder-interface-rules.yaml` - rule data
+2. `PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md` - Quick Reference table + rule detail blocks
+3. `.github/openspec/changes/thunder-plugin-qa/specs/interface/spec.md` - spec requirements
 
 ---
 
-## Step 0 — Document Template Fast Path
+## Step 0 - Document Template Fast Path
 
 If the user pastes a filled template with the following sections, skip the questionnaire and proceed directly to Step 3/4:
 
@@ -20,7 +25,7 @@ If the user pastes a filled template with the following sections, skip the quest
 1. <step 1>
 2. <step 2>
 
-## How to Verify It
+## How to Verify It (Verification Logic)
 1. <verification step 1>
 2. <verification step 2>
 
@@ -34,7 +39,7 @@ If the user pastes a filled template with the following sections, skip the quest
 // Correct:
 <correct code>
 
-## Example
+## Example Citation
 <reference to a real Thunder interface file>
 ```
 
@@ -42,7 +47,7 @@ After receiving a template, also run **Core vs Advisory Classification** to veri
 
 ---
 
-## Step 1 — Collect Action
+## Step 1 - Collect Action
 
 Ask the user the following questions using `vscode_askQuestions`:
 
@@ -60,8 +65,8 @@ Options:
 - Advisory rule (best practice or style)
 
 Message: |
-  **Core rules** are violations that cause codegen failures, ABI breakage, runtime crashes,
-  or incorrect RPC behaviour. All 15 current core rules are severity: violation.
+  **Core rules** cover codegen failures, ABI breakage, runtime crashes,
+  or incorrect RPC behaviour. There are currently 16 core rules with mixed severities.
   Examples: missing @json tag, wrong return type, missing @restrict on std::vector.
 
   **Advisory rules** are best-practice or style guidance that improves interface quality
@@ -70,7 +75,7 @@ Message: |
 
 ---
 
-## Step 2 — Branch by Action
+## Step 2 - Branch by Action
 
 ### Branch: REMOVE
 
@@ -96,7 +101,7 @@ Ask for the rule ID only (e.g. `core_1_1` or `advisory_m2_1`) then go to **Step 
 
 Note: There is **no `category` field**.
 
-**(2c)** Ask the user (via `vscode_askQuestions`, multi-select): Which fields do you want to change? (select from [1]–[9])
+**(2c)** Ask the user (via `vscode_askQuestions`, multi-select): Which fields do you want to change? (select from [1]-[9])
 
 **(2d)** For each selected field number, ask only the new value.
 
@@ -117,11 +122,11 @@ Ask all fields via `vscode_askQuestions`:
 - **description**: Describe what the rule checks and why it matters. (multiline)
 
 - **extraction_logic**: How should the validator find the relevant code? (numbered steps)
-  Message: Describe reading and understanding the code — not searching for patterns.
+  Message: Describe reading and understanding the code - not searching for patterns.
            Example: "1. Read the full interface declaration\n2. Identify all method parameter types"
 
 - **verification_logic**: What are the verification steps? (numbered steps)
-  Message: Each step must describe semantic reasoning — "Reason about X", never "search for Y".
+  Message: Each step must describe semantic reasoning - "Reason about X", never "search for Y".
 
 - **violation_pattern**: Single-line description of the wrong pattern.
 
@@ -131,7 +136,7 @@ Ask all fields via `vscode_askQuestions`:
 
 ---
 
-## Step 3 — Apply Changes (ADD / UPDATE)
+## Step 3 - Apply Changes (ADD / UPDATE)
 
 ### Update `thunder-interface-rules.yaml`:
 
@@ -150,7 +155,7 @@ Ask all fields via `vscode_askQuestions`:
 
 ---
 
-## Step 4 — Remove Rule
+## Step 4 - Remove Rule
 
 ### From `thunder-interface-rules.yaml`:
 - Remove the entire rule block from the `core_rules` or `advisory_rules` list
@@ -164,15 +169,15 @@ Ask all fields via `vscode_askQuestions`:
 
 ---
 
-## Step 5 — Confirmation Report
+## Step 5 - Confirmation Report
 
 After completing all changes, display:
 
 ```
-## Interface Rule Manager — Changes Applied
+## Interface Rule Manager - Changes Applied
 
 **Action:** [Add/Update/Remove]
-**Rule:** [id] — [name]
+**Rule:** [id] - [name]
 **List:** [Core/Advisory]
 
 ### Files Updated

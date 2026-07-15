@@ -1,13 +1,13 @@
-# Plugin Rule Manager — Rule Template Guide
+# Plugin Rule Manager - Rule Template Guide
 
 Use this guide to fill in a rule template and pass it to `/thunder-plugin-rule-manager`.
-A filled template lets you skip the interactive questionnaire entirely — the manager parses your document,
+A filled template lets you skip the interactive questionnaire entirely - the manager parses your document,
 validates it, and updates all four files in one shot:
 
-- `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`
-- `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
-- `ThunderTools/PluginQualityAdvisor/README.md`
-- `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md`
+- `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`
+- `PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
+- `PluginQualityAdvisor/README.md`
+- `.github/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md`
 
 ---
 
@@ -17,40 +17,14 @@ Use this table to pick the right template. Both follow the same semantic-review 
 
 | Question | Template A | Template B |
 |---|---|---|
-| Does the rule focus on a specific function or declaration? | Yes | No |
-| Does the rule check behavior across multiple parts of the plugin? | No | Yes |
-| Does it involve thread safety, resource cleanup flow, or security? | No | Yes |
-
-**Mostly Template A answers -> use Template A (Phase Checkpoint).**
-**Any Template B answer -> use Template B (Holistic Rule).**
-
-If your rule could go either way, the manager will offer you both options and ask you to confirm.
-
----
-
-## How to use this template
-
-1. Copy the appropriate blank template below into a new `.md` file
-2. Set `Action` to `Add`, `Update`, or `Remove`
-3. Fill in the fields that apply to your action (see field reference below)
-4. Attach the file — or paste its contents — when you open `/thunder-plugin-rule-manager`
-5. The manager confirms what it parsed before making any changes
-
----
-
-## Template A — Phase Checkpoint Rule
-
-Phase checkpoint rules are organized under phase sections (rule_01 to rule_38).
-
-### Blank template
 
 ```markdown
-## Plugin Rule — Phase Checkpoint
+## Plugin Rule - Phase Checkpoint
 
 Action: Add
 
 Rule_ID:
-Phase: Phase 4 — Lifecycle
+Phase: Phase 4 - Lifecycle
 Name:
 Severity: violation
 
@@ -83,14 +57,14 @@ Skip when:
 
 ---
 
-## Template B — Holistic Rule
+## Template B - Holistic Rule
 
 Holistic rules check broader plugin behavior such as thread safety, resource handling, and cleanup flow by looking at related code together. They are organized under 8 sub-phases (rule_39 to rule_84).
 
 ### Blank template
 
 ```markdown
-## Plugin Rule — Holistic
+## Plugin Rule - Holistic
 
 Action: Add
 
@@ -116,7 +90,7 @@ Severity: violation
 
 ## Field Reference
 
-### `Action` *(required — must be the first field)*
+### `Action` *(required - must be the first field)*
 
 | Value | When to use |
 |---|---|
@@ -130,8 +104,8 @@ Severity: violation
 
 Sequential identifier in the format `rule_XX` (e.g. `rule_17`, `rule_41`).
 
-- **Add** — leave blank to auto-assign the next available number, or specify your own
-- **Update/Remove** — mandatory; this is how the manager finds the rule
+- **Add** - leave blank to auto-assign the next available number, or specify your own
+- **Update/Remove** - mandatory; this is how the manager finds the rule
 
 Current rule ranges:
 - rule_01 to rule_38: Phase checkpoints
@@ -144,15 +118,15 @@ Current rule ranges:
 Pick exactly one:
 
 ```
-Phase 1 — Module Structure       (currently: rule_01 to rule_03)
-Phase 2 — Code Style             (currently: rule_04 to rule_13)
-Phase 3 — Class Registration     (currently: rule_14 to rule_16)
-Phase 4 — Lifecycle              (currently: rule_17 to rule_28)
-Phase 5 — Implementation         (currently: rule_29 to rule_31)
-Phase 5C — Out-of-Process        (currently: rule_32 to rule_33)
-Phase 6 — Configuration          (currently: rule_34 to rule_36)
-Phase 7 — CMake                  (currently: rule_37)
-Phase 8 — COM Interface Rules    (currently: rule_38)
+Phase 1 - Module Structure       (currently: rule_01 to rule_03)
+Phase 2 - Code Style             (currently: rule_04 to rule_13)
+Phase 3 - Class Registration     (currently: rule_14 to rule_16)
+Phase 4 - Lifecycle              (currently: rule_17 to rule_28)
+Phase 5 - Implementation         (currently: rule_29 to rule_31)
+Phase 5C - Out-of-Process        (currently: rule_32 to rule_33)
+Phase 6 - Configuration          (currently: rule_34 to rule_36)
+Phase 7 - CMake                  (currently: rule_37)
+Phase 8 - COM Interface Rules    (currently: rule_38)
 ```
 
 ---
@@ -185,26 +159,26 @@ Short descriptive title in Title Case. 2-5 words.
 
 | Value | Meaning | Report symbol |
 |---|---|---|
-| `violation` | Must fix — causes bugs, crashes, or codegen failures | VIOLATION |
-| `warning` | Should fix — best practice with real risk | WARNING |
-| `suggestion` | Optional — style or consistency improvement | SUGGESTION |
+| `violation` | Must fix - causes bugs, crashes, or codegen failures | VIOLATION |
+| `warning` | Should fix - best practice with real risk | WARNING |
+| `suggestion` | Optional - style or consistency improvement | SUGGESTION |
 
 ---
 
 ### Phase Checkpoint-specific fields
 
-- **Extraction Target** — exact function/section/lines to read (e.g. "Initialize() method body")
-- **Yes/No Question** — single binary question; Yes = PASS, No = VIOLATION
-- **Verification Steps** — 3-8 numbered steps using semantic reasoning (never regex)
-- **Violation Pattern** — one-line citation summary, under 10 words
-- **Fix** — `// WRONG:` and `// CORRECT:` code snippets
-- **Conditional** — `Yes` or `No`; if Yes, include `Skip when:` condition
+- **Extraction Target** - exact function/section/lines to read (e.g. "Initialize() method body")
+- **Yes/No Question** - single binary question; Yes = PASS, No = VIOLATION
+- **Verification Steps** - 3-8 numbered steps using semantic reasoning (never regex)
+- **Violation Pattern** - one-line citation summary, under 10 words
+- **Fix** - `// WRONG:` and `// CORRECT:` code snippets
+- **Conditional** - `Yes` or `No`; if Yes, include `Skip when:` condition
 
 ### Holistic Rule-specific fields
 
-- **Review Question** — semantic question spanning multiple code paths
-- **Review Method** — must describe reading full code context, not pattern matching
-- **Evidence Requirement** — must require exact `[File:line]` citation
+- **Review Question** - semantic question spanning multiple code paths
+- **Review Method** - must describe reading full code context, not pattern matching
+- **Evidence Requirement** - must require exact `[File:line]` citation
 
 ---
 
@@ -214,27 +188,27 @@ Short descriptive title in Title Case. 2-5 words.
 |---|---|---|---|---|
 | `Action` | Required | Required | Required | Required |
 | `Rule_ID` | Optional | Optional | Required | Required |
-| `Phase` | Required | — | Only if changing | — |
-| `Category` | — | Required | Only if changing | — |
-| `Name` | Required | Required | Only if changing | — |
-| `Severity` | Required | Required | Only if changing | — |
-| Content sections | All | All | Only changed ones | — |
+| `Phase` | Required | - | Only if changing | - |
+| `Category` | - | Required | Only if changing | - |
+| `Name` | Required | Required | Only if changing | - |
+| `Severity` | Required | Required | Only if changing | - |
+| Content sections | All | All | Only changed ones | - |
 
-**Update rule:** fill only the fields you want to change — leave everything else blank.
+**Update rule:** fill only the fields you want to change - leave everything else blank.
 
 ---
 
 ## Examples
 
-### Add — Phase Checkpoint rule
+### Add - Phase Checkpoint rule
 
 ```markdown
-## Plugin Rule — Phase Checkpoint
+## Plugin Rule - Phase Checkpoint
 
 Action: Add
 
 Rule_ID:
-Phase: Phase 4 — Lifecycle
+Phase: Phase 4 - Lifecycle
 Name: Observer Cleanup In Deinitialize
 Severity: violation
 
@@ -283,10 +257,10 @@ Skip when: no Register() calls exist in Initialize()
 
 ---
 
-### Add — Holistic Rule
+### Add - Holistic Rule
 
 ```markdown
-## Plugin Rule — Holistic
+## Plugin Rule - Holistic
 
 Action: Add
 
@@ -307,7 +281,7 @@ Is every shared member variable protected by Core::CriticalSection on all access
 Read the full plugin class declaration to identify member variables. For each variable,
 trace all access points across Initialize, Deinitialize, JSON-RPC handlers, notification
 callbacks, and WorkerPool jobs. Verify each access path acquires _adminLock or equivalent.
-Do not use pattern-only checks — reason about actual control flow and thread boundaries.
+Do not use pattern-only checks - reason about actual control flow and thread boundaries.
 
 ### Evidence Requirement
 Provide exact [File:line] citation for each unprotected shared member access,
@@ -316,10 +290,10 @@ including which threads can reach that code path concurrently.
 
 ---
 
-### Update — partial (change severity and question only)
+### Update - partial (change severity and question only)
 
 ```markdown
-## Plugin Rule — Phase Checkpoint
+## Plugin Rule - Phase Checkpoint
 
 Action: Update
 
@@ -336,7 +310,7 @@ Is nullptr used in place of NULL everywhere in the plugin source files?
 ### Remove
 
 ```markdown
-## Plugin Rule — Phase Checkpoint
+## Plugin Rule - Phase Checkpoint
 
 Action: Remove
 
@@ -353,7 +327,7 @@ The manager confirms the rule name and phase before deleting.
 |---|---|---|
 | Yes/No Question is open-ended | Cannot produce binary PASS/FAIL | Rewrite as: "Is X present immediately after Y?" |
 | Verification Steps describe text search | Steps must reason semantically | Write "read and determine" not "search for" |
-| Violation Pattern left empty | Citation has no summary | Always fill — under 10 words |
+| Violation Pattern left empty | Citation has no summary | Always fill - under 10 words |
 | `Conditional: Yes` without `Skip when:` | No condition to evaluate | Always complete `Skip when:` |
 | Wrong `Rule_ID` on Update/Remove | Manager reports "not found" | Verify ID in YAML before submitting |
 | All fields filled on Update | Unintended overwrites | Fill only changed fields |
@@ -369,7 +343,7 @@ PHASE CHECKPOINT (Template A)         HOLISTIC RULE (Template B)
 
 Action:    Add | Update | Remove      Action:    Add | Update | Remove
 Rule_ID:   e.g. rule_17              Rule_ID:   e.g. rule_48
-Phase:     Phase 4 — Lifecycle        Category:  concurrency
+Phase:     Phase 4 - Lifecycle        Category:  concurrency
 Name:      Title Case, 2-5 words      Name:      Title Case, 2-5 words
 Severity:  violation|warning|suggestion   Severity:  violation|warning|suggestion
 

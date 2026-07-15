@@ -1,7 +1,8 @@
+﻿version: 3.2.2
 title: "Thunder Interface Validation Rules"
 description: |
   Rules for validating Thunder COM interface headers in ThunderInterfaces/interfaces/.
-  Every rule uses semantic reasoning — read the interface header in full and reason
+  Every rule uses semantic reasoning - read the interface header in full and reason
   about the code as a human reviewer. Never use regex or text search as the primary
   detection method.
 
@@ -17,7 +18,7 @@ core_rules:
       Thunder interface headers must follow a standard structure:
       - File name should match the interface name (IFoo.h for struct EXTERNAL IFoo),
         though exceptions may exist
-      - No implementation code in interface headers — pure declarations only
+      - No implementation code in interface headers - pure declarations only
     extraction_logic: |
       1. Read the full interface header file
       2. Note the file name and the primary interface struct name
@@ -25,7 +26,7 @@ core_rules:
     verification_logic: |
       1. Verify the primary interface struct name matches the file name (e.g. IDictionary in IDictionary.h)
          - Exception: multi-interface files or platform-specific groupings may have different naming
-      2. Verify there is no implementation code — only forward declarations, typedefs, struct/enum declarations
+      2. Verify there is no implementation code - only forward declarations, typedefs, struct/enum declarations
       3. If issues are found → SUGGESTION
     violation_pattern: "File name does not match interface name, or implementation code present in interface header"
     fix_template: |
@@ -37,11 +38,11 @@ core_rules:
       };
 
       // Correct: pure declarations only
-      struct EXTERNAL IDictionary : virtual public Core::/t {
+        struct EXTERNAL IDictionary : virtual public Core::IUnknown {
           virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
       };
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — Exchange namespace and file naming
+      ThunderInterfaces/interfaces/IDictionary.h - Exchange namespace and file naming
 
   - id: "core_2_1"
     name: "Interface Declaration Shape"
@@ -69,6 +70,7 @@ core_rules:
       class IDictionary : public Core::IUnknown {
           enum { ID = 0x100 };  // ← raw value, not RPC::ID_*
           virtual void Get(const string& key) { }  // ← not pure virtual
+        };
 
       // Correct:
       struct EXTERNAL IDictionary : virtual public Core::IUnknown {
@@ -76,7 +78,7 @@ core_rules:
           virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
       };
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h:LINE — struct EXTERNAL shape
+      ThunderInterfaces/interfaces/IDictionary.h:LINE - struct EXTERNAL shape
 
   - id: "core_3_1"
     name: "Interface ID Registration"
@@ -106,7 +108,7 @@ core_rules:
     verification_logic: |
       1. Verify the struct enum { ID = RPC::ID_* } uses a named constant, not a raw number
       2. Verify the ID is registered in ThunderInterfaces ids.h (or equivalent)
-      3. Verify the ID is unique — no other interface uses the same value
+      3. Verify the ID is unique - no other interface uses the same value
       4. Nested INotification and ICallback interfaces must also have their own IDs
       5. For entservices-apis interfaces: verify the ID falls within the CC range (0xCC00–0xDFFF)
       6. If any condition fails → VIOLATION
@@ -120,7 +122,7 @@ core_rules:
       // AND in ids.h:
       // ID_DICTIONARY = RPC_ID_OFFSET + N,
     citation: |
-      ThunderInterfaces/interfaces/ids.h — ID_DICTIONARY registration
+      ThunderInterfaces/interfaces/ids.h - ID_DICTIONARY registration
 
   - id: "core_4_1"
     name: "Pure Virtual Methods Only"
@@ -128,7 +130,7 @@ core_rules:
     description: |
       Thunder COM interface methods must be pure virtual (= 0). No default
       implementations, no inline code, no static methods, no non-virtual methods.
-      The interface is a pure abstract contract — all implementation is in the
+      The interface is a pure abstract contract - all implementation is in the
       implementing class, not in the interface.
     extraction_logic: |
       1. Read all method declarations in the interface struct
@@ -151,7 +153,7 @@ core_rules:
       // Correct:
       virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — pure virtual methods
+      ThunderInterfaces/interfaces/IDictionary.h - pure virtual methods
 
   - id: "core_5_1"
     name: "Return Type Conventions"
@@ -176,10 +178,10 @@ core_rules:
       1. For interfaces tagged with @json (or in Thunder 5.0+ contexts), all methods must return Core::hresult
       2. Exception: methods in @event-tagged notification interfaces MUST return void
       3. Void return types are not allowed for non-notification JSON-RPC methods
-      4. Custom return types (not Core::hresult) for non-status purposes are not allowed — use @out parameters instead
-      5. Legacy interfaces (pre-Thunder 5.0) may not comply — flag as warning, not violation
+      4. Custom return types (not Core::hresult) for non-status purposes are not allowed - use @out parameters instead
+      5. Legacy interfaces (pre-Thunder 5.0) may not comply - flag as warning, not violation
       6. If any non-notification JSON-RPC method lacks Core::hresult return type → VIOLATION
-    violation_pattern: "Interface method does not return Core::hresult — required for @json interfaces in Thunder 5.0+"
+    violation_pattern: "Interface method does not return Core::hresult - required for @json interfaces in Thunder 5.0+"
     fix_template: |
       // WRONG:
       virtual void SetVolume(const uint8_t volume) = 0;
@@ -189,7 +191,7 @@ core_rules:
       virtual Core::hresult SetVolume(const uint8_t volume) = 0;
       virtual Core::hresult GetStatus(string& status /* @out */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IAudioOutput.h — Core::hresult return types
+      ThunderInterfaces/interfaces/IAudioOutput.h - Core::hresult return types
 
   - id: "core_6_1"
     name: "Const Correctness"
@@ -200,7 +202,7 @@ core_rules:
       - Output parameters should be non-const references (string& value)
       - Methods that do not modify the object should be const (though pure virtual const is rare)
       - @out parameters must be non-const references to allow the implementation to write
-      - Notification methods (methods in INotification/ICallback interfaces) should NEVER be const —
+      - Notification methods (methods in INotification/ICallback interfaces) should NEVER be const -
         the implementation needs to modify state when handling notifications
     extraction_logic: |
       1. Read all method parameter declarations
@@ -221,7 +223,7 @@ core_rules:
       // Correct:
       virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — const correctness on @out params
+      ThunderInterfaces/interfaces/IDictionary.h - const correctness on @out params
 
   - id: "core_9_1"
     name: "Thunder Type Conventions"
@@ -243,7 +245,7 @@ core_rules:
       3. Non-width-specific integer types (int, long) for interface params → check core_15_1
       4. BOOL → VIOLATION (use bool)
       5. If std::string found → VIOLATION
-    violation_pattern: "std::string used in interface — must use Thunder string type alias"
+    violation_pattern: "std::string used in interface - must use Thunder string type alias"
     fix_template: |
       // WRONG:
       virtual Core::hresult Get(const std::string& key, std::string& value) = 0;
@@ -251,7 +253,7 @@ core_rules:
       // Correct:
       virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — Thunder string type alias
+      ThunderInterfaces/interfaces/IDictionary.h - Thunder string type alias
 
   - id: "core_10_1"
     name: "Register/Unregister Patterns"
@@ -278,14 +280,14 @@ core_rules:
       virtual Core::hresult Register(INotification* notification) = 0;
       // Missing: Unregister
 
-      // Correct — INotification (1:many):
+      // Correct - INotification (1:many):
       virtual Core::hresult Register(INotification* notification) = 0;
       virtual Core::hresult Unregister(INotification* notification) = 0;
 
-      // Correct — ICallback (1:1, nullptr clears):
+      // Correct - ICallback (1:1, nullptr clears):
       virtual Core::hresult Callback(ICallback* callback) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — Register/Unregister pattern
+      ThunderInterfaces/interfaces/IDictionary.h - Register/Unregister pattern
 
   - id: "core_11_1"
     name: "Event Interfaces"
@@ -321,7 +323,7 @@ core_rules:
           virtual void ValueChanged(const string& key, const string& value) = 0;
       };
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — @event tag on INotification
+      ThunderInterfaces/interfaces/IDictionary.h - @event tag on INotification
 
   - id: "core_12_1"
     name: "@json Tag (CRITICAL)"
@@ -332,7 +334,7 @@ core_rules:
       above the struct declaration as: // @json 1.0.0
       No blank lines are allowed between the @json tag and the struct declaration.
       If an interface intentionally does not need JSON-RPC (pure COM only), the
-      absence of @json is acceptable — but this must be an intentional design choice.
+      absence of @json is acceptable - but this must be an intentional design choice.
 
       Hints that an interface was meant to be a JSON-RPC interface:
       - Presence of tags like @alias, @text, @opaque, @bitmask, @index in comments
@@ -349,17 +351,17 @@ core_rules:
       2. No blank lines between the @json tag and the struct line
       3. If the interface is intentionally JSON-RPC-free (pure COM) → acceptable, note as design choice
       4. If @json is missing from an interface that should have it → VIOLATION
-    violation_pattern: "@json tag missing above interface struct declaration — no JSON-RPC code will be generated"
+    violation_pattern: "@json tag missing above interface struct declaration - no JSON-RPC code will be generated"
     fix_template: |
       // WRONG:
       struct EXTERNAL IDictionary : virtual public Core::IUnknown {
-          // ← @json tag missing — no RPC code will be generated
+          // ← @json tag missing - no RPC code will be generated
 
       // Correct:
       // @json 1.0.0
       struct EXTERNAL IDictionary : virtual public Core::IUnknown {
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h:LINE — @json 1.0.0 above struct
+      ThunderInterfaces/interfaces/IDictionary.h:LINE - @json 1.0.0 above struct
 
   - id: "core_13_1"
     name: "No IUnknown/IReferenceCounted Methods in Interfaces"
@@ -376,7 +378,7 @@ core_rules:
       1. The interface must not declare AddRef(), Release(), or QueryInterface()
       2. These methods are inherited from Core::IUnknown via the virtual inheritance chain
       3. If any IUnknown/IReferenceCounted method appears as an interface method → VIOLATION
-    violation_pattern: "IUnknown/IReferenceCounted method (AddRef, Release, QueryInterface) declared in interface — must be inherited only"
+    violation_pattern: "IUnknown/IReferenceCounted method (AddRef, Release, QueryInterface) declared in interface - must be inherited only"
     fix_template: |
       // WRONG:
       struct EXTERNAL IDictionary : virtual public Core::IUnknown {
@@ -392,8 +394,8 @@ core_rules:
           virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
       };
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — IUnknown methods inherited only
-      ThunderInterfaces/interfaces/IDictionary.h — AddRef/Release inherited from Core::IUnknown
+      ThunderInterfaces/interfaces/IDictionary.h - IUnknown methods inherited only
+      ThunderInterfaces/interfaces/IDictionary.h - AddRef/Release inherited from Core::IUnknown
 
   - id: "core_14_1"
     name: "No std::map in Interfaces"
@@ -410,7 +412,7 @@ core_rules:
       1. Any std::map or similar associative container in method parameters → VIOLATION
       2. Consider whether a Core::JSON::Container or repeated method calls can replace it
       3. If std::map found in interface → VIOLATION
-    violation_pattern: "std::map used in interface parameter — not serialisable across process boundaries"
+    violation_pattern: "std::map used in interface parameter - not serialisable across process boundaries"
     fix_template: |
       // WRONG:
       virtual Core::hresult GetAll(std::map<string, string>& values /* @out */) = 0;
@@ -419,7 +421,7 @@ core_rules:
       virtual Core::hresult GetKeys(RPC::IStringIterator*& keys /* @out */) = 0;
       virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — no std::map in interfaces
+      ThunderInterfaces/interfaces/IDictionary.h - no std::map in interfaces
 
   - id: "core_15_1"
     name: "Explicit Integer Widths"
@@ -437,7 +439,7 @@ core_rules:
       2. char is acceptable for character data; bool is acceptable
       3. uint8_t, uint16_t, uint32_t, uint64_t, int32_t etc. are correct
       4. If platform-dependent integer type found → VIOLATION
-    violation_pattern: "Platform-dependent integer type (int, long, short) used in interface — must use explicit-width types (uint32_t, etc.)"
+    violation_pattern: "Platform-dependent integer type (int, long, short) used in interface - must use explicit-width types (uint32_t, etc.)"
     fix_template: |
       // WRONG:
       virtual Core::hresult SetTimeout(const int timeout) = 0;
@@ -447,7 +449,7 @@ core_rules:
       virtual Core::hresult SetTimeout(const uint32_t timeout) = 0;
       virtual Core::hresult GetSize(uint32_t& size /* @out */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IVolume.h — explicit integer widths
+      ThunderInterfaces/interfaces/IVolume.h - explicit integer widths
 
   - id: "core_16_1"
     name: "@restrict Mandatory with std::vector"
@@ -467,7 +469,7 @@ core_rules:
       2. N must be a positive integer representing the maximum element count
       3. Missing @restrict on std::vector → VIOLATION
       4. @restrict on non-vector types is not enforced by this rule
-    violation_pattern: "std::vector parameter missing @restrict annotation — required for safe bounds checking"
+    violation_pattern: "std::vector parameter missing @restrict annotation - required for safe bounds checking"
     fix_template: |
       // WRONG:
       virtual Core::hresult GetItems(std::vector<string>& items /* @out */) = 0;
@@ -475,13 +477,13 @@ core_rules:
       // Correct:
       virtual Core::hresult GetItems(std::vector<string>& items /* @out @restrict:256 */) = 0;
     citation: |
-      ThunderInterfaces/interfaces/IPackager.h — @restrict on std::vector
+      ThunderInterfaces/interfaces/IPackager.h - @restrict on std::vector
 
   - id: "core_17_1"
     name: "No Method Overloads in @json Interfaces"
     severity: "violation"
     description: |
-      In interfaces tagged with @json, method names must be unique — no C++ overloads
+      In interfaces tagged with @json, method names must be unique - no C++ overloads
       are allowed because JSON-RPC dispatches by method name string only (no signature
       overload resolution). Methods that would be overloads in C++ will produce duplicate
       JSON-RPC method names, causing code generation failures or undefined dispatch behavior.
@@ -499,27 +501,27 @@ core_rules:
       2. Two methods with the same C++ name (overloads) → VIOLATION
       3. Two methods with different C++ names but the same @text value → VIOLATION
       4. If any duplicates are found → VIOLATION
-    violation_pattern: "Duplicate JSON-RPC method name in @json interface — overloads not allowed"
+    violation_pattern: "Duplicate JSON-RPC method name in @json interface - overloads not allowed"
     fix_template: |
-      // WRONG — overloaded methods produce duplicate JSON-RPC names:
+      // WRONG - overloaded methods produce duplicate JSON-RPC names:
       // @json 1.0.0
       struct EXTERNAL IDictionary : virtual public Core::IUnknown {
           virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
           virtual Core::hresult Get(const uint32_t index, string& value /* @out */) = 0; // ← overload!
       };
 
-      // Correct — use distinct names:
+      // Correct - use distinct names:
       // @json 1.0.0
       struct EXTERNAL IDictionary : virtual public Core::IUnknown {
           virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
           virtual Core::hresult GetByIndex(const uint32_t index, string& value /* @out */) = 0;
       };
 
-      // Also WRONG — @text collision:
+      // Also WRONG - @text collision:
       virtual Core::hresult GetValue(const string& key, string& value /* @out */) = 0;      // @text get
       virtual Core::hresult GetStatus(string& status /* @out */) = 0;                        // @text get  ← collision!
     citation: |
-      ThunderInterfaces/interfaces/ — no overloads in @json interfaces
+      ThunderInterfaces/interfaces/ - no overloads in @json interfaces
 
   - id: "core_18_1"
     name: "No Reserved JSON-RPC Method Names"
@@ -542,21 +544,21 @@ core_rules:
       2. Reserved names: "version", "versions", "exists"
       3. Check both the bare method name and any @text annotation
       4. If collision found → VIOLATION
-    violation_pattern: "Interface method uses a reserved JSON-RPC name (version/versions/exists) — conflicts with built-in framework handlers"
+    violation_pattern: "Interface method uses a reserved JSON-RPC name (version/versions/exists) - conflicts with built-in framework handlers"
     fix_template: |
-      // WRONG — collides with built-in JSON-RPC 'exists' method:
+      // WRONG - collides with built-in JSON-RPC 'exists' method:
       virtual Core::hresult Exists(const string& key, bool& result /* @out */) = 0;
 
-      // Correct — use a non-reserved name:
+      // Correct - use a non-reserved name:
       virtual Core::hresult Contains(const string& key, bool& result /* @out */) = 0;
 
-      // WRONG — collides with built-in 'version':
+      // WRONG - collides with built-in 'version':
       virtual Core::hresult Version(string& version /* @out */) = 0;
 
       // Correct:
       virtual Core::hresult GetVersion(string& version /* @out */) = 0;
     citation: |
-      Thunder JSON-RPC framework — reserved method names
+      Thunder JSON-RPC framework - reserved method names
 
 # ===========================================================================================
 # ADVISORY RULES (3)
@@ -580,7 +582,7 @@ advisory_rules:
       2. If methods clearly belong to two or more distinct responsibilities → VIOLATION
       3. Minor convenience methods on an otherwise focused interface are acceptable
       4. Apply judgment: is the mixing of concerns gratuitous or is there a clear design reason?
-    violation_pattern: "Interface mixes multiple unrelated responsibilities — consider splitting into focused interfaces"
+    violation_pattern: "Interface mixes multiple unrelated responsibilities - consider splitting into focused interfaces"
     fix_template: |
       // WRONG: IDictionaryAndNetwork mixes dictionary and network concerns
       struct EXTERNAL IDictionaryAndNetwork : virtual public Core::IUnknown {
@@ -590,7 +592,7 @@ advisory_rules:
 
       // Correct: split into IDictionary and INetwork
     citation: |
-      ThunderInterfaces/interfaces/IHdmiCecSink.h — single responsibility
+      ThunderInterfaces/interfaces/IHdmiCecSink.h - single responsibility
 
   - id: "advisory_m2_1"
     name: "Enum Underlying Types"
@@ -599,7 +601,7 @@ advisory_rules:
       Enums used in interface parameters or return types should use explicit underlying
       types (: uint8_t, : uint32_t) for ABI stability.
       Exception: the anonymous ID enum inside the interface struct (enum { ID = RPC::ID_* })
-      must NOT have an explicit underlying type — this is by Thunder convention.
+      must NOT have an explicit underlying type - this is by Thunder convention.
       Only named enums that are used as parameter types need explicit underlying types.
     extraction_logic: |
       1. Read all enum declarations in the interface header
@@ -607,11 +609,11 @@ advisory_rules:
       3. Identify the anonymous ID enum { ID = RPC::ID_* }
       4. Check for explicit underlying types on named enums
     verification_logic: |
-      1. Anonymous ID enum (enum { ID = RPC::ID_* }) must NOT have explicit type — skip it
+      1. Anonymous ID enum (enum { ID = RPC::ID_* }) must NOT have explicit type - skip it
       2. Named enums used as parameter types should have explicit underlying types
       3. If a named enum used as a parameter lacks an explicit underlying type → WARNING
       4. Apply judgment: if the enum range clearly fits a known type, it is advisable
-    violation_pattern: "Named enum used in interface parameter lacks explicit underlying type — consider adding : uint8_t or : uint32_t"
+    violation_pattern: "Named enum used in interface parameter lacks explicit underlying type - consider adding : uint8_t or : uint32_t"
     fix_template: |
       // WRONG: (named enum without explicit type)
       enum State { IDLE, ACTIVE, ERROR };
@@ -624,7 +626,7 @@ advisory_rules:
       // The ID enum stays anonymous (by convention):
       enum { ID = RPC::ID_MY_INTERFACE };
     citation: |
-      ThunderInterfaces/interfaces/IAVInput.h — explicit enum underlying type
+      ThunderInterfaces/interfaces/IAVInput.h - explicit enum underlying type
 
   - id: "advisory_m3_1"
     name: "No Exceptions"
@@ -633,7 +635,7 @@ advisory_rules:
       Thunder COM interfaces and their implementations must not use C++ exceptions.
       Exceptions cannot cross COM/RPC process boundaries safely.
       All error conditions must be reported via Core::hresult return values.
-      Exception specifications (throw(...), noexcept) are irrelevant — the real
+      Exception specifications (throw(...), noexcept) are irrelevant - the real
       issue is that throw statements must not appear in COM implementation code.
     extraction_logic: |
       1. Read all interface method signatures and any associated implementation hints
@@ -644,7 +646,7 @@ advisory_rules:
       2. noexcept specifications are acceptable (they prevent exceptions from propagating)
       3. In implementation code: no throw statements in COM method implementations
       4. If throw appears in COM code → VIOLATION
-    violation_pattern: "Exception specification or throw statement in COM interface or implementation — use Core::hresult for error reporting"
+    violation_pattern: "Exception specification or throw statement in COM interface or implementation - use Core::hresult for error reporting"
     fix_template: |
       // WRONG:
       virtual Core::hresult Get(const string& key, string& value) throw(std::exception) = 0;
@@ -653,4 +655,4 @@ advisory_rules:
       virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
       // Implementation: return Core::ERROR_NOT_FOUND; instead of throwing
     citation: |
-      ThunderInterfaces/interfaces/IDictionary.h — no exceptions in COM interfaces
+      ThunderInterfaces/interfaces/IDictionary.h - no exceptions in COM interfaces

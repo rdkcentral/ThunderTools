@@ -1,15 +1,20 @@
+---
+title: "Thunder Plugin Rule Manager"
+description: "Add, update, or remove Thunder plugin validation rules and keep related files in sync."
+---
+
 ## Purpose
 
-This prompt manages rules in `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` and keeps all related files in sync atomically:
+This prompt manages rules in `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` and keeps all related files in sync atomically:
 
-1. `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` — rule data
-2. `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md` — checkpoint descriptions
-3. `ThunderTools/PluginQualityAdvisor/README.md` — documentation
-4. `ThunderTools/.github/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md` — spec requirements
+1. `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` - rule data
+2. `PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md` - checkpoint descriptions
+3. `PluginQualityAdvisor/README.md` - documentation
+4. `.github/openspec/changes/thunder-plugin-qa/specs/plugin/spec.md` - spec requirements
 
 ---
 
-## Step 0 — Document Template Fast Path
+## Step 0 - Document Template Fast Path
 
 If the user pastes a filled template with the following sections, skip the questionnaire and go directly to Step 3/4:
 
@@ -34,14 +39,14 @@ If the user pastes a filled template with the following sections, skip the quest
 <WRONG pattern and Correct pattern>
 
 ## Conditional
-Yes/No — and if Yes, what is the skip condition?
+Yes/No - and if Yes, what is the skip condition?
 ```
 
-After receiving a template, also run **Phase Checkpoint vs Holistic Classification** to verify the `Type` field is correct before proceeding.
+After receiving a template, also run **Phase Checkpoint vs Holistic Classification** to verify the template classification is correct before proceeding.
 
 ---
 
-## Step 1 — Collect Action
+## Step 1 - Collect Action
 
 Ask the user the following questions using `vscode_askQuestions`:
 
@@ -66,27 +71,27 @@ Message: |
   or reading multiple code paths that cannot be bounded to a single yes/no question.
   Example: "Are all notification callbacks safe from deadlock across the full plugin lifecycle?"
 
-**Question 3** (header: `phase`) — ask only if rule_kind = Phase checkpoint:
+**Question 3** (header: `phase`) - ask only if rule_kind = Phase checkpoint:
 Which phase does this rule belong to?
 
 Options:
-- Phase 1 — Module Structure (module_1_*)
-- Phase 2 — Code Style (style_2_*)
-- Phase 3 — Class Registration (registration_3_*)
-- Phase 4 — Lifecycle (lifecycle_4_*)
-- Phase 5 — Implementation (implementation_5_*)
-- Phase 5C — Out-of-Process (oop_9_*)
-- Phase 6 — Configuration (config_6_*)
-- Phase 7 — CMake (cmake_7_*)
-- Phase 8 — COM Interface Rules (com_8_*)
+- Phase 1 - Module Structure (currently: rule_01 to rule_03)
+- Phase 2 - Code Style (currently: rule_04 to rule_13)
+- Phase 3 - Class Registration (currently: rule_14 to rule_16)
+- Phase 4 - Lifecycle (currently: rule_17 to rule_28)
+- Phase 5 - Implementation (currently: rule_29 to rule_31)
+- Phase 5C - Out-of-Process (currently: rule_32 to rule_33)
+- Phase 6 - Configuration (currently: rule_34 to rule_36)
+- Phase 7 - CMake (currently: rule_37)
+- Phase 8 - COM Interface Rules (currently: rule_38)
 
 ---
 
-## Step 2 — Branch by Action
+## Step 2 - Branch by Action
 
 ### Branch: REMOVE
 
-Ask for the rule ID (rule_id for phase checkpoint, rule_XX) then go to **Step 4**.
+Ask for the rule ID (rule_XX) then go to **Step 4**.
 
 ### Branch: UPDATE
 
@@ -95,7 +100,7 @@ Ask for the rule ID (rule_id for phase checkpoint, rule_XX) then go to **Step 4*
 **(2b)** Read the current rule from `thunder-plugin-rules.yaml` and display it annotated with numbered field labels:
 
 ```
-[1] rule_id / rule_id: <value>
+[1] rule_id: <value>
 [2] name: <value>
 [3] severity: <value>
 [4] phase: <value>
@@ -109,7 +114,7 @@ Ask for the rule ID (rule_id for phase checkpoint, rule_XX) then go to **Step 4*
 [12] skip_condition: <value>               (phase checkpoint only)
 [13] citation.line_format: <value>         (phase checkpoint only)
 [14] review_question: <value>              (holistic only)
-[15] review_method: <value>               (holistic only)
+[15] review_method: <value>                (holistic only)
 [16] evidence_requirement: <value>         (holistic only)
 ```
 
@@ -123,8 +128,8 @@ Then go to **Step 3**.
 
 Ask the following via `vscode_askQuestions`:
 
-- **rule_id**: What is the checkpoint ID? (e.g. `rule_041`)
-  Message: Use the phase prefix + sequential number: `module_1_*`, `style_2_*`, `lifecycle_4_*`, etc.
+- **rule_id**: What is the checkpoint ID? (e.g. `rule_17`)
+  Message: Use sequential `rule_XX` numbering matching the existing phase ranges.
 
 - **name**: What is the rule name? (Title Case, e.g. "No Raw Pointers After Move")
 
@@ -143,7 +148,7 @@ Ask the following via `vscode_askQuestions`:
            ❌ "Does the code have nullptr after Release?" (too vague)
 
 - **verification_steps**: What are the verification steps? (numbered list)
-  Message: Each step must describe semantic reasoning — "Read X and reason about Y". Never "search for" or "match pattern".
+  Message: Each step must describe semantic reasoning - "Read X and reason about Y". Never "search for" or "match pattern".
 
 - **violation_pattern**: Single-line description of what's wrong.
 
@@ -166,7 +171,7 @@ Ask only:
 
 ---
 
-## Step 3 — Apply Changes (ADD / UPDATE)
+## Step 3 - Apply Changes (ADD / UPDATE)
 
 ### Update `thunder-plugin-rules.yaml`:
 
@@ -199,7 +204,7 @@ Ask only:
 
 ---
 
-## Step 4 — Remove Rule
+## Step 4 - Remove Rule
 
 ### From `thunder-plugin-rules.yaml`:
 - Remove the entire rule block from the appropriate section
@@ -218,15 +223,15 @@ Ask only:
 
 ---
 
-## Step 5 — Confirmation Report
+## Step 5 - Confirmation Report
 
 After completing all changes, display:
 
 ```
-## Rule Manager — Changes Applied
+## Rule Manager - Changes Applied
 
 **Action:** [Add/Update/Remove]
-**Rule:** [rule_id or rule_id] — [name]
+**Rule:** [rule_id] - [name]
 **Type:** [Phase checkpoint/Holistic]
 
 ### Files Updated

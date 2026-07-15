@@ -6,7 +6,7 @@
 
 Rules for validating Thunder COM interface headers in `ThunderInterfaces/interfaces/`.
 
-Every rule uses semantic reasoning — read the interface header in full and reason about the code as a human reviewer. Never use regex or text search as the primary detection method.
+Every rule uses semantic reasoning - read the interface header in full and reason about the code as a human reviewer. Never use regex or text search as the primary detection method.
 
 ---
 
@@ -38,7 +38,7 @@ Every rule uses semantic reasoning — read the interface header in full and rea
 
 ## Core Rules (16)
 
-### core_1_1 — File Structure
+### core_1_1 - File Structure
 
 **Severity:** suggestion
 
@@ -47,7 +47,7 @@ Every rule uses semantic reasoning — read the interface header in full and rea
 Thunder interface headers must follow a standard structure:
 - File name should match the interface name (IFoo.h for struct EXTERNAL IFoo),
   though exceptions may exist
-- No implementation code in interface headers — pure declarations only
+- No implementation code in interface headers - pure declarations only
 
 **Extraction Logic:**
 
@@ -59,8 +59,8 @@ Thunder interface headers must follow a standard structure:
 
 1. Verify the primary interface struct name matches the file name (e.g. IDictionary in IDictionary.h)
    - Exception: multi-interface files or platform-specific groupings may have different naming
-2. Verify there is no implementation code — only forward declarations, typedefs, struct/enum declarations
-3. If issues are found → WARNING
+2. Verify there is no implementation code - only forward declarations, typedefs, struct/enum declarations
+3. If issues are found → SUGGESTION
 
 **Violation Pattern:** File name does not match interface name, or implementation code present in interface header
 
@@ -75,7 +75,7 @@ struct EXTERNAL IDictionary : virtual public Core::IUnknown {
 };
 
 // Correct: pure declarations only
-struct EXTERNAL IDictionary : virtual public Core::/t {
+struct EXTERNAL IDictionary : virtual public Core::IUnknown {
     virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
 };
 ```
