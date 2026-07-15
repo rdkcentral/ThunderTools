@@ -115,7 +115,7 @@ class Restrictions:
         name = override if override else (relay.original_name if self.__original_name else relay.temp_name)
 
         if isinstance(relay, JsonObject) and self.__json and json:
-            if test_set:
+            if test_set and config.EMIT_OPTIONAL_CHECKS:
                 if IsObjectOptional(relay):
                     if self.__reverse:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == true)" % (name, name))
@@ -126,13 +126,13 @@ class Restrictions:
                         self.__cond.append("(%s.IsSet() == true) && (%s.IsDataValid() == true)" % (name, name))
                     else:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == false)" % (name, name))
-            else:
+            elif config.EMIT_OPTIONAL_CHECKS or config.EMIT_RESTRICT_CHECKS:
                 if self.__reverse:
                     self.__cond.append("%s.IsDataValid() == true" % name)
                 else:
                     self.__cond.append("%s.IsDataValid() == false" % name)
 
-        elif IsObjectRestricted(relay):
+        elif IsObjectRestricted(relay) and config.EMIT_RESTRICT_CHECKS:
             tests = []
 
             range = relay.schema.get("range")
@@ -197,7 +197,7 @@ class Restrictions:
                                 tests.append("%s.Count() %s %s" % (name, self.__comp[1], range[1]))
 
             if tests:
-                if test_set and self.__json and json:
+                if test_set and self.__json and json and config.EMIT_OPTIONAL_CHECKS:
                     if IsObjectOptional(argument):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " && ".join(tests)))
@@ -211,7 +211,7 @@ class Restrictions:
                 else:
                     self.__cond.extend(tests)
 
-        elif test_set and self.__json and json and not IsObjectOptional(relay):
+        elif test_set and self.__json and json and not IsObjectOptional(relay) and config.EMIT_OPTIONAL_CHECKS:
             self.__cond.append("%s.IsSet() == %s" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):

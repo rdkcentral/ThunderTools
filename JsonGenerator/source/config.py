@@ -53,6 +53,9 @@ FORCE = False
 GENERATED_JSON = False
 LEGACY_ALT = False
 AUTO_PREFIX = False
+STRICT_VALIDATION = True
+EMIT_RESTRICT_CHECKS = True
+EMIT_OPTIONAL_CHECKS = True
 
 class RpcFormat(Enum):
     COMPLIANT = "compliant"
@@ -100,6 +103,9 @@ def Parse(cmdline):
     global DEFAULT_CASE_CONVENTION
     global IGNORE_SOURCE_CASE_CONVENTION
     global STATS_FOR_NERDS
+    global STRICT_VALIDATION
+    global EMIT_OPTIONAL_CHECKS
+    global EMIT_RESTRICT_CHECKS
 
     argparser = argparse.ArgumentParser(
         description='Generate JSON C++ classes, JSON-RPC glue code and API documentation from JSON definition files and C++ header files',
@@ -150,9 +156,9 @@ def Parse(cmdline):
     argparser.add_argument(
             "--stats",
             dest="stats",
-            action="store_true",
+            action=argparse.BooleanOptionalAction,
             default=False,
-            help= "regiter version with extra stats (default: stats enabled)")
+            help="register version with additional method count statisitics")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -267,6 +273,24 @@ def Parse(cmdline):
             action="store_true",
             default=False,
             help= "do not use PUSH/POP_WARNING macros in generated code (default: use macros)")
+    data_group.add_argument(
+            "--strict-validation",
+            dest="strict_validation",
+            action=argparse.BooleanOptionalAction,
+            default=STRICT_VALIDATION,
+            help= "enable strict input parameter validation")
+    data_group.add_argument(
+            "--restrict-checks",
+            dest="restrict_checks",
+            action=argparse.BooleanOptionalAction,
+            default=EMIT_RESTRICT_CHECKS,
+            help="emit restrict checks")
+    data_group.add_argument(
+            "--optional-checks",
+            dest="optional_checks",
+            action=argparse.BooleanOptionalAction,
+            default=EMIT_OPTIONAL_CHECKS,
+            help="emit optional checks")
     data_group.add_argument("--copy-ctor",
             dest="copy_ctor",
             action="store_true",
@@ -293,6 +317,7 @@ def Parse(cmdline):
             action="store",
             default=FRAMEWORK_NAMESPACE,
             help="set framework namespace")
+
 
     doc_group = argparser.add_argument_group("Documentation output arguments (optional)")
     doc_group.add_argument("--no-style-warnings",
@@ -356,6 +381,9 @@ def Parse(cmdline):
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
     IGNORE_SOURCE_CASE_CONVENTION = args.ignore_source_case_convention
+    EMIT_RESTRICT_CHECKS = args.restrict_checks
+    EMIT_OPTIONAL_CHECKS = args.optional_checks
+    STRICT_VALIDATION = args.strict_validation
 
     if args.case_convention == "standard":
         DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
