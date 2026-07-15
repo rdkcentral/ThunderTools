@@ -94,7 +94,7 @@ def Parse(cmdline):
     global DUMP_JSON
     global RPC_FORMAT_FORCED
     global RPC_FORMAT
-    global NO_DUP_WARNINGS
+    global DUPLICATE_OBJ_WARNINGS
     global ALWAYS_EMIT_COPY_CTOR
     global KEEP_EMPTY
     global CLASSNAME_FROM_REF
