@@ -41,6 +41,7 @@ INTERFACE_SOURCE_REVISION = None
 NO_INCLUDES = False
 NO_VERSIONING = False
 NO_PUSH_WARNING = False
+NO_DUP_WARNINGS = False
 DEFAULT_INTERFACE_SOURCE_REVISION = "main"
 GLOBAL_DEFINITIONS = ".." + os.sep + "global.json"
 INDENT_SIZE = 4
@@ -53,6 +54,7 @@ FORCE = False
 GENERATED_JSON = False
 LEGACY_ALT = False
 AUTO_PREFIX = False
+STATS_FOR_NERDS = False
 STRICT_VALIDATION = True
 EMIT_RESTRICT_CHECKS = True
 EMIT_OPTIONAL_CHECKS = True
@@ -145,20 +147,14 @@ def Parse(cmdline):
             "--force",
             dest="force",
             action="store_true",
-            default=False,
+            default=FORCE,
             help= "force code generation even if destination appears up-to-date (default: force disabled)")
     argparser.add_argument(
             "--no-warnings",
-            dest="no_warnings",
+            dest="warnings",
             action="store_true",
             default=False,
             help= "disable all warnings (default: warnings enabled)")
-    argparser.add_argument(
-            "--stats",
-            dest="stats",
-            action=argparse.BooleanOptionalAction,
-            default=False,
-            help="register version with additional method count statisitics")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -167,17 +163,16 @@ def Parse(cmdline):
             action="append",
             type=str,
             default=[],
-            help=
-            "a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
+            help="a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
     json_group.add_argument("--no-ref-names",
             dest="no_ref_names",
             action="store_true",
-            default=False,
+            default=not CLASSNAME_FROM_REF,
             help="do not derive class names from $refs (default: derive class names from $ref)")
     json_group.add_argument("--duplicate-obj-warnings",
             dest="duplicate_obj_warnings",
             action="store_true",
-            default=False,
+            default=not NO_DUP_WARNINGS,
             help="enable duplicate object warnings (default: do not show duplicate object warnings)")
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
@@ -224,7 +219,7 @@ def Parse(cmdline):
     cpp_group.add_argument("--ignore-source-case-convention",
             dest="ignore_source_case_convention",
             action="store_true",
-            default=False,
+            default=IGNORE_SOURCE_CASE_CONVENTION,
             help="ignore case convention specified by source header file (default: don't ignore)")
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
@@ -248,30 +243,30 @@ def Parse(cmdline):
             "--no-includes",
             dest="no_includes",
             action="store_true",
-            default=False,
+            default=NO_INCLUDES,
             help="do not emit #includes (default: include data and interface headers)")
     data_group.add_argument(
             "--no-versioning",
             dest="no_versioning",
             action="store_true",
-            default=False,
+            default=NO_VERSIONING,
             help= "do not emit versioning information for non-auto JSON interfaces (default: emit versioning header)")
     data_group.add_argument(
             "--auto-prefix",
             dest="auto_prefix",
             action="store_true",
-            default=False,
+            default=AUTO_PREFIX,
             help= "prefix JSON-RPC endpoints with C++ namespace (default: no prefix)")
     data_group.add_argument("--legacy-alt",
             dest="legacy_alt",
             action="store_true",
-            default=False,
+            default=LEGACY_ALT,
             help="do not use framework's alt support (default: use framework alt support)")
     data_group.add_argument(
             "--no-push-warning",
             dest="no_push_warning",
             action="store_true",
-            default=False,
+            default=NO_PUSH_WARNING,
             help= "do not use PUSH/POP_WARNING macros in generated code (default: use macros)")
     data_group.add_argument(
             "--strict-validation",
@@ -291,10 +286,16 @@ def Parse(cmdline):
             action=argparse.BooleanOptionalAction,
             default=EMIT_OPTIONAL_CHECKS,
             help="emit optional checks")
+    data_group.add_argument(
+            "--stats",
+            dest="stats",
+            action=argparse.BooleanOptionalAction,
+            default=STATS_FOR_NERDS,
+            help="register version with additional method count statisitics")
     data_group.add_argument("--copy-ctor",
             dest="copy_ctor",
             action="store_true",
-            default=False,
+            default=ALWAYS_EMIT_COPY_CTOR,
             help="always emit a copy constructor and assignment operator (default: emit only when needed)")
     data_group.add_argument("--def-int-size",
             dest="def_int_size",
@@ -320,16 +321,16 @@ def Parse(cmdline):
 
 
     doc_group = argparser.add_argument_group("Documentation output arguments (optional)")
-    doc_group.add_argument("--no-style-warnings",
-            dest="no_style_warnings",
-            action="store_true",
-            default=not DOC_ISSUES,
-            help="suppress documentation issues (default: show all documentation issues)")
-    doc_group.add_argument("--no-interfaces-section",
-            dest="no_interfaces_section",
-            action="store_true",
-            default=False,
-            help="do not include 'Interfaces' section (default: include interface section)")
+    doc_group.add_argument("--style-warnings",
+            dest="style_warnings",
+            action=argparse.BooleanOptionalAction,
+            default=DOC_ISSUES,
+            help="report documentation issues")
+    doc_group.add_argument("--interfaces-section",
+            dest="interfaces_section",
+            action=argparse.BooleanOptionalAction,
+            default=INTERFACES_SECTION,
+            help="include 'Interfaces' section")
     doc_group.add_argument("--source-location",
             dest="source_location",
             metavar="LN",
@@ -354,18 +355,18 @@ def Parse(cmdline):
     ts_group.add_argument("--keep-empty",
             dest="keep_empty",
             action="store_true",
-            default=False,
+            default=KEEP_EMPTY,
             help="keep generated files that have no code")
     ts_group.add_argument("--dump-json",
             dest="dump_json",
             action="store_true",
-            default=False,
+            default=DUMP_JSON,
             help="dump the intermediate JSON file created while parsing a C++ header")
 
 
     args = argparser.parse_args(cmdline[1:])
 
-    DOC_ISSUES = not args.no_style_warnings
+    DOC_ISSUES = args.style_warnings
     NO_DUP_WARNINGS = not args.duplicate_obj_warnings
     INDENT_SIZE = args.indent_size
     ALWAYS_EMIT_COPY_CTOR = args.copy_ctor
@@ -376,7 +377,7 @@ def Parse(cmdline):
     FORCE = args.force
     LEGACY_ALT = args.legacy_alt
     DEFAULT_DEFINITIONS_FILE = args.extra_include
-    INTERFACES_SECTION = not args.no_interfaces_section
+    INTERFACES_SECTION = args.interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
