@@ -31,7 +31,6 @@ ENUM_SUFFIX = "Type"
 # Configurables
 CLASSNAME_FROM_REF = True
 DEFAULT_INT_SIZE = 32
-DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "Thunder"
 INTERFACE_NAMESPACES = ["::%s::Exchange::JSONRPC" % FRAMEWORK_NAMESPACE, "::%s::Exchange" % FRAMEWORK_NAMESPACE]
@@ -41,7 +40,7 @@ INTERFACE_SOURCE_REVISION = None
 NO_INCLUDES = False
 NO_VERSIONING = False
 NO_PUSH_WARNING = False
-NO_DUP_WARNINGS = False
+DUPLICATE_OBJ_WARNINGS = True
 DEFAULT_INTERFACE_SOURCE_REVISION = "main"
 GLOBAL_DEFINITIONS = ".." + os.sep + "global.json"
 INDENT_SIZE = 4
@@ -88,7 +87,6 @@ def Parse(cmdline):
     global NO_PUSH_WARNING
     global DEFAULT_INT_SIZE
     global INDENT_SIZE
-    global DOC_ISSUES
     global INTERFACE_SOURCE_LOCATION
     global INTERFACE_SOURCE_REVISION
     global INTERFACES_SECTION
@@ -150,11 +148,11 @@ def Parse(cmdline):
             default=FORCE,
             help= "force code generation even if destination appears up-to-date (default: force disabled)")
     argparser.add_argument(
-            "--no-warnings",
+            "--warnings",
             dest="warnings",
-            action="store_true",
-            default=False,
-            help= "disable all warnings (default: warnings enabled)")
+            action=argparse.BooleanOptionalAction,
+            default=True,
+            help= "report warnings")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -164,16 +162,16 @@ def Parse(cmdline):
             type=str,
             default=[],
             help="a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
-    json_group.add_argument("--no-ref-names",
-            dest="no_ref_names",
-            action="store_true",
-            default=not CLASSNAME_FROM_REF,
-            help="do not derive class names from $refs (default: derive class names from $ref)")
+    json_group.add_argument("--ref-names",
+            dest="ref_names",
+            action=argparse.BooleanOptionalAction,
+            default=CLASSNAME_FROM_REF,
+            help="derive class names from $refs")
     json_group.add_argument("--duplicate-obj-warnings",
             dest="duplicate_obj_warnings",
-            action="store_true",
-            default=not NO_DUP_WARNINGS,
-            help="enable duplicate object warnings (default: do not show duplicate object warnings)")
+            action=argparse.BooleanOptionalAction,
+            default=DUPLICATE_OBJ_WARNINGS,
+            help="enable duplicate object warnings")
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
@@ -291,7 +289,7 @@ def Parse(cmdline):
             dest="stats",
             action=argparse.BooleanOptionalAction,
             default=STATS_FOR_NERDS,
-            help="register version with additional method count statisitics")
+            help="register version with additional method count statistics")
     data_group.add_argument("--copy-ctor",
             dest="copy_ctor",
             action="store_true",
@@ -324,7 +322,7 @@ def Parse(cmdline):
     doc_group.add_argument("--style-warnings",
             dest="style_warnings",
             action=argparse.BooleanOptionalAction,
-            default=DOC_ISSUES,
+            default=True,
             help="report documentation issues")
     doc_group.add_argument("--interfaces-section",
             dest="interfaces_section",
@@ -366,12 +364,11 @@ def Parse(cmdline):
 
     args = argparser.parse_args(cmdline[1:])
 
-    DOC_ISSUES = args.style_warnings
-    NO_DUP_WARNINGS = not args.duplicate_obj_warnings
+    DUPLICATE_OBJ_WARNINGS = args.duplicate_obj_warnings
     INDENT_SIZE = args.indent_size
     ALWAYS_EMIT_COPY_CTOR = args.copy_ctor
     KEEP_EMPTY = args.keep_empty
-    CLASSNAME_FROM_REF = not args.no_ref_names
+    CLASSNAME_FROM_REF = args.ref_names
     DEFAULT_INT_SIZE = args.def_int_size
     DUMP_JSON = args.dump_json
     FORCE = args.force
