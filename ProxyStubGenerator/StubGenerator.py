@@ -2840,11 +2840,6 @@ if __name__ == "__main__":
                            help="include an additional C++ header file, can be used multiple times (default: include 'Module.h')")
     argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
                            help='add an include search path, can be used multiple times')
-    argparser.add_argument("--dump",
-                           dest="dump",
-                           action="store_true",
-                           default=False,
-                           help="Dump C++ parse tree")
 
     args = argparser.parse_args(sys.argv[1:])
     SHOW_WARNINGS = not args.no_warnings
