@@ -20,7 +20,6 @@
 #pragma once
 
 #include "Module.h"
-#include "SocketConfig.h"
 #include <gtest/gtest.h>
 
 namespace Thunder {
@@ -33,7 +32,7 @@ namespace Testing {
         {
             _engine = Core::ProxyType<RPC::InvokeServerType<4, 0, 1, 1, 1>>::Create();
             _client = Core::ProxyType<RPC::CommunicatorClient>::Create(
-                Core::NodeId(SocketPath()),
+                Core::NodeId("/tmp/comrpc_test.socket"),
                 Core::ProxyType<Core::IIPCServer>(_engine));
             _proxy = _client->Open<INTERFACE>(_T(""));
             ASSERT_NE(_proxy, nullptr) << "Failed to create proxy for interface 0x"

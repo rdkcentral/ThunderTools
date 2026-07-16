@@ -94,10 +94,6 @@ jobs:
             --target JsonRpcFunctionalTests ComRpcFunctionalTests
 
       - name: Run ProxyStub Functional Tests
-        env:
-          # Use architecture-specific socket path to prevent interference
-          # when 32-bit and 64-bit matrix jobs run in parallel on the same runner.
-          COMRPC_SOCKET_PATH: /tmp/comrpc_test_${{ matrix.architecture }}.socket
         run: Build/ThunderTools/tests/FunctionalTests/comrpc/ComRpcFunctionalTests
 
       - name: Run JSON-RPC Functional Tests

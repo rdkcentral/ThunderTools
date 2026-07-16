@@ -21,7 +21,6 @@
 
 #include "Module.h"
 #include "Ids.h"
-#include "SocketConfig.h"
 
 #include <ImplementationFactory.h>
 
@@ -36,7 +35,7 @@ namespace ComRpcServer {
 
         ComRpcServer()
             : RPC::Communicator(
-                Core::NodeId(Thunder::Testing::SocketPath()),
+                Core::NodeId("/tmp/comrpc_test.socket"),
                 _T(""),           // connector
                 _T("ComRpcServer")) // callsign
         {
@@ -45,7 +44,7 @@ namespace ComRpcServer {
             if (result != Core::ERROR_NONE) {
                 printf("Failed to open RPC Communicator: %u\n", result);
             } else {
-                printf("ComRpcServer RPC Communicator opened on %s\n", Thunder::Testing::SocketPath());
+                printf("ComRpcServer RPC Communicator opened on /tmp/comrpc_test.socket\n");
             }
         }
 

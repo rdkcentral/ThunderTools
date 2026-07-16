@@ -159,7 +159,11 @@ protected:
     {
         if (_sink != nullptr) {
             _proxy->Unregister(_sink);
-            SleepMs(150);
+            // Wait long enough for any in-flight background threads (detached in
+            // the implementation) to complete their sink->OnXxx() + sink->Release()
+            // calls. If a thread is still running when the proxy is released, it
+            // can corrupt the COM-RPC channel and cause subsequent suites to timeout.
+            SleepMs(500);
             delete _sink;
             _sink = nullptr;
         }
