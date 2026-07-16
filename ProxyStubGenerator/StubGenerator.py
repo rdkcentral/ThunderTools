@@ -2836,8 +2836,7 @@ if __name__ == "__main__":
                            metavar="FILE",
                            action='append',
                            default=[],
-                           nargs="*",
-                           help="include an additional C++ header file, can be used multiple times (default: include 'Module.h')")
+                           help="include an additional C++ header file, can be used multiple times")
     argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
                            help='add an include search path, can be used multiple times')
 
