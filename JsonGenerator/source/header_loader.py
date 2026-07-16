@@ -321,7 +321,7 @@ def LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all = False, inclu
         return [], []
 
 
-def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
+def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
@@ -1606,15 +1606,19 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
     return schemas, []
 
-def LoadInterface(file, log, all = False, include_paths = []):
-
+def LoadInterface(file, log, all, include_paths):
     try:
         schemas = []
         includes = []
         scanned = []
 
-        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], config.FRAMEWORK_NAMESPACE, include_paths, log)
+        files = []
+        files.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)))
+        files.append(os.path.join("@" + os.path.dirname(file), "Module.h"))
+        files.append(os.path.join("@" + os.path.dirname(file), "Ids.h"))
+        files.append(file)
+
+        tree = CppParser.ParseFiles(files, config.FRAMEWORK_NAMESPACE, include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths)
