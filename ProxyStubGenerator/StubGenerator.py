@@ -63,6 +63,7 @@ HRESULT = "Core::hresult"
 
 DEFAULT_DEFINITIONS_FILE = "default.h"
 MODULE_FILE = "Module.h"
+IDS_FILE = "Ids.h"
 
 log = Log.Log(NAME, BE_VERBOSE, SHOW_WARNINGS)
 
@@ -2839,6 +2840,11 @@ if __name__ == "__main__":
                            help="include an additional C++ header file, can be used multiple times (default: include 'Module.h')")
     argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
                            help='add an include search path, can be used multiple times')
+    argparser.add_argument("--dump",
+                           dest="dump",
+                           action="store_true",
+                           default=False,
+                           help="Dump C++ parse tree")
 
     args = argparser.parse_args(sys.argv[1:])
     SHOW_WARNINGS = not args.no_warnings
@@ -2984,14 +2990,16 @@ if __name__ == "__main__":
 
             for source_file in interface_files:
                 try:
-                    _extra_includes = [ os.path.join("@" + os.path.dirname(source_file), MODULE_FILE),
-                                        os.path.join("@" + os.path.dirname(source_file), "Ids.h") ]
+                    source_path = os.path.dirname(source_file)
 
-                    _extra_includes.extend(args.extra_includes)
+                    extra_includes = []
+                    extra_includes.append("@" + os.path.join(source_path, MODULE_FILE))
+                    extra_includes.append("@" + os.path.join(source_path, IDS_FILE))
+                    extra_includes.extend(args.extra_includes)
 
-                    tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths,
-                                    os.path.join("@" + os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE),
-                                    _extra_includes)
+                    definition_file = "@" + os.path.join(os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE)
+
+                    tree = Parse(source_file, FRAMEWORK_NAMESPACE, args.includePaths, definition_file, extra_includes)
 
                     if args.code:
                         log.Header(source_file)

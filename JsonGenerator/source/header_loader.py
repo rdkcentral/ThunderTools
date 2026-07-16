@@ -31,6 +31,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pard
 import ProxyStubGenerator.CppParser as CppParser
 import ProxyStubGenerator.Interface as CppInterface
 
+MODULE_FILE = "Module.h"
+IDS_FILE = "Ids.h"
+
 
 class CaseConverter:
     OBJECTS = 0
@@ -1612,10 +1615,12 @@ def LoadInterface(file, log, all, include_paths):
         includes = []
         scanned = []
 
+        source_path = os.path.dirname(file)
+
         files = []
         files.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)))
-        files.append(os.path.join("@" + os.path.dirname(file), "Module.h"))
-        files.append(os.path.join("@" + os.path.dirname(file), "Ids.h"))
+        files.append(os.path.join(source_path, MODULE_FILE))
+        files.append(os.path.join(source_path, IDS_FILE))
         files.append(file)
 
         tree = CppParser.ParseFiles(files, config.FRAMEWORK_NAMESPACE, include_paths, log)
