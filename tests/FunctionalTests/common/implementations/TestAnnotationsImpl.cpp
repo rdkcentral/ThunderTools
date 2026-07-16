@@ -79,6 +79,18 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult RenamedEchoMethod(const uint32_t value, uint32_t& result) const override
+        {
+            result = value;
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult TextCombinedMethod(const uint32_t value, uint32_t& result) const override
+        {
+            result = value;
+            return Core::ERROR_NONE;
+        }
+
         Core::hresult SetConnectionState(const ConnectionState state) override
         {
             _connectionState = state;

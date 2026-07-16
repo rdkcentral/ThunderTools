@@ -82,6 +82,30 @@ namespace FunctionalTest {
         virtual Core::hresult Subtract(const uint32_t a /* @in */, const uint32_t b /* @in */, uint32_t& result /* @out */) const = 0;
 
         // =================================================================
+        // text on method name — JSON-RPC dispatch name override
+        // =================================================================
+
+        // @brief Method whose JSON-RPC name is overridden by text.
+        //        C++ name is RenamedEchoMethod but callable as "renamedEcho".
+        // @text renamedEcho
+        // @param value Input value.
+        // @param result Receives the echoed value.
+        virtual Core::hresult RenamedEchoMethod(const uint32_t value /* @in */, uint32_t& result /* @out */) const = 0;
+
+        // =================================================================
+        // text on method combined with alt — both rename + alternative
+        // =================================================================
+
+        // @brief Method with text rename and alt alternative.
+        //        Primary dispatch: "textPrimary", alternative: "textSecondary".
+        //        C++ name "TextCombinedMethod" is NOT callable.
+        // @text textPrimary
+        // @alt textSecondary
+        // @param value Input value.
+        // @param result Receives the echoed value.
+        virtual Core::hresult TextCombinedMethod(const uint32_t value /* @in */, uint32_t& result /* @out */) const = 0;
+
+        // =================================================================
         // text on struct members — per-field JSON name override
         // =================================================================
 

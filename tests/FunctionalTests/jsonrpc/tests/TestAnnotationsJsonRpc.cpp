@@ -126,6 +126,63 @@ TEST_F(TestAnnotationsJsonRpc, AltObsolete_ObsoleteAltName_Works) {
 }
 
 // ===========================================================================
+// @text on method name — JSON-RPC dispatch name override
+// ===========================================================================
+
+TEST_F(TestAnnotationsJsonRpc, TextMethodName_RenamedName_Works) {
+    // C++ method is RenamedEchoMethod, but @text renames it to "renamedEcho"
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("tags::renamedEcho", R"({"value":123})", response));
+    EXPECT_EQ(response, "123");
+}
+
+TEST_F(TestAnnotationsJsonRpc, TextMethodName_OriginalCppName_Rejected) {
+    // Calling by the C++ method name (camelCase of RenamedEchoMethod) should fail
+    string response;
+    EXPECT_NE(Core::ERROR_NONE,
+        CallMethod("tags::renamedEchoMethod", R"({"value":123})", response))
+        << "Original C++ method name should not be callable when @text overrides it";
+}
+
+// ===========================================================================
+// @text on method combined with @alt — both primary rename + alternative
+// ===========================================================================
+
+TEST_F(TestAnnotationsJsonRpc, TextCombinedWithAlt_PrimaryTextName_Works) {
+    // @text renames to "textPrimary"
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("tags::textPrimary", R"({"value":456})", response));
+    EXPECT_EQ(response, "456");
+}
+
+TEST_F(TestAnnotationsJsonRpc, TextCombinedWithAlt_AltName_Works) {
+    // @alt provides "textSecondary" as alternative
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("tags::textSecondary", R"({"value":456})", response));
+    EXPECT_EQ(response, "456");
+}
+
+TEST_F(TestAnnotationsJsonRpc, TextCombinedWithAlt_OriginalCppName_Rejected) {
+    // C++ name "TextCombinedMethod" (camelCase → "textCombinedMethod") should NOT work
+    string response;
+    EXPECT_NE(Core::ERROR_NONE,
+        CallMethod("tags::textCombinedMethod", R"({"value":456})", response))
+        << "Original C++ name should not be callable when @text overrides it";
+}
+
+TEST_F(TestAnnotationsJsonRpc, TextCombinedWithAlt_BothNames_ProduceSameResult) {
+    string responsePrimary, responseAlt;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("tags::textPrimary", R"({"value":789})", responsePrimary));
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("tags::textSecondary", R"({"value":789})", responseAlt));
+    EXPECT_EQ(responsePrimary, responseAlt);
+}
+
+// ===========================================================================
 // @text on struct members — JSON field names use the overridden names
 // ===========================================================================
 

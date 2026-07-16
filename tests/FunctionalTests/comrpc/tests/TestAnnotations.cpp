@@ -65,6 +65,22 @@ TEST_F(TestAnnotations, Subtract_RoundTrip) {
 }
 
 // ===========================================================================
+// @text on method name — COM-RPC uses C++ name regardless of @text
+// ===========================================================================
+
+TEST_F(TestAnnotations, RenamedEchoMethod_RoundTrip) {
+    uint32_t result = 0;
+    ASSERT_EQ(_proxy->RenamedEchoMethod(555, result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 555u);
+}
+
+TEST_F(TestAnnotations, TextCombinedMethod_RoundTrip) {
+    uint32_t result = 0;
+    ASSERT_EQ(_proxy->TextCombinedMethod(777, result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 777u);
+}
+
+// ===========================================================================
 // @text on struct members — COM-RPC round-trip (names don't affect COM-RPC)
 // ===========================================================================
 
