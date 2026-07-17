@@ -77,26 +77,26 @@ RPC_FORMAT = RpcFormat.COMPLIANT
 RPC_FORMAT_FORCED = False
 
 # custom BooleanOptional argparse action, so we don't bump Python version requirement
-class LegacyBooleanOptionalAction(argparse.Action):
+class BoolAction(argparse.Action):
     def __init__(self, option_strings, dest, default=None, type=None,
                  choices=None, required=False, help=None, metavar=None):
 
         adjusted_options = []
-        for o in option_strings:
-            adjusted_options.append(o)
-            if o.startswith('--'):
-                adjusted_options.append('--no-' + o[2:])
+
+        assert len(option_strings) == 1
+        assert option_strings[0].startswith("--")
+
+        adjusted_options = option_strings
+        option_strings.append("--no-" + option_strings[0][2:])
 
         adjusted_help = help
-        if default is not None and help is not None:
+        if default is not None and adjusted_help is not None:
             adjusted_help += " (default: %s)" % ("yes" if default else "no")
 
-        super(LegacyBooleanOptionalAction, self).__init__(
-            option_strings=adjusted_options, dest=dest, nargs=0,
-            default=default, type=type, choices=choices,
-            required=required, help=adjusted_help, metavar=metavar)
+        super().__init__(option_strings=adjusted_options, dest=dest, nargs=0, default=default, type=type, choices=choices, required=required, help=adjusted_help, metavar=metavar)
 
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values, option_string):
+        assert option_string is not None
         setattr(namespace, self.dest, (not option_string.startswith('--no-')))
 
 
@@ -175,7 +175,7 @@ def Parse(cmdline):
     argparser.add_argument(
             "--warnings",
             dest="warnings",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=True,
             help= "report warnings")
 
@@ -189,12 +189,12 @@ def Parse(cmdline):
             help="a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
     json_group.add_argument("--ref-names",
             dest="ref_names",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=CLASSNAME_FROM_REF,
             help="derive class names from $refs")
     json_group.add_argument("--duplicate-obj-warnings",
             dest="duplicate_obj_warnings",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=DUPLICATE_OBJ_WARNINGS,
             help="enable duplicate object warnings")
 
@@ -235,7 +235,7 @@ def Parse(cmdline):
     cpp_group.add_argument("--case-convention",
             dest="case_convention",
             type=str,
-            choices=["legacy", "standard", "keep"],
+            choices=["legacy", "legacy_lowercase", "standard", "keep"],
             action="store",
             default=DEFAULT_CASE_CONVENTION.value,
             help="select JSON-RPC case convention (default: %s)" % DEFAULT_CASE_CONVENTION.value)
@@ -282,48 +282,48 @@ def Parse(cmdline):
     data_group.add_argument(
             "--auto-prefix",
             dest="auto_prefix",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=AUTO_PREFIX,
             help= "prefix JSON-RPC endpoints with C++ namespace")
     data_group.add_argument(
             "--push-warning",
             dest="push_warning",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=PUSH_WARNING,
             help= "use PUSH/POP_WARNING macros in generated code")
     data_group.add_argument(
             "--strict-validation",
             dest="strict_validation",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=STRICT_VALIDATION,
             help= "enable strict input parameter validation")
     data_group.add_argument(
             "--strict-index-validation",
             dest="strict_index_validation",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=None,
             help= "enable strict index validation (default: follow --strict-validation option)")
     data_group.add_argument(
             "--restrict-checks",
             dest="restrict_checks",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=EMIT_RESTRICT_CHECKS,
             help="emit restrict checks")
     data_group.add_argument(
             "--optional-checks",
             dest="optional_checks",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=EMIT_OPTIONAL_CHECKS,
             help="emit optional checks")
     data_group.add_argument(
             "--stats",
             dest="stats",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=STATS_FOR_NERDS,
             help="register version with additional method count statistics")
     data_group.add_argument("--copy-ctor",
             dest="copy_ctor",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=ALWAYS_EMIT_COPY_CTOR,
             help="always emit a copy constructor and assignment operator")
     data_group.add_argument("--def-int-size",
@@ -352,12 +352,12 @@ def Parse(cmdline):
     doc_group = argparser.add_argument_group("Documentation output arguments (optional)")
     doc_group.add_argument("--style-warnings",
             dest="style_warnings",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=True,
             help="report documentation issues")
     doc_group.add_argument("--interfaces-section",
             dest="interfaces_section",
-            action=LegacyBooleanOptionalAction,
+            action=BoolAction,
             default=INTERFACES_SECTION,
             help="include 'Interfaces' section")
     doc_group.add_argument("--source-location",

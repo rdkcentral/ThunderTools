@@ -127,7 +127,7 @@ class Restrictions:
                     else:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == false)" % (name, name))
             elif config.EMIT_OPTIONAL_CHECKS or config.EMIT_RESTRICT_CHECKS:
-                #if both checks are disabled it's no point to call IsDataValid further (will always return true)
+                # if both checks are disabled then there is no reason to call IsDataValid further (they will always return true)
                 if self.__reverse:
                     self.__cond.append("%s.IsDataValid() == true" % name)
                 else:
