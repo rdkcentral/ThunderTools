@@ -169,11 +169,11 @@ function(JsonGenerator)
         list(APPEND _execute_command  "--no-optional-checks")
     endif()
 
-    if(Argument_RESTRCT_CHECKS)
+    if(Argument_RESTRICT_CHECKS)
         list(APPEND _execute_command  "--restrict-checks")
     endif()
 
-    if(Argument_NO_RESTRCT_CHECKS)
+    if(Argument_NO_RESTRICT_CHECKS)
         list(APPEND _execute_command  "--no-restrict-checks")
     endif()
 
