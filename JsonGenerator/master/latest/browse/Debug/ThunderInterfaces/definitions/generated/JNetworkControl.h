@@ -56,7 +56,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Interfaces(_result_);
 
@@ -107,7 +107,7 @@ namespace Exchange {
                     if (_errorCode__ == Core::ERROR_NONE) {
 
                         if (params.IsSet() == false) {
-                            ::Thunder::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _result_{};
+                            RPC::IIteratorType<Exchange::INetworkControl::NetworkInfo, Exchange::ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _result_{};
 
                             _errorCode__ = (static_cast<const INetworkControl*>(_implementation__))->Network(interface, _result_);
 
@@ -128,15 +128,15 @@ namespace Exchange {
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                             else {
-                                ::Thunder::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _value_{};
+                                RPC::IIteratorType<Exchange::INetworkControl::NetworkInfo, Exchange::ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* _value_{};
                                 std::list<Exchange::INetworkControl::NetworkInfo> _valueElements_{};
                                 auto _valueIterator_ = params.Value.Elements();
                                 while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                                using _valueIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>;
-                                _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>(std::move(_valueElements_));
+                                using _valueIteratorImplType_ = RPC::IteratorType<RPC::IIteratorType<Exchange::INetworkControl::NetworkInfo, Exchange::ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>;
+                                _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<RPC::IIteratorType<Exchange::INetworkControl::NetworkInfo, Exchange::ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>>(std::move(_valueElements_));
                                 ASSERT(_value_ != nullptr);
 
-                                _errorCode__ = _implementation__->Network(interface, static_cast<::Thunder::RPC::IIteratorType<INetworkControl::NetworkInfo, ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const&>(_value_));
+                                _errorCode__ = _implementation__->Network(interface, static_cast<RPC::IIteratorType<Exchange::INetworkControl::NetworkInfo, Exchange::ID_NETWORKCONTROL_NETWORK_INFO_ITERATOR>* const&>(_value_));
                                 if (_value_ != nullptr) {
                                     _value_->Release();
                                 }
@@ -156,7 +156,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (params.IsSet() == false) {
-                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                        RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                         _errorCode__ = (static_cast<const INetworkControl*>(_implementation__))->DNS(_result_);
 
@@ -177,15 +177,15 @@ namespace Exchange {
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
-                            ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _value_{};
+                            RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _value_{};
                             std::list<string> _valueElements_{};
                             auto _valueIterator_ = params.Value.Elements();
                             while (_valueIterator_.Next() == true) { _valueElements_.push_back(_valueIterator_.Current()); }
-                            using _valueIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>;
-                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
+                            using _valueIteratorImplType_ = RPC::IteratorType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>;
+                            _value_ = Core::ServiceType<_valueIteratorImplType_>::Create<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>(std::move(_valueElements_));
                             ASSERT(_value_ != nullptr);
 
-                            _errorCode__ = _implementation__->DNS(static_cast<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* const&>(_value_));
+                            _errorCode__ = _implementation__->DNS(static_cast<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* const&>(_value_));
                             if (_value_ != nullptr) {
                                 _value_->Release();
                             }

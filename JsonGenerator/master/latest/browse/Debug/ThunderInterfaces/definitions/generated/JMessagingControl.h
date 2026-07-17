@@ -59,7 +59,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Modules(_result_);
 
@@ -86,7 +86,7 @@ namespace Exchange {
                     }
 
                     if (_errorCode__ == Core::ERROR_NONE) {
-                        ::Thunder::RPC::IIteratorType<IMessagingControl::Control, ID_MESSAGING_CONTROL_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::IMessagingControl::Control, Exchange::ID_MESSAGING_CONTROL_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Controls(module, _result_);
 

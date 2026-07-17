@@ -37,7 +37,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IHDRProperties::HDRType, ID_HDR_ITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->TVCapabilities(_result_);
 
@@ -59,7 +59,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IHDRProperties::HDRType>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IHDRProperties::HDRType, ID_HDR_ITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IHDRProperties::HDRType, Exchange::ID_HDR_ITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->STBCapabilities(_result_);
 

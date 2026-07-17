@@ -36,7 +36,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<JsonData::Subsystems::SubsystemInfo>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<ISubsystems::Subsystem, ::Thunder::RPC::ID_CONTROLLER_SUBSYSTEMS_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::Controller::ISubsystems::Subsystem, RPC::ID_CONTROLLER_SUBSYSTEMS_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Subsystems(_result_);
 

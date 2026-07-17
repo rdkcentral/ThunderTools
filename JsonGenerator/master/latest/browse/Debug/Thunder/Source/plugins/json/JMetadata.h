@@ -45,7 +45,7 @@ namespace Exchange {
                             _callsignOpt__ = callsign;
                         }
 
-                        ::Thunder::RPC::IIteratorType<IMetadata::Data::Service, ::Thunder::RPC::ID_CONTROLLER_METADATA_SERVICES_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::Controller::IMetadata::Data::Service, RPC::ID_CONTROLLER_METADATA_SERVICES_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Services(_callsignOpt__, _result_);
 
@@ -70,7 +70,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<JsonData::Metadata::LinkData>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<IMetadata::Data::Link, ::Thunder::RPC::ID_CONTROLLER_METADATA_LINKS_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::Controller::IMetadata::Data::Link, RPC::ID_CONTROLLER_METADATA_LINKS_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Links(_result_);
 
@@ -101,7 +101,7 @@ namespace Exchange {
                             _linkIDOpt__ = linkID;
                         }
 
-                        ::Thunder::RPC::IIteratorType<IMetadata::Data::Proxy, ::Thunder::RPC::ID_CONTROLLER_METADATA_PROXIES_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::Controller::IMetadata::Data::Proxy, RPC::ID_CONTROLLER_METADATA_PROXIES_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Proxies(_linkIDOpt__, _result_);
 
@@ -142,7 +142,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<JsonData::Metadata::ThreadData>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<IMetadata::Data::Thread, ::Thunder::RPC::ID_CONTROLLER_METADATA_THREADS_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::Controller::IMetadata::Data::Thread, RPC::ID_CONTROLLER_METADATA_THREADS_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Threads(_result_);
 
@@ -164,7 +164,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                        RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->PendingRequests(_result_);
 
@@ -200,7 +200,7 @@ namespace Exchange {
                         }
 
                         if (_errorCode__ == Core::ERROR_NONE) {
-                            ::Thunder::RPC::IIteratorType<IMetadata::Data::CallStack, ::Thunder::RPC::ID_CONTROLLER_METADATA_CALLSTACK_ITERATOR>* _result_{};
+                            RPC::IIteratorType<Exchange::Controller::IMetadata::Data::CallStack, RPC::ID_CONTROLLER_METADATA_CALLSTACK_ITERATOR>* _result_{};
 
                             _errorCode__ = _implementation__->CallStack(_threadConv__, _result_);
 

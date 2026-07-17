@@ -36,7 +36,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Systems(_result_);
 
@@ -63,7 +63,7 @@ namespace Exchange {
                     }
 
                     if (_errorCode__ == Core::ERROR_NONE) {
-                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                        RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Designators(keySystem, _result_);
 

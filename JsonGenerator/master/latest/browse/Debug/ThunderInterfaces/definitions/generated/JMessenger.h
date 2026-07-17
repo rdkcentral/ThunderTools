@@ -54,12 +54,12 @@ namespace Exchange {
                             const string _room_{params.Room};
                             const string _user_{params.User};
                             const Exchange::JSONRPC::IMessenger::security _secure_{params.Secure};
-                            ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _acl_{};
+                            RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _acl_{};
                             std::list<string> _aclElements_{};
                             auto _aclIterator_ = params.Acl.Elements();
                             while (_aclIterator_.Next() == true) { _aclElements_.push_back(_aclIterator_.Current()); }
-                            using _aclIteratorImplType_ = ::Thunder::RPC::IteratorType<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>;
-                            _acl_ = Core::ServiceType<_aclIteratorImplType_>::Create<::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>>(std::move(_aclElements_));
+                            using _aclIteratorImplType_ = RPC::IteratorType<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>;
+                            _acl_ = Core::ServiceType<_aclIteratorImplType_>::Create<RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>>(std::move(_aclElements_));
                             ASSERT(_acl_ != nullptr);
 
                             string _roomId_{};

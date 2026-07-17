@@ -37,7 +37,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::AudioCodec>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IPlayerProperties::AudioCodec, ID_PLAYER_PROPERTIES_AUDIO>* _result_{};
+                    RPC::IIteratorType<Exchange::IPlayerProperties::AudioCodec, Exchange::ID_PLAYER_PROPERTIES_AUDIO>* _result_{};
 
                     _errorCode__ = _implementation__->AudioCodecs(_result_);
 
@@ -59,7 +59,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IPlayerProperties::VideoCodec>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IPlayerProperties::VideoCodec, ID_PLAYER_PROPERTIES_VIDEO>* _result_{};
+                    RPC::IIteratorType<Exchange::IPlayerProperties::VideoCodec, Exchange::ID_PLAYER_PROPERTIES_VIDEO>* _result_{};
 
                     _errorCode__ = _implementation__->VideoCodecs(_result_);
 

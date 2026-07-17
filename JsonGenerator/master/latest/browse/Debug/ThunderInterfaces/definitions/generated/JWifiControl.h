@@ -113,7 +113,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<JsonData::WifiControl::NetworkInfoData>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IWifiControl::NetworkInfo, ID_WIFICONTROL_NETWORK_INFO_ITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Networks(_result_);
 
@@ -140,7 +140,7 @@ namespace Exchange {
                     }
 
                     if (_errorCode__ == Core::ERROR_NONE) {
-                        ::Thunder::RPC::IIteratorType<IWifiControl::SecurityInfo, ID_WIFICONTROL_SECURITY_INFO_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Securities(ssid, _result_);
 
@@ -163,7 +163,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Configs(_result_);
 

@@ -313,7 +313,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<JsonData::BluetoothControl::DeviceData>& devices) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<IBluetoothControl::device, 0>* _devices_{};
+                        RPC::IIteratorType<Exchange::JSONRPC::IBluetoothControl::device, 0>* _devices_{};
 
                         _errorCode__ = _implementation__->GetDeviceList(_devices_);
 
@@ -347,7 +347,7 @@ namespace Exchange {
                             Core::OptionalType<uint16_t> _manufacturer_{};
                             Core::OptionalType<uint32_t> _cod_{};
                             Core::OptionalType<uint16_t> _appearance_{};
-                            Core::OptionalType<::Thunder::RPC::IIteratorType<string, 0>*> _services_{};
+                            Core::OptionalType<RPC::IIteratorType<string, 0>*> _services_{};
                             bool _paired_{};
                             bool _connected_{};
 
@@ -380,7 +380,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<Core::JSON::DecUInt8>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<uint8_t, 0>* _result_{};
+                        RPC::IIteratorType<uint8_t, 0>* _result_{};
 
                         _errorCode__ = _implementation__->Adapters(_result_);
 
@@ -434,7 +434,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<string, 0>* _result_{};
+                        RPC::IIteratorType<string, 0>* _result_{};
 
                         _errorCode__ = _implementation__->Devices(_result_);
 

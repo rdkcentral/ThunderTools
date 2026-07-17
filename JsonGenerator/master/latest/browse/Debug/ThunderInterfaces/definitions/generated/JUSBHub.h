@@ -37,7 +37,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& iterator) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _iterator_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _iterator_{};
 
                     _errorCode__ = _implementation__->Devices(_iterator_);
 
@@ -66,7 +66,7 @@ namespace Exchange {
                     else {
                         const uint16_t _vendorId_{params.VendorId};
                         const uint16_t _productId_{params.ProductId};
-                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _iterator_{};
+                        RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _iterator_{};
 
                         _errorCode__ = _implementation__->VendorDevices(_vendorId_, _productId_, _iterator_);
 

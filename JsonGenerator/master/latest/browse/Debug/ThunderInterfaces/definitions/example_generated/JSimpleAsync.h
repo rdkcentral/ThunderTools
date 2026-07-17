@@ -345,7 +345,7 @@ namespace Example {
                     }
                     else {
                         const bool _fill_{params.Fill};
-                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _stringTables_{};
+                        RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _stringTables_{};
 
                         _errorCode__ = _implementation__->Tables4(_fill_, _stringTables_);
 
@@ -374,8 +374,8 @@ namespace Example {
                     }
                     else {
                         const bool _fill_{params.Fill};
-                        ::Thunder::RPC::IIteratorType<string, ::Thunder::RPC::ID_STRINGITERATOR>* _stringTables_{};
-                        ::Thunder::RPC::IIteratorType<uint32_t, ::Thunder::RPC::ID_VALUEITERATOR>* _intTables_{};
+                        RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _stringTables_{};
+                        RPC::IIteratorType<uint32_t, RPC::ID_VALUEITERATOR>* _intTables_{};
 
                         _errorCode__ = _implementation__->Tables5(_fill_, _stringTables_, _intTables_);
 

@@ -85,7 +85,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IDisplayProperties::ColorimetryType>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IDisplayProperties::ColorimetryType, ID_COLORIMETRY_ITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IDisplayProperties::ColorimetryType, Exchange::ID_COLORIMETRY_ITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Colorimetry(_result_);
 

@@ -88,7 +88,7 @@ namespace Exchange {
                     }
                     else {
                         const string _path_{params.Path};
-                        ::Thunder::RPC::IIteratorType<IDictionary::PathEntry, ID_DICTIONARY_ITERATOR>* _entries_{};
+                        RPC::IIteratorType<Exchange::IDictionary::PathEntry, Exchange::ID_DICTIONARY_ITERATOR>* _entries_{};
 
                         _errorCode__ = _implementation__->PathEntries(_path_, _entries_);
 

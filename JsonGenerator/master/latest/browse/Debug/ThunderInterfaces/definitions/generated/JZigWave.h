@@ -159,7 +159,7 @@ namespace Exchange {
                     }
 
                     if (_errorCode__ == Core::ERROR_NONE) {
-                        ::Thunder::RPC::IIteratorType<IZigWave::Device, ID_ZIGWAVE_DEVICE_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::IZigWave::Device, Exchange::ID_ZIGWAVE_DEVICE_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->Devices(_idConv__, _result_);
 

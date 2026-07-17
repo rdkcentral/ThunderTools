@@ -220,8 +220,8 @@ namespace Exchange {
                         const string _id_{params.Id};
                         const string _version_{params.Version};
                         Exchange::IPackageManager::MetadataPayload _metadata_{};
-                        ::Thunder::RPC::IIteratorType<IPackageManager::KeyValue, ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _resources_{};
-                        ::Thunder::RPC::IIteratorType<IPackageManager::KeyValue, ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _auxMetadata_{};
+                        RPC::IIteratorType<Exchange::IPackageManager::KeyValue, Exchange::ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _resources_{};
+                        RPC::IIteratorType<Exchange::IPackageManager::KeyValue, Exchange::ID_PACKAGEMANAGER_KEY_VALUE_ITERATOR>* _auxMetadata_{};
 
                         _errorCode__ = _implementation__->GetMetadata(_type_, _id_, _version_, _metadata_, _resources_, _auxMetadata_);
 
@@ -305,7 +305,7 @@ namespace Exchange {
                         const string _version_{params.Version};
                         const string _appName_{params.AppName};
                         const string _category_{params.Category};
-                        ::Thunder::RPC::IIteratorType<IPackageManager::PackageKey, ID_PACKAGEMANAGER_PACKAGE_KEY_ITERATOR>* _installedIds_{};
+                        RPC::IIteratorType<Exchange::IPackageManager::PackageKey, Exchange::ID_PACKAGEMANAGER_PACKAGE_KEY_ITERATOR>* _installedIds_{};
 
                         _errorCode__ = _implementation__->GetList(_type_, _id_, _version_, _appName_, _category_, _installedIds_);
 

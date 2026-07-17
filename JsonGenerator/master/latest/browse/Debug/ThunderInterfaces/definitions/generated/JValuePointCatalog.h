@@ -67,7 +67,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<Core::JSON::DecUInt32>& iterator) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<uint32_t, ::Thunder::RPC::ID_VALUEITERATOR>* _iterator_{};
+                        RPC::IIteratorType<uint32_t, RPC::ID_VALUEITERATOR>* _iterator_{};
 
                         _errorCode__ = _implementation__->Resources(_iterator_);
 

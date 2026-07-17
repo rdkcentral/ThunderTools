@@ -198,7 +198,7 @@ namespace Exchange {
                     }
                     else {
                         const uint8_t _module_{params.Module};
-                        ::Thunder::RPC::IIteratorType<uint32_t, ::Thunder::RPC::ID_VALUEITERATOR>* _iterator_{};
+                        RPC::IIteratorType<uint32_t, RPC::ID_VALUEITERATOR>* _iterator_{};
 
                         _errorCode__ = _implementation__->Orphans(_module_, _iterator_);
 

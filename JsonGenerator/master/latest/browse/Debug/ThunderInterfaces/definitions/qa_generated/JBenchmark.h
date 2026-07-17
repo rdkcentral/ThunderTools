@@ -56,7 +56,7 @@ namespace QualityAssurance {
                 [_implementation__](Core::JSON::ArrayType<JsonData::Benchmark::BenchmarkResultData>& report) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::Thunder::RPC::IIteratorType<IBenchmark::BenchmarkResult, ID_BENCHMARK_RESULT_ITERATOR>* _report_{};
+                    RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>* _report_{};
 
                     _errorCode__ = _implementation__->CollectData(_report_);
 

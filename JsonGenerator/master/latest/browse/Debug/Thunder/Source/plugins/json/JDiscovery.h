@@ -58,7 +58,7 @@ namespace Exchange {
                     [_implementation__](Core::JSON::ArrayType<JsonData::Discovery::DiscoveryResultData>& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        ::Thunder::RPC::IIteratorType<IDiscovery::Data::DiscoveryResult, ::Thunder::RPC::ID_CONTROLLER_DISCOVERY_RESULTS_ITERATOR>* _result_{};
+                        RPC::IIteratorType<Exchange::Controller::IDiscovery::Data::DiscoveryResult, RPC::ID_CONTROLLER_DISCOVERY_RESULTS_ITERATOR>* _result_{};
 
                         _errorCode__ = _implementation__->DiscoveryResults(_result_);
 
