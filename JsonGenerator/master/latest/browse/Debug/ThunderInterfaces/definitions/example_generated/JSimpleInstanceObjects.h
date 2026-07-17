@@ -205,12 +205,14 @@ namespace Example {
                     uint8_t _pinConv__{};
 
                     if (pin.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("device::pin")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
                         const bool _pinConvResult__ = Core::FromString(pin, _pinConv__);
 
                         if (_pinConvResult__ == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("device::pin")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }
@@ -288,6 +290,7 @@ namespace Example {
                             const bool _indexConvResult__ = Core::FromString(index_, _indexConv__);
 
                             if (_indexConvResult__ == false) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JSimpleInstanceObjects"), _T("device#ID::pinChanged")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                             else {

@@ -82,6 +82,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (module.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JMessagingControl"), _T("controls")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
 

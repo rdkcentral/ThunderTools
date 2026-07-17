@@ -524,12 +524,14 @@ namespace Example {
                     std::vector<uint8_t> _addressConv__{};
 
                     if (address.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JSimpleAsync"), _T("connected")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
                         const bool _addressConvResult__ = (Core::FromHexString(address, _addressConv__, 6, TCHAR(':')) != 0);
 
                         if ((_addressConvResult__ == false) || (_addressConv__.size() < 6) || (_addressConv__.size() > 6)) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JSimpleAsync"), _T("connected")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }
@@ -575,6 +577,7 @@ namespace Example {
                     uint8_t _addressConv__[6];
 
                     if (address.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JSimpleAsync"), _T("metadata")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
@@ -583,6 +586,7 @@ namespace Example {
                         const bool _addressConvResult__ = (_addressConvLength__ != 0);
 
                         if (_addressConvResult__ == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JSimpleAsync"), _T("metadata")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }
@@ -642,12 +646,14 @@ namespace Example {
                     Core::MACAddress _addressConv__{address.c_str()};
 
                     if (address.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JSimpleAsync"), _T("type")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
                         const bool _addressConvResult__ = _addressConv__.IsValid();
 
                         if (_addressConvResult__ == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JSimpleAsync"), _T("type")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }

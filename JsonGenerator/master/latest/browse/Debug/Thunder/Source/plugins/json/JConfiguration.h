@@ -107,6 +107,7 @@ namespace Exchange {
                         else {
 
                             if (callsign.empty() == true) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JConfiguration"), _T("configuration")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
 

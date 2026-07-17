@@ -405,12 +405,14 @@ namespace Exchange {
                         uint8_t _adapterConv__{};
 
                         if (adapter.empty() == true) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("adapter")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
                             const bool _adapterConvResult__ = Core::FromString(adapter, _adapterConv__);
 
                             if (_adapterConvResult__ == false) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("adapter")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                         }
@@ -457,6 +459,7 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if (deviceAddress.empty() == true) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("device")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
 

@@ -97,12 +97,14 @@ namespace Exchange {
                     uint32_t _addressConv__{};
 
                     if (address.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("permutable")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
                         const bool _addressConvResult__ = Core::FromString(address, _addressConv__);
 
                         if (_addressConvResult__ == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("permutable")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }
@@ -148,12 +150,14 @@ namespace Exchange {
                     uint32_t _idConv__{};
 
                     if (id.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("devices")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
                         const bool _idConvResult__ = Core::FromString(id, _idConv__);
 
                         if (_idConvResult__ == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("devices")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }

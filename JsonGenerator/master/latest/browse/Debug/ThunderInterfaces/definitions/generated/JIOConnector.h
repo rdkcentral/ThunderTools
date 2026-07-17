@@ -40,12 +40,14 @@ namespace Exchange {
                     uint16_t _idConv__{};
 
                     if (id.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JIOConnector"), _T("pin")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
                     else {
                         const bool _idConvResult__ = Core::FromString(id, _idConv__);
 
                         if (_idConvResult__ == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JIOConnector"), _T("pin")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                     }

@@ -57,6 +57,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (callsign.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JMemoryMonitor"), _T("restartinglimits")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
 
@@ -120,6 +121,7 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (callsign.empty() == true) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JMemoryMonitor"), _T("measurementdata")));
                         _errorCode__ = Core::ERROR_BAD_REQUEST;
                     }
 

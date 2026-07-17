@@ -189,12 +189,14 @@ namespace Exchange {
                         uint8_t _threadConv__{};
 
                         if (thread.empty() == true) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JMetadata"), _T("callstack")));
                             _errorCode__ = Core::ERROR_BAD_REQUEST;
                         }
                         else {
                             const bool _threadConvResult__ = Core::FromString(thread, _threadConv__);
 
                             if (_threadConvResult__ == false) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JMetadata"), _T("callstack")));
                                 _errorCode__ = Core::ERROR_BAD_REQUEST;
                             }
                         }
