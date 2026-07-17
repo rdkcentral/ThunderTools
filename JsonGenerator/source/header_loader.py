@@ -583,7 +583,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                     props = {}
 
                     props["items"] = ConvertParameter(currentMethod.retval, is_member=True, quiet=quiet)
-                    props["@iterator"] = StripInterfaceNamespace(cppType.type)
+                    props["@iterator"] = StripFrameworkNamespace(cppType.type)
                     props["@proto"]= var.ProtoFmt()
 
                     if var_type.IsPointerToConst():
