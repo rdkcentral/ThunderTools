@@ -209,7 +209,7 @@ class ObjectTracker:
                         warning = "'%s': duplicate object (same as '%s') - consider using $ref" % (newObj.print_name, obj.print_name)
 
                         if log:
-                            if not config.NO_DUP_WARNINGS:
+                            if config.DUPLICATE_OBJ_WARNINGS:
                                 log.Warn(warning)
                             else:
                                 log.Info(warning)
@@ -284,7 +284,7 @@ class EnumTracker(ObjectTracker):
                     if not config.GENERATED_JSON and (not is_ref and not IsInRef(obj)):
                         warning = "'%s': duplicate enums (same as '%s') - consider using $ref" % (newObj.print_name, obj.print_name)
 
-                        if not config.NO_DUP_WARNINGS:
+                        if config.DUPLICATE_OBJ_WARNINGS:
                             log.Warn(warning)
                         else:
                             log.Info(warning)

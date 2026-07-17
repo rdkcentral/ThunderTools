@@ -115,7 +115,7 @@ class Restrictions:
         name = override if override else (relay.original_name if self.__original_name else relay.temp_name)
 
         if isinstance(relay, JsonObject) and self.__json and json:
-            if test_set:
+            if test_set and config.EMIT_OPTIONAL_CHECKS:
                 if IsObjectOptional(relay):
                     if self.__reverse:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == true)" % (name, name))
@@ -126,13 +126,14 @@ class Restrictions:
                         self.__cond.append("(%s.IsSet() == true) && (%s.IsDataValid() == true)" % (name, name))
                     else:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == false)" % (name, name))
-            else:
+            elif config.EMIT_OPTIONAL_CHECKS or config.EMIT_RESTRICT_CHECKS:
+                #if both checks are disabled it's no point to call IsDataValid further (will always retrun true)
                 if self.__reverse:
                     self.__cond.append("%s.IsDataValid() == true" % name)
                 else:
                     self.__cond.append("%s.IsDataValid() == false" % name)
 
-        elif IsObjectRestricted(relay):
+        elif IsObjectRestricted(relay) and config.EMIT_RESTRICT_CHECKS:
             tests = []
 
             range = relay.schema.get("range")
@@ -198,6 +199,8 @@ class Restrictions:
 
             if tests:
                 if test_set and self.__json and json:
+                    # since the element is restricted still have to check optionality even if EMIT_OPTIONAL_CHECKS is unset
+                    # so it does not check restrict range on an unset element
                     if IsObjectOptional(argument):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " && ".join(tests)))
@@ -211,7 +214,7 @@ class Restrictions:
                 else:
                     self.__cond.extend(tests)
 
-        elif test_set and self.__json and json and not IsObjectOptional(relay):
+        elif test_set and self.__json and json and not IsObjectOptional(relay) and config.EMIT_OPTIONAL_CHECKS:
             self.__cond.append("%s.IsSet() == %s" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):
@@ -652,7 +655,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
     def _EmitNoPushWarnings(prologue = True):
         if prologue:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
                 emit.Line()
             else:
@@ -661,7 +664,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line("#endif")
                 emit.Line()
         else:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("POP_WARNING()")
                 emit.Line()
 

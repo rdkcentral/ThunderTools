@@ -32,7 +32,10 @@ function(JsonGenerator)
         message(FATAL_ERROR "JsonGenerator path ${JSON_GENERATOR} invalid.")
     endif()
 
-    set(optionsArgs CODE STUBS DOCS LEGACY_ALT AUTO_PREFIX NO_INCLUDES NO_WARNINGS NO_STYLE_WARNINGS DUPLICATE_OBJ_WARNINGS COPY_CTOR NO_REF_NAMES NO_INTERFACES_SECTION VERBOSE FORCE_GENERATE EMIT_INTERFACE_PATH IGNORE_CASE_CONVENTION STATS)
+    set(optionsArgs CODE STUBS DOCS LEGACY_ALT NO_INCLUDES WARNINGS NO_WARNINGS STYLE_WARNINGS NO_STYLE_WARNINGS INTERFACES_SECTION NO_INTERFACES_SECTION REF_NAMES NO_REF_NAMES VERBOSE FORCE_GENERATE EMIT_INTERFACE_PATH IGNORE_CASE_CONVENTION)
+    set(optionsArgs ${optionsArgs} AUTO_PREFIX NO_AUTO_PREFIX COPY_CTOR NO_COPY_CTOR DUPLICATE_OBJ_WARNINGS NO_DUPLICATE_OBJ_WARNINGS STATS NO_STATS)
+    set(optionsArgs ${optionsArgs} STRICT_VALIDATION NO_STRICT_VALIDATION STRICT_INDEX_VALIDATION NO_STRICT_INDEX_VALIDATION)
+    set(optionsArgs ${optionsArgs} OPTIONAL_CHECKS NO_OPTIONAL_CHECKS RESTRICT_CHECKS NO_RESTRICT_CHECKS)
     set(oneValueArgs OUTPUT CPP_OUTPUT INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT CPP_INTERFACE_PATH JSON_INTERFACE_PATH FRAMEWORK_NAMESPACE CASE_CONVENTION)
     set(multiValueArgs INPUT IFDIR CPPIFDIR INCLUDE_PATH NAMESPACE)
 
@@ -66,32 +69,60 @@ function(JsonGenerator)
         list(APPEND _execute_command  "--auto-prefix")
     endif()
 
+    if(Argument_NO_AUTO_PREFIX)
+        list(APPEND _execute_command  "--no-auto-prefix")
+    endif()
+
     if(Argument_NO_INCLUDES)
         list(APPEND _execute_command  "--no-includes")
+    endif()
+
+    if(Argument_WARNINGS)
+        list(APPEND _execute_command  "--warnings")
     endif()
 
     if(Argument_NO_WARNINGS)
         list(APPEND _execute_command  "--no-warnings")
     endif()
 
+    if(Argument_STYLE_WARNINGS)
+        list(APPEND _execute_command  "--style-warnings")
+    endif()
+
     if(Argument_NO_STYLE_WARNINGS)
         list(APPEND _execute_command  "--no-style-warnings")
     endif()
 
-    if(DUPLICATE_OBJ_WARNINGS)
+    if(Argument_INTERFACES_SECTION)
+        list(APPEND _execute_command  "--interfaces-section")
+    endif()
+
+    if(Argument_NO_INTERFACES_SECTION)
+        list(APPEND _execute_command  "--no-interfaces-section")
+    endif()
+
+    if(Argument_DUPLICATE_OBJ_WARNINGS)
         list(APPEND _execute_command  "--duplicate-obj-warnings")
+    endif()
+
+    if(Argument_NO_DUPLICATE_OBJ_WARNINGS)
+        list(APPEND _execute_command  "--no-duplicate-obj-warnings")
     endif()
 
     if(Argument_COPY_CTOR)
         list(APPEND _execute_command  "--copy-ctor")
     endif()
 
-    if(Argument_NO_REF_NAMES)
-        list(APPEND _execute_command  "--no-ref-names")
+    if(Argument_COPY_CTOR)
+        list(APPEND _execute_command  "--no-copy-ctor")
     endif()
 
-    if(Argument_NO_INTERFACES_SECTION)
-        list(APPEND _execute_command  "--no-interfaces-section")
+    if(Argument_REF_NAMES)
+        list(APPEND _execute_command  "--ref-names")
+    endif()
+
+    if(Argument_NO_REF_NAMES)
+        list(APPEND _execute_command  "--no-ref-names")
     endif()
 
     if(Argument_VERBOSE)
@@ -110,8 +141,48 @@ function(JsonGenerator)
         list(APPEND _execute_command  "--stats")
     endif()
 
-    if (Argument_PATH)
-        list(APPEND _execute_command  "-p" "${Argument_PATH}")
+    if(Argument_NO_STATS)
+        list(APPEND _execute_command  "--no-stats")
+    endif()
+
+    if(Argument_REF_NAMES)
+        list(APPEND _execute_command  "--ref-names")
+    endif()
+
+    if(Argument_NO_REF_NAMES)
+        list(APPEND _execute_command  "--no-ref-names")
+    endif()
+
+    if(Argument_REF_NAMES)
+        list(APPEND _execute_command  "--strict-validation")
+    endif()
+
+    if(Argument_NO_REF_NAMES)
+        list(APPEND _execute_command  "--no-strict-validation")
+    endif()
+
+    if(Argument_REF_NAMES)
+        list(APPEND _execute_command  "--strict-index-validation")
+    endif()
+
+    if(Argument_NO_REF_NAMES)
+        list(APPEND _execute_command  "--no-strict-index-validation")
+    endif()
+
+    if(Argument_REF_NAMES)
+        list(APPEND _execute_command  "--optional-checks")
+    endif()
+
+    if(Argument_NO_REF_NAMES)
+        list(APPEND _execute_command  "--no-optional-checks")
+    endif()
+
+    if(Argument_REF_NAMES)
+        list(APPEND _execute_command  "--restrict-checks")
+    endif()
+
+    if(Argument_NO_REF_NAMES)
+        list(APPEND _execute_command  "--no-restrict-checks")
     endif()
 
     foreach(_include_path ${Argument_IFDIR})
@@ -134,10 +205,6 @@ function(JsonGenerator)
 
     if (Argument_INDENT)
         list(APPEND _execute_command  "--indent" "${Argument_INDENT}")
-    endif()
-
-    if (Argument_DEF_STRING)
-        list(APPEND _execute_command  "--def-string" "${Argument_DEF_STRING}")
     endif()
 
     if (Argument_DEF_INT_SIZE)
@@ -187,7 +254,6 @@ endfunction(JsonGenerator)
 message(VERBOSE "JsonGenerator ready ${JSON_GENERATOR}")
 
 function(DocGenerator)
-
     set(oneValueArgs NAME)
     cmake_parse_arguments(Argument "" "${oneValueArgs}" "" ${ARGN})
     set(PLUGIN_NAME ${Argument_NAME})
