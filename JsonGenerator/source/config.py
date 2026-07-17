@@ -88,7 +88,7 @@ class LegacyBooleanOptionalAction(argparse.Action):
                 adjusted_options.append('--no-' + o[2:])
 
         adjusted_help = help
-        if default is not None:
+        if default is not None and help is not None:
             adjusted_help += " (default: %s)" % ("yes" if default else "no")
 
         super(LegacyBooleanOptionalAction, self).__init__(
@@ -196,7 +196,7 @@ def Parse(cmdline):
             dest="duplicate_obj_warnings",
             action=LegacyBooleanOptionalAction,
             default=DUPLICATE_OBJ_WARNINGS,
-            help="enable duplicate object warninsgs")
+            help="enable duplicate object warnings")
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
@@ -414,7 +414,7 @@ def Parse(cmdline):
     STRICT_VALIDATION = args.strict_validation
 
     # index validation follows parameter validation setting unless it's explicitly set
-    STRICT_INDEX_VALIDATION = args.strict_validation if args.strict_index_validation == None else args.strict_index_validation
+    STRICT_INDEX_VALIDATION = args.strict_validation if args.strict_index_validation is None else args.strict_index_validation
 
     if args.case_convention == "standard":
         DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD

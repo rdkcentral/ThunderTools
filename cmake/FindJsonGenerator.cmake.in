@@ -36,7 +36,7 @@ function(JsonGenerator)
     set(optionsArgs ${optionsArgs} AUTO_PREFIX NO_AUTO_PREFIX COPY_CTOR NO_COPY_CTOR DUPLICATE_OBJ_WARNINGS NO_DUPLICATE_OBJ_WARNINGS STATS NO_STATS)
     set(optionsArgs ${optionsArgs} STRICT_VALIDATION NO_STRICT_VALIDATION STRICT_INDEX_VALIDATION NO_STRICT_INDEX_VALIDATION)
     set(optionsArgs ${optionsArgs} OPTIONAL_CHECKS NO_OPTIONAL_CHECKS RESTRICT_CHECKS NO_RESTRICT_CHECKS)
-    set(oneValueArgs OUTPUT CPP_OUTPUT INDENT DEF_STRING DEF_INT_SIZE PATH FORMAT CPP_INTERFACE_PATH JSON_INTERFACE_PATH FRAMEWORK_NAMESPACE CASE_CONVENTION)
+    set(oneValueArgs OUTPUT CPP_OUTPUT INDENT DEF_INT_SIZE PATH FORMAT CPP_INTERFACE_PATH JSON_INTERFACE_PATH FRAMEWORK_NAMESPACE CASE_CONVENTION)
     set(multiValueArgs INPUT IFDIR CPPIFDIR INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
@@ -113,7 +113,7 @@ function(JsonGenerator)
         list(APPEND _execute_command  "--copy-ctor")
     endif()
 
-    if(Argument_COPY_CTOR)
+    if(Argument_NO_COPY_CTOR)
         list(APPEND _execute_command  "--no-copy-ctor")
     endif()
 
@@ -145,43 +145,35 @@ function(JsonGenerator)
         list(APPEND _execute_command  "--no-stats")
     endif()
 
-    if(Argument_REF_NAMES)
-        list(APPEND _execute_command  "--ref-names")
-    endif()
-
-    if(Argument_NO_REF_NAMES)
-        list(APPEND _execute_command  "--no-ref-names")
-    endif()
-
-    if(Argument_REF_NAMES)
+    if(Argument_STRICT_VALIDATION)
         list(APPEND _execute_command  "--strict-validation")
     endif()
 
-    if(Argument_NO_REF_NAMES)
+    if(Argument_NO_STRICT_VALIDATION)
         list(APPEND _execute_command  "--no-strict-validation")
     endif()
 
-    if(Argument_REF_NAMES)
+    if(Argument_STRICT_INDEX_VALIDATION)
         list(APPEND _execute_command  "--strict-index-validation")
     endif()
 
-    if(Argument_NO_REF_NAMES)
+    if(Argument_NO_STRICT_INDEX_VALIDATION)
         list(APPEND _execute_command  "--no-strict-index-validation")
     endif()
 
-    if(Argument_REF_NAMES)
+    if(Argument_OPTIONAL_CHECKS)
         list(APPEND _execute_command  "--optional-checks")
     endif()
 
-    if(Argument_NO_REF_NAMES)
+    if(Argument_NO_OPTIONAL_CHECKS)
         list(APPEND _execute_command  "--no-optional-checks")
     endif()
 
-    if(Argument_REF_NAMES)
+    if(Argument_RESTRCT_CHECKS)
         list(APPEND _execute_command  "--restrict-checks")
     endif()
 
-    if(Argument_NO_REF_NAMES)
+    if(Argument_NO_RESTRCT_CHECKS)
         list(APPEND _execute_command  "--no-restrict-checks")
     endif()
 
