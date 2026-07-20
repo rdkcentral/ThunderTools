@@ -99,7 +99,19 @@ def main():
 
     # Check if already configured (idempotent)
     prompt_locations = settings.get("chat.promptFilesLocations", {})
-    if isinstance(prompt_locations, dict) and prompt_locations.get(PROMPTS_KEY) is True:
+    if not isinstance(prompt_locations, dict):
+        prompt_locations = {}
+
+    # Disable any other PluginQualityAdvisor/Prompts paths to avoid slash command collisions
+    conflicts_disabled = []
+    for existing_key in list(prompt_locations.keys()):
+        if existing_key != PROMPTS_KEY and "PluginQualityAdvisor/Prompts" in existing_key and prompt_locations[existing_key] is True:
+            prompt_locations[existing_key] = False
+            conflicts_disabled.append(existing_key)
+
+    already_set = prompt_locations.get(PROMPTS_KEY) is True
+
+    if already_set and not conflicts_disabled:
         print()
         print(f"Already configured — '{PROMPTS_KEY}' is already in chat.promptFilesLocations.")
         print("No changes needed.")
@@ -118,8 +130,6 @@ def main():
         print(f"Backup created: {backup_path}")
 
     # Merge the new entry
-    if not isinstance(prompt_locations, dict):
-        prompt_locations = {}
     prompt_locations[PROMPTS_KEY] = True
     settings["chat.promptFilesLocations"] = prompt_locations
 
@@ -132,6 +142,11 @@ def main():
     print()
     print("SUCCESS: settings.json updated.")
     print()
+    if conflicts_disabled:
+        print("Disabled conflicting prompt paths (to avoid slash command collisions):")
+        for path in conflicts_disabled:
+            print(f"  - {path}")
+        print()
     if backup_path:
         print(f"Backup location: {backup_path}")
         print()

@@ -518,6 +518,17 @@ jobs:
           publish_dir: ./site
           destination_dir: PluginSkeletonGenerator
           keep_files: true
+          exclude_assets: 'master/latest_raw'
+
+      - name: Deploy raw baseline (full replace)
+        if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site/master/latest_raw
+          destination_dir: PluginSkeletonGenerator/master/latest_raw
+          keep_files: false
 
       - name: Prepare diff for AI
         if: github.event_name == 'pull_request' && steps.build_site.outputs.has_diff == 'true'

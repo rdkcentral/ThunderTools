@@ -7,27 +7,33 @@ AI-driven validation tools for Thunder plugin and COM interface development, pow
 ## Prerequisites
 
 1. **VS Code** with GitHub Copilot Chat extension installed
-2. **ThunderNanoServices** and **ThunderInterfaces** repositories in your workspace (or specify the path when prompted)
+2. **Plugin and interface source files** must be in the same VS Code workspace (any folder structure — the tool searches the workspace automatically)
 3. Register the prompt file location in VS Code:
 
    **Option A — Manual (recommended):**
    Open your VS Code `settings.json` (`Ctrl+Shift+P` -> `Preferences: Open User Settings (JSON)`) and add the absolute path to the Prompts folder:
 
-   ```json
+```json
    {
      "chat.promptFilesLocations": {
        "/full/path/to/ThunderTools/PluginQualityAdvisor/Prompts": true
      }
    }
-   ```
+```
 
-   The path must be the **absolute path** to the `Prompts` folder.
+The path must be the **absolute path** to the `Prompts` folder.
+
+> **Tip:** If you have multiple workspaces with PluginQualityAdvisor, set only one path to `true` at a time and the rest to `false`. This avoids slash command collisions. To switch, change `true`/`false` and reload VS Code.
 
    **Option B — Automated (Python script):**
-   ```bash
+
+```shellscript
    python3 PluginQualityAdvisor/setup-prompts.py
-   ```
-   This detects the absolute path to the `Prompts` folder and writes it to your VS Code `settings.json` automatically.
+```
+
+This detects the absolute path to the `Prompts` folder and writes it to your VS Code `settings.json` automatically.
+
+> **Multiple workspaces:** If you have PluginQualityAdvisor in multiple locations (e.g. different Thunder versions), the script automatically disables any previously registered paths and enables only the current one. This prevents slash command collisions where two paths provide the same prompt file. To switch back to a previous workspace, run `setup-prompts.py` from that workspace — it will disable the current path and enable the previous one.
 
 4. **Reload VS Code** — press `Ctrl+Shift+P` -> `Developer: Reload Window`
 
@@ -85,7 +91,7 @@ Validates a Thunder COM interface header against core and advisory rules defined
 /thunder-interface-review INetworkControl.h
 ```
 
-**Output:** Findings grouped into Violations, Warnings, Suggestions, Validated, and Compatibility Notes.
+**Output:** Issue summary table with detailed findings, saved as a Markdown report with clickable navigation.
 
 ---
 
@@ -98,7 +104,22 @@ Generates a new Thunder plugin skeleton interactively using PluginSkeletonGenera
 /thunder-generate-plugin
 ```
 
-Collects parameters via VS Code dropdowns (plugin name, in-process/out-of-process, JSON-RPC support, etc.) and generates the plugin files.
+Collects parameters via VS Code dropdowns and runs PSG interactively:
+
+| Parameter | Description | Default |
+|-----------|-------------|---------|
+| PluginName | Valid C++ identifier | (required) |
+| OutputDirectory | Where to generate | current directory |
+| OutOfProcess | Out-of-process plugin | No |
+| CustomConfig | Custom configuration class | No |
+| InterfacePaths | C++ IDL header files to parse | (empty) |
+| SelectInterfaces | Which interfaces from multi-interface headers | ALL |
+| IncludeLocations | Custom #include paths per header | interfaces |
+| Preconditions | Thunder subsystem preconditions | (empty) |
+| Terminations | Thunder subsystem terminations | (empty) |
+| Controls | Thunder subsystem controls | (empty) |
+
+After generation, auto-fixes known PSG include path bugs in generated `.h` files.
 
 ---
 
@@ -156,9 +177,9 @@ ThunderTools/PluginQualityAdvisor/
 |   +-- thunder-interface-rules.yaml
 +-- Reports/
     +-- plugin/
-    |   +-- {PluginName}_{YYYY-MM-DD}.csv
+    |   +-- {PluginName}_{YYYY-MM-DD}.md
     +-- interface/
-        +-- {InterfaceName}_{YYYY-MM-DD}.csv
+        +-- {InterfaceName}_{YYYY-MM-DD}.md
 ```
 
 ---
@@ -175,4 +196,4 @@ ThunderTools/PluginQualityAdvisor/
 
 ## Reports
 
-After each review, a CSV report is generated under `Reports/plugin/` or `Reports/interface/`. Reports contain one row per finding with exact file, line, citation, description, fix summary, and reasoning (if severity was downgraded).
+After each review, a Markdown report is generated under `Reports/plugin/` or `Reports/interface/`. Reports contain an Issue Summary table with clickable links to Detailed Findings sections, each with a plain-English explanation, code found, and fix.
