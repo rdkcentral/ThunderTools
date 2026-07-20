@@ -110,7 +110,7 @@ class Restrictions:
             test_set = self.__test_set
 
         if json is None:
-            json == self.__json
+            json = self.__json
 
         if relay is None:
             relay = argument
