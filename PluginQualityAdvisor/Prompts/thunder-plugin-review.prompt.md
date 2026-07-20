@@ -1,8 +1,3 @@
----
-title: "Thunder Plugin Review"
-description: "Semantic review of Thunder plugins against the Thunder plugin rule set."
----
-
 ## Core Principle
 
 This prompt performs **semantic code review** - reading plugin source code as a human developer and reasoning about its meaning.
@@ -51,7 +46,7 @@ Examples:
 - `{PluginName}.cpp` → Phase 2, 3, 4, 5 (implementation rules) + holistic rules for .cpp
 - `CMakeLists.txt` → Phase 7 only + CMake holistic rules
 - `{PluginName}.conf.in` → Phase 6 only
-- `{PluginName}Implementation.h/cpp` → Phase 5C (only if CMakeLists.txt has PLUGIN_<NAME>_MODE = "Local") + applicable holistic rules
+- `{PluginName}Implementation.h/cpp` → Phase 5C (only if plugin is OOP: PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt OR outofprocess = true in .conf.in) + applicable holistic rules
 - Any file → applicable holistic rules matching the file type
 
 **5-step workflow:**
@@ -67,17 +62,20 @@ Examples:
 
 ### Step 1 - Load Rules
 
-Load `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`. This file contains all 84 rules:
+Load `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` **in full** — read the entire file from start to end. This file contains all 84 rules:
 - `phase_1_checkpoints` through `phase_8_checkpoints` - 38 rules with bounded queries
 - `general_rules` - 46 holistic rules across 8 sub-phases (rule_39 to rule_84)
+
+**CRITICAL:** Confirm you have loaded ALL rules up to rule_84 before starting the review. If the YAML reading was truncated or incomplete, continue reading until you reach the end. Do NOT start reviewing code until all 84 rules are loaded. Every rule must be evaluated — never skip a rule because it seems low-value or unlikely to apply.
 
 All rules produce the same output format. There is no distinction between "phase checkpoint" and "holistic" in the report.
 
 ### Step 2 - Identify Plugin Files
 
-Primary search: `ThunderNanoServices/{PluginName}/`
-Fallback: Search workspace for a folder named `{PluginName}`
-Last resort: Ask user for location
+Search the workspace for a folder named `{PluginName}` (e.g. `ThunderNanoServices/{PluginName}/`).
+If not found: Ask user for location.
+
+**CRITICAL: Read ALL .h and .cpp files in the plugin folder AND all subdirectories** — not just the primary files below. Subdirectories (e.g. `LinchpinService/`, `src/`, `lib/`) often contain implementation code with issues. Helper headers (e.g. `WAVRecorder.h`, `DHCPClient.h`, `*Sink.h`, `HID.h`) often contain code relevant to holistic rules (printf usage, lock patterns, COM reference handling). List all files in the plugin directory tree recursively and read every source file before beginning the review.
 
 | File | Phase relevance |
 |------|----------------|
@@ -87,8 +85,8 @@ Last resort: Ask user for location
 | `{PluginName}.cpp` | Phase 2, 3, 4, 5 (implementation) |
 | `CMakeLists.txt` | Phase 7 |
 | `{PluginName}.conf.in` | Phase 6 (optional) |
-| `{PluginName}Implementation.h` | Phase 5C (only if PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt) |
-| `{PluginName}Implementation.cpp` | Phase 5C (only if PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt) |
+| `{PluginName}Implementation.h` | Phase 5C (only if plugin is OOP: PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt OR outofprocess = true in .conf.in) + holistic rules |
+| `{PluginName}Implementation.cpp` | Phase 5C (only if plugin is OOP: PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt OR outofprocess = true in .conf.in) + holistic rules |
 
 ### Step 3 - Execute Rules (CRITICAL: Understand First, Then Check)
 
@@ -102,7 +100,7 @@ This affects which rules apply:
 
 **Review philosophy for ALL 84 rules:**
 
-1. **UNDERSTAND FIRST** - Read ALL plugin source files. Build a complete mental model of the plugin's architecture: its lifecycle flow, threading model, ownership patterns, data flow, and how Initialize/Deinitialize relate to each other. Do this ONCE before checking any rule.
+1. **UNDERSTAND FIRST** - Read ALL plugin source files **in full — from line 1 to end of file for every file. Never stop reading a file partway through.** Build a complete mental model of the plugin's architecture: its lifecycle flow, threading model, ownership patterns, data flow, and how Initialize/Deinitialize relate to each other. Do this ONCE before checking any rule.
 2. **FOCUS** - For each rule, look at the specific concern it asks about. But reason about it WITH the full context you already understand - never in isolation.
 3. **REASON** - Ask the rule's question. If the specific block looks like a violation when viewed alone, ask yourself: "Does the full plugin context make this approach correct and safe?" If yes → downgrade severity.
 4. **CITE** - If genuinely wrong (not just technically different), cite exact `[ActualPluginName.cpp:LINE]`
@@ -120,6 +118,8 @@ This affects which rules apply:
 ---
 
 ## Contextual Judgment (JUDGE step)
+
+**CRITICAL: The JUDGE step is ONLY allowed AFTER the verification logic produces a "No" answer. You MUST run the verification steps from the YAML first and get an explicit Yes/No before deciding PASS or FAIL. Never shortcut to PASS based on a quick impression — complete ALL verification logic steps before making any judgment.**
 
 After applying verification logic, if the answer is "No" (rule technically violated), reason whether the developer's actual approach is **valid and reasonable in context**:
 
@@ -164,57 +164,76 @@ fix: "IPlugin* plugin = nullptr;"
 reasoning:   # omit if no severity downgrade
 ```
 
+---
+
+## Step 4 - Validate Findings (Eliminate False Positives)
+
+**CRITICAL:** This step MUST be completed BEFORE generating any chat output or report file. Do NOT write findings mid-analysis and correct them later — validate silently first, then produce final output.
+
+For every candidate finding:
+
+1. **Re-read the actual code** at the cited line — confirm the issue genuinely exists at that exact location
+2. **Re-apply the JUDGE step** — ask again: "In the full context of this plugin's architecture, lifecycle, and threading model, is this actually a bug?" If the answer is no → drop it silently
+3. **Verify the line number** — ensure the citation points to the correct line, not an approximation
+4. **Check for duplicates** — if two rules flag the same root cause (e.g. rule_48 and rule_60 on the same lock-held callback), keep both but note they share a fix
+5. **Verify severity is NOT escalated** — the reported status MUST NOT be higher than the YAML-defined severity. A `suggestion` rule can NEVER become ❌ VIOLATION or ⚠️ WARNING. Only downgrading is allowed.
+6. **Discard any finding that is:**
+   - A false positive (code is actually correct in context)
+   - Based on misreading the code (re-read to confirm)
+   - A legitimate design choice that is safe in this plugin's context
+   - Flagging code that doesn't exist at the cited line
+   - Reported at a severity HIGHER than the YAML defines
+
+**Only issues that survive this second pass are reported to the user. Never show discarded findings, self-corrections, or "Wait — actually this is fine" reasoning in any output.**
+
+---
+
 ## Output Format
 
-### Issue Report - Grouped by File
+### Chat Output - Brief Summary
 
-Group all issues (from any rule) by source file. For files with failures:
+In chat, provide a **concise summary table** of all issues found. Do NOT output full YAML blocks in chat - keep it brief and scannable:
 
 ```
-### {ActualFileName} - N issue(s)
+## Thunder Plugin Review - {PluginName}
+
+| Issue No. | Status | File | Line | Issue |
+|-----------|--------|------|------|-------|
+| 1 | ❌ VIOLATION | Dictionary.cpp | 45 | IShell* assigned without AddRef() |
+| 2 | ⚠️ WARNING | Dictionary.cpp | 108 | NULL used as null pointer |
+| 3 | 💡 SUGGESTION | Module.h | 1 | MODULE_NAME missing Plugin_ prefix |
 ```
 
-Under each file heading, list every failing rule as a YAML block (same format for all 84 rules):
+Followed by a note pointing to the full report file.
 
-```yaml
-rule_id: rule_XX
-status: ❌ VIOLATION              # or ⚠️ WARNING or 💡 SUGGESTION
-severity: violation               # original YAML severity (never changes)
-question: "The rule's yes/no question"
-answer: "No"
-extracted_code: |
-  [ActualFile.cpp:LINE] relevant code snippet
-violation_line: "[ActualFile.cpp:LINE]"
-citation: "[ActualFile.cpp:LINE] Short issue description"
-fix: "corrected code or one-line instruction"
-reasoning:                        # ONLY if severity was downgraded; omit otherwise
+### Chat Output Example
+
+```
+## Thunder Plugin Review - Dictionary
+
+| Issue No. | Status | File | Line | Issue |
+|-----------|--------|------|------|-------|
+| 1 | ❌ VIOLATION | Dictionary.cpp | 45 | IShell* assigned without AddRef() |
+| 2 | ⚠️ WARNING | Dictionary.cpp | 108 | NULL used as null pointer |
+| 3 | 💡 SUGGESTION | Module.h | 1 | MODULE_NAME missing Plugin_ prefix |
+
+📄 Full report: `PluginQualityAdvisor/Reports/plugin/Dictionary_2026-07-16.md`
 ```
 
-Status symbols (prefix the `status:` field value with these):
-- ❌ `VIOLATION` - blocking issue, must fix
-- ⚠️ `WARNING` - should fix
-- 💡 `SUGGESTION` - optional improvement
+### Status Symbols
 
-**Format:** `status: ❌ VIOLATION` or `status: ⚠️ WARNING` or `status: 💡 SUGGESTION`
+**CRITICAL: Always use actual Unicode emoji characters, NEVER GitHub emoji shortcodes.**
+- ❌ `VIOLATION` - blocking issue, must fix — use the character `❌` NOT `:x:`
+- ⚠️ `WARNING` - should fix — use the character `⚠️` NOT `:warning:`
+- 💡 `SUGGESTION` - optional improvement — use the character `💡` NOT `:bulb:`
 
-When severity is downgraded (e.g. violation → suggestion), the symbol matches the **effective** (downgraded) status, not the original YAML severity.
-### Summary Table (single unified table for all 84 rules)
+GitHub shortcodes (`:x:`, `:warning:`, `:bulb:`) do NOT render in VS Code Markdown Preview and appear as raw text.
 
-| Phase | PASS | FAIL | SKIP |
-|-------|------|------|------|
-| Phase 1 - Module Structure | N | N | N |
-| Phase 2 - Code Style | N | N | N |
-| Phase 3 - Class Registration | N | N | N |
-| Phase 4 - Lifecycle | N | N | N |
-| Phase 5 - Implementation | N | N | N |
-| Phase 5C - Out-of-Process | N | N | N |
-| Phase 6 - Configuration | N | N | N |
-| Phase 7 - CMake | N | N | N |
-| Phase 8 - COM Interfaces | N | N | N |
-| Holistic Rules (8 sub-phases) | N | N | N |
-| **Total (84 rules)** | **N** | **N** | **N** |
-
-Followed by a numbered **Next Steps** list citing `[File:line]` for each action item.
+End chat output with:
+```
+📄 Full report saved: PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
 
 ---
 
@@ -229,7 +248,7 @@ Followed by a numbered **Next Steps** list citing `[File:line]` for each action 
 
 1. Load `thunder-plugin-rules.yaml` at the start of every review run - rules may have been updated
 2. Never embed rule data in this prompt - always load from YAML at runtime
-3. If a plugin is not found in `ThunderNanoServices/`, search workspace before asking
+3. If a plugin is not found, search the entire workspace before asking the user
 4. Total: 84 rules (rule_01 to rule_84), all sequential, all producing unified output
 5. Rule IDs in reports use the format `rule_XX` - no phase prefixes
 
@@ -245,61 +264,173 @@ Followed by a numbered **Next Steps** list citing `[File:line]` for each action 
 
 ---
 
-## Step 6 - Generate CSV Report
+## Step 6 - Generate Markdown Report
 
-After reporting all results in chat, generate a CSV file for tracking and Excel analysis.
-
-**File path:** `PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
+After reporting all results in chat, generate a Markdown report file with clickable navigation.
+/thunder-plugin-review NetworkControl Module.h
+**File path:** `PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
 
 - Create `PluginQualityAdvisor/Reports/plugin/` if it does not exist
 - Never overwrite an existing file - append `_2`, `_3` etc. if a file with that name already exists
 
-**CSV columns (exact order, 14 columns):**
+### Report Template
 
-| Column | Description | Example |
-|--------|-------------|---------|
-| No | Row number starting at 1 | `1` |
-| Plugin | Plugin name from command argument | `HdmiCecSink` |
-| Date | ISO date of review | `2026-06-05` |
-| Phase | Full phase label | `Phase 2 - Code Style` |
-| Rule_ID | Sequential rule ID | `rule_06` |
-| Rule_Name | Checkpoint name from YAML | `NULL vs nullptr` |
-| Status | Effective status after JUDGE step | `VIOLATION` / `WARNING` / `SUGGESTION` |
-| Severity | YAML severity level | `violation` / `warning` / `suggestion` |
-| File | Source file where issue was found | `HdmiCecSink.cpp` |
-| Line | Exact line number | `128` |
-| Citation | Short citation string | `[HdmiCecSink.cpp:128]` |
-| Issue_Description | What was found | `NULL used instead of nullptr` |
-| Fix_Summary | One-line fix description | `Replace NULL with nullptr` |
-| Reasoning | Populated only when severity was downgraded by JUDGE; empty otherwise | `` |
+```markdown
+# Thunder Plugin Review - {PluginName}
 
-**Header row:**
-```
-No,Plugin,Date,Phase,Rule_ID,Rule_Name,Status,Severity,File,Line,Citation,Issue_Description,Fix_Summary,Reasoning
-```
+**Date:** {YYYY-MM-DD}  
+**Plugin:** {PluginName}  
+**Total Rules:** 84 | **Passed:** N | **Failed:** N | **Skipped:** N
 
-**Rules:**
-- One row per FAIL / WARNING / SUGGESTION only - PASS and SKIP rows are excluded
-- `Status` reflects the **effective** severity after the JUDGE step
-- `Reasoning` column is populated only when severity was downgraded; empty otherwise
-- UTF-8, no BOM, CRLF line endings
-- Fields containing commas must be wrapped in double quotes: `"Phase 2 - Code Style"`
-- Embedded double quotes escaped as `""`: `"Use ""nullptr"" not NULL"`
-- Empty fields: leave blank (two consecutive commas: `,,`)
+---
 
-**If no issues found** (all checkpoints pass), still generate the CSV with header + one comment row:
+## Issue Summary
 
-```csv
-No,Plugin,Date,Phase,Rule_ID,Rule_Name,Status,Severity,File,Line,Citation,Issue_Description,Fix_Summary,Reasoning
-,,,,,,,,,,,,All checkpoints passed - no issues found,
+| Issue No. | Status | Rule | File | Line | Issue |
+|-----------|--------|------|------|------|-------|
+| 1 | ❌ VIOLATION | [rule_17 - AddRef on IShell*](#issue-1) | Dictionary.cpp | 45 | IShell* assigned without AddRef() |
+| 2 | ⚠️ WARNING | [rule_06 - NULL vs nullptr](#issue-2) | Dictionary.cpp | 108 | NULL used as null pointer |
+| 3 | 💡 SUGGESTION | [rule_01 - MODULE_NAME Prefix](#issue-3) | Module.h | 1 | MODULE_NAME missing Plugin_ prefix |
+
+---
+
+## Detailed Findings
+
+### Issue 1
+
+**rule_17 - AddRef on IShell***  
+**Status:** ❌ VIOLATION | **File:** `Dictionary.cpp` | **Line:** 45
+
+**What's wrong:**  
+The `IShell*` pointer is stored as a member variable without calling `AddRef()`. This can lead to a dangling pointer if the framework releases the object while the plugin still holds a reference.
+
+**Code found:**
 ```
 
-**Post-generation message:**
+// Dictionary.cpp:45
+_service = service;
+// AddRef() not called - pointer may become dangling
 ```
-📊 Report saved:
-   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv
-   {N} issue(s) logged - {violations} violations, {warnings} warnings, {suggestions} suggestions
 
-To open in Excel (Windows):
-   Start-Process "PluginQualityAdvisor\Reports\plugin\{PluginName}_{YYYY-MM-DD}.csv"
+**Fix:**
+
+```cpp
+_service = service;
+_service->AddRef();  // prevent dangling pointer
 ```
+
+---
+
+### Issue 2
+
+**rule_06 - NULL vs nullptr**  
+**Status:** ⚠️ WARNING | **File:** `Dictionary.cpp` | **Line:** 108
+
+**What's wrong:**  
+C++ code should use `nullptr` instead of the C macro `NULL` for null pointer values. `nullptr` is type-safe and avoids ambiguity with integer 0.
+
+**Code found:**
+
+```cpp
+// Dictionary.cpp:108
+IPlugin* plugin = NULL;
+```
+
+**Fix:**
+
+```cpp
+IPlugin* plugin = nullptr;
+```
+
+---
+
+### Issue 3
+
+**rule_01 - MODULE_NAME Plugin_ Prefix**  
+**Status:** 💡 SUGGESTION | **File:** `Module.h` | **Line:** 1
+
+**What's wrong:**  
+The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consistency across Thunder plugins.
+
+**Code found:**
+
+```cpp
+// Module.h:1
+#define MODULE_NAME Dictionary
+```
+
+**Fix:**
+
+```cpp
+#define MODULE_NAME Plugin_Dictionary
+```
+
+```
+
+---
+
+## Skipped Rules
+
+| Rule | Reason |
+|------|--------|
+| rule_32 - OOP Connection Termination | Plugin is in-process (no PLUGIN_MODE = "Local" in CMakeLists.txt and no outofprocess = true in .conf.in) |
+| rule_33 - connectionId Checked | Plugin is in-process |
+| rule_34 - Configuration Class | No .conf.in file present |
+
+```
+
+### Report Generation Rules
+
+- Each issue in the summary table links to its detailed section via the Rule column using `[rule_XX - Name](#issue-N)` anchors
+- Each detailed section heading uses `### Issue N` (creates the `#issue-n` anchor automatically)
+- The rule ID and name appear as bold text on the first line under the heading (e.g. `**rule_17 - AddRef on IShell***`)
+- **"What's wrong"** must be a plain-English explanation a junior developer can understand - not just restating the rule name
+- **"Code found"** must show the actual code from the plugin with file:line comment
+- **"Fix"** must show the corrected code with a brief comment explaining the change
+- If severity was downgraded (JUDGE step), add a **"Note:"** paragraph after the fix explaining why
+- Issues are ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS
+- After Detailed Findings, include a **Skipped Rules** table listing rules that were not applicable and why
+- UTF-8 encoding, LF line endings
+
+**If no issues found**, generate:
+
+```markdown
+# Thunder Plugin Review - {PluginName}
+
+**Date:** {YYYY-MM-DD}  
+**Plugin:** {PluginName}  
+**Total Rules:** 84 | **Passed:** N | **Failed:** 0 | **Skipped:** N
+
+✅ All rules passed - no issues found.
+```
+
+**Post-generation message in chat:**
+```
+📄 Full report saved:
+   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+
+### Post-Generation Action
+
+**CRITICAL: Write report via terminal to avoid VS Code editor buffer conflicts.**
+
+1. **Write the file using terminal** — do NOT use create_file or file editing tools for the report. Use:
+
+```powershell
+   [System.IO.File]::WriteAllText("<full-path-to-report>.md", $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+This bypasses VS Code's editor buffer which can overwrite content with an empty file.
+
+2. **Verify the file is not empty** — after writing, check the file size:
+
+```powershell
+   (Get-Item "<full-path-to-report>.md").Length
+```
+
+If the size is 0, the write failed — retry once.
+
+3. **Open in Markdown Preview** — run VS Code command `markdown.showPreview` on the generated report file so anchor links work and the user sees a navigable report with clickable issue links.
+
+4. **Do NOT open the report in the editor** — opening `.md` files in the editor triggers notebook mode which creates an unwanted `codebook-md/` config folder and tries to execute code blocks. Always use preview-only.

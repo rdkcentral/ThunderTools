@@ -20,16 +20,16 @@ Every rule uses semantic reasoning - read the interface header in full and reaso
 | core_4_1 | Pure Virtual Methods Only | warning |
 | core_5_1 | Return Type Conventions | violation |
 | core_6_1 | Const Correctness | violation |
-| core_9_1 | Thunder Type Conventions | violation |
-| core_10_1 | Register/Unregister Patterns | violation |
-| core_11_1 | Event Interfaces | violation |
-| core_12_1 | @json Tag (CRITICAL) | warning |
-| core_13_1 | No IUnknown/IReferenceCounted Methods in Interfaces | violation |
-| core_14_1 | No std::map in Interfaces | violation |
-| core_15_1 | Explicit Integer Widths | violation |
-| core_16_1 | @restrict Mandatory with std::vector | violation |
-| core_17_1 | No Method Overloads in @json Interfaces | violation |
-| core_18_1 | No Reserved JSON-RPC Method Names | violation |
+| core_7_1 | Thunder Type Conventions | violation |
+| core_8_1 | Register/Unregister Patterns | violation |
+| core_9_1 | Event Interfaces | violation |
+| core_10_1 | @json Tag (CRITICAL) | warning |
+| core_11_1 | No IUnknown/IReferenceCounted Methods in Interfaces | violation |
+| core_12_1 | No std::map in Interfaces | violation |
+| core_13_1 | Explicit Integer Widths | violation |
+| core_14_1 | @restrict Mandatory with std::vector | violation |
+| core_15_1 | No Method Overloads in @json Interfaces | violation |
+| core_16_1 | No Reserved JSON-RPC Method Names | violation |
 | advisory_m1_1 | Single Responsibility Principle | warning |
 | advisory_m2_1 | Enum Underlying Types | warning |
 | advisory_m3_1 | No Exceptions | violation |
@@ -329,7 +329,7 @@ virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
 
 ---
 
-### core_9_1 — Thunder Type Conventions
+### core_7_1 — Thunder Type Conventions
 
 **Severity:** violation
 
@@ -352,7 +352,7 @@ Using std::string in interfaces breaks cross-ABI compatibility.
 
 1. std::string in interface parameters → VIOLATION (use string)
 2. HRESULT or raw int for error codes → VIOLATION (use Core::hresult)
-3. Non-width-specific integer types (int, long) for interface params → check core_15_1
+3. Non-width-specific integer types (int, long) for interface params → check core_13_1
 4. BOOL → VIOLATION (use bool)
 5. If std::string found → VIOLATION
 
@@ -372,7 +372,7 @@ virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
 
 ---
 
-### core_10_1 — Register/Unregister Patterns
+### core_8_1 — Register/Unregister Patterns
 
 **Severity:** violation
 
@@ -419,7 +419,7 @@ virtual Core::hresult Callback(ICallback* callback) = 0;
 
 ---
 
-### core_11_1 — Event Interfaces
+### core_9_1 — Event Interfaces
 
 **Severity:** violation
 
@@ -468,7 +468,7 @@ struct EXTERNAL INotification : virtual public Core::IUnknown {
 
 ---
 
-### core_12_1 — @json Tag (CRITICAL)
+### core_10_1 — @json Tag (CRITICAL)
 
 **Severity:** warning
 
@@ -519,7 +519,7 @@ struct EXTERNAL IDictionary : virtual public Core::IUnknown {
 
 ---
 
-### core_13_1 — No IUnknown/IReferenceCounted Methods in Interfaces
+### core_11_1 — No IUnknown/IReferenceCounted Methods in Interfaces
 
 **Severity:** violation
 
@@ -566,7 +566,7 @@ ThunderInterfaces/interfaces/IDictionary.h — AddRef/Release inherited from Cor
 
 ---
 
-### core_14_1 — No std::map in Interfaces
+### core_12_1 — No std::map in Interfaces
 
 **Severity:** violation
 
@@ -605,7 +605,7 @@ virtual Core::hresult Get(const string& key, string& value /* @out */) = 0;
 
 ---
 
-### core_15_1 — Explicit Integer Widths
+### core_13_1 — Explicit Integer Widths
 
 **Severity:** violation
 
@@ -646,7 +646,7 @@ virtual Core::hresult GetSize(uint32_t& size /* @out */) = 0;
 
 ---
 
-### core_16_1 — @restrict Mandatory with std::vector
+### core_14_1 — @restrict Mandatory with std::vector
 
 **Severity:** violation
 
@@ -687,7 +687,7 @@ virtual Core::hresult GetItems(std::vector<string>& items /* @out @restrict:256 
 
 ---
 
-### core_17_1 — No Method Overloads in @json Interfaces
+### core_15_1 — No Method Overloads in @json Interfaces
 
 **Severity:** violation
 
@@ -744,7 +744,7 @@ virtual Core::hresult GetStatus(string& status /* @out */) = 0;                 
 
 ---
 
-### core_18_1 — No Reserved JSON-RPC Method Names
+### core_16_1 — No Reserved JSON-RPC Method Names
 
 **Severity:** violation
 

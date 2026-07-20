@@ -37,7 +37,10 @@ automatically.
 
 **Plugin skeleton generator (`/thunder-generate-plugin`)**
 - Interactive: collects parameters via VS Code `vscode_askQuestions` (NOT chat)
+- Parameters: PluginName, OutputDirectory, OutOfProcess, CustomConfig, InterfacePaths,
+  SelectInterfaces, IncludeLocations, Preconditions, Terminations, Controls
 - Runs ThunderTools PluginSkeletonGenerator.py in interactive mode
+- Handles multi-interface headers (interface selection) and custom include locations
 - Auto-fixes include paths in generated .h files (known PSG bug workaround)
 
 **Setup script** (Python cross-platform)
@@ -49,13 +52,14 @@ automatically.
 - `thunder-plugin-rules.yaml` — 84 unified rules (v3.3.0)
 - `thunder-interface-rules.yaml` — 19 interface rules (v3.2.2)
 
-**Review reports** (CSV, generated after each review run)
-- Single CSV file per review, Excel-compatible, UTF-8, CRLF
-- Plugin report: `Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv` — one row per issue
-- Interface report: `Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv` — one row per violated rule
-- Columns: No, Plugin/Interface, Date, Phase/Category, Checkpoint/Rule ID, Rule Name, Status, Severity, File, Line, Citation, Issue Description, Fix Summary, Reasoning
-- PASS and SKIP rows excluded — only failures logged
-- Post-generation: chat message with count summary + `Start-Process` command to open in Excel
+**Review reports** (Markdown, generated after each review run)
+- Single `.md` file per review with Issue Summary table and Detailed Findings
+- Plugin report: `Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
+- Interface report: `Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
+- Issue Summary table with clickable `[rule_id - Name](#issue-N)` links navigating to detailed sections
+- Each finding has: What's wrong (plain English), Code found, Fix
+- PASS and SKIP rules excluded — only failures shown
+- Written via terminal to avoid VS Code editor buffer conflicts; opened in Markdown Preview
 
 ## Out of Scope
 
@@ -98,7 +102,7 @@ ThunderTools/PluginQualityAdvisor/
 │   └── thunder-interface-rules.yaml
 └── Reports/
     ├── plugin/
-    │   └── {PluginName}_{YYYY-MM-DD}.csv
+    │   └── {PluginName}_{YYYY-MM-DD}.md
     └── interface/
-        └── {InterfaceName}_{YYYY-MM-DD}.csv
+        └── {InterfaceName}_{YYYY-MM-DD}.md
 ```

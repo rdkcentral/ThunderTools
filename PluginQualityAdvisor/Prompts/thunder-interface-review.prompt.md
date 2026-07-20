@@ -1,11 +1,6 @@
----
-title: "Thunder Interface Review"
-description: "Semantic review of Thunder COM interfaces against the interface rule set."
----
-
 ## Context
 
-Thunder uses COM-style interfaces defined in `ThunderInterfaces/interfaces/`. These interfaces are binary contracts used across process boundaries. All validation uses semantic reasoning - the validator reads the interface header in full as a human reviewer would, never using regex or text search as the primary detection method.
+Thunder uses COM-style interfaces defined in interface header files (commonly in `ThunderInterfaces/interfaces/` or similar paths). These interfaces are binary contracts used across process boundaries. All validation uses semantic reasoning - the validator reads the interface header in full as a human reviewer would, never using regex or text search as the primary detection method.
 
 Rules are loaded at runtime from: `PluginQualityAdvisor/rules/thunder-interface-rules.yaml`
 
@@ -21,16 +16,16 @@ Rules are loaded at runtime from: `PluginQualityAdvisor/rules/thunder-interface-
 | core_4_1 | Pure Virtual Methods Only | All methods = 0, no inline code, no static methods (warning) |
 | core_5_1 | Return Type Conventions | Core::hresult mandatory for @json interfaces in Thunder 5.0+; notification methods MUST return void |
 | core_6_1 | Const Correctness | @out params must be non-const refs; notification methods must NEVER be const |
-| core_9_1 | Thunder Type Conventions | string not std::string; explicit integer widths |
-| core_10_1 | Register/Unregister Patterns | INotification: Register+Unregister; ICallback: Callback(nullptr clears) |
-| core_11_1 | Event Interfaces | @event tag required; EXTERNAL; own ID; inherits Core::IUnknown |
-| core_12_1 | @json Tag (CRITICAL) | Without @json, ZERO RPC code generated (warning; check for @alias/@text hints) |
-| core_13_1 | No IUnknown/IReferenceCounted Methods in Interfaces | Inherited from Core::IUnknown - never redeclare |
-| core_14_1 | No std::map in Interfaces | Not serialisable across process boundaries |
-| core_15_1 | Explicit Integer Widths | uint32_t not int; no platform-dependent types |
-| core_16_1 | @restrict Mandatory with std::vector | Every std::vector parameter must have @restrict:N |
-| core_17_1 | No Method Overloads in @json Interfaces | JSON-RPC dispatches by name only; check @text for collisions |
-| core_18_1 | No Reserved JSON-RPC Method Names | version/versions/exists are reserved by framework |
+| core_7_1 | Thunder Type Conventions | string not std::string; explicit integer widths |
+| core_8_1 | Register/Unregister Patterns | INotification: Register+Unregister; ICallback: Callback(nullptr clears) |
+| core_9_1 | Event Interfaces | @event tag required; EXTERNAL; own ID; inherits Core::IUnknown |
+| core_10_1 | @json Tag (CRITICAL) | Without @json, ZERO RPC code generated (warning; check for @alias/@text hints) |
+| core_11_1 | No IUnknown/IReferenceCounted Methods in Interfaces | Inherited from Core::IUnknown - never redeclare |
+| core_12_1 | No std::map in Interfaces | Not serialisable across process boundaries |
+| core_13_1 | Explicit Integer Widths | uint32_t not int; no platform-dependent types |
+| core_14_1 | @restrict Mandatory with std::vector | Every std::vector parameter must have @restrict:N |
+| core_15_1 | No Method Overloads in @json Interfaces | JSON-RPC dispatches by name only; check @text for collisions |
+| core_16_1 | No Reserved JSON-RPC Method Names | version/versions/exists are reserved by framework |
 | advisory_m1_1 | Single Responsibility Principle | One coherent purpose per interface |
 | advisory_m2_1 | Enum Underlying Types | Named enums used as params need explicit type; anonymous ID enum excluded |
 | advisory_m3_1 | No Exceptions | No throw; use Core::hresult for errors |
@@ -45,8 +40,8 @@ Rules are loaded at runtime from: `PluginQualityAdvisor/rules/thunder-interface-
 
 1. **Identify** the interface file to validate (from user's command or ask if not provided)
 2. **Load** `PluginQualityAdvisor/rules/thunder-interface-rules.yaml` for full rule definitions
-3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_18_1, then advisory_m1_1 → advisory_m3_1)
-4. **Report** with grouped sections using the output format below
+3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_16_1, then advisory_m1_1 → advisory_m3_1)
+4. **Report** using the Issue Summary table format below
 5. **Provide** specific fix examples using the `fix_template` from the YAML
 
 For each rule, apply contextual judgment (JUDGE step): if the developer's approach technically violates a rule but is valid and reasonable in their specific context, downgrade the severity and populate the `Reasoning` field.
@@ -76,119 +71,202 @@ This affects which rules apply:
 
 ---
 
-## Step 6 - Generate CSV Report
+## Step 4 - Validate Findings (Eliminate False Positives)
 
-After reporting results in chat, generate a CSV file:
+**CRITICAL:** This step MUST be completed BEFORE generating any chat output or report file. Do NOT write findings mid-analysis and correct them later — validate silently first, then produce final output.
 
-**File path:** `PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
+For every candidate finding:
+
+1. **Re-read the actual code** at the cited line — confirm the issue genuinely exists at that exact location
+2. **Re-apply the JUDGE step** — ask again: "In the full context of this interface's design and purpose, is this actually a problem?" If the answer is no → drop it silently
+3. **Verify the line number** — ensure the citation points to the correct line, not an approximation
+4. **Verify severity is NOT escalated** — the reported status MUST NOT be higher than the YAML-defined severity. A `suggestion` rule can NEVER become ❌ VIOLATION or ⚠️ WARNING. Only downgrading is allowed.
+5. **Discard any finding that is:**
+   - A false positive (code is actually correct in context)
+   - Based on misreading the code (re-read to confirm before deciding)
+   - A legitimate design choice that is valid for this interface
+   - Flagging code that doesn't exist at the cited line
+   - Reported at a severity HIGHER than the YAML defines
+
+**Only issues that survive this second pass are reported to the user. Never show discarded findings, self-corrections, or "Wait — actually this is fine" reasoning in any output.**
+
+---
+
+## Output Format
+
+### Chat Output - Brief Summary
+
+In chat, provide a **concise summary table** of all issues found. Do NOT output the old grouped format — keep it brief and scannable:
+
+```
+## Thunder Interface Review - {InterfaceName}
+
+| Issue No. | Status | Rule | File | Line | Issue |
+|-----------|--------|------|------|------|-------|
+| 1 | ❌ VIOLATION | core_10_1 - @json Tag | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
+| 2 | ⚠️ WARNING | core_13_1 - Explicit Integer Widths | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
+
+📄 Full report: `PluginQualityAdvisor/Reports/interface/IHdmiCecSink_2026-07-16.md`
+```
+
+### Status Symbols
+
+**CRITICAL: Always use actual Unicode emoji characters, NEVER GitHub emoji shortcodes.**
+- ❌ `VIOLATION` - blocking issue, must fix — use the character `❌` NOT `:x:`
+- ⚠️ `WARNING` - should fix — use the character `⚠️` NOT `:warning:`
+- 💡 `SUGGESTION` - optional improvement — use the character `💡` NOT `:bulb:`
+
+End chat output with:
+```
+📄 Full report saved: PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+
+---
+
+## Step 6 - Generate Markdown Report
+
+After reporting results in chat, generate a Markdown report file with clickable navigation.
+
+**File path:** `PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
 
 - Create `PluginQualityAdvisor/Reports/interface/` if it does not exist
 - Never overwrite an existing file - append `_2`, `_3` etc. if needed
 
-**CSV columns (exact order):**
+### Report Template
 
-| Column | Description | Example |
-|--------|-------------|---------|
-| No | Row number starting at 1 | `1` |
-| Interface | Interface filename without extension | `IHdmiCecSink` |
-| Date | ISO date of review | `2026-06-05` |
-| Rule_ID | YAML rule id | `core_12_1` |
-| Rule_Name | Rule name | `@json Tag (CRITICAL)` |
-| Status | Effective status after JUDGE step | `VIOLATION` |
-| Severity | YAML severity | `violation` |
-| File | Interface file | `IHdmiCecSink.h` |
-| Line | Exact line number | `45` |
-| Citation | Short citation string | `[IHdmiCecSink.h:45]` |
-| Issue_Description | What was found | `@json tag missing above struct declaration` |
-| Fix_Summary | One-line fix | `Add // @json 1.0.0 above struct EXTERNAL` |
-| Reasoning | Populated only on severity downgrade; empty otherwise | `` |
+```markdown
+# Thunder Interface Review - {InterfaceName}
 
-**Formatting rules:**
-- UTF-8, no BOM, CRLF line endings
-- Fields containing commas must be wrapped in double quotes
-- Embedded double quotes escaped as `""`
-- Empty fields: leave blank (two consecutive commas)
-- One row per violated rule only - PASS rows excluded
+**Date:** {YYYY-MM-DD}  
+**Interface:** {InterfaceName}  
+**Total Rules:** 19 | **Passed:** N | **Failed:** N | **Skipped:** N
 
-**If no issues found:** Generate header row + comment row:
+---
 
-```csv
-No,Interface,Date,Rule_ID,Rule_Name,Status,Severity,File,Line,Citation,Issue_Description,Fix_Summary,Reasoning
-,,,,,,,,,,All rules passed - no issues found,,
+## Issue Summary
+
+| Issue No. | Status | Rule | File | Line | Issue |
+|-----------|--------|------|------|------|-------|
+| 1 | ❌ VIOLATION | [core_10_1 - @json Tag](#issue-1) | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
+| 2 | ⚠️ WARNING | [core_13_1 - Explicit Integer Widths](#issue-2) | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
+
+---
+
+## Detailed Findings
+
+### Issue 1
+
+**core_10_1 - @json Tag (CRITICAL)**  
+**Status:** ❌ VIOLATION | **File:** `IHdmiCecSink.h` | **Line:** 45
+
+**What's wrong:**  
+Without the `@json 1.0.0` tag above the struct declaration, the Thunder JSON-RPC code generator produces ZERO output for this interface. No JSON-RPC methods, properties, or events will be available — the interface is invisible to JSON-RPC clients.
+
+**Code found:**
 ```
 
-**Post-generation message:**
+// IHdmiCecSink.h:45
+struct EXTERNAL IHdmiCecSink : virtual public Core::IUnknown {
 ```
-📊 Report saved:
-   PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv
-   {N} issue(s) logged - {violations} violations, {warnings} warnings, {suggestions} suggestions
 
-To open in Excel (Windows):
-   Start-Process "PluginQualityAdvisor\Reports\interface\{InterfaceName}_{YYYY-MM-DD}.csv"
+**Fix:**
+
+```cpp
+// @json 1.0.0
+struct EXTERNAL IHdmiCecSink : virtual public Core::IUnknown {
 ```
 
 ---
 
-## Example Output Structure
+### Issue 2
+
+**core_13_1 - Explicit Integer Widths**  
+**Status:** ⚠️ WARNING | **File:** `IHdmiCecSink.h` | **Line:** 72
+
+**What's wrong:**  
+The `int` type is platform-dependent — it may be 16, 32, or 64 bits depending on the target architecture. COM interfaces cross process boundaries and must use explicit-width types for binary compatibility.
+
+**Code found:**
+
+```cpp
+// IHdmiCecSink.h:72
+virtual Core::hresult SetVolume(const int volume) = 0;
+```
+
+**Fix:**
+
+```cpp
+virtual Core::hresult SetVolume(const uint32_t volume) = 0;
+```
 
 ```
-## Thunder Interface Validation - IHdmiCecSink
 
-### 🔴 Violations (Must Fix)
+### Report Generation Rules
 
-**core_12_1 - @json Tag (CRITICAL)**
-Status: VIOLATION
-Citation: [IHdmiCecSink.h:45] @json tag missing above struct declaration
-Issue: Without @json 1.0.0, ZERO JSON-RPC code will be generated for this interface.
-Fix:
-  // @json 1.0.0       ← ADD THIS LINE
-  struct EXTERNAL IHdmiCecSink : virtual public Core::IUnknown {
+- Each issue in the summary table links to its detailed section via the Rule column using `[rule_id - Name](#issue-N)` anchors
+- Each detailed section heading uses `### Issue N` (creates the `#issue-n` anchor automatically)
+- The rule ID and name appear as bold text on the first line under the heading
+- **"What's wrong"** must be a plain-English explanation a junior developer can understand
+- **"Code found"** must show the actual code from the interface with file:line comment
+- **"Fix"** must show the corrected code
+- If severity was downgraded (JUDGE step), add a **"Note:"** paragraph after the fix explaining why
+- Issues are ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS
+- After Detailed Findings, include a **Skipped Rules** table if any rules were skipped (explaining why each was not applicable)
+- UTF-8 encoding, LF line endings
 
----
+**If no issues found**, generate:
 
-### 🟡 Warnings (Should Fix)
+```markdown
+# Thunder Interface Review - {InterfaceName}
 
-**core_15_1 - Explicit Integer Widths**
-Status: WARNING
-Citation: [IHdmiCecSink.h:72] int parameter - use uint32_t
-Issue: int type is platform-dependent and may differ in size across architectures.
-Fix: Replace `const int volume` with `const uint32_t volume`
+**Date:** {YYYY-MM-DD}  
+**Interface:** {InterfaceName}  
+**Total Rules:** 19 | **Passed:** N | **Failed:** 0 | **Skipped:** N
 
----
-
-### 🟢 Suggestions (Optional)
-
-(none)
-
----
-
-### ✅ Validated (N rules passed)
-
-core_1_1, core_2_1, core_3_1, core_4_1, core_5_1, core_6_1, core_9_1,
-core_10_1, core_11_1, core_13_1, core_14_1, core_16_1,
-advisory_m1_1, advisory_m2_1, advisory_m3_1
-
----
-
-### Compatibility Notes
-
-(Binary compatibility assessment - note if interface appears to be newly created vs released)
+✅ All rules passed - no issues found.
 ```
+
+**Post-generation message in chat:**
+```
+📄 Full report saved:
+   PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+
+### Post-Generation Action
+
+**CRITICAL: Write report via terminal to avoid VS Code editor buffer conflicts.**
+
+1. **Write the file using terminal** — do NOT use create_file or file editing tools for the report. Use:
+
+```powershell
+   [System.IO.File]::WriteAllText("<full-path-to-report>.md", $content, [System.Text.UTF8Encoding]::new($false))
+```
+
+2. **Verify the file is not empty** — after writing, check the file size:
+
+```powershell
+   (Get-Item "<full-path-to-report>.md").Length
+```
+
+If the size is 0, the write failed — retry once.
+
+3. **Open in Markdown Preview** — run VS Code command `markdown.showPreview` on the generated report file so anchor links work.
+
+4. **Do NOT open the report in the editor** — opening `.md` files in the editor triggers notebook mode which creates an unwanted `codebook-md/` folder. Always use preview-only.
 
 ---
 
 ## Contextual Judgment (JUDGE step)
 
+**CRITICAL: The JUDGE step is ONLY allowed AFTER the verification logic produces a "No" answer. You MUST run the verification steps from the YAML first and get an explicit Yes/No before deciding PASS or FAIL. Never shortcut to PASS based on a quick impression — complete ALL verification logic steps before making any judgment.**
+
 | Scenario | Status field | Reasoning field |
 |----------|-------------|-----------------|
-| Rule satisfied | `PASS` - include in ✅ section | Omit |
+| Rule satisfied | `PASS` | Omit |
 | Rule violated, no mitigation | `VIOLATION` / `WARNING` / `SUGGESTION` | Omit |
-| Rule technically violated but developer's approach is valid | Downgrade one level + `Status` field shows downgraded level | **Required** |
-
-The `Status` field reflects the **effective** severity after JUDGE:
-- `violation` → `VIOLATION` (🔴), downgrade to `WARNING` (🟡) or `SUGGESTION` (🟢)
-- `warning` → `WARNING` (🟡), downgrade to `SUGGESTION` (🟢)
-- `suggestion` → `SUGGESTION` (🟢)
+| Rule technically violated but developer's approach is valid | Downgrade one level | **Required** |
 
 Severity is **never escalated** above the YAML-defined level.
 
@@ -209,4 +287,4 @@ Severity is **never escalated** above the YAML-defined level.
 - Thunder documentation: https://rdkcentral.github.io/Thunder/
 - Validation priorities: @json tag first → Core::hresult returns → @restrict on vectors → type conventions → binary compatibility → advisory rules
 - Load the YAML before every validation run - rules may have been updated since this prompt was created
-- Interface headers are in `ThunderInterfaces/interfaces/` - search there first
+- Interface headers may be anywhere in the workspace — search for the filename if not found in the common `interfaces/` folder
