@@ -159,9 +159,9 @@ Short descriptive title in Title Case. 2-5 words.
 
 | Value | Meaning | Report symbol |
 |---|---|---|
-| `violation` | Must fix - causes bugs, crashes, or codegen failures | VIOLATION |
-| `warning` | Should fix - best practice with real risk | WARNING |
-| `suggestion` | Optional - style or consistency improvement | SUGGESTION |
+| `violation` | Must fix - causes bugs, crashes, or codegen failures | ❌ VIOLATION |
+| `warning` | Should fix - best practice with real risk | ⚠️ WARNING |
+| `suggestion` | Optional - style or consistency improvement | 💡 SUGGESTION |
 
 ---
 

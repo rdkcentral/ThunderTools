@@ -73,7 +73,7 @@ ThunderInterfaces/interfaces/IExample.h - description
 
 Format: `core_X_1` for core rules or `advisory_mX_1` for advisory rules.
 
-Current core rules: `core_1_1` through `core_18_1` (16 rules)
+Current core rules: `core_1_1` through `core_16_1` (16 rules)
 Current advisory rules: `advisory_m1_1`, `advisory_m2_1`, `advisory_m3_1` (3 rules)
 
 - **Add** - leave blank to auto-assign the next available ID, or specify your own
@@ -327,7 +327,7 @@ The manager confirms the rule name before deleting.
 ## Interface Rule
 
 Action:      Add | Update | Remove
-Rule_ID:     e.g. core_18_1 or advisory_m6_1
+Rule_ID:     e.g. core_16_1 or advisory_m6_1
 Rule_List:   core | advisory
 Name:        Title Case, 2-5 words
 Severity:    violation | warning | suggestion
