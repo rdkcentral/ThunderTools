@@ -17,7 +17,7 @@ a Thunder COM interface header against 19 rules (16 core + 3 advisory).
 
 #### Scenario: Interface with vector without @restrict
 - GIVEN an interface method with a `std::vector` parameter lacking `@restrict`
-- WHEN validation runs checkpoint core_12_1
+- WHEN validation runs checkpoint core_14_1
 - THEN it reports VIOLATION: `std::vector without @restrict (MANDATORY)`
 - AND shows the fix: add `/* @restrict:... */` annotation
 

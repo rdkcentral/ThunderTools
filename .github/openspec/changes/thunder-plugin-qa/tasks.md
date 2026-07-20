@@ -132,7 +132,7 @@
         core_9_1 ("Event Interfaces" — @event tag, EXTERNAL, ID required),
         core_10_1 ("@json Tag (CRITICAL)" — warning),
         core_11_1 ("No IUnknown/IReferenceCounted Methods in Interfaces"), core_12_1 ("No std::map in Interfaces"),
-        core_11_1 ("Explicit Integer Widths"), core_12_1 ("@restrict Mandatory with std::vector")
+        core_13_1 ("Explicit Integer Widths"), core_14_1 ("@restrict Mandatory with std::vector")
       - advisory_rules list (3 rules):
         advisory_m1_1 ("Single Responsibility Principle" — warning),
         advisory_m2_1 ("Enum Underlying Types" — warning, exclude anonymous ID enum),

@@ -40,7 +40,7 @@ Rules are loaded at runtime from: `PluginQualityAdvisor/rules/thunder-interface-
 
 1. **Identify** the interface file to validate (from user's command or ask if not provided)
 2. **Load** `PluginQualityAdvisor/rules/thunder-interface-rules.yaml` for full rule definitions
-3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_14_1, then advisory_m1_1 → advisory_m3_1)
+3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_16_1, then advisory_m1_1 → advisory_m3_1)
 4. **Report** using the Issue Summary table format below
 5. **Provide** specific fix examples using the `fix_template` from the YAML
 
@@ -103,8 +103,8 @@ In chat, provide a **concise summary table** of all issues found. Do NOT output 
 
 | Issue No. | Status | Rule | File | Line | Issue |
 |-----------|--------|------|------|------|-------|
-| 1 | ❌ VIOLATION | core_8_1 - @json Tag | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
-| 2 | ⚠️ WARNING | core_11_1 - Explicit Integer Widths | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
+| 1 | ❌ VIOLATION | core_10_1 - @json Tag | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
+| 2 | ⚠️ WARNING | core_13_1 - Explicit Integer Widths | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
 
 📄 Full report: `PluginQualityAdvisor/Reports/interface/IHdmiCecSink_2026-07-16.md`
 ```
@@ -148,8 +148,8 @@ After reporting results in chat, generate a Markdown report file with clickable 
 
 | Issue No. | Status | Rule | File | Line | Issue |
 |-----------|--------|------|------|------|-------|
-| 1 | ❌ VIOLATION | [core_8_1 - @json Tag](#issue-1) | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
-| 2 | ⚠️ WARNING | [core_11_1 - Explicit Integer Widths](#issue-2) | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
+| 1 | ❌ VIOLATION | [core_10_1 - @json Tag](#issue-1) | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
+| 2 | ⚠️ WARNING | [core_13_1 - Explicit Integer Widths](#issue-2) | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
 
 ---
 
@@ -157,7 +157,7 @@ After reporting results in chat, generate a Markdown report file with clickable 
 
 ### Issue 1
 
-**core_8_1 - @json Tag (CRITICAL)**  
+**core_10_1 - @json Tag (CRITICAL)**  
 **Status:** ❌ VIOLATION | **File:** `IHdmiCecSink.h` | **Line:** 45
 
 **What's wrong:**  
@@ -181,7 +181,7 @@ struct EXTERNAL IHdmiCecSink : virtual public Core::IUnknown {
 
 ### Issue 2
 
-**core_11_1 - Explicit Integer Widths**  
+**core_13_1 - Explicit Integer Widths**  
 **Status:** ⚠️ WARNING | **File:** `IHdmiCecSink.h` | **Line:** 72
 
 **What's wrong:**  
