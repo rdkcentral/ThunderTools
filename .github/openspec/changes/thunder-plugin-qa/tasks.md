@@ -5,7 +5,7 @@
 - [x] 1.1 Create `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` (v3.3.0)
       - metadata block: version, description, approach,
         total_rules: 84, total_general_rules: 46,
-        organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4, Phase5C:2, Phase6:3, Phase7:1, Phase8:1"
+        organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3, Phase5C:2, Phase6:3, Phase7:1, Phase8:1"
       - validation_approach block: principles list + 5-step workflow (including
         Step 3b JUDGE: contextual judgment — if developer's approach technically
         violates a rule but is valid and reasonable in context, downgrade severity
@@ -90,10 +90,10 @@
         rule_42 (warning): "ASSERT vs Error Handling"
         rule_43 (violation): "OOP Registration Order"
         rule_44 (violation): "Complete State Reset in Deinitialize"
-        rule_41 (suggestion): "Reverse-Order Cleanup"
-        rule_42 (violation): "Observer Locking"
-        rule_43 (violation): "AddRef/Release Balance"
-        rule_44 (suggestion): "CMake NAMESPACE Variable"
+        rule_45 (suggestion): "Reverse-Order Cleanup"
+        rule_46 (violation): "Observer Locking"
+        rule_47 (violation): "AddRef/Release Balance"
+        rule_48 (suggestion): "CMake NAMESPACE Variable"
         rule_45 (violation): "Handlers Must Not Block"
         rule_46 (violation): "No Activate/Deactivate from Handlers"
         rule_47 (violation): "Shared State Protected by CriticalSection"
@@ -123,16 +123,16 @@
         with full CHANGELOG using format: `v3.2.2 (current):` (NOT dates like `v3.2.2 (2026-06-08):`)
       - Section headers use `# ===...===` style (NOT `# ───...───`)
       - Rule names use Title Case (e.g. "File and Namespace Structure" not "File and namespace structure")
-      - core_rules list (14 rules):
+      - core_rules list (16 rules):
         core_1_1 ("File and Namespace Structure"), core_2_1 ("Interface Declaration Shape" — warning),
         core_3_1 ("Interface ID Registration"), core_4_1 ("Pure Virtual Methods Only" — warning),
         core_5_1 ("Return Type Conventions" — Core::hresult mandatory for @json in Thunder 5.0+),
-        core_6_1 ("Const Correctness"), core_9_1 ("Thunder Type Conventions" — string not std::string),
-        core_10_1 ("Register/Unregister Patterns" — INotification 1:many + ICallback 1:1),
-        core_11_1 ("Event Interfaces" — @event tag, EXTERNAL, ID required),
-        core_12_1 ("@json Tag (CRITICAL)" — warning),
-        core_13_1 ("No IUnknown/IReferenceCounted Methods in Interfaces"), core_14_1 ("No std::map in Interfaces"),
-        core_15_1 ("Explicit Integer Widths"), core_16_1 ("@restrict Mandatory with std::vector")
+        core_6_1 ("Const Correctness"), core_7_1 ("Thunder Type Conventions" — string not std::string),
+        core_8_1 ("Register/Unregister Patterns" — INotification 1:many + ICallback 1:1),
+        core_9_1 ("Event Interfaces" — @event tag, EXTERNAL, ID required),
+        core_10_1 ("@json Tag (CRITICAL)" — warning),
+        core_11_1 ("No IUnknown/IReferenceCounted Methods in Interfaces"), core_12_1 ("No std::map in Interfaces"),
+        core_11_1 ("Explicit Integer Widths"), core_12_1 ("@restrict Mandatory with std::vector")
       - advisory_rules list (3 rules):
         advisory_m1_1 ("Single Responsibility Principle" — warning),
         advisory_m2_1 ("Enum Underlying Types" — warning, exclude anonymous ID enum),
@@ -216,7 +216,7 @@
           rule_26 (violation): "Initialize Returns Error String on Failure"
           rule_27 (violation): "No Manual Deinitialize() in Initialize"
           rule_28 (violation): "Destructor Must Be Empty"
-        Phase 5 Implementation (4):
+        Phase 5 Implementation (3):
           rule_29 (violation conditional): "JSON-RPC Register/Unregister Pairing"
           rule_30 (violation conditional): "SinkType Pattern for Subscribers"
           rule_31 (violation): "No Hardcoded Paths"
@@ -239,7 +239,7 @@
         citation using ACTUAL plugin filename, fix, reasoning.
         NO separate "Part 1" / "Part 2" sections — all findings in one list.
       - Summary Format: Single unified Summary TABLE with columns Phase | PASS | FAIL | SKIP
-        (one row per phase + one row for "Holistic Rules (8 sub-phases)" + a Total row showing all 70),
+        (one row per phase + one row for "Holistic Rules (8 sub-phases)" + a Total row showing all 84),
         followed by a numbered Next Steps list referencing [File:line] for each action item
       - Key Advantages section, Important Notes section
       - Command Examples at end
@@ -253,10 +253,11 @@
       - CRITICAL note: load ThunderTools/PluginQualityAdvisor/rules/thunder-interface-rules.yaml for full
         rule definitions, extraction logic, verification logic, and fix templates before validating
       - Your Task: 5 steps (identify file → load YAML → validate all 19 rules →
-        report with 🔴/🟡/🟢/✅/Compatibility Notes sections → provide specific fixes)
-      - Step 6 — Generate CSV Report: file path format, CSV columns table, formatting rules,
-        post-generation message with file count summary + Start-Process command
-      - Example Output structure showing grouped sections
+        report with Issue Summary table (❌/⚠️/💡) → provide specific fixes)
+      - Step 4 — Validate Findings: eliminate false positives before reporting
+      - Step 6 — Generate Markdown Report: file path format, Issue Summary table with
+        clickable navigation, Detailed Findings sections, write via terminal, open in preview
+      - Post-generation action: write via terminal, verify non-empty, open in Markdown Preview
       - Contextual Judgment: JUDGE step table with Status field mapping
       - Common Critical Issues: 5 bullet points (missing @json, vector without @restrict,
         std::map, missing nested IDs, ambiguous int types)
@@ -334,14 +335,18 @@
       - Overview: what the generator does; CRITICAL RULES (use vscode_askQuestions, NOT chat;
         only run PSG; auto-fix include paths; do not modify anything else; NO --config flag)
       - Required Inputs from User: table with columns Parameter | Format | Options | Default
-        (all 8 parameters: PluginName, OutputDirectory, OutOfProcess, CustomConfig,
-        InterfacePaths, Preconditions, Terminations, Controls)
+        (all 10 parameters: PluginName, OutputDirectory, OutOfProcess, CustomConfig,
+        InterfacePaths, SelectInterfaces, IncludeLocations, Preconditions, Terminations, Controls)
       - Step 1: Collect Parameters via vscode_askQuestions — JSON block with SIMPLER question text
         (e.g. "What is the name of your plugin? (PascalCase, e.g. HelloWorld)" not elaborate
         markdown formatting in the question text); options for Yes/No with descriptions;
         message fields for additional context
-      - Answer processing rules: Yes/No → y/n, empty OutputDirectory → ThunderNanoServices,
-        subsystems conditional (if any non-empty → PSG subsystems answer is y)
+      - Answer processing rules: Yes/No → y/n, empty OutputDirectory → current working directory,
+        SelectInterfaces → map names to PSG's numbered indices at [SELECT] prompt,
+        IncludeLocations → send PATH for matching HEADER:PATH pairs at Location prompt,
+        subsystems conditional (if any non-empty → PSG subsystems answer is y),
+        subsystem entries one-per-line (not comma-separated),
+        validation: OOP + no headers → error before running PSG
       - Workflow — Step 2 (locate PSG), Step 3 (run PSG interactively; feed answers to each
         PSG prompt in exact order; handle subsystems conditional)
       - Post-generation: auto-fix include paths bug workaround; list generated files
@@ -408,36 +413,29 @@
 
 ## Phase 5: Report generation
 
-- [x] 5.1 Add Step 6 (CSV report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
+- [x] 5.1 Add Step 6 (Markdown report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
       - Appended after Command Examples section
-      - File path: `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.csv`
+      - File path: `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
       - Create folder if absent; never overwrite (append _2, _3 suffix)
-      - Columns (14, exact order): No, Plugin, Date, Phase, Rule_ID, Rule_Name, Status,
-        Severity, File, Line, Citation, Issue_Description, Fix_Summary, Reasoning
-      - One row per VIOLATION/WARNING/SUGGESTION only — PASS and SKIP excluded
-      - Status = effective status after JUDGE step (VIOLATION/WARNING/SUGGESTION)
-      - Reasoning column populated only when JUDGE downgraded severity; empty otherwise
-      - Formatting: UTF-8, CRLF, fields with commas or double quotes quoted, embedded quotes escaped as ""
-      - Empty report (all pass): header row + one comment row
-      - Post-generation chat message: file path, issue counts, Start-Process command for Excel
+      - Report structure: header with totals, Issue Summary table, Detailed Findings sections
+      - Issue Summary table: Issue No. | Status | Rule (clickable link) | File | Line | Issue
+      - Detailed Findings: ### Issue N heading, rule_XX bold, What's wrong, Code found, Fix
+      - Status symbols: ❌ VIOLATION, ⚠️ WARNING, 💡 SUGGESTION (Unicode emoji only)
+      - Write via terminal to avoid VS Code editor buffer conflicts
+      - Verify non-empty after writing; open in Markdown Preview (not editor)
+      - Empty report (all pass): header + "✅ All rules passed"
 
-- [x] 5.2 Add Step 6 (CSV report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
-      - Appended after Important Notes section
-      - File path: `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.csv`
-      - Same no-overwrite rule, same formatting rules
-      - Columns (13, exact order): No, Interface, Date, Rule_ID, Rule_Name, Status,
-        Severity, File, Line, Citation, Issue_Description, Fix_Summary, Reasoning
-      - One row per violated rule only
-      - Same post-generation chat message format
+- [x] 5.2 Add Step 6 (Markdown report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
+      - Same format as plugin report
+      - File path: `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
+      - Same no-overwrite rule, same report structure, same post-generation actions
 
 - [x] 5.3 Create spec `ThunderTools/openspec/changes/thunder-plugin-qa/specs/reports/spec.md`
-      - REQ-R1: plugin CSV path + no-overwrite rule
-      - REQ-R2: interface CSV path + no-overwrite rule
-      - REQ-R3: plugin CSV columns table (14 columns with descriptions + examples)
-      - REQ-R4: interface CSV columns table (13 columns — Category removed)
-      - REQ-R5: CSV formatting rules (UTF-8, CRLF, quoting, escaping, empty fields)
+      - REQ-R1: plugin Markdown report path + no-overwrite rule
+      - REQ-R2: interface Markdown report path + no-overwrite rule
+      - REQ-R3: report header format with totals
+      - REQ-R4: Issue Summary table with clickable navigation
+      - REQ-R5: Detailed Findings sections format
       - REQ-R6: folder creation requirement
-      - REQ-R7: post-generation chat message format
+      - REQ-R7: file writing via terminal, verification, Markdown Preview
       - REQ-R8: empty report format (all pass case)
-      - Folder structure diagram
-      - Out of scope: .xlsx, report viewer, diff, CI upload

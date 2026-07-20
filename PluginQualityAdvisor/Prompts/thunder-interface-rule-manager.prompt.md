@@ -111,7 +111,7 @@ Then go to **Step 3**.
 
 Ask all fields via `vscode_askQuestions`:
 
-- **id**: What is the rule ID? (e.g. `core_18_1` or `advisory_m6_1`)
+- **id**: What is the rule ID? (e.g. `core_16_1` or `advisory_m6_1`)
   Message: Core rules use `core_N_1` numbering. Advisory rules use `advisory_mN_1`.
 
 - **name**: What is the rule name? (Title Case, e.g. "No Inline Default Values")

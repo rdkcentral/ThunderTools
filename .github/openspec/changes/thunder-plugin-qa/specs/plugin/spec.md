@@ -175,8 +175,8 @@ with version `3.2.2` and contain all 19 interface rule definitions (16 core + 3 
 - GIVEN the `core_rules` list
 - THEN it MUST contain exactly these IDs in order:
   `core_1_1`, `core_2_1`, `core_3_1`, `core_4_1`, `core_5_1`, `core_6_1`,
-  `core_9_1`, `core_10_1`, `core_11_1`, `core_12_1`, `core_13_1`,
-  `core_14_1`, `core_15_1`, `core_16_1`
+  `core_7_1`, `core_8_1`, `core_9_1`, `core_10_1`, `core_11_1`,
+  `core_12_1`, `core_13_1`, `core_14_1`, `core_15_1`, `core_16_1`
 - AND each rule MUST contain: `id`, `name`, `severity`,
   `description`, `extraction_logic`, `verification_logic`, `violation_pattern`,
   `fix_template`, `citation` (with real Thunder interface file references)
@@ -220,22 +220,21 @@ using semantic code review, producing a single unified report.
 
 ---
 
-### Requirement: Report shows failures only, phase summaries for passes
-The report MUST show violations, warnings, and suggestions in full detail.
-PASS and SKIP checkpoints MUST appear only as counts in phase summary lines.
+### Requirement: Report shows failures only in Issue Summary table
+The report MUST show violations, warnings, and suggestions in the Issue Summary table.
+PASS and SKIP rules MUST NOT appear as individual rows — only the header totals reflect them.
 
-#### Scenario: Phase with all passes
+#### Scenario: All rules pass for a phase
 - GIVEN Phase 1 (Module Structure) has 3 passing checkpoints
 - WHEN the report is generated
-- THEN Phase 1 shows: `Status: 3 PASS, 0 FAIL, 0 SKIP ✅ (No issues)`
-- AND no individual checkpoint details are shown for Phase 1
+- THEN Phase 1 rules do not appear in the Issue Summary table
+- AND the header totals reflect the passes
 
-#### Scenario: Phase with failures
-- GIVEN Phase 4 (Lifecycle) has checkpoint 4.1 failing
+#### Scenario: Rules with failures
+- GIVEN Phase 4 (Lifecycle) has rule_17 failing
 - WHEN the report is generated
-- THEN the phase summary shows the PASS/FAIL/SKIP counts
-- AND the failing checkpoint shows: citation with exact file and line number,
-  extracted code block with line numbers, fix template
+- THEN the Issue Summary table shows a row with clickable rule link
+- AND the Detailed Findings section shows: What's wrong, Code found, Fix
 
 ---
 
@@ -283,7 +282,7 @@ The prompt MUST load rule definitions from
 Each rule definition includes sufficient information for semantic validation.
 All 84 rules produce the same output format.
 
-Phase breakdown: Phase 1: 3, Phase 2: 10, Phase 3: 3, Phase 4: 12, Phase 5: 4,
+Phase breakdown: Phase 1: 3, Phase 2: 10, Phase 3: 3, Phase 4: 12, Phase 5: 3,
 Phase 5C: 2, Phase 6: 3, Phase 7: 1, Phase 8: 1 = 38 phase rules + 46 holistic rules = 84 total.
 
 ---

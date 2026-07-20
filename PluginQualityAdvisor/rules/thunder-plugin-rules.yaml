@@ -1408,14 +1408,14 @@ phase_5C_checkpoints:
       expected_answer: "Yes"
 
     verification_logic:
-      - "1. Check CMakeLists.txt for PLUGIN_<NAME>_MODE set to 'Local' — if not present or not 'Local' → SKIP"
+      - "1. Check if plugin is OOP: look for PLUGIN_<NAME>_MODE set to 'Local' in CMakeLists.txt OR 'outofprocess = true' in {PluginName}.conf.in — if NEITHER is found → SKIP"
       - "2. Read Deinitialize() in full"
       - "3. Check that the remote implementation interface is released"
       - "4. Check that the connection channel is terminated (Terminate() called or connection closed)"
       - "5. If the OOP connection is not properly cleaned up → VIOLATION"
 
     conditional: true
-    skip_condition: "CMakeLists.txt does not have PLUGIN_<NAME>_MODE set to 'Local'"
+    skip_condition: "Plugin is not OOP (neither PLUGIN_<NAME>_MODE = 'Local' in CMakeLists.txt nor outofprocess = true in .conf.in)"
 
     violation_pattern: "OOP connection not properly terminated in Deinitialize() — remote implementation and channel must be cleaned up"
 
@@ -1457,14 +1457,14 @@ phase_5C_checkpoints:
       expected_answer: "Yes"
 
     verification_logic:
-      - "1. If plugin has no IRemoteConnection::INotification implementation OR CMakeLists.txt does not have PLUGIN_<NAME>_MODE = 'Local' → SKIP"
+      - "1. Check if plugin is OOP: look for PLUGIN_<NAME>_MODE = 'Local' in CMakeLists.txt OR 'outofprocess = true' in {PluginName}.conf.in. If NEITHER is found OR plugin has no IRemoteConnection::INotification implementation → SKIP"
       - "2. Read each IRemoteConnection callback body"
       - "3. Check that the first logic step guards against spurious callbacks by comparing connectionId to the stored connection ID"
       - "4. Acting on any connectionId without checking causes incorrect behavior when multiple OOP connections exist"
       - "5. If connectionId is not checked → VIOLATION"
 
     conditional: true
-    skip_condition: "CMakeLists.txt does not have PLUGIN_<NAME>_MODE = 'Local', or plugin does not implement IRemoteConnection::INotification"
+    skip_condition: "Plugin is not OOP (neither PLUGIN_<NAME>_MODE = 'Local' in CMakeLists.txt nor outofprocess = true in .conf.in), or plugin does not implement IRemoteConnection::INotification"
 
     violation_pattern: "IRemoteConnection callback does not check connectionId before acting"
 
