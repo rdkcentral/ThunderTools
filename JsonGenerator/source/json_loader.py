@@ -1429,7 +1429,17 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
     return [], [], temp_files
 
-def Load(log, path, if_dirs = [], cpp_if_dirs = [], include_paths = []):
+def Load(log, path, if_dirs=None, cpp_if_dirs=None, include_paths=None):
+
+    if if_dirs is None:
+        if_dirs = []
+
+    if cpp_if_dirs is None:
+        cpp_if_dirs = []
+
+    if include_paths is None:
+        include_paths = []
+
     temp_files = []
 
     if path.endswith(".h"):

@@ -31,6 +31,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pard
 import ProxyStubGenerator.CppParser as CppParser
 import ProxyStubGenerator.Interface as CppInterface
 
+MODULE_FILE = "Module.h"
+IDS_FILE = "Ids.h"
+
 
 class CaseConverter:
     OBJECTS = 0
@@ -321,7 +324,7 @@ def LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all = False, inclu
         return [], []
 
 
-def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
+def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
@@ -580,7 +583,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     props = {}
 
                     props["items"] = ConvertParameter(currentMethod.retval, is_member=True, quiet=quiet)
-                    props["@iterator"] = StripInterfaceNamespace(cppType.type)
+                    props["@iterator"] = StripFrameworkNamespace(cppType.type)
                     props["@proto"]= var.ProtoFmt()
 
                     if var_type.IsPointerToConst():
@@ -1606,15 +1609,21 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
     return schemas, []
 
-def LoadInterface(file, log, all = False, include_paths = []):
-
+def LoadInterface(file, log, all, include_paths):
     try:
         schemas = []
         includes = []
         scanned = []
 
-        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], config.FRAMEWORK_NAMESPACE, include_paths, log)
+        source_path = os.path.dirname(file)
+
+        files = []
+        files.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)))
+        files.append("@" + os.path.join(source_path, MODULE_FILE))
+        files.append("@" + os.path.join(source_path, IDS_FILE))
+        files.append(file)
+
+        tree = CppParser.ParseFiles(files, config.FRAMEWORK_NAMESPACE, include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths)
