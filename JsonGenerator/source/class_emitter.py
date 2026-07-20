@@ -181,7 +181,7 @@ class Restrictions:
                             tests.append("%s.%s() %s %s" % (value, size_method, self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
-                    if self.__json:
+                    if json:
                         size_method = "Length"
                     elif "@container" in relay.schema:
                         size_method = "size"
