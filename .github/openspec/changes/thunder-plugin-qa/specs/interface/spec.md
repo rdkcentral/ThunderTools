@@ -11,13 +11,13 @@ a Thunder COM interface header against 19 rules (16 core + 3 advisory).
 #### Scenario: Interface with critical violations
 - GIVEN a Thunder interface file with a missing `@json` tag
 - WHEN `/thunder-interface-review` runs
-- THEN it reports under `🔴 Violations (Must Fix)`:
-  `[IMyInterface.h:LINE] Missing @json tag — ZERO RPC code will be generated`
-- AND reports under `✅ Validated` all passing rules
+- THEN it reports in the Issue Summary table:
+  `❌ VIOLATION | core_10_1 - @json Tag | IMyInterface.h | LINE | @json tag missing`
+- AND the Detailed Findings section shows explanation, code found, and fix
 
 #### Scenario: Interface with vector without @restrict
 - GIVEN an interface method with a `std::vector` parameter lacking `@restrict`
-- WHEN validation runs checkpoint core_16_1
+- WHEN validation runs checkpoint core_14_1
 - THEN it reports VIOLATION: `std::vector without @restrict (MANDATORY)`
 - AND shows the fix: add `/* @restrict:... */` annotation
 
@@ -25,8 +25,9 @@ a Thunder COM interface header against 19 rules (16 core + 3 advisory).
 - GIVEN any Thunder interface file
 - WHEN the validator runs
 - THEN it applies all 19 rules loaded from `thunder-interface-rules.yaml` in order:
-  core_1_1 through core_18_1 (16 core), then advisory_m1_1 through advisory_m3_1 (3 advisory)
-- AND groups output into: 🔴 Violations, 🟡 Warnings, 🟢 Suggestions, ✅ Validated, Compatibility Notes
+  core_1_1 through core_16_1 (16 core), then advisory_m1_1 through advisory_m3_1 (3 advisory)
+- AND outputs an Issue Summary table with columns: Issue No. | Status | Rule | File | Line | Issue
+- AND generates a Markdown report with clickable navigation to Detailed Findings
 
 ---
 
@@ -49,8 +50,8 @@ and why it is acceptable. Severity is NEVER escalated above the YAML-defined lev
 
 The `Status` field in output MUST reflect the **effective** severity after contextual
 judgment: `violation`→`VIOLATION`, `warning`→`WARNING`, `suggestion`→`SUGGESTION`.
-After a downgrade the downgraded level is used. Emoji prefix must match: 🔴 VIOLATION,
-🟡 WARNING, 🟢 SUGGESTION.
+After a downgrade the downgraded level is used. Emoji prefix must match: ❌ VIOLATION,
+⚠️ WARNING, 💡 SUGGESTION.
 
 #### Scenario: Core rules covered
 - 16 core rules: file/namespace structure, interface declaration shape,
@@ -81,7 +82,7 @@ PluginSkeletonGenerator.py in interactive mode.
 - GIVEN the user invokes `/thunder-generate-plugin`
 - WHEN the generator collects: PluginName=HelloWorld, OutOfProcess=No,
   CustomConfig=No, all others empty
-- THEN it changes to the output directory (default: ThunderNanoServices)
+- THEN it changes to the output directory (default: current working directory)
 - AND runs `python ThunderTools/PluginSkeletonGenerator/PluginSkeletonGenerator.py`
   interactively, feeding user answers to PSG's prompts
 - AND auto-fixes include paths in the generated .h file (PSG bug workaround)
@@ -101,7 +102,7 @@ PluginSkeletonGenerator.py in interactive mode.
 - WHEN the prompt starts
 - THEN it MUST call `vscode_askQuestions` with questions for:
   PluginName, OutputDirectory, OutOfProcess (Yes/No dropdown), CustomConfig (Yes/No dropdown),
-  InterfacePaths, Preconditions, Terminations, Controls
+  InterfacePaths, SelectInterfaces, IncludeLocations, Preconditions, Terminations, Controls
 - AND MUST NOT ask these questions in chat messages
 
 ---
@@ -157,12 +158,12 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
 - AND save — the next time `/thunder-interface-review` runs it picks up the change automatically
 
 #### Scenario: Adding a new interface rule
-- GIVEN a developer needs to add a new rule (e.g. `core_18_1`)
+- GIVEN a developer needs to add a new rule (e.g. `core_14_1`)
 - WHEN they open `thunder-interface-rules.yaml`
 - THEN they append a new entry to the `core_rules` list:
 
 ```yaml
-  - id: core_18_1
+  - id: core_14_1
     name: "<Short Rule Name in Title Case>"
     severity: violation        # or: warning / suggestion
     description: |
@@ -185,7 +186,7 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
 
 - AND bump `version:` and add a CHANGELOG entry
 - NOTE: No `category` field — it was removed in v3.2.2
-- AND also add a row for `core_18_1` to the Quick Reference table inside
+- AND also add a row for `core_14_1` to the Quick Reference table inside
   `thunder-interface-review.prompt.md` (the only prompt edit required when adding a rule)
 
 #### Scenario: Adding a new rule
@@ -236,7 +237,7 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
 #### Scenario: Changing a rule severity
 - GIVEN a rule currently at `severity: warning` that should become `severity: violation`
 - WHEN the developer updates the YAML field and saves
-- THEN the next prompt run reports that finding under `🔴 Violations` instead of `🟡 Warnings`
+- THEN the next prompt run reports that finding under `❌ VIOLATIONs` instead of `⚠️ WARNINGs`
 - AND no prompt file change is needed
 
 #### Scenario: Removing a rule

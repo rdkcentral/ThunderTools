@@ -105,17 +105,21 @@ class Restrictions:
         elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s != nullptr" % name)
 
-    def append(self, argument, relay=None, override=None, test_set=None, json=True):
-        if test_set == None:
+    def append(self, argument, relay=None, override=None, test_set=None, json=None):
+        if test_set is None:
             test_set = self.__test_set
 
-        if not relay:
+        if json is None:
+            json = self.__json
+
+        if relay is None:
             relay = argument
 
         name = override if override else (relay.original_name if self.__original_name else relay.temp_name)
+        value = "%s%s" % (name, (".Value()" if json else ""))
 
-        if isinstance(relay, JsonObject) and self.__json and json:
-            if test_set:
+        if isinstance(relay, JsonObject) and json:
+            if test_set and config.EMIT_OPTIONAL_CHECKS:
                 if IsObjectOptional(relay):
                     if self.__reverse:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == true)" % (name, name))
@@ -126,13 +130,15 @@ class Restrictions:
                         self.__cond.append("(%s.IsSet() == true) && (%s.IsDataValid() == true)" % (name, name))
                     else:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == false)" % (name, name))
-            else:
+
+            elif config.EMIT_OPTIONAL_CHECKS or config.EMIT_RESTRICT_CHECKS:
+                # if both checks are disabled then there is no reason to call IsDataValid further (they will always return true)
                 if self.__reverse:
                     self.__cond.append("%s.IsDataValid() == true" % name)
                 else:
                     self.__cond.append("%s.IsDataValid() == false" % name)
 
-        elif IsObjectRestricted(relay):
+        elif IsObjectRestricted(relay) and config.EMIT_RESTRICT_CHECKS:
             tests = []
 
             range = relay.schema.get("range")
@@ -140,12 +146,12 @@ class Restrictions:
             if range:
                 if isinstance(relay, (JsonInteger, JsonNumber)):
                     if range[0]:
-                        tests.append("%s.Value() %s %s" % (name, self.__comp[0], range[0]))
+                        tests.append("%s %s %s" % (value, self.__comp[0], range[0]))
                     if range[1]:
-                        tests.append("%s.Value() %s %s" % (name, self.__comp[1], range[1]))
+                        tests.append("%s %s %s" % (value, self.__comp[1], range[1]))
 
                 elif isinstance(relay, (JsonString, JsonMacAddress)):
-                    if ("@arraysize" not in relay.schema and not isinstance(relay, JsonMacAddress)) or self.__json:
+                    if ("@arraysize" not in relay.schema and not isinstance(relay, JsonMacAddress)) or json:
                         if isinstance(relay, JsonMacAddress):
                             encode = "mac"
                         else:
@@ -169,35 +175,31 @@ class Restrictions:
                         size_method = "size"
 
                         if adjusted[0]:
-                            tests.append("%s%s.%s() %s %s" % (name, (".Value()" if self.__json and json else ""), size_method, self.__comp[0], adjusted[0]))
+                            tests.append("%s.%s() %s %s" % (value, size_method, self.__comp[0], adjusted[0]))
 
                         if adjusted[1]:
-                            tests.append("%s%s.%s() %s %s" % (name, (".Value()" if self.__json and json else ""), size_method, self.__comp[1], adjusted[1]))
+                            tests.append("%s.%s() %s %s" % (value, size_method, self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
-                    if self.__json:
-                        if range[0]:
-                            tests.append("%s.Length() %s %s" % (name, self.__comp[0], range[0]))
-
-                        if range[1]:
-                            tests.append("%s.Length() %s %s" % (name, self.__comp[1], range[1]))
+                    if json:
+                        size_method = "Length"
+                    elif "@container" in relay.schema:
+                        size_method = "size"
+                    elif "@iterator" in relay.schema:
+                        size_method = "Count"
                     else:
-                        if "@container" in relay.schema:
-                            if range[0]:
-                                tests.append("%s.size() %s %s" % (name, self.__comp[0], range[0]))
+                        assert False, "invalid array type"
 
-                            if range[1]:
-                                tests.append("%s.size() %s %s" % (name, self.__comp[1], range[1]))
+                    if range[0]:
+                        tests.append("%s.%s() %s %s" % (name, size_method, self.__comp[0], range[0]))
 
-                        elif "@iterator" in relay.schema:
-                            if range[0]:
-                                tests.append("%s.Count() %s %s" % (name, self.__comp[0], range[0]))
-
-                            if range[1]:
-                                tests.append("%s.Count() %s %s" % (name, self.__comp[1], range[1]))
+                    if range[1]:
+                        tests.append("%s.%s() %s %s" % (name, size_method, self.__comp[1], range[1]))
 
             if tests:
-                if test_set and self.__json and json:
+                if test_set and json:
+                    # since the element is restricted still have to check optionality even if EMIT_OPTIONAL_CHECKS is unset
+                    # so it does not check restrict range on an unset element
                     if IsObjectOptional(argument):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " && ".join(tests)))
@@ -211,7 +213,7 @@ class Restrictions:
                 else:
                     self.__cond.extend(tests)
 
-        elif test_set and self.__json and json and not IsObjectOptional(relay):
+        elif test_set and json and not IsObjectOptional(relay) and config.EMIT_OPTIONAL_CHECKS:
             self.__cond.append("%s.IsSet() == %s" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):
@@ -652,7 +654,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
     def _EmitNoPushWarnings(prologue = True):
         if prologue:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
                 emit.Line()
             else:
@@ -661,7 +663,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line("#endif")
                 emit.Line()
         else:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("POP_WARNING()")
                 emit.Line()
 

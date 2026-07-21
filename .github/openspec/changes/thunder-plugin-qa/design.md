@@ -20,10 +20,10 @@ rules/thunder-plugin-rules.yaml   ← 84 unified rules (rule_01 to rule_84)
 Plugin files in ThunderNanoServices/Dictionary/
        │
        ▼
-Chat report: FAIL citations only, PASS/SKIP as counts
+Chat report: Issue Summary table, failures only
        │
        ▼
-Reports/plugin/Dictionary_2026-06-05.csv   ← one row per issue, Excel-compatible
+Reports/plugin/Dictionary_2026-06-05.md   ← Markdown report with clickable issue navigation
 ```
 
 ```
@@ -159,7 +159,7 @@ Each rule in `thunder-plugin-rules.yaml`:
 Each rule in `thunder-interface-rules.yaml`:
 
 ```yaml
-- id: "core_12_1"
+- id: "core_8_1"
   name: "@json Tag (CRITICAL)"
   severity: "violation"
   description: |
@@ -191,7 +191,7 @@ NOTE: No `category` field in interface rules — it was removed in v3.2.2 as unu
 
 **Why show failures only?**
 Developers fixing bugs need to see what's broken, not a list of 15 passing
-checks before finding the 2 that fail. Phase summaries provide the pass count
+checks before finding the 2 that fail. The report header shows pass/fail/skip totals
 for completeness without clutter.
 
 **Why YAML-style per-checkpoint output?**
@@ -207,7 +207,6 @@ text like `{PluginName}` in output.
 - ❌ = Violation (must fix — causes bugs, crashes, or codegen failures)
 - ⚠️ = Warning (should fix — best practice violation)
 - 💡 = Suggestion (optional — style/consistency)
-- ✅ = Phase passed (summary line only, never individual checkpoint)
 
 ## File Scoping Rules (Critical for Correctness)
 
@@ -262,14 +261,14 @@ The `setup-prompts.py` script does the following:
 ## YAML File Versioning
 
 - `thunder-plugin-rules.yaml`: version 3.3.0
-  - 38 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:4,
-    Phase5C:2, Phase6:3, Phase7:1, Phase8:1
+  - 38 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3,
+  - 38 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3,
   - New checkpoints added over v1.0.0: rule_08 (nullptr after Release), rule_09–10 (COM ownership + no-throw), rule_16
     rule_33 (connectionId guard),
     rule_35 (JSON::Container configuration), rule_36 (no hardcoded numeric tuning parameters)
 
 - `thunder-interface-rules.yaml`: version 3.2.2
-  - 16 core rules + 3 advisory = 17 total
-  - Core::hresult MANDATORY for Thunder 5.0+ @json interfaces
-  - advisory_m3_1 explicitly excludes std::vector (core_16_1 covers that)
+  - 16 core rules + 3 advisory = 19 total
+  - 16 core rules + 3 advisory = 19 total
+  - advisory_m3_1 explicitly excludes std::vector (core_12_1 covers that)
   - No `category` field — removed in v3.2.2

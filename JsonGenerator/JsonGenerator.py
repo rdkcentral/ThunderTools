@@ -42,7 +42,7 @@ NAME = "JsonGenerator"
 if __name__ == "__main__":
     argparser, args = config.Parse(sys.argv)
 
-    log = logger.Create(NAME, args.verbose, not args.no_warnings, not args.no_style_warnings)
+    log = logger.Create(NAME, args.verbose, args.warnings, args.style_warnings)
     trackers.SetLogger(log)
     json_loader.SetLogger(log)
 

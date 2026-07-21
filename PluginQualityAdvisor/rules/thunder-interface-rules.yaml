@@ -1,4 +1,4 @@
-﻿version: 3.2.2
+version: 3.2.2
 title: "Thunder Interface Validation Rules"
 description: |
   Rules for validating Thunder COM interface headers in ThunderInterfaces/interfaces/.
@@ -225,7 +225,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IDictionary.h - const correctness on @out params
 
-  - id: "core_9_1"
+  - id: "core_7_1"
     name: "Thunder Type Conventions"
     severity: "violation"
     description: |
@@ -242,7 +242,7 @@ core_rules:
     verification_logic: |
       1. std::string in interface parameters → VIOLATION (use string)
       2. HRESULT or raw int for error codes → VIOLATION (use Core::hresult)
-      3. Non-width-specific integer types (int, long) for interface params → check core_15_1
+      3. Non-width-specific integer types (int, long) for interface params → check core_13_1
       4. BOOL → VIOLATION (use bool)
       5. If std::string found → VIOLATION
     violation_pattern: "std::string used in interface - must use Thunder string type alias"
@@ -255,7 +255,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IDictionary.h - Thunder string type alias
 
-  - id: "core_10_1"
+  - id: "core_8_1"
     name: "Register/Unregister Patterns"
     severity: "violation"
     description: |
@@ -289,7 +289,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IDictionary.h - Register/Unregister pattern
 
-  - id: "core_11_1"
+  - id: "core_9_1"
     name: "Event Interfaces"
     severity: "violation"
     description: |
@@ -325,7 +325,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IDictionary.h - @event tag on INotification
 
-  - id: "core_12_1"
+  - id: "core_10_1"
     name: "@json Tag (CRITICAL)"
     severity: "warning"
     description: |
@@ -363,7 +363,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IDictionary.h:LINE - @json 1.0.0 above struct
 
-  - id: "core_13_1"
+  - id: "core_11_1"
     name: "No IUnknown/IReferenceCounted Methods in Interfaces"
     severity: "violation"
     description: |
@@ -397,7 +397,7 @@ core_rules:
       ThunderInterfaces/interfaces/IDictionary.h - IUnknown methods inherited only
       ThunderInterfaces/interfaces/IDictionary.h - AddRef/Release inherited from Core::IUnknown
 
-  - id: "core_14_1"
+  - id: "core_12_1"
     name: "No std::map in Interfaces"
     severity: "violation"
     description: |
@@ -423,7 +423,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IDictionary.h - no std::map in interfaces
 
-  - id: "core_15_1"
+  - id: "core_13_1"
     name: "Explicit Integer Widths"
     severity: "violation"
     description: |
@@ -451,7 +451,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IVolume.h - explicit integer widths
 
-  - id: "core_16_1"
+  - id: "core_14_1"
     name: "@restrict Mandatory with std::vector"
     severity: "violation"
     description: |
@@ -479,7 +479,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/IPackager.h - @restrict on std::vector
 
-  - id: "core_17_1"
+  - id: "core_15_1"
     name: "No Method Overloads in @json Interfaces"
     severity: "violation"
     description: |
@@ -523,7 +523,7 @@ core_rules:
     citation: |
       ThunderInterfaces/interfaces/ - no overloads in @json interfaces
 
-  - id: "core_18_1"
+  - id: "core_16_1"
     name: "No Reserved JSON-RPC Method Names"
     severity: "violation"
     description: |
