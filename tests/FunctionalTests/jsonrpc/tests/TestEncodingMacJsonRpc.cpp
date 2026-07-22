@@ -44,3 +44,40 @@ TEST_F(TestEncodingMacJsonRpc, EchoMacAddress) {
     // verify the echoed MAC matches the input
     EXPECT_EQ(response, "\"de:ad:be:ef:00:01\"") << "Response: " << response;
 }
+
+// ===========================================================================
+// Variable-length @encode:mac — works with any buffer size, not just 6 bytes
+// ===========================================================================
+
+TEST_F(TestEncodingMacJsonRpc, VariableMac_8Bytes_SetGet) {
+    // 8-byte buffer: "01:02:03:04:05:06:07:08"
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("setVariableMac", R"({"data":"01:02:03:04:05:06:07:08","size":8})", response));
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("getVariableMac", R"({"maxSize":32})", response));
+    EXPECT_EQ(response, R"({"data":"01:02:03:04:05:06:07:08","written":8})")
+        << "Response: " << response;
+}
+
+TEST_F(TestEncodingMacJsonRpc, VariableMac_1Byte_SetGet) {
+    // 1-byte buffer: just "ff" (no colons)
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("setVariableMac", R"({"data":"ff","size":1})", response));
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("getVariableMac", R"({"maxSize":32})", response));
+    EXPECT_EQ(response, R"({"data":"ff","written":1})")
+        << "Response: " << response;
+}
+
+TEST_F(TestEncodingMacJsonRpc, VariableMac_4Bytes_SetGet) {
+    // 4-byte buffer: "de:ad:be:ef"
+    string response;
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("setVariableMac", R"({"data":"de:ad:be:ef","size":4})", response));
+    EXPECT_EQ(Core::ERROR_NONE,
+        CallMethod("getVariableMac", R"({"maxSize":32})", response));
+    EXPECT_EQ(response, R"({"data":"de:ad:be:ef","written":4})")
+        << "Response: " << response;
+}

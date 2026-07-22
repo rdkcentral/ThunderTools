@@ -37,9 +37,24 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult Value(uint32_t& counter) const override
+        {
+            counter = _value;
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult Value(const uint32_t counter) override
+        {
+            _value = counter;
+            return Core::ERROR_NONE;
+        }
+
         BEGIN_INTERFACE_MAP(TestJsonUncompliantExtendedImpl)
         INTERFACE_ENTRY(FunctionalTest::ITestJsonUncompliantExtended)
         END_INTERFACE_MAP
+
+    private:
+        uint32_t _value{0};
     };
 
     static Factory::Registrar<FunctionalTest::ITestJsonUncompliantExtended, TestJsonUncompliantExtendedImpl> g_registrar;

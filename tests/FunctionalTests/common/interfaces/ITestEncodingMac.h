@@ -51,6 +51,27 @@ namespace FunctionalTest {
         virtual Core::hresult EchoMacAddress(
             const uint8_t input[] /* @in @length:6 @encode:mac */,
             uint8_t output[] /* @out @length:6 @maxlength:6 @encode:mac */) const = 0;
+
+        // =================================================================
+        // Variable-length encode:mac — works with any buffer size
+        // =================================================================
+
+        // @brief Store a variable-length buffer using colon-hex (mac) encoding.
+        //        Verifies encode:mac works with buffers of any size, not just 6 bytes.
+        // @param data Input bytes.
+        // @param size Number of bytes in data.
+        virtual Core::hresult SetVariableMac(
+            const uint8_t data[] /* @in @length:size @encode:mac */,
+            const uint16_t size /* @restrict:1..32 */) = 0;
+
+        // @brief Retrieve the stored variable-length mac-encoded buffer.
+        // @param data Output buffer.
+        // @param maxSize Capacity of the output buffer.
+        // @param written Receives actual bytes written.
+        virtual Core::hresult GetVariableMac(
+            uint8_t data[] /* @out @length:written @maxlength:maxSize @encode:mac */,
+            const uint16_t maxSize,
+            uint16_t& written /* @out */) = 0;
     };
 
 } // namespace FunctionalTest

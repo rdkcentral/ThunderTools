@@ -77,7 +77,7 @@ target_link_libraries(FunctionalTestJsonSources
 )
 
 macro(AddTestInterface TestName)
-    cmake_parse_arguments(ARG "COM_RPC;JSON_RPC" "" "" ${ARGN})
+    cmake_parse_arguments(ARG "COM_RPC;JSON_RPC;HAS_EVENTS" "" "EVENT_HANDLERS" ${ARGN})
     
     message(STATUS "Enabling ${TestName} test")
     
@@ -92,12 +92,44 @@ macro(AddTestInterface TestName)
     if(ARG_JSON_RPC)
         list(APPEND JSON_INTERFACE_HEADERS "${CMAKE_CURRENT_SOURCE_DIR}/interfaces/ITest${TestName}.h")
 
+        if(ARG_HAS_EVENTS)
+            # Event-bearing interfaces require a 3-parameter Register() call
+            # with an IHandler* for statuslistener / event dispatch.
+            # We provide a minimal no-op handler that satisfies the non-null assertion.
+            #
+            # EVENT_HANDLERS must list the statuslistener event names (e.g. "OnFeaturesChanged")
+            # so the generated NoOpHandler overrides the correct IHandler methods.
+            # The generated IHandler method name follows the pattern:
+            #   On<EventName>EventRegistration(const string&, Status)
+            if(NOT ARG_EVENT_HANDLERS)
+                message(FATAL_ERROR "HAS_EVENTS requires EVENT_HANDLERS listing the statuslistener event names for ${TestName}")
+            endif()
 
-        string(APPEND JSON_RPC_REGISTRATIONS
-            "    FunctionalTest::JTest${TestName}::Register(module,\n"
-            "        static_cast<FunctionalTest::ITest${TestName}*>(\n"
-            "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITest${TestName}::ID)));\n\n"
-        )
+            set(_handler_overrides "")
+            foreach(_event ${ARG_EVENT_HANDLERS})
+                string(APPEND _handler_overrides
+                    "            void On${_event}EventRegistration(const string&, const PluginHost::JSONRPCSupportsEventStatus::Status) override {}\n"
+                )
+            endforeach()
+
+            string(APPEND JSON_RPC_REGISTRATIONS
+                "    {\n"
+                "        struct NoOpHandler : FunctionalTest::JTest${TestName}::IHandler {\n"
+                "${_handler_overrides}"
+                "        };\n"
+                "        static NoOpHandler handler;\n"
+                "        auto* impl = static_cast<FunctionalTest::ITest${TestName}*>(\n"
+                "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITest${TestName}::ID));\n"
+                "        FunctionalTest::JTest${TestName}::Register(module, impl, &handler);\n"
+                "    }\n\n"
+            )
+        else()
+            string(APPEND JSON_RPC_REGISTRATIONS
+                "    FunctionalTest::JTest${TestName}::Register(module,\n"
+                "        static_cast<FunctionalTest::ITest${TestName}*>(\n"
+                "            TestImplementation::Factory::Instance().Create(FunctionalTest::ITest${TestName}::ID)));\n\n"
+            )
+        endif()
         string(APPEND JSON_RPC_UNREGISTRATIONS
             "    FunctionalTest::JTest${TestName}::Unregister(module);\n"
         )
@@ -194,6 +226,26 @@ endif()
 
 if (TEST_JSON_UNCOMPLIANT_COL)
     AddTestInterface("JsonUncompliantCollapsed" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_ANNOTATIONS)
+    AddTestInterface("Annotations" COM_RPC JSON_RPC HAS_EVENTS EVENT_HANDLERS "OnFeaturesChanged")
+endif()
+
+if (TEST_ANNOTATION_EVENTS)
+    AddTestInterface("AnnotationEvents" COM_RPC)
+endif()
+
+if (TEST_EXTENDED_FORMAT)
+    AddTestInterface("ExtendedFormat" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_PREFIX_UNDERSCORE)
+    AddTestInterface("PrefixUnderscore" COM_RPC JSON_RPC)
+endif()
+
+if (TEST_WRAPPED_INTERFACE)
+    AddTestInterface("WrappedInterface" COM_RPC JSON_RPC)
 endif()
 
 list(LENGTH COM_RPC_INTERFACE_HEADERS NUM_COM_TESTS)
