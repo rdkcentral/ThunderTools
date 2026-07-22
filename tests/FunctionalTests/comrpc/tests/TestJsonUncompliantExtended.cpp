@@ -39,7 +39,7 @@ TEST_F(TestJsonUncompliantExtended, Value_SetGet_RoundTrip) {
     EXPECT_EQ(got, 99u);
 }
 
-TEST_F(TestJsonUncompliantExtended, Value_DefaultIsZero) {
+TEST_F(TestJsonUncompliantExtended, Value_GetterSucceeds) {
     // A fresh singleton implementation starts at 0 unless a previous test wrote to it.
     // This test just verifies the getter returns a valid uint32 without error.
     uint32_t got = ~0u;

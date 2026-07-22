@@ -58,7 +58,7 @@ Baseline for the default `@compliant` JSON-RPC format. Single-parameter method i
 Pins the generator behaviour for `@uncompliant:extended` (deprecated — do not use in new interfaces; see Thunder `docs/plugin/interfaces/tags.md`). The essential property contract: the SET request sends the value as a **bare scalar** (e.g. `42`, not `{"value":42}`) while the GET response still uses the `"result"` field. Methods are **not** affected — they remain wrapped just like `@compliant`. Without a `@property`, the mode is indistinguishable from `@compliant` in tests.
 
 ### ITestJsonUncompliantCollapsed ⚠️ deprecated
-Pins the generator behaviour for `@uncompliant:collapsed` (deprecated — do not use in new interfaces; see Thunder `docs/plugin/interfaces/tags.md`). Extends the bare-scalar contract to **all** single-parameter methods, properties, and notifications. Property SET sends a bare scalar, and the GET response is placed in the `"params"` field of the JSON-RPC envelope (not `"result"` as in compliant and extended modes). Sending a wrapped object to a collapsed method must be rejected.
+Pins the generator behaviour for `@uncompliant:collapsed` (deprecated — do not use in new interfaces; see Thunder `docs/plugin/interfaces/tags.md`). Extends the bare-scalar contract to **all** single-parameter methods, properties, and notifications. Property SET sends a bare scalar, and the GET response is placed in the `"params"` field of the JSON-RPC envelope (not `"result"` as in compliant and extended modes). Sending a wrapped object to a collapsed method is **not** rejected — both bare-scalar and wrapped-object params are accepted.
 
 ---
 
