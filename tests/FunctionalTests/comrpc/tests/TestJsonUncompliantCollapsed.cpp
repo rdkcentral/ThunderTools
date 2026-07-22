@@ -39,7 +39,7 @@ TEST_F(TestJsonUncompliantCollapsed, Value_SetGet_RoundTrip) {
     EXPECT_EQ(got, 77u);
 }
 
-TEST_F(TestJsonUncompliantCollapsed, Value_DefaultIsZero) {
+TEST_F(TestJsonUncompliantCollapsed, Value_GetterSucceeds) {
     uint32_t got = ~0u;
     EXPECT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
 }

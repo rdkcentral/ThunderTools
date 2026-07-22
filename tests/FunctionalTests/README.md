@@ -25,7 +25,7 @@ The build is fully self-contained: Thunder and GoogleTest are fetched automatica
 | `TEST_JSON_TEXT_CASE` | `ITestJsonTextCase` | ✓ | ✓ | `@text:legacy` — names lowercased per legacy convention |
 | `TEST_JSON_COMPLIANT` | `ITestJsonCompliant` | ✓ | ✓ | `@compliant` — baseline compliant JSON-RPC format (single-param method wrapped in object) |
 | `TEST_JSON_UNCOMPLIANT_EXT` | `ITestJsonUncompliantExtended` | ✓ | ✓ | `@uncompliant:extended` (**deprecated** — tested for regression) — property SET sends bare scalar; method params remain wrapped |
-| `TEST_JSON_UNCOMPLIANT_COL` | `ITestJsonUncompliantCollapsed` | ✓ | ✓ | `@uncompliant:collapsed` (**deprecated** — tested for regression) — property SET and single-param methods both send bare scalars; wrapped method params are rejected |
+| `TEST_JSON_UNCOMPLIANT_COL` | `ITestJsonUncompliantCollapsed` | ✓ | ✓ | `@uncompliant:collapsed` (**deprecated** — tested for regression) — property SET and single-param methods both send bare scalars; wrapped method params are also accepted (not rejected) |
 
 `TEST_INTERFACES` and `TEST_ITERATORS` are off by default pending a thorough review of the generated code.
 
