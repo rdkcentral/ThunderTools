@@ -103,7 +103,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
             emit.Line("// optionality check disabled")
 
 
-    if is_optional_type or is_legacy_optional or has_default_value or has_conversion or restrictions.present():
+    if is_optional_type or is_legacy_optional or has_default_value or has_conversion or (restrictions and restrictions.present()):
         emit.Else(default_conditions)
 
     if is_optional_type:
