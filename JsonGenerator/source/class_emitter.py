@@ -200,7 +200,7 @@ class Restrictions:
                 if test_set and json:
                     # since the element is restricted still have to check optionality even if EMIT_OPTIONAL_CHECKS is unset
                     # so it does not check restrict range on an unset element
-                    if IsObjectOptional(argument):
+                    if IsObjectOptional(relay):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " && ".join(tests)))
                         else:
