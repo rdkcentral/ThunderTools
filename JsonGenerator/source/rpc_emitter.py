@@ -44,7 +44,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
     has_conversion = not isinstance(param, JsonString) or "@arraysize" in param.schema or "@container" in param.schema
     is_optional_type = IsObjectOptional(param) and not IsObjectOptionalOrOpaque(param)
     is_legacy_optional = IsObjectOptionalOrOpaque(param) and not is_optional_type
-    has_default_value = ((is_optional_type or is_legacy_optional) and param.default_value)
+    has_default_value = ((is_optional_type or is_legacy_optional) and param.default_value is not None)
     needs_move = False
     error_condition_emitted = False
 
@@ -64,7 +64,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
 
     if is_optional_type:
         emit.Line("%s %s{};" % (param.original_type_opt, opt_name))
-    elif is_legacy_optional and param.default_value:
+    elif is_legacy_optional and param.default_value is not None:
         emit.Line("%s %s{};" % (param.cpp_native_type, opt_name))
 
     def EmitLocals():
@@ -88,7 +88,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
 
     emit.If(default_conditions)
 
-    if param.default_value:
+    if param.default_value is not None:
         emit.Line("%s = %s;" % (opt_name, param.default_value))
     elif default_conditions.count():
         if is_optional_type or is_legacy_optional:
@@ -98,10 +98,10 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
                 emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
             if config.STRICT_INDEX_VALIDATION:
                 emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                error_condition_emitted = True
         else:
             emit.Line("// optionality check disabled")
 
-            error_condition_emitted = True
 
     if is_optional_type or is_legacy_optional or has_default_value or has_conversion or restrictions.present():
         emit.Else(default_conditions)
@@ -154,10 +154,10 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
 
                 error_condition_emitted = True
 
-                if is_optional_type or (is_legacy_optional and param.default_value):
+                if is_optional_type or (is_legacy_optional and has_default_value):
                     emit.Else(restrictions)
 
-    if is_optional_type or (is_legacy_optional and param.default_value):
+    if is_optional_type or (is_legacy_optional and has_default_value):
         if needs_move:
             emit.Line("%s = std::move(%s);" % (opt_name, converted))
         else:
