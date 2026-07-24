@@ -518,7 +518,6 @@ jobs:
           publish_dir: ./site
           destination_dir: PluginSkeletonGenerator
           keep_files: true
-          exclude_assets: 'master/latest_raw'
 
       - name: Deploy raw baseline (full replace)
         if: github.event_name != 'pull_request'
