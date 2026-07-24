@@ -377,8 +377,10 @@ NOT by running regular expressions or keyword searches against raw text.
 - THEN it checks all 4 special members are deleted in the MAIN class only
   (copy ctor, copy assign, move ctor, move assign) — internal helper classes excluded
 - WHEN checkpoint rule_15 runs (violation)
-- THEN it checks `Plugin::Metadata<PluginName>` exists in main Plugin.cpp
-  AND `SERVICE_REGISTRATION(...)` in ImplementationClass.cpp if OOP
+- THEN it checks `Plugin::Metadata<PluginName>` exists exactly once in the main plugin `.cpp`
+  AND that same file does NOT also contain `SERVICE_REGISTRATION` for the same class (the two mechanisms are mutually exclusive per file)
+  AND `SERVICE_REGISTRATION(...)` is present in `ImplementationClass.cpp` if OOP
+  AND all subdirectories (e.g. `legacy/`, `adapters/`) are scanned for `.cpp` files that register separate Thunder plugins — each such file is checked independently, and any file containing both `Plugin::Metadata` AND `SERVICE_REGISTRATION` for the same plugin class is a violation
 - WHEN checkpoint rule_16 runs (violation, conditional)
 - IF the plugin registers JSON-RPC handlers (`Register(` calls in Initialize())
 - THEN it checks the class inherits `PluginHost::JSONRPC`
@@ -406,7 +408,7 @@ NOT by running regular expressions or keyword searches against raw text.
 - WHEN checkpoint rule_23 runs (violation, conditional)
 - IF `service->SubSystems()` stored as member: checks it is Released in Deinitialize
 - SKIP if SubSystems() not stored as member
-- WHEN checkpoint rule_24 runs (violation)
+  all initialisation must be in `Initialize()`; exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and must NOT be flagged
 - THEN it checks the plugin constructor body is empty (no logic, no calls) —
   all initialisation must be in `Initialize()`
 - WHEN checkpoint rule_25 runs (violation, conditional)
@@ -414,13 +416,12 @@ NOT by running regular expressions or keyword searches against raw text.
 - SKIP if no service->Register() calls
 - WHEN checkpoint rule_26 runs (violation)
 - THEN it checks every failure return in Initialize() returns a non-empty diagnostic string
-  (the success return MUST be `return string();` or `return EMPTY_STRING;`)
-- WHEN checkpoint rule_27 runs (violation)
-- THEN it checks Initialize() does NOT manually call `Deinitialize()` on failure paths —
-  Thunder calls Deinitialize() automatically when Initialize() returns a non-empty string
-- WHEN checkpoint rule_28 runs (violation)
-- THEN it checks the main plugin class destructor body is completely empty
-  (only `ASSERT` invariant checks are acceptable — no Release calls or cleanup logic)
+- THEN it checks Initialize() does NOT manually call `Deinitialize()` on failure paths;
+  ADDITIONALLY it checks that on failure paths, framework member pointers (e.g. `_service`)
+  that were assigned BEFORE the failing step are NOT set to `nullptr` — Thunder does not call
+- THEN it checks the main plugin class destructor body is completely empty;
+  exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and must NOT be flagged;
+  resource release, state cleanup, and `ASSERT` calls (unless purely invariant) must be in `Deinitialize()`
 #### Scenario: Phase 5 - Implementation (4 checkpoints, mostly conditional)
 - GIVEN plugin implementation files
 - WHEN checkpoint rule_29 runs (violation, conditional)
@@ -459,8 +460,9 @@ NOT by running regular expressions or keyword searches against raw text.
 - SKIP if plugin has no IRemoteConnection::INotification implementation
 
 - WHEN checkpoint rule_34 runs (violation, conditional)
-  the validator MUST read the file in full and reason about the startup configuration —
-  note that `autostart` is not the same as `startmode`
+  note that `autostart` is not the same as `startmode`;
+  exception: for pre-Thunder 5.0 plugins (`namespace WPEFramework`), if `autostart` is present and `startmode` is absent, downgrade to `suggestion` (autostart is the valid legacy equivalent);
+  for Thunder 5.0+ plugins (`namespace Thunder`), `startmode` is mandatory regardless of `autostart`
 - WHEN checkpoint rule_35 runs (violation, conditional)
 - IF `service->ConfigLine()` is called in Initialize(): checks that a typed
   `Config : public Core::JSON::Container` struct exists and its `FromString()` is called
@@ -476,7 +478,7 @@ NOT by running regular expressions or keyword searches against raw text.
 - WHEN checkpoint rule_37 runs
 - THEN it checks `CXX_STANDARD` is set to `${CXX_STD}` (Thunder variable), not a literal like `11` or `14`;
   the validator MUST read CMakeLists.txt in full and reason about each target's property settings
-
+---
 ---
 
 ### Requirement: 46 holistic rules (8 sub-phases) loaded from YAML and reported in unified output
@@ -501,7 +503,7 @@ All rules produce the same output format — there is no separate section for th
   4. ASSERT used correctly — on prerequisites, not return values (warning)
   5. OOP registration order correct (violation, conditional)
   6. Complete state reset in Deinitialize (violation)
-  7. Reverse-order cleanup in Deinitialize (warning)
+  7. Reverse-order cleanup in Deinitialize (violation)
   8. Observer AddRef before Register, Release after Unregister (violation)
   9. AddRef/Release balance across plugin lifetime (violation)
   10. Config struct used for all configuration (warning)
@@ -510,21 +512,21 @@ All rules produce the same output format — there is no separate section for th
   13. Handlers must not block — dispatch to WorkerPool (violation)
   14. No Activate/Deactivate calls from notification handlers (violation)
   15. Shared member state protected by Core::CriticalSection (violation)
-  16. No framework callbacks (Notify, Submit, Register) called while holding _adminLock (violation)
+  16. No framework callbacks (Notify, Submit, Register) called while holding _adminLock (suggestion — advisory, developer should verify re-entrancy safety)
   17. WorkerPool jobs guard against post-Deinitialize execution (violation)
   18. File descriptors and sockets wrapped in RAII (violation)
   20. Config validation failures return non-empty string from Initialize (violation)
   21. Notify() only called after Initialize() has completed (violation)
   22. interface->Register paired with interface->Unregister in Deinitialize (violation)
-  23. Handler registration order in Initialize/Deinitialize: acquire first, unregister before release (violation)
+  23. Handler registration order in Initialize/Deinitialize: acquire first, service->Unregister() must be FIRST operation in Deinitialize (violation)
   24. Use Core::ERROR_* named constants for failure codes, not raw integers (violation)
   25. Input validation before use in JSON-RPC handlers (violation)
   26. Event name strings as named constants; JSON payloads use typed JsonData::* classes (warning)
   27. COM reference counting correctness: one AddRef per pointer, one Release per lifetime end (violation)
-  28. No hard inter-plugin dependencies; use PluginSmartInterfaceType for held cross-plugin pointers (warning)
+  28. No hard inter-plugin dependencies; use PluginSmartInterfaceType (not raw pointer or RPC::SmartInterfaceType directly) for held cross-plugin pointers (warning)
   29. JSON-RPC handlers are re-entrant safe: shared state under lock (violation)
   30. IPlugin::INotification callbacks must not block: delegate to WorkerPool (violation)
-  31. Lock scope minimized: no I/O or long operations while lock is held (violation)
+  31. Lock scope minimized: no I/O or long operations while lock is held (suggestion)
   32. Plugin threads joined/stopped in Deinitialize before releasing interfaces (violation)
   33. Memory and allocation safety: no large stack buffers, no VLAs, no deep recursion, RAII preferred (warning)
   34. Framework pointers (IShell*, acquired interfaces) not accessed from background threads after Deinitialize (violation)
@@ -537,7 +539,7 @@ All rules produce the same output format — there is no separate section for th
   41. Observer/notification inner classes declared as private nested members (suggestion)
   42. No deprecated JSON-RPC APIs: no IDispatcher, no Announce-style events (violation)
   43. All acquired interface pointers set to nullptr on all Deinitialize() exit paths (violation)
-
+---
 ---
 
 ### Requirement: Violation output format grouped by file with exact line numbers
@@ -579,7 +581,7 @@ reasoning: "..."
 - AND the citation reads `[Dictionary.cpp:115] Initialize missing ASSERT(service != nullptr)`
   (using the actual plugin name, not a placeholder)
 - AND extracted_code shows the Initialize method body with `// [Dictionary.cpp:113-117]` prefix
-
+---
 ---
 
 ### Requirement: Checkpoint summary as table and Next Steps as numbered list
@@ -595,5 +597,12 @@ The report MUST include a `### Checkpoint Summary` table after all file sections
   | ... | ... | ... | ... |
   | **Total** | **N** | **N** | **N** |
 
+
 - AND a `### Next Steps` numbered list follows the table
 - AND each item references the exact `[File:line]` location and checkpoint ID
+  | ... | ... | ... | ... |
+- AND a `### Next Steps` numbered list follows the table- AND each item references the exact `[File:line]` location and checkpoint ID
+
+- AND each item references the exact `[File:line]` location and checkpoint ID
+  | **Total** | **N** | **N** | **N** |
+- AND each item references the exact `[File:line]` location and checkpoint ID- AND a `### Next Steps` numbered list follows the table

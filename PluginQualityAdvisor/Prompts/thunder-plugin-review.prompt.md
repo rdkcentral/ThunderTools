@@ -68,6 +68,8 @@ Load `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` **in full** — read
 
 **CRITICAL:** Confirm you have loaded ALL rules up to rule_84 before starting the review. If the YAML reading was truncated or incomplete, continue reading until you reach the end. Do NOT start reviewing code until all 84 rules are loaded. Every rule must be evaluated — never skip a rule because it seems low-value or unlikely to apply.
 
+**Mandatory gate:** Before proceeding to Step 2, state: "Rules loaded: [N]. Last rule ID loaded: [rule_id]." If N < 84, re-read the YAML from the truncation point before continuing.
+
 All rules produce the same output format. There is no distinction between "phase checkpoint" and "holistic" in the report.
 
 ### Step 2 - Identify Plugin Files
@@ -75,7 +77,23 @@ All rules produce the same output format. There is no distinction between "phase
 Search the workspace for a folder named `{PluginName}` (e.g. `ThunderNanoServices/{PluginName}/`).
 If not found: Ask user for location.
 
-**CRITICAL: Read ALL .h and .cpp files in the plugin folder AND all subdirectories** — not just the primary files below. Subdirectories (e.g. `LinchpinService/`, `src/`, `lib/`) often contain implementation code with issues. Helper headers (e.g. `WAVRecorder.h`, `DHCPClient.h`, `*Sink.h`, `HID.h`) often contain code relevant to holistic rules (printf usage, lock patterns, COM reference handling). List all files in the plugin directory tree recursively and read every source file before beginning the review.
+**Canonical reading order** (always read files in this sequence to ensure consistent context loading):
+1. `Module.h`
+2. `Module.cpp`
+3. `{PluginName}.h`
+4. `{PluginName}.cpp`
+5. `{PluginName}Implementation.h` (if present — not OOP-only; in-process plugins can also have an implementation file)
+6. `{PluginName}Implementation.cpp` (if present — not OOP-only; in-process plugins can also have an implementation file)
+7. `CMakeLists.txt`
+8. `{PluginName}.conf.in` (if present)
+9. All remaining `.h` files (alphabetical) — **including subdirectories**
+10. All remaining `.cpp` files (alphabetical) — **including subdirectories**
+
+**Read every `.h` and `.cpp` under the plugin folder including all subdirectories** (e.g. `legacy/`, `src/`, `impl/`, helper headers). Issues like hardcoded paths, NULL usage, printf calls, and shared-state races are often only visible in helper files, not the primary plugin files.
+
+**CRITICAL: Read every file from line 1 to the last line — never stop partway through a file.** Partial reads miss issues in later sections (e.g. Deinitialize(), background thread functions, helper methods). If a file is large, continue reading until you reach the end before moving to the next file.
+
+**Mandatory gate:** After reading all files, state: "Files read: [list each filename]. Total: [N] files." Do NOT begin rule execution until this inventory is confirmed.
 
 | File | Phase relevance |
 |------|----------------|
@@ -83,10 +101,10 @@ If not found: Ask user for location.
 | `Module.h` | Phase 1 (rule_01, rule_03) |
 | `{PluginName}.h` | Phase 2, 3, 4 (class declarations) |
 | `{PluginName}.cpp` | Phase 2, 3, 4, 5 (implementation) |
+| `{PluginName}Implementation.h` | Phase 5C (OOP rules) + holistic rules — always read if present, not limited to OOP plugins |
+| `{PluginName}Implementation.cpp` | Phase 5C (OOP rules) + holistic rules — always read if present, not limited to OOP plugins |
 | `CMakeLists.txt` | Phase 7 |
 | `{PluginName}.conf.in` | Phase 6 (optional) |
-| `{PluginName}Implementation.h` | Phase 5C (only if plugin is OOP: PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt OR outofprocess = true in .conf.in) + holistic rules |
-| `{PluginName}Implementation.cpp` | Phase 5C (only if plugin is OOP: PLUGIN_<NAME>_MODE = "Local" in CMakeLists.txt OR outofprocess = true in .conf.in) + holistic rules |
 
 ### Step 3 - Execute Rules (CRITICAL: Understand First, Then Check)
 
@@ -94,20 +112,33 @@ If not found: Ask user for location.
 - `namespace WPEFramework` → **pre-Thunder 5.0** plugin
 - `namespace Thunder` → **Thunder 5.0+** plugin
 
-This affects which rules apply:
-- **rule_38** (COM Methods Return Core::hresult): Only applies to Thunder 5.0+ plugins. Pre-5.0 plugins correctly use `uint32_t` - do NOT flag as a violation.
-- **rule_31** (No Hardcoded Paths): Linux kernel virtual filesystems (`/proc/`, `/sys/`, `/dev/`) are fixed OS paths, not deployment-specific - do NOT flag these.
+**Completeness sweep — after applying all 84 rules, perform these explicit checks across ALL files:**
 
-**Review philosophy for ALL 84 rules:**
+> **Semantic reasoning still applies to every sweep match.** The sweep ensures patterns are not *missed* — it does not bypass the JUDGE step. Each match found below must be evaluated in full context before being reported: test files, generated code, comments, string literals, and platform-specific shims may make a pattern acceptable. Apply the same understand-first, reason-in-context logic as for all other rules.
 
-1. **UNDERSTAND FIRST** - Read ALL plugin source files **in full — from line 1 to end of file for every file. Never stop reading a file partway through.** Build a complete mental model of the plugin's architecture: its lifecycle flow, threading model, ownership patterns, data flow, and how Initialize/Deinitialize relate to each other. Do this ONCE before checking any rule.
-2. **FOCUS** - For each rule, look at the specific concern it asks about. But reason about it WITH the full context you already understand - never in isolation.
-3. **REASON** - Ask the rule's question. If the specific block looks like a violation when viewed alone, ask yourself: "Does the full plugin context make this approach correct and safe?" If yes → downgrade severity.
-4. **CITE** - If genuinely wrong (not just technically different), cite exact `[ActualPluginName.cpp:LINE]`
-5. **FIX** - Show corrected code using `fix_template`
-
-**Key:** A rule should FAIL only when the code is genuinely unsafe or incorrect in the context of the whole plugin - not because a single block viewed in isolation doesn't match a pattern.
-
+- **rule_06** (NULL vs nullptr): search for `= NULL`, `== NULL`, `!= NULL`, `( NULL)`, `NULL,`, `NULL)` — report every match in every `.h` and `.cpp` file
+- **rule_17** (IShell AddRef): confirm `_service->AddRef()` is the very next line after `_service = service` in `Initialize()` — check the actual source, do not assume
+- **rule_18** (IShell Release): confirm `_service->Release()` and `_service = nullptr` both appear in `Deinitialize()` — check every exit path
+- **rule_31** (Hardcoded paths): search every file for `/tmp/`, `/opt/`, `/etc/`, `/usr/`, `/var/` — flag each occurrence not under `/proc/`, `/sys/`, or `/dev/`
+- **rule_39** (#pragma once): check every `.h` file — flag any that use `#ifndef`/`#define`/`#endif` guard instead of `#pragma once`
+- **rule_41** (Reverse-order cleanup): list acquisition order in `Initialize()`; verify `Deinitialize()` releases in strict reverse; `service->Unregister()` must be FIRST
+- **rule_47** (Shared state): list every member variable assigned inside a callback, event handler, or non-main thread; confirm each has a lock guard — do not stop at the first unprotected variable
+- **rule_54** (Core::ERROR_* return values): search for `return 0;` and `return 1;` inside every method whose return type is `uint32_t` or `Core::hresult` — flag each raw integer return
+- **rule_55** (Event constants): search every file for `Notify(_T("` or `Notify("` — flag every inline string event name that is not a named constant
+- **rule_63** (hresult return values checked): scan all calls to `Core::hresult`-returning methods — confirm the return value is stored and tested, not silently discarded
+- **rule_70** (No printf): search for `printf(`, `fprintf(`, `sprintf(`, `snprintf(` in every file including helper headers
+- **rule_73** (PluginSmartInterfaceType): list all member variables that are raw `I*` pointers to another plugin's interface, or use `RPC::SmartInterfaceType` — each should use `PluginSmartInterfaceType`
+- **rule_74** (WorkerPool): list all uses of `std::thread`, `pthread_create`, or similar raw thread spawning — each should use `Core::WorkerPool` instead
+- **rule_83** (No heavy work in Initialize): from `Initialize()` and `Configure()`, follow every function call one level deep and check whether any called function contains a loop with `sleep`, `usleep`, `std::this_thread::sleep`, a retry counter, or a blocking I/O call
+- **rule_40** (Copyright header): check the first 15 lines of every `.h` and `.cpp` file — flag any file that does not contain an Apache 2.0 copyright header
+- **rule_12** (No delete this): search every `.cpp` file for `delete this` — flag every occurrence; plugin lifetime is framework-managed
+- **rule_71** (No ILocalDispatcher): search every file for `ILocalDispatcher` — flag every usage; ILocalDispatcher bypasses security token validation
+- **rule_76** (No IController::Persist): search every file for `->Persist(` — flag every call; Persist() is disabled in non-debug builds
+- **rule_77** (No direct curl): search every file for `curl_`, `#include.*curl`, `CURL*` — flag any direct libcurl usage
+- **rule_78** (No process spawning): search every file for `popen(`, `system(`, `fork(`, `exec(`, `execve(`, `execvp(` — flag each occurrence
+- **rule_79** (No hardcoded callsigns): search every file for string literals containing `"org.rdk.`, `"org.metrological.`, or any other hardcoded plugin callsign — flag each one; callsigns must come from configuration
+- **rule_81** (Core::GetEnvironment): search every file for `getenv(`, `setenv(`, `putenv(` — flag each; use `Core::GetEnvironment()` / `Core::SetEnvironment()` instead
+- **rule_82** (No sleep anywhere): search every file for `sleep(`, `usleep(`, `std::this_thread::sleep_for(`, `std::this_thread::sleep_until(` — flag every occurrence, not just inside Initialize()
 ---
 
 ## CRITICAL FILE SCOPING RULES
@@ -121,19 +152,11 @@ This affects which rules apply:
 
 **CRITICAL: The JUDGE step is ONLY allowed AFTER the verification logic produces a "No" answer. You MUST run the verification steps from the YAML first and get an explicit Yes/No before deciding PASS or FAIL. Never shortcut to PASS based on a quick impression — complete ALL verification logic steps before making any judgment.**
 
-After applying verification logic, if the answer is "No" (rule technically violated), reason whether the developer's actual approach is **valid and reasonable in context**:
+**CRITICAL: Downgrade ≠ Discard.** A downgraded finding MUST still appear in the report at its reduced severity. Never silently drop a finding that genuinely violates a rule — even if the developer's approach is reasonable, report it at the lower level so the developer is aware of the trade-off. Only discard when the rule's concern is entirely absent from the code (true false positive: the code is factually correct and the rule simply does not apply).
 
-| Scenario | Effective status | `reasoning` field |
-|----------|-----------------|-------------------|
-| Rule satisfied | `PASS` | Omit |
-| Rule violated, no mitigation | `VIOLATION` / `WARNING` / `SUGGESTION` | Omit |
-| Rule violated but developer's approach is valid in context | Downgrade one level | **Required** - explain rule, developer's approach, why it is acceptable |
-| Violated with residual risk but approach is reasonable | `WARNING` | **Required** |
+**Downgrade evidence requirement:** When downgrading severity, the `reasoning` field MUST cite the specific `[File:line]` that provides the mitigating evidence. Abstract reasoning without a code citation is NOT sufficient grounds for a downgrade — if you cannot point to a specific line, do not downgrade.
 
-The `reasoning` field is **required** when severity is downgraded; it is **omitted** when no downgrade occurs.
-Severity is **never escalated** above the YAML-defined level.
-
-**Example (severity downgraded):**
+Severity is **never escalated** above the YAML-defined level. Downgrade one severity level when the developer's approach is valid in context — but always report the finding at the reduced level; never silently discard it. **The JUDGE step can never produce a PASS result — it can only downgrade severity.** If verification logic says "No", the finding must appear in the report at some severity level. Only omit a finding entirely when the rule's concern is factually absent from the code (the code is genuinely correct and the rule simply does not apply — this is a true skip, not a JUDGE outcome). The `reasoning` field is **required** when severity is downgraded; omit it when no downgrade occurs.
 
 ```yaml
 rule_id: rule_17
@@ -163,28 +186,6 @@ citation: "[Dictionary.cpp:108] NULL used as null pointer - NULL vs nullptr"
 fix: "IPlugin* plugin = nullptr;"
 reasoning:   # omit if no severity downgrade
 ```
-
----
-
-## Step 4 - Validate Findings (Eliminate False Positives)
-
-**CRITICAL:** This step MUST be completed BEFORE generating any chat output or report file. Do NOT write findings mid-analysis and correct them later — validate silently first, then produce final output.
-
-For every candidate finding:
-
-1. **Re-read the actual code** at the cited line — confirm the issue genuinely exists at that exact location
-2. **Re-apply the JUDGE step** — ask again: "In the full context of this plugin's architecture, lifecycle, and threading model, is this actually a bug?" If the answer is no → drop it silently
-3. **Verify the line number** — ensure the citation points to the correct line, not an approximation
-4. **Check for duplicates** — if two rules flag the same root cause (e.g. rule_48 and rule_60 on the same lock-held callback), keep both but note they share a fix
-5. **Verify severity is NOT escalated** — the reported status MUST NOT be higher than the YAML-defined severity. A `suggestion` rule can NEVER become ❌ VIOLATION or ⚠️ WARNING. Only downgrading is allowed.
-6. **Discard any finding that is:**
-   - A false positive (code is actually correct in context)
-   - Based on misreading the code (re-read to confirm)
-   - A legitimate design choice that is safe in this plugin's context
-   - Flagging code that doesn't exist at the cited line
-   - Reported at a severity HIGHER than the YAML defines
-
-**Only issues that survive this second pass are reported to the user. Never show discarded findings, self-corrections, or "Wait — actually this is fine" reasoning in any output.**
 
 ---
 
@@ -239,7 +240,7 @@ End chat output with:
 
 ## Key Advantages
 
-- **Reproducible:** Same bounded questions → same answers on the same code
+- **Targeted:** Bounded questions focus analysis on specific constructs, reducing missed findings
 - **Fast:** One code block per checkpoint - no whole-file analysis per rule
 - **Actionable:** Each failure has an exact line, an explanation, and a fix
 - **Contextual:** Severity downgrade logic handles valid alternative approaches
@@ -267,11 +268,17 @@ End chat output with:
 ## Step 6 - Generate Markdown Report
 
 After reporting all results in chat, generate a Markdown report file with clickable navigation.
-/thunder-plugin-review NetworkControl Module.h
 **File path:** `PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
 
 - Create `PluginQualityAdvisor/Reports/plugin/` if it does not exist
 - Never overwrite an existing file - append `_2`, `_3` etc. if a file with that name already exists
+
+**Git Metadata (run before generating the report):**  
+Run the following commands in the plugin's git root to populate the report header fields:
+- Repo URL: `git remote get-url origin`
+- Branch: `git rev-parse --abbrev-ref HEAD`
+- Commit SHA: `git rev-parse --short HEAD`
+If git is unavailable, use `unknown`.
 
 ### Report Template
 
@@ -280,6 +287,8 @@ After reporting all results in chat, generate a Markdown report file with clicka
 
 **Date:** {YYYY-MM-DD}  
 **Plugin:** {PluginName}  
+**Repo:** {plugin-repo-url}  
+**Branch:** {plugin-branch} | **Commit:** {plugin-sha}  
 **Total Rules:** 84 | **Passed:** N | **Failed:** N | **Skipped:** N
 
 ---
@@ -383,6 +392,7 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 
 - Each issue in the summary table links to its detailed section via the Rule column using `[rule_XX - Name](#issue-N)` anchors
 - Each detailed section heading uses `### Issue N` (creates the `#issue-n` anchor automatically)
+- Each detailed section must end with a back-link to the summary table: `[\u2B06 Back to Issue Summary](#issue-summary)` — this allows readers to click back to the table after reading a finding
 - The rule ID and name appear as bold text on the first line under the heading (e.g. `**rule_17 - AddRef on IShell***`)
 - **"What's wrong"** must be a plain-English explanation a junior developer can understand - not just restating the rule name
 - **"Code found"** must show the actual code from the plugin with file:line comment
@@ -399,6 +409,8 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 
 **Date:** {YYYY-MM-DD}  
 **Plugin:** {PluginName}  
+**Repo:** {plugin-repo-url}  
+**Branch:** {plugin-branch} | **Commit:** {plugin-sha}  
 **Total Rules:** 84 | **Passed:** N | **Failed:** 0 | **Skipped:** N
 
 ✅ All rules passed - no issues found.
