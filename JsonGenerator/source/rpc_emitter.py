@@ -121,8 +121,10 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
                 emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0);" % (converted_result, param.local_name, converted, length))
             elif encode == "mac":
                 emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.local_name, converted, length))
+            elif encode == "ip":
+                emit.Line("const bool %s = (Core::FromDecString(%s, %s, %s, TCHAR('.')) != 0);" % (converted_result, param.local_name, converted, length))
             else:
-                assert False, "bad encode method"
+                assert False, "unimplemented encoding %s" % encode
 
         if "@arraysize" in param.schema:
             Decode("uint16_t", "sizeof(%s)" % converted)
@@ -333,7 +335,7 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
 
                     elif isinstance(p, JsonString):
                         encode = p.schema.get("encode")
-                        assert not encode or encode in ["base64", "hex", "mac"]
+                        assert not encode or encode in ["base64", "hex", "mac", "ip"]
 
                         if "@container" in p.schema:
                             encoded_name = "_%sEncoded__" % (p.local_name)
@@ -345,6 +347,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                                 emit.Line("Core::ToHexString(%s, %s);" % (local_name, encoded_name))
                             elif encode == "mac":
                                 emit.Line("Core::ToHexString(%s, %s, TCHAR(':'));" % (local_name,  encoded_name))
+                            elif encode == "ip":
+                                emit.Line("Core::ToDecString(%s, %s, TCHAR('.'));" % (local_name,  encoded_name))
 
                             emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
@@ -359,6 +363,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                                 emit.Line("Core::ToHexString(%s, %s, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
                             elif encode == "mac":
                                 emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, p.schema["@arraysize"], encoded_name))
+                            elif encode == "ip":
+                                emit.Line("Core::ToDecString(%s, %s, %s, TCHAR(':'));" % (local_name, p.schema["@arraysize"], encoded_name))
 
                             emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
@@ -393,6 +399,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                                     emit.Line("Core::ToHexString(%s, %s, %s);" % (local_name, length_value, encoded_name))
                                 elif encode == "mac":
                                     emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, length_value, encoded_name))
+                                elif encode == "ip":
+                                    emit.Line("Core::ToDecString(%s, %s, %s, TCHAR('.'));" % (local_name, length_value, encoded_name))
 
                                 emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
@@ -1162,7 +1170,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         emit.EnterBlock(conditions, scoped=True)
 
-                    if param_meta.flags.encode in ["base64", "mac", "hex"]:
+                    if param_meta.flags.encode in ["base64", "mac", "hex", "ip"]:
                         if param_meta.flags.encode == "base64":
                             size_var = param.TempName("Size_")
                             emit.Line("uint32_t %s(%s);" % (size_var, size))
@@ -1175,7 +1183,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("Core::FromHexString(%s.Value(), %s, %s);" % (cpp_name, dest_var, size_var))
                         elif param_meta.flags.encode == "mac":
                             emit.Line("Core::FromHexString(%s.Value(), %s, %s, TCHAR(':'));" % (cpp_name, dest_var, size_var))
-
+                        elif param_meta.flags.encode == "ip":
+                            emit.Line("Core::FromDecString(%s.Value(), %s, %s, TCHAR('.'));" % (cpp_name, dest_var, size_var))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
 
@@ -1473,15 +1482,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     emit.EnterBlock(conditions, scoped=True)
 
-                    if param_meta.flags.encode in ["base64", "mac", "hex"]:
+                    if param_meta.flags.encode in ["base64", "mac", "hex", "ip"]:
                         encoded_name = param.TempName("encoded_")
                         emit.Line("string %s;" % (encoded_name))
+
                         if param_meta.flags.encode == "base64":
                             emit.Line("Core::ToString(%s, %s, true, %s);" % (param.temp_name, size, encoded_name))
                         elif param_meta.flags.encode == "hex":
                             emit.Line("Core::ToHexString(%s, %s, %s);" % (param.temp_name, size, encoded_name))
                         elif param_meta.flags.encode == "mac":
                             emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (param.temp_name, size, encoded_name))
+                        elif param_meta.flags.encode == "ip":
+                            emit.Line("Core::ToDecString(%s, %s, %s, TCHAR('.'));" % (param.temp_name, size, encoded_name))
+
                         emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
@@ -1496,15 +1509,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("if (%s.IsSet() == true) {" % param.temp_name)
                         emit.Indent()
 
-                    if param_meta.flags.encode in ["base64", "mac", "hex"]:
+                    if param_meta.flags.encode in ["base64", "mac", "hex", "ip"]:
                         encoded_name = param.TempName("encoded_")
                         emit.Line("string %s;" % (encoded_name))
+
                         if param_meta.flags.encode == "base64":
                             emit.Line("Core::ToString(%s, true, %s);" % (source_var, encoded_name))
                         elif param_meta.flags.encode == "hex":
                             emit.Line("Core::ToHexString(%s, %s);" % (source_var, encoded_name))
                         elif param_meta.flags.encode == "mac":
                             emit.Line("Core::ToHexString(%s, %s, TCHAR(':'));" % (source_var, encoded_name))
+                        elif param_meta.flags.encode == "ip":
+                            emit.Line("Core::ToDecString(%s, %s, TCHAR('.'));" % (source_var, encoded_name))
+
                         emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
