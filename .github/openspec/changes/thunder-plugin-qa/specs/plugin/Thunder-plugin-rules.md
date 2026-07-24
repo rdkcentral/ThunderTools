@@ -37,7 +37,7 @@
 | [rule_21](#rule_21) | Root\<T\>() Release in Deinitialize | violation | Lifecycle |
 | [rule_22](#rule_22) | Observer Cleanup in Deinitialize | violation | Lifecycle |
 | [rule_23](#rule_23) | SubSystems() Release in Deinitialize | violation | Lifecycle |
-| [rule_24](#rule_24) | Constructor Must Be Empty | suggestion | Lifecycle |
+| [rule_24](#rule_24) | Constructor Must Be Empty | violation | Lifecycle |
 | [rule_25](#rule_25) | service->Register/Unregister Pairing | violation | Lifecycle |
 | [rule_26](#rule_26) | Initialize Returns Error String on Failure | violation | Lifecycle |
 | [rule_27](#rule_27) | No Manual Deinitialize() in Initialize | violation | Lifecycle |
@@ -54,14 +54,14 @@
 | [rule_38](#rule_38) | COM Methods Return Core::hresult | violation | COM Interface |
 | [rule_39](#rule_39) | #pragma once (all headers) | suggestion | Conventions |
 | [rule_40](#rule_40) | Apache 2.0 Copyright Header | suggestion | Conventions |
-| [rule_41](#rule_41) | Reverse-Order Cleanup | suggestion | Lifecycle Integrity |
+| [rule_41](#rule_41) | Reverse-Order Cleanup | violation | Lifecycle Integrity |
 | [rule_42](#rule_42) | Observer Locking | violation | Concurrency |
 | [rule_43](#rule_43) | AddRef/Release Balance | violation | COM Safety |
 | [rule_44](#rule_44) | CMake NAMESPACE Variable | suggestion | Conventions |
 | [rule_45](#rule_45) | Handlers Must Not Block | violation | Concurrency |
 | [rule_46](#rule_46) | No Activate/Deactivate from Handlers | violation | Concurrency |
 | [rule_47](#rule_47) | Shared State Protected by CriticalSection | violation | Concurrency |
-| [rule_48](#rule_48) | No Lock Held During Framework Callbacks | violation | Concurrency |
+| [rule_48](#rule_48) | No Lock Held During Framework Callbacks | suggestion | Concurrency |
 | [rule_49](#rule_49) | Worker Jobs Safe After Deinitialize | warning | Concurrency |
 | [rule_50](#rule_50) | File Descriptors / Sockets Wrapped in RAII | violation | Resource Management |
 | [rule_51](#rule_51) | Config Errors Return Non-Empty from Initialize | violation | Lifecycle Integrity |
@@ -73,7 +73,7 @@
 | [rule_57](#rule_57) | No Hard Inter-Plugin Dependencies | warning | Inter-Plugin Design |
 | [rule_58](#rule_58) | JSON-RPC Handlers Are Re-entrant Safe | violation | Concurrency |
 | [rule_59](#rule_59) | IPlugin::INotification Callbacks Must Not Block | violation | Concurrency |
-| [rule_60](#rule_60) | Lock Scope Minimized | violation | Concurrency |
+| [rule_60](#rule_60) | Lock Scope Minimized | suggestion | Concurrency |
 | [rule_61](#rule_61) | Plugin Threads Joined in Deinitialize | violation | Concurrency |
 | [rule_62](#rule_62) | Deinitialize Pointer Safety | violation | Lifecycle Integrity |
 | [rule_63](#rule_63) | hresult Return Values Checked | violation | COM Safety |
@@ -94,7 +94,7 @@
 | [rule_78](#rule_78) | No Process Spawning from Plugins | violation | Code Quality |
 | [rule_79](#rule_79) | No Hardcoded Plugin Callsigns | warning | Inter-Plugin Design |
 | [rule_80](#rule_80) | Use ProxyType for COM Interface Parameters | warning | COM Safety |
-| [rule_81](#rule_81) | Use Core::GetEnvironment / SetEnvironment | warning | Code Quality |
+| [rule_81](#rule_81) | Use Core::GetEnvironment / SetEnvironment | violation | Code Quality |
 | [rule_82](#rule_82) | No sleep() in Plugin Code | warning | Concurrency |
 | [rule_83](#rule_83) | No Heavy Work in Initialize() | violation | Lifecycle Integrity |
 | [rule_84](#rule_84) | No Override of JSONRPC Dispatch Methods | warning | JSON-RPC Compliance |
@@ -481,11 +481,11 @@ public:
 
 **Plugin Metadata Registration** | `violation`
 
-**What to check:** The plugin `.cpp` file must contain exactly ONE `static Plugin::Metadata<PluginName>` registration. This registers the plugin with the Thunder framework. Plugin::Metadata must appear only once for the entire plugin — all other registration points (including OOP implementation files) must use the `SERVICE_REGISTRATION` macro instead. For OOP plugins, at least one `SERVICE_REGISTRATION` must exist in the OOP part.
+**What to check:** The plugin `.cpp` file must contain exactly ONE `static Plugin::Metadata<PluginName>` registration, and that same file must NOT also contain `SERVICE_REGISTRATION` for the same plugin class — the two mechanisms are mutually exclusive per file. OOP implementation files use `SERVICE_REGISTRATION` exclusively. Additionally, scan all subdirectories (e.g. `legacy/`, `adapters/`) for `.cpp` files that register separate Thunder plugins — each must be checked independently, and any file containing both `Plugin::Metadata` AND `SERVICE_REGISTRATION` for the same class is a violation.
 
-**Where to look:** `PluginName.cpp`.
+**Where to look:** `PluginName.cpp` and all subdirectory `.cpp` files that contain `Plugin::Metadata` or `SERVICE_REGISTRATION`.
 
-**Violation pattern:** `Plugin::Metadata<PluginName>` registration missing, duplicated, or OOP part missing `SERVICE_REGISTRATION`.
+**Violation pattern:** `Plugin::Metadata<PluginName>` missing, duplicated, co-located with `SERVICE_REGISTRATION` in the same file, or OOP part missing `SERVICE_REGISTRATION`.
 
 ```cpp
 // Correct — add to PluginName.cpp:
@@ -727,13 +727,13 @@ void Deinitialize(PluginHost::IShell* service) {
 
 ### rule_24
 
-**Constructor Must Be Empty** | `suggestion`
+**Constructor Must Be Empty** | `violation`
 
-**What to check:** The plugin class constructor body must be empty — no initialization logic, no resource acquisition, no system calls. All initialization belongs in `Initialize()`. Member initializer lists with null/default values are acceptable.
+**What to check:** The plugin class constructor body must be empty — no initialization logic, no resource acquisition, no system calls. All initialization belongs in `Initialize()`. Member initializer lists with null/default values are acceptable. Exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and are not flagged.
 
 **Where to look:** Plugin class constructor definition.
 
-**Violation pattern:** Constructor body contains non-trivial initialization logic.
+**Violation pattern:** Constructor body contains non-trivial initialization logic (beyond lifecycle logging).
 
 ```cpp
 // WRONG:
@@ -820,11 +820,11 @@ string Initialize(PluginHost::IShell* service) {
 
 **No Manual Deinitialize() in Initialize** | `violation`
 
-**What to check:** `Initialize()` must never call `Deinitialize()` directly. Failure cleanup must be done explicitly with targeted resource release.
+**What to check:** `Initialize()` must never call `Deinitialize()` directly. On failure paths, cleanup must be done explicitly and only for resources acquired on that path. Critically: framework member pointers (e.g. `_service`) that were assigned **before** the failing step must NOT be set to `nullptr` on the failure path — Thunder does not call `Deinitialize()` after a failed `Initialize()`, so the nullptr assignment is redundant and breaks `Deinitialize()`'s `ASSERT(_service == service)` if it is ever reached. Exception: it is correct to `Release()` and null pointers that were acquired **at** the failing step (e.g. undo a `Root()` or `QueryInterface()` result that returned non-null).
 
-**Where to look:** The full `Initialize()` body.
+**Where to look:** The full `Initialize()` body — all failure return paths.
 
-**Violation pattern:** `Initialize()` calls `Deinitialize()` directly.
+**Violation pattern:** `Initialize()` calls `Deinitialize()` directly; OR nulls a framework pointer (`_service = nullptr`) on a failure path when that pointer was assigned before the failure point.
 
 ```cpp
 // WRONG:
@@ -859,11 +859,11 @@ string Initialize(PluginHost::IShell* service) {
 
 **Destructor Must Be Empty** | `violation`
 
-**What to check:** The plugin destructor body must be completely empty. All resource cleanup belongs in `Deinitialize()`.
+**What to check:** The plugin destructor body must be completely empty. All resource cleanup belongs in `Deinitialize()`. Exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and are not flagged.
 
 **Where to look:** Plugin class destructor definition.
 
-**Violation pattern:** Destructor contains cleanup logic.
+**Violation pattern:** Destructor contains cleanup logic or resource release beyond lifecycle logging.
 
 ```cpp
 // WRONG:
@@ -1045,11 +1045,11 @@ void Terminated(const uint32_t id) override {
 
 **Startmode Declaration** | `violation` | *Conditional: skip if no `.conf.in` file exists*
 
-**What to check:** The `.conf.in` file must declare an explicit `startmode`.
+**What to check:** The `.conf.in` file must declare an explicit `startmode`. Exception for pre-Thunder 5.0 plugins (`namespace WPEFramework`): if `autostart` is present and `startmode` is absent, downgrade to `suggestion` (autostart is the valid legacy equivalent). For Thunder 5.0+ plugins (`namespace Thunder`), `startmode` is mandatory regardless of `autostart`.
 
-**Where to look:** `PluginName.conf.in`.
+**Where to look:** `PluginName.conf.in`; also check the plugin namespace to determine Thunder version.
 
-**Violation pattern:** `startmode` field absent from `.conf.in`.
+**Violation pattern:** `startmode` field absent from `.conf.in` (and no `autostart` fallback for pre-5.0 plugins).
 
 ```ini
 # Correct — add to PluginName.conf.in:
@@ -1232,9 +1232,9 @@ The following rules require reading the full plugin context before evaluating. T
 
 ### rule_41
 
-**Reverse-Order Cleanup** | `suggestion` | Category: Lifecycle Integrity
+**Reverse-Order Cleanup** | `violation` | Category: Lifecycle Integrity
 
-**What to check:** `Deinitialize()` should release resources in the reverse order of how they were acquired in `Initialize()`. This prevents use-after-free when later resources depend on earlier ones.
+**What to check:** `Deinitialize()` must release resources in the reverse order of how they were acquired in `Initialize()`. This prevents use-after-free when later resources depend on earlier ones.
 
 **Where to look:** Compare acquisition order in `Initialize()` with release order in `Deinitialize()`.
 
@@ -1440,13 +1440,13 @@ uint32_t GetStatus(...) {
 
 ### rule_48
 
-**No Lock Held During Framework Callbacks** | `violation` | Category: Concurrency
+**No Lock Held During Framework Callbacks** | `suggestion` | Category: Concurrency
 
-**What to check:** All locks (`_adminLock`) must be released before calling back into the Thunder framework — before `service->Submit()`, `Notify()`, `Activate()`, or dispatching notifications. Holding a lock while calling framework APIs causes deadlock.
+**What to check:** Flag any pattern where a lock (`_adminLock`) is held at the point where the plugin calls back into the Thunder framework (`service->Submit()`, `Notify()`, `Activate()`, `Deactivate()`, or notification dispatch). Holding a lock across such a call risks deadlock if the framework re-enters the plugin on the same thread. Advise the developer to reconsider: either release the lock before the framework call, or confirm through careful analysis that re-entrancy on that code path is impossible.
 
 **Where to look:** Code paths that hold `_adminLock` and then call framework methods.
 
-**Violation pattern:** Lock held during a framework callback invocation.
+**Violation pattern:** Lock held at the point of a framework callback — flag as advisory and request the developer to verify re-entrancy safety.
 
 ```cpp
 // WRONG:
@@ -1526,13 +1526,9 @@ void Deinitialize(...) {
 
 ---
 
-
-
 ```cpp
 
 ```
-
-
 
 ---
 
@@ -1602,11 +1598,11 @@ void Deinitialize(...) {
 
 **Handler Registration Order** | `violation` | Category: JSON-RPC Compliance
 
-**What to check:** Notification handlers must be registered **after** the interfaces they observe are fully acquired, and unregistered **before** those interfaces are released. Registering before acquisition or unregistering after release causes callbacks on partially-initialized state.
+**What to check:** (1) Notification handlers must be registered **after** the interfaces they observe are fully acquired. (2) `service->Unregister()` must be the **FIRST** operation in `Deinitialize()` — before any resource release, interface release, or state teardown. The plugin must stop receiving `IPlugin::INotification` callbacks before it begins releasing its own resources. If `Unregister()` happens late, a notification callback can fire on a partially-deinitialized plugin and access already-released state.
 
-**Where to look:** Ordering of `Register()`/`Unregister()` calls relative to interface acquisition/release in `Initialize()`/`Deinitialize()`.
+**Where to look:** Ordering of `Register()`/`Unregister()` calls in `Initialize()`/`Deinitialize()`; specifically confirm `service->Unregister()` is the first statement in `Deinitialize()`.
 
-**Violation pattern:** Handler registered before interface is ready, or unregistered after interface is released.
+**Violation pattern:** Handler registered before interface is ready; OR `service->Unregister()` is not the first operation in `Deinitialize()`.
 
 ```cpp
 // WRONG:
@@ -1654,13 +1650,9 @@ uint32_t SetValue(...) {
 
 ---
 
-
-
 ```cpp
 
 ```
-
-
 
 ---
 
@@ -1806,7 +1798,7 @@ void Deactivated(const string& callsign, PluginHost::IShell*) override {
 
 ### rule_60
 
-**Lock Scope Minimized** | `violation` | Category: Concurrency
+**Lock Scope Minimized** | `suggestion` | Category: Concurrency
 
 **What to check:** Critical sections are held for the minimum time necessary — only the actual shared state access. No I/O, no blocking operations, no framework callbacks while holding a lock.
 
@@ -1887,8 +1879,6 @@ void Deinitialize(PluginHost::IShell* service) override {
 **Citation format:** `[PluginName.cpp:LINE] Pointer released but not set to nullptr in Deinitialize()`
 
 ---
-
-
 
 ```cpp
 // WRONG:
@@ -1978,13 +1968,9 @@ SYSLOG(Logging::Info, "Auth token received (length=%d)", token.length());
 
 ---
 
-
-
 ```cpp
 
 ```
-
-
 
 ---
 
@@ -2020,13 +2006,9 @@ Config() : Core::JSON::Container() {
 
 ---
 
-
-
 ```cpp
 
 ```
-
-
 
 ---
 
@@ -2078,13 +2060,9 @@ Register<JsonData::SetParams, JsonData::SetResult>(_T("method"), &Plugin::Method
 
 ---
 
-
-
 ```cpp
 
 ```
-
-
 
 ---
 
@@ -2157,13 +2135,13 @@ These rules were added from field review and cover advanced patterns: ILocalDisp
 
 **Use PluginSmartInterfaceType for Persistent COMRPC Proxies** | `warning` | Category: Inter-Plugin Design
 
-**What to check:** Persistent COMRPC proxy storage (member variables holding a COMRPC interface to another plugin) should use PluginSmartInterfaceType rather than a raw pointer. PluginSmartInterfaceType automatically handles dangling when the remote plugin deactivates.
+**What to check:** Persistent COMRPC proxy storage (member variables holding a COMRPC interface to another plugin) must use `PluginSmartInterfaceType` — not a raw pointer and not `RPC::SmartInterfaceType` directly. `PluginSmartInterfaceType` registers for `IPlugin::INotification` and automatically invalidates the reference when the remote plugin deactivates. `RPC::SmartInterfaceType` only fires `Operational()` on COMRPC channel events and does NOT protect against dangling references when a plugin is deactivated while the channel remains up. Exception: proxies to `IController` interfaces do not require this. Exception: a class that inherits `RPC::SmartInterfaceType` as a base class AND manually implements full plugin lifecycle handling via `Operational()` + event registration/unregistration may be acceptable if verified.
 
-**Where to look:** All member variables storing COMRPC interfaces to other plugins.
+**Where to look:** All member variables storing COMRPC interfaces to other plugins; also check for `RPC::SmartInterfaceType` direct usage.
 
-**Violation pattern:** Raw pointer member stores a persistent COMRPC proxy to another plugin.
+**Violation pattern:** Raw pointer or `RPC::SmartInterfaceType` used for persistent COMRPC proxy storage instead of `PluginSmartInterfaceType`.
 
-**Citation format:** `[PluginName.h:LINE] Raw COMRPC proxy member — use PluginSmartInterfaceType`
+**Citation format:** `[PluginName.h:LINE] Raw COMRPC proxy / RPC::SmartInterfaceType — use PluginSmartInterfaceType`
 
 ---
 
@@ -2267,9 +2245,9 @@ These rules were added from field review and cover advanced patterns: ILocalDisp
 
 ### rule_81
 
-**Use Core::GetEnvironment / SetEnvironment** | `warning` | Category: Code Quality
+**Use Core::GetEnvironment / SetEnvironment** | `violation` | Category: Code Quality
 
-**What to check:** The plugin must use Core::GetEnvironment() and Core::SetEnvironment() instead of POSIX getenv()/setenv(). The POSIX versions are not thread-safe; Thunder's wrappers are thread-safe.
+**What to check:** The plugin must use Core::GetEnvironment() and Core::SetEnvironment() instead of POSIX getenv()/setenv(). The POSIX versions are not thread-safe; Thunder's Core wrappers are thread-safe and are now mandated by the framework.
 
 **Where to look:** All environment variable access.
 
@@ -2297,13 +2275,13 @@ These rules were added from field review and cover advanced patterns: ILocalDisp
 
 **No Heavy Work in Initialize()** | `violation` | Category: Lifecycle Integrity
 
-**What to check:** Initialize() and Configure() must not perform heavy blocking operations (synchronous network calls, popen, long filesystem scans). Initialize() runs on the Thunder main thread and blocks all other plugin activation. Heavy work must be deferred to a WorkerPool job.
+**What to check:** `Initialize()` and `Configure()` must not perform heavy blocking operations (synchronous network calls, `popen`, long filesystem scans, D-Bus/IPC calls). `Initialize()` runs on the Thunder main thread and blocks all other plugin activation. **Critical for OOP plugins:** a synchronous COMRPC call from `Initialize()` to the OOP implementation (e.g. `_impl->Configure(configLine)`) blocks the Thunder main thread for the ENTIRE duration of the OOP `Configure()` execution. If the OOP `Configure()` calls `platform_init()`, creates GLib/D-Bus proxies, reads device property files, or starts monitoring loops, ALL of that blocking time is paid on the Thunder main thread. For OOP plugins, read the OOP implementation's `Configure()` and `platform_init()` bodies and apply the same heavy-work check to them.
 
-**Where to look:** Initialize() and Configure() implementations.
+**Where to look:** `Initialize()` and `Configure()` bodies; for OOP plugins also read the OOP implementation's `Configure()` and any platform init function it calls.
 
-**Violation pattern:** Blocking operation in Initialize() that could take more than a few milliseconds.
+**Violation pattern:** Blocking operation in `Initialize()`/`Configure()` that could take more than a few milliseconds — including indirectly via a synchronous COMRPC call to an OOP implementation.
 
-**Citation format:** `[PluginName.cpp:LINE] Heavy blocking work in Initialize() — defer to WorkerPool`
+**Citation format:** `[PluginName.cpp:LINE] Heavy blocking work in Initialize() — defer to WorkerPool` (for OOP: also cite the blocking operation inside the OOP implementation)
 
 ---
 
@@ -2320,4 +2298,3 @@ These rules were added from field review and cover advanced patterns: ILocalDisp
 **Citation format:** `[PluginName.cpp:LINE] JSONRPC Dispatch override — use Register() pattern`
 
 ---
-
