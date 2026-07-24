@@ -364,7 +364,7 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                             elif encode == "mac":
                                 emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, p.schema["@arraysize"], encoded_name))
                             elif encode == "ip":
-                                emit.Line("Core::ToDecString(%s, %s, %s, TCHAR(':'));" % (local_name, p.schema["@arraysize"], encoded_name))
+                                emit.Line("Core::ToDecString(%s, %s, %s, TCHAR('.'));" % (local_name, p.schema["@arraysize"], encoded_name))
 
                             emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
