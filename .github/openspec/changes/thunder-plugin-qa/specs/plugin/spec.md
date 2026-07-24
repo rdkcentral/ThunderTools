@@ -408,17 +408,24 @@ NOT by running regular expressions or keyword searches against raw text.
 - WHEN checkpoint rule_23 runs (violation, conditional)
 - IF `service->SubSystems()` stored as member: checks it is Released in Deinitialize
 - SKIP if SubSystems() not stored as member
-  all initialisation must be in `Initialize()`; exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and must NOT be flagged
+- WHEN checkpoint rule_24 runs (violation)
 - THEN it checks the plugin constructor body is empty (no logic, no calls) —
-  all initialisation must be in `Initialize()`
+  all initialisation must be in `Initialize()`; exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and must NOT be flagged
 - WHEN checkpoint rule_25 runs (violation, conditional)
 - IF `service->Register(observer)` called in Initialize: checks matching `service->Unregister(observer)` in Deinitialize
 - SKIP if no service->Register() calls
 - WHEN checkpoint rule_26 runs (violation)
 - THEN it checks every failure return in Initialize() returns a non-empty diagnostic string
+  (the success return MUST be `return string();` or `return EMPTY_STRING;`)
+- WHEN checkpoint rule_27 runs (violation)
 - THEN it checks Initialize() does NOT manually call `Deinitialize()` on failure paths;
   ADDITIONALLY it checks that on failure paths, framework member pointers (e.g. `_service`)
   that were assigned BEFORE the failing step are NOT set to `nullptr` — Thunder does not call
+  `Deinitialize()` after a failed `Initialize()`, so nulling them is redundant and breaks
+  `Deinitialize()`'s `ASSERT(_service == service)` if ever reached;
+  exception: it IS correct to `Release()` and null pointers acquired AT the failing step
+  (e.g. undoing a `Root()` or `QueryInterface()` result)
+- WHEN checkpoint rule_28 runs (violation)
 - THEN it checks the main plugin class destructor body is completely empty;
   exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and must NOT be flagged;
   resource release, state cleanup, and `ASSERT` calls (unless purely invariant) must be in `Deinitialize()`

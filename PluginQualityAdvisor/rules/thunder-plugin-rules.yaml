@@ -1180,7 +1180,7 @@ phase_4_checkpoints:
       code_block: "The full Initialize() body, focusing on cleanup paths after each failure condition"
 
     bounded_query:
-      question: "On every failure path in Initialize(): (1) Is Deinitialize() never called directly? (2) Are only the resources actually acquired on THAT path cleaned up — never setting framework member pointers (e.g. _service = nullptr) that were assigned BEFORE the failure point, since Thunder does not call Deinitialize() after a failed Initialize() and nulling these pointers would break Deinitialize()'s invariants if it is ever reached?"
+      question: "On every failure path in Initialize(): (1) Is Deinitialize() never called directly? (2) Are only the resources actually acquired on THAT path cleaned up — never setting framework member pointers (e.g. _service = nullptr) that were assigned BEFORE the failure point? Exception: if AddRef() was called on the pointer in Initialize(), then Release() + nullptr IS correct on the failure path because the AddRef itself must be undone. The concern is about nulling pointers where NO matching AddRef was performed in Initialize() — nulling those breaks Deinitialize()'s invariants."
       expected_answer: "Yes"
 
     verification_logic:

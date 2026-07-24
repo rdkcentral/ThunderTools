@@ -116,7 +116,7 @@ If not found: Ask user for location.
 
 > **Semantic reasoning still applies to every sweep match.** The sweep ensures patterns are not *missed* — it does not bypass the JUDGE step. Each match found below must be evaluated in full context before being reported: test files, generated code, comments, string literals, and platform-specific shims may make a pattern acceptable. Apply the same understand-first, reason-in-context logic as for all other rules.
 
-- **rule_06** (NULL vs nullptr): search for `= NULL`, `== NULL`, `!= NULL`, `( NULL)`, `NULL,`, `NULL)` — report every match in every `.h` and `.cpp` file
+- **rule_06** (NULL vs nullptr): search for `= NULL`, `== NULL`, `!= NULL`, `( NULL)`, `NULL,`, `NULL)` — review each match in context and report only confirmed uses of `NULL` as a pointer literal in code (exclude comments and string literals)
 - **rule_17** (IShell AddRef): confirm `_service->AddRef()` is the very next line after `_service = service` in `Initialize()` — check the actual source, do not assume
 - **rule_18** (IShell Release): confirm `_service->Release()` and `_service = nullptr` both appear in `Deinitialize()` — check every exit path
 - **rule_31** (Hardcoded paths): search every file for `/tmp/`, `/opt/`, `/etc/`, `/usr/`, `/var/` — flag each occurrence not under `/proc/`, `/sys/`, or `/dev/`
