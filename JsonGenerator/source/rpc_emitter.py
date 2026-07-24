@@ -83,7 +83,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    if (not is_legacy_optional and config.EMIT_OPTIONAL_CHECKS) or is_optional_type or has_default_value or (restrictions and restrictions.present()):
+    if (not is_legacy_optional and config.EMIT_OPTIONAL_CHECKS) or is_optional_type or has_default_value or has_conversion or (restrictions and restrictions.present()):
         default_conditions.extend("%s.empty() == true" % param.local_name)
 
     emit.If(default_conditions)
