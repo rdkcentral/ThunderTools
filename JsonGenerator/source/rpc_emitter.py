@@ -88,7 +88,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
 
     emit.If(default_conditions)
 
-    if param.default_value is not None:
+    if has_default_value:
         emit.Line("%s = %s;" % (opt_name, param.default_value))
     elif default_conditions.count():
         if is_optional_type or is_legacy_optional:
