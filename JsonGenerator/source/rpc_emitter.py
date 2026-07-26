@@ -37,7 +37,7 @@ class DottedDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
+def FromString(emit, names, param, restrictions=None, emit_restrictions=False, strict=None):
     error_code = AuxJsonInteger("errorCode_", 32)
     converted_result = None
     opt_name = param.TempName("Opt_")
@@ -53,6 +53,8 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
     converted_enum = param.TempName("convEnum_")
     array_size = param.schema.get("@arraysize")
     encode = param.schema.get("encode")
+
+    strict = force_strict if force_strict is not None else config.STRICT_INDEX_VALIDATION
 
     default_conditions = Restrictions(json=False)
 
@@ -94,7 +96,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
         elif config.EMIT_OPTIONAL_CHECKS:
             if names:
                 emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
-            if config.STRICT_INDEX_VALIDATION:
+            if strict:
                 emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
                 error_condition_emitted = True
         else:
@@ -144,7 +146,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
                 if names:
                     emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
 
-                if config.STRICT_INDEX_VALIDATION:
+                if strict:
                     emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
 
                 error_condition_emitted = True
@@ -489,12 +491,12 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 else:
                     emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.index, names.designator, names.designator))
 
-                converted, _ = FromString(emit, None, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                converted, _ = FromString(emit, None, event.sendif_type, Restrictions(json=False, adjust=False), True, force_strict=True)
 
                 cond.append("(%s == %s)" % ( names.id, converted))
             else:
                 if event.sendif_type:
-                    converted, _ = FromString(emit, None, event.sendif_type, emit_restrictions=False)
+                    converted, _ = FromString(emit, None, event.sendif_type, emit_restrictions=False, force_strict=True)
                     if event.sendif_type.optional and not has_extra_index:
                         cond.append("((%s.IsSet() == false) || (%s == %s))" % (converted, names.id, converted))
                     else:
@@ -777,7 +779,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 if event.sendif_type and not event.sendif_deprecated:
                     emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
-                    converted, _ = FromString(emit, names, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                    converted, _ = FromString(emit, names, event.sendif_type, Restrictions(json=False, adjust=False), True, force_strict=True)
                     call_params.insert(1, converted)
 
                     emit.Line("if (_errorCode__ == %s) {" % CoreError("none"))
