@@ -57,31 +57,28 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if (callsign.empty() == true) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JConfiguration"), _T("configuration")));
                         }
 
-                        if (_errorCode__ == Core::ERROR_NONE) {
+                        if (params.IsSet() == false) {
+                            string _result_{};
 
-                            if (params.IsSet() == false) {
-                                string _result_{};
+                            _errorCode__ = (static_cast<const IConfiguration*>(_implementation__))->Configuration(callsign, _result_);
 
-                                _errorCode__ = (static_cast<const IConfiguration*>(_implementation__))->Configuration(callsign, _result_);
+                            if (_errorCode__ == Core::ERROR_NONE) {
 
-                                if (_errorCode__ == Core::ERROR_NONE) {
-
-                                    if (_result_.empty() == false) {
-                                        result = _result_;
-                                        result.SetQuoted(false);
-                                    }
+                                if (_result_.empty() == false) {
+                                    result = _result_;
+                                    result.SetQuoted(false);
                                 }
                             }
-                            else {
-                                const string _params_{params};
+                        }
+                        else {
+                            const string _params_{params};
 
-                                _errorCode__ = _implementation__->Configuration(callsign, _params_);
+                            _errorCode__ = _implementation__->Configuration(callsign, _params_);
 
-                                result.Null(true);
-                            }
+                            result.Null(true);
                         }
 
                         return (_errorCode__);

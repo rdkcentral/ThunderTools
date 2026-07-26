@@ -95,17 +95,14 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if (index.empty() == true) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JSystemManagement"), _T("environment")));
                         }
+                        string _result_{};
+
+                        _errorCode__ = _implementation__->Environment(index, _result_);
 
                         if (_errorCode__ == Core::ERROR_NONE) {
-                            string _result_{};
-
-                            _errorCode__ = _implementation__->Environment(index, _result_);
-
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result = _result_;
-                            }
+                            result = _result_;
                         }
 
                         return (_errorCode__);

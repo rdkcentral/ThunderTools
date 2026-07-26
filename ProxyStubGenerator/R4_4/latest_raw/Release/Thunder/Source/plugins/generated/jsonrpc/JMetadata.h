@@ -56,11 +56,6 @@ namespace Exchange {
                     [_implementation__](const string& index, Core::JSON::String& result) -> uint32_t {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                        if (index.empty() == true) {
-                            // no error, optional
-                        }
-                        else {
-                        }
                         string _result_{};
 
                         _errorCode__ = _implementation__->Status(index, _result_);
@@ -162,20 +157,17 @@ namespace Exchange {
                         uint32_t _errorCode__ = Core::ERROR_NONE;
 
                         if (index.empty() == true) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JMetadata"), _T("callstack")));
                         }
+                        string _result_{};
+
+                        _errorCode__ = _implementation__->CallStack(index, _result_);
 
                         if (_errorCode__ == Core::ERROR_NONE) {
-                            string _result_{};
 
-                            _errorCode__ = _implementation__->CallStack(index, _result_);
-
-                            if (_errorCode__ == Core::ERROR_NONE) {
-
-                                if (_result_.empty() == false) {
-                                    result = _result_;
-                                    result.SetQuoted(false);
-                                }
+                            if (_result_.empty() == false) {
+                                result = _result_;
+                                result.SetQuoted(false);
                             }
                         }
 
