@@ -37,7 +37,7 @@ class DottedDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-def FromString(emit, names, param, restrictions=None, emit_restrictions=False, strict=None):
+def FromString(emit, names, param, restrictions=None, emit_restrictions=False, force_strict=None):
     error_code = AuxJsonInteger("errorCode_", 32)
     converted_result = None
     opt_name = param.TempName("Opt_")
