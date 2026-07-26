@@ -14,8 +14,6 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-from pprint import pprint
-
 import copy
 from collections import OrderedDict
 
@@ -39,13 +37,14 @@ class DottedDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-def FromString(emit, param, restrictions=None, emit_restrictions=False):
+def FromString(emit, names, param, restrictions=None, emit_restrictions=False, force_strict=None):
     error_code = AuxJsonInteger("errorCode_", 32)
     converted_result = None
     opt_name = param.TempName("Opt_")
     has_conversion = not isinstance(param, JsonString) or "@arraysize" in param.schema or "@container" in param.schema
     is_optional_type = IsObjectOptional(param) and not IsObjectOptionalOrOpaque(param)
     is_legacy_optional = IsObjectOptionalOrOpaque(param) and not is_optional_type
+    has_default_value = ((is_optional_type or is_legacy_optional) and param.default_value is not None)
     needs_move = False
     error_condition_emitted = False
 
@@ -55,12 +54,20 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     array_size = param.schema.get("@arraysize")
     encode = param.schema.get("encode")
 
+    strict = force_strict if force_strict is not None else config.STRICT_INDEX_VALIDATION
+
     default_conditions = Restrictions(json=False)
+
+    if restrictions:
+        if has_conversion:
+            restrictions.extend("%s == false" % converted_result)
+
+        restrictions.append(param, override=converted)
 
     if is_optional_type:
         emit.Line("%s %s{};" % (param.original_type_opt, opt_name))
-    elif is_legacy_optional and param.default_value:
-        emit.Line("%s %s{};" % (param.original_type, opt_name))
+    elif is_legacy_optional and param.default_value is not None:
+        emit.Line("%s %s{};" % (param.cpp_native_type, opt_name))
 
     def EmitLocals():
         if isinstance(param, JsonString):
@@ -76,18 +83,27 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    default_conditions.extend("%s.empty() == true" % param.local_name)
+    if (not is_legacy_optional and config.EMIT_OPTIONAL_CHECKS) or is_optional_type or has_default_value or has_conversion or (restrictions and restrictions.present()):
+        default_conditions.extend("%s.empty() == true" % param.local_name)
 
     emit.If(default_conditions)
-    if param.default_value:
-        emit.Line("%s = %s;" % (opt_name, param.default_value))
-    elif is_optional_type or is_legacy_optional:
-        emit.Line("// no error, optional")
-    else:
-        emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
-        error_condition_emitted = True
 
-    if has_conversion or is_optional_type or is_legacy_optional:
+    if has_default_value:
+        emit.Line("%s = %s;" % (opt_name, param.default_value))
+    elif default_conditions.count():
+        if is_optional_type or is_legacy_optional:
+            emit.Line("// no error, optional")
+        elif config.EMIT_OPTIONAL_CHECKS:
+            if names:
+                emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
+            if strict:
+                emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                error_condition_emitted = True
+        else:
+            emit.Line("// optionality check disabled")
+
+
+    if is_optional_type or is_legacy_optional or has_default_value or has_conversion or (restrictions and restrictions.present()):
         emit.Else(default_conditions)
 
     if is_optional_type:
@@ -125,25 +141,25 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
         emit.Line("const bool %s = %s.IsSet();" % (converted_result, converted_enum))
 
     if restrictions:
-        if has_conversion:
-            restrictions.extend("%s == false" % converted_result)
-            restrictions.append(param, override=converted)
-
         if emit_restrictions:
             if emit.If(restrictions):
-                emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                if names:
+                    emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
+
+                if strict:
+                    emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+
                 error_condition_emitted = True
 
-                if is_optional_type:
+                if is_optional_type or (is_legacy_optional and has_default_value):
                     emit.Else(restrictions)
 
-    if is_optional_type:
+    if is_optional_type or (is_legacy_optional and has_default_value):
         if needs_move:
             emit.Line("%s = std::move(%s);" % (opt_name, converted))
         else:
             emit.Line("%s = %s;" % (opt_name, converted))
 
-    if is_optional_type or (is_legacy_optional and param.default_value):
         converted = opt_name
 
     if emit_restrictions:
@@ -475,12 +491,12 @@ def EmitEvent(emit, ns, root, event, params_type, legacy=False, has_client=False
                 else:
                     emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.index, names.designator, names.designator))
 
-                converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                converted, _ = FromString(emit, None, event.sendif_type, Restrictions(json=False, adjust=False), True, force_strict=True)
 
                 cond.append("(%s == %s)" % ( names.id, converted))
             else:
                 if event.sendif_type:
-                    converted, _ = FromString(emit, event.sendif_type, emit_restrictions=False)
+                    converted, _ = FromString(emit, None, event.sendif_type, emit_restrictions=False, force_strict=True)
                     if event.sendif_type.optional and not has_extra_index:
                         cond.append("((%s.IsSet() == false) || (%s == %s))" % (converted, names.id, converted))
                     else:
@@ -675,7 +691,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     def _EmitNoPushWarnings(prologue = True):
         if prologue:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_UNUSED_FUNCTIONS)")
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
@@ -688,7 +704,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 emit.Line("#endif")
                 emit.Line()
         else:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("POP_WARNING()")
                 emit.Line("POP_WARNING()")
                 emit.Line("POP_WARNING()")
@@ -763,7 +779,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 if event.sendif_type and not event.sendif_deprecated:
                     emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
-                    converted, _ = FromString(emit, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                    converted, _ = FromString(emit, names, event.sendif_type, Restrictions(json=False, adjust=False), True, force_strict=True)
                     call_params.insert(1, converted)
 
                     emit.Line("if (_errorCode__ == %s) {" % CoreError("none"))
@@ -790,7 +806,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
     def _EmitIndexing(index, index_name):
         restrictions = Restrictions(json=False, adjust=False)
-        return FromString(emit, index, restrictions, True)
+        return FromString(emit, names, index, restrictions, True)
 
     def _BuildVars(params, response):
         # Build param/response dictionaries (dictionaries will ensure they do not repeat)
@@ -898,9 +914,18 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line("if (%s) {" % restrictions.join())
             emit.Indent()
             emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(method.name)))
+
+            if config.STRICT_VALIDATION:
+                emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+
             emit.Unindent()
             emit.Line("}")
-            emit.Line()
+
+            if config.STRICT_VALIDATION:
+                emit.Line("else {")
+                emit.Indent()
+            else:
+                emit.Line()
 
         # Emit temporary variables and deserializing of JSON data
 
@@ -1468,6 +1493,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             emit.Unindent()
             emit.Line("}")
+
+        if config.STRICT_VALIDATION:
+            if restrictions.present():
+                emit.Unindent()
+                emit.Line("}")
 
         emit.Endif(invoke_restrictions)
 
