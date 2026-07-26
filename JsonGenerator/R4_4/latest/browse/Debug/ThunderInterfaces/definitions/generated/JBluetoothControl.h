@@ -327,22 +327,18 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (index.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("adapter")));
                     }
-
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        Core::JSON::DecUInt16& _id_{result.Id};
-                        Core::JSON::String& _address_{result.Address};
-                        Core::JSON::String& _interface_{result.Interface};
-                        Core::JSON::EnumType<JsonData::BluetoothControl::AdapterData::adaptertype>& _type_{result.Type};
-                        Core::JSON::DecUInt8& _version_{result.Version};
-                        Core::JSON::DecUInt16& _manufacturer_{result.Manufacturer};
-                        Core::JSON::DecUInt32& _class__{result.Class};
-                        Core::JSON::String& _name_{result.Name};
-                        Core::JSON::String& _shortname_{result.Shortname};
-                        _errorCode__ = _implementation__.Adapter(index, _id_, _address_, _interface_, _type_, _version_, _manufacturer_, _class__, _name_, _shortname_);
-
-                    }
+                    Core::JSON::DecUInt16& _id_{result.Id};
+                    Core::JSON::String& _address_{result.Address};
+                    Core::JSON::String& _interface_{result.Interface};
+                    Core::JSON::EnumType<JsonData::BluetoothControl::AdapterData::adaptertype>& _type_{result.Type};
+                    Core::JSON::DecUInt8& _version_{result.Version};
+                    Core::JSON::DecUInt16& _manufacturer_{result.Manufacturer};
+                    Core::JSON::DecUInt32& _class__{result.Class};
+                    Core::JSON::String& _name_{result.Name};
+                    Core::JSON::String& _shortname_{result.Shortname};
+                    _errorCode__ = _implementation__.Adapter(index, _id_, _address_, _interface_, _type_, _version_, _manufacturer_, _class__, _name_, _shortname_);
 
                     return (_errorCode__);
                 });
@@ -364,21 +360,17 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (index.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JBluetoothControl"), _T("device")));
                     }
-
-                    if (_errorCode__ == Core::ERROR_NONE) {
-                        Core::JSON::String& _address_{result.Address};
-                        Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{result.Type};
-                        Core::JSON::String& _name_{result.Name};
-                        Core::JSON::DecUInt32& _class__{result.Class};
-                        Core::JSON::DecUInt32& _appearance_{result.Appearance};
-                        Core::JSON::ArrayType<Core::JSON::String>& _services_{result.Services};
-                        Core::JSON::Boolean& _connected_{result.Connected};
-                        Core::JSON::Boolean& _paired_{result.Paired};
-                        _errorCode__ = _implementation__.Device(index, _address_, _type_, _name_, _class__, _appearance_, _services_, _connected_, _paired_);
-
-                    }
+                    Core::JSON::String& _address_{result.Address};
+                    Core::JSON::EnumType<Exchange::IBluetooth::IDevice::type>& _type_{result.Type};
+                    Core::JSON::String& _name_{result.Name};
+                    Core::JSON::DecUInt32& _class__{result.Class};
+                    Core::JSON::DecUInt32& _appearance_{result.Appearance};
+                    Core::JSON::ArrayType<Core::JSON::String>& _services_{result.Services};
+                    Core::JSON::Boolean& _connected_{result.Connected};
+                    Core::JSON::Boolean& _paired_{result.Paired};
+                    _errorCode__ = _implementation__.Device(index, _address_, _type_, _name_, _class__, _appearance_, _services_, _connected_, _paired_);
 
                     return (_errorCode__);
                 });

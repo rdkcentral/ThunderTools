@@ -125,7 +125,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IBluetoothAudioSink::audiocodec>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<IBluetoothAudioSink::audiocodec, ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IBluetoothAudioSink::audiocodec, Exchange::ID_BLUETOOTHAUDIOSINK_AUDIOCODECITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->SupportedCodecs(_result_);
 
@@ -147,7 +147,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::EnumType<Exchange::IBluetoothAudioSink::drmscheme>>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<IBluetoothAudioSink::drmscheme, ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IBluetoothAudioSink::drmscheme, Exchange::ID_BLUETOOTHAUDIOSINK_DRMSCHEMEITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->SupportedDRMs(_result_);
 

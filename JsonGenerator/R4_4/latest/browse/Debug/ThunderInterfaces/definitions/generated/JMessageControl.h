@@ -56,7 +56,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Modules(_result_);
 
@@ -78,12 +78,7 @@ namespace Exchange {
                 [_implementation__](const string& module, Core::JSON::ArrayType<JsonData::MessageControl::ControlInfo>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    if (module.empty() == true) {
-                        // no error, optional
-                    }
-                    else {
-                    }
-                    ::WPEFramework::RPC::IIteratorType<IMessageControl::Control, ID_MESSAGE_CONTROL_ITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IMessageControl::Control, Exchange::ID_MESSAGE_CONTROL_ITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Controls(module, _result_);
 

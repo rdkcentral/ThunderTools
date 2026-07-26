@@ -107,7 +107,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<JsonData::WifiControl::NetworkInfoData>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<IWifiControl::NetworkInfo, ID_WIFICONTROL_NETWORK_INFO_ITERATOR>* _result_{};
+                    RPC::IIteratorType<Exchange::IWifiControl::NetworkInfo, Exchange::ID_WIFICONTROL_NETWORK_INFO_ITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Networks(_result_);
 
@@ -130,22 +130,19 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (ssid.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("securities")));
                     }
+                    RPC::IIteratorType<Exchange::IWifiControl::SecurityInfo, Exchange::ID_WIFICONTROL_SECURITY_INFO_ITERATOR>* _result_{};
+
+                    _errorCode__ = _implementation__->Securities(ssid, _result_);
 
                     if (_errorCode__ == Core::ERROR_NONE) {
-                        ::WPEFramework::RPC::IIteratorType<IWifiControl::SecurityInfo, ID_WIFICONTROL_SECURITY_INFO_ITERATOR>* _result_{};
+                        result.Set(true);
 
-                        _errorCode__ = _implementation__->Securities(ssid, _result_);
-
-                        if (_errorCode__ == Core::ERROR_NONE) {
-                            result.Set(true);
-
-                            if (_result_ != nullptr) {
-                                Exchange::IWifiControl::SecurityInfo _resultItem__{};
-                                while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
-                                _result_->Release();
-                            }
+                        if (_result_ != nullptr) {
+                            Exchange::IWifiControl::SecurityInfo _resultItem__{};
+                            while (_result_->Next(_resultItem__) == true) { result.Add() = _resultItem__; }
+                            _result_->Release();
                         }
                     }
 
@@ -157,7 +154,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->Configs(_result_);
 
@@ -180,33 +177,30 @@ namespace Exchange {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     if (ssid.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("config")));
                     }
 
-                    if (_errorCode__ == Core::ERROR_NONE) {
+                    if (params.IsSet() == false) {
+                        Exchange::IWifiControl::ConfigInfo _result_{};
 
-                        if (params.IsSet() == false) {
-                            Exchange::IWifiControl::ConfigInfo _result_{};
+                        _errorCode__ = (static_cast<const IWifiControl*>(_implementation__))->Config(ssid, _result_);
 
-                            _errorCode__ = (static_cast<const IWifiControl*>(_implementation__))->Config(ssid, _result_);
-
-                            if (_errorCode__ == Core::ERROR_NONE) {
-                                result.Set(true);
-                                result = _result_;
-                            }
+                        if (_errorCode__ == Core::ERROR_NONE) {
+                            result.Set(true);
+                            result = _result_;
                         }
-                        else {
+                    }
+                    else {
 
-                            if (params.IsDataValid() == false) {
-                                TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("config")));
-                            }
-
-                            const Exchange::IWifiControl::ConfigInfo _value_(params.Value);
-
-                            _errorCode__ = _implementation__->Config(ssid, _value_);
-
-                            result.Null(true);
+                        if (params.IsDataValid() == false) {
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JWifiControl"), _T("config")));
                         }
+
+                        const Exchange::IWifiControl::ConfigInfo _value_(params.Value);
+
+                        _errorCode__ = _implementation__->Config(ssid, _value_);
+
+                        result.Null(true);
                     }
 
                     return (_errorCode__);

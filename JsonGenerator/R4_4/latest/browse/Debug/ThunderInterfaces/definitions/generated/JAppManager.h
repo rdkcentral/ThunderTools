@@ -37,7 +37,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->GetLaunchableApps(_result_);
 
@@ -59,7 +59,7 @@ namespace Exchange {
                 [_implementation__](Core::JSON::ArrayType<Core::JSON::String>& result) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
-                    ::WPEFramework::RPC::IIteratorType<string, ::WPEFramework::RPC::ID_STRINGITERATOR>* _result_{};
+                    RPC::IIteratorType<string, RPC::ID_STRINGITERATOR>* _result_{};
 
                     _errorCode__ = _implementation__->GetLoadedApps(_result_);
 

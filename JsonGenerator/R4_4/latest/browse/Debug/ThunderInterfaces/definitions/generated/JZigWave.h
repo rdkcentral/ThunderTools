@@ -74,13 +74,13 @@ namespace Exchange {
                     uint32_t _addressConv__{};
 
                     if (address.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("permutable")));
                     }
                     else {
                         const bool _addressConvResult__ = Core::FromString(address, _addressConv__);
 
                         if (_addressConvResult__ == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("permutable")));
                         }
                     }
 
@@ -120,13 +120,13 @@ namespace Exchange {
                     uint32_t _addressConv__{};
 
                     if (address.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("accept")));
                     }
                     else {
                         const bool _addressConvResult__ = Core::FromString(address, _addressConv__);
 
                         if (_addressConvResult__ == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("accept")));
                         }
                     }
 
@@ -166,13 +166,13 @@ namespace Exchange {
                     uint32_t _idConv__{};
 
                     if (id.empty() == true) {
-                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                        TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("device")));
                     }
                     else {
                         const bool _idConvResult__ = Core::FromString(id, _idConv__);
 
                         if (_idConvResult__ == false) {
-                            _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JZigWave"), _T("device")));
                         }
                     }
 
