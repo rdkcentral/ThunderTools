@@ -28,17 +28,30 @@ namespace FunctionalTest {
     // @json 1.0.0
     // @uncompliant:extended
     //
-    // NOTE: @uncompliant:extended is deprecated (Thunder docs/interfaces/tags.md) and must not
+    // NOTE: @uncompliant:extended is deprecated (Thunder docs/plugin/interfaces/tags.md) and must not
     // be used in new interfaces. This interface exists solely to pin generator behaviour for
-    // existing consumers that already use this mode. Do not copy PingExtended as a usage example.
+    // existing consumers that already use this mode. Do not copy this interface as a usage example.
     struct EXTERNAL ITestJsonUncompliantExtended : virtual public Core::IUnknown {
         enum { ID = ID_TEST_JSON_UNCOMPLIANT_EXT };
 
-        // @brief Interface-level tag target for extended uncompliant mode.
+        // @brief Echo method — single-param method.
+        //        In @uncompliant:extended mode, method parameters are still wrapped in an object
+        //        (same as @compliant), e.g. {"payload":"abc"}.
+        //        This is the key difference from @uncompliant:collapsed where methods also collapse.
         // @param payload Input payload.
         // @param reply   Receives output payload.
         // @retval ERROR_NONE Operation completed.
         virtual Core::hresult PingExtended(const string& payload /* @in */, string& reply /* @out */) const = 0;
+
+        // @property
+        // @brief Stored counter value — read/write.
+        //        Captures the essential property behaviour of uncompliant:extended mode:
+        //        the SET request sends the value as a bare scalar (e.g. 42),
+        //        not wrapped in an object as compliant mode would.
+        //        The GET response still uses the "result" field (same as compliant mode).
+        // @param counter Counter value to store or retrieve.
+        virtual Core::hresult Value(uint32_t& counter /* @out */) const = 0;
+        virtual Core::hresult Value(const uint32_t counter /* @in */) = 0;
     };
 
 } // namespace FunctionalTest

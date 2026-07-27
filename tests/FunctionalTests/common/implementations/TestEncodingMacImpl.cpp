@@ -20,6 +20,7 @@
 #include <ImplementationFactory.h>
 #include <ITestEncodingMac.h>
 #include <cstring>
+#include <algorithm>
 
 namespace Thunder {
 namespace TestImplementation {
@@ -50,12 +51,29 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult SetVariableMac(const uint8_t data[], const uint16_t size) override
+        {
+            if (size > 32) return Core::ERROR_BAD_REQUEST;
+            memcpy(_varMac, data, size);
+            _varMacSize = size;
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult GetVariableMac(uint8_t data[], const uint16_t maxSize, uint16_t& written) override
+        {
+            written = std::min(maxSize, _varMacSize);
+            memcpy(data, _varMac, written);
+            return Core::ERROR_NONE;
+        }
+
         BEGIN_INTERFACE_MAP(TestEncodingMacImpl)
         INTERFACE_ENTRY(FunctionalTest::ITestEncodingMac)
         END_INTERFACE_MAP
 
     private:
         uint8_t _mac[6];
+        uint8_t _varMac[32] = {};
+        uint16_t _varMacSize = 0;
     };
 
     static Factory::Registrar<FunctionalTest::ITestEncodingMac, TestEncodingMacImpl> g_encodingMacRegistrar;

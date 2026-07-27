@@ -48,3 +48,41 @@ TEST_F(TestEncodingMac, EchoMacAddress) {
         EXPECT_EQ(output[i], input[i]);
     }
 }
+
+// ===========================================================================
+// Variable-length @encode:mac — works with any buffer size
+// ===========================================================================
+
+TEST_F(TestEncodingMac, VariableMac_8Bytes_RoundTrip) {
+    const uint8_t input[] = { 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08 };
+    ASSERT_EQ(_proxy->SetVariableMac(input, 8), Core::ERROR_NONE);
+
+    uint8_t output[32] = { 0 };
+    uint16_t written = 0;
+    ASSERT_EQ(_proxy->GetVariableMac(output, 32, written), Core::ERROR_NONE);
+    ASSERT_EQ(written, 8u);
+    EXPECT_EQ(memcmp(input, output, 8), 0);
+}
+
+TEST_F(TestEncodingMac, VariableMac_1Byte_RoundTrip) {
+    const uint8_t input[] = { 0xFF };
+    ASSERT_EQ(_proxy->SetVariableMac(input, 1), Core::ERROR_NONE);
+
+    uint8_t output[32] = { 0 };
+    uint16_t written = 0;
+    ASSERT_EQ(_proxy->GetVariableMac(output, 32, written), Core::ERROR_NONE);
+    ASSERT_EQ(written, 1u);
+    EXPECT_EQ(output[0], 0xFF);
+}
+
+TEST_F(TestEncodingMac, VariableMac_16Bytes_RoundTrip) {
+    const uint8_t input[16] = { 0xA0, 0xA1, 0xA2, 0xA3, 0xA4, 0xA5, 0xA6, 0xA7,
+                                 0xB0, 0xB1, 0xB2, 0xB3, 0xB4, 0xB5, 0xB6, 0xB7 };
+    ASSERT_EQ(_proxy->SetVariableMac(input, 16), Core::ERROR_NONE);
+
+    uint8_t output[32] = { 0 };
+    uint16_t written = 0;
+    ASSERT_EQ(_proxy->GetVariableMac(output, 32, written), Core::ERROR_NONE);
+    ASSERT_EQ(written, 16u);
+    EXPECT_EQ(memcmp(input, output, 16), 0);
+}

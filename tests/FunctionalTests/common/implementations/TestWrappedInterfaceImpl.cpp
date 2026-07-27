@@ -18,46 +18,40 @@
  */
 
 #include <ImplementationFactory.h>
-#include <ITestJsonUncompliantCollapsed.h>
+#include <ITestWrappedInterface.h>
 
 namespace Thunder {
 namespace TestImplementation {
 
-    class TestJsonUncompliantCollapsedImpl : public FunctionalTest::ITestJsonUncompliantCollapsed {
+    class TestWrappedInterfaceImpl : public FunctionalTest::ITestWrappedInterface {
     public:
-        TestJsonUncompliantCollapsedImpl() = default;
-        ~TestJsonUncompliantCollapsedImpl() override = default;
+        TestWrappedInterfaceImpl() = default;
+        ~TestWrappedInterfaceImpl() override = default;
 
-        TestJsonUncompliantCollapsedImpl(const TestJsonUncompliantCollapsedImpl&) = delete;
-        TestJsonUncompliantCollapsedImpl& operator=(const TestJsonUncompliantCollapsedImpl&) = delete;
-
-        Core::hresult PingCollapsed(const string& payload, string& reply) const override
+        Core::hresult GetCounter(uint32_t& counter) const override
         {
-            reply = payload;
+            counter = 42;
             return Core::ERROR_NONE;
         }
 
-        Core::hresult Value(uint32_t& counter) const override
+        Core::hresult GetName(string& name) const override
         {
-            counter = _value;
+            name = "WrappedDevice";
             return Core::ERROR_NONE;
         }
 
-        Core::hresult Value(const uint32_t counter) override
+        Core::hresult Echo(const uint32_t value, uint32_t& result) const override
         {
-            _value = counter;
+            result = value;
             return Core::ERROR_NONE;
         }
 
-        BEGIN_INTERFACE_MAP(TestJsonUncompliantCollapsedImpl)
-        INTERFACE_ENTRY(FunctionalTest::ITestJsonUncompliantCollapsed)
+        BEGIN_INTERFACE_MAP(TestWrappedInterfaceImpl)
+        INTERFACE_ENTRY(FunctionalTest::ITestWrappedInterface)
         END_INTERFACE_MAP
-
-    private:
-        uint32_t _value{0};
     };
 
-    static Factory::Registrar<FunctionalTest::ITestJsonUncompliantCollapsed, TestJsonUncompliantCollapsedImpl> g_registrar;
+    static Factory::Registrar<FunctionalTest::ITestWrappedInterface, TestWrappedInterfaceImpl> g_wrappedInterfaceRegistrar;
 
 } // namespace TestImplementation
 } // namespace Thunder

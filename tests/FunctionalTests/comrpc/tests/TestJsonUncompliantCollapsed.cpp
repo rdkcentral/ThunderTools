@@ -31,3 +31,25 @@ TEST_F(TestJsonUncompliantCollapsed, PingCollapsed) {
     ASSERT_EQ(_proxy->PingCollapsed("payload", reply), Core::ERROR_NONE);
     EXPECT_EQ(reply, "payload");
 }
+
+TEST_F(TestJsonUncompliantCollapsed, Value_SetGet_RoundTrip) {
+    ASSERT_EQ(_proxy->Value(77u), Core::ERROR_NONE);
+    uint32_t got = 0;
+    ASSERT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
+    EXPECT_EQ(got, 77u);
+}
+
+TEST_F(TestJsonUncompliantCollapsed, Value_GetterSucceeds) {
+    uint32_t got = ~0u;
+    EXPECT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
+}
+
+TEST_F(TestJsonUncompliantCollapsed, Value_MultipleWrites) {
+    const uint32_t values[] = {0u, 1u, 0xFFFFFFFFu, 42u};
+    for (uint32_t v : values) {
+        ASSERT_EQ(_proxy->Value(v), Core::ERROR_NONE);
+        uint32_t got = ~v;
+        ASSERT_EQ(static_cast<const ITestJsonUncompliantCollapsed*>(_proxy)->Value(got), Core::ERROR_NONE);
+        EXPECT_EQ(got, v);
+    }
+}
