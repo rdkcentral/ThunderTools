@@ -133,6 +133,11 @@ After reporting results in chat, generate a Markdown report file with clickable 
 - Create `PluginQualityAdvisor/Reports/interface/` if it does not exist
 - Never overwrite an existing file - append `_2`, `_3` etc. if needed
 
+**Git Metadata (run before generating the report):**  
+Run the following command in the interface file's git root to get the repo URL:
+- Repo URL: `git remote get-url origin`
+If git is unavailable, use `unknown`.
+
 ### Report Template
 
 ```markdown
@@ -140,6 +145,7 @@ After reporting results in chat, generate a Markdown report file with clickable 
 
 **Date:** {YYYY-MM-DD}  
 **Interface:** {InterfaceName}  
+**Repo:** {repo-url}  
 **Total Rules:** 19 | **Passed:** N | **Failed:** N | **Skipped:** N
 
 ---
@@ -206,6 +212,7 @@ virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 
 - Each issue in the summary table links to its detailed section via the Rule column using `[rule_id - Name](#issue-N)` anchors
 - Each detailed section heading uses `### Issue N` (creates the `#issue-n` anchor automatically)
+- Each detailed section must end with a back-link to the summary table: `[\u2B06 Back to Issue Summary](#issue-summary)` — this allows readers to click back to the table after reading a finding
 - The rule ID and name appear as bold text on the first line under the heading
 - **"What's wrong"** must be a plain-English explanation a junior developer can understand
 - **"Code found"** must show the actual code from the interface with file:line comment
@@ -222,6 +229,7 @@ virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 
 **Date:** {YYYY-MM-DD}  
 **Interface:** {InterfaceName}  
+**Repo:** {repo-url}  
 **Total Rules:** 19 | **Passed:** N | **Failed:** 0 | **Skipped:** N
 
 ✅ All rules passed - no issues found.

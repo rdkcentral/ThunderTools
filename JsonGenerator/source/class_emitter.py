@@ -169,6 +169,10 @@ class Restrictions:
                             elif encode == "base64":
                                 adjusted[0] = (math.ceil(range[0]/3))*4
                                 adjusted[1] = (math.ceil(range[1]/3))*4
+                            elif encode == "ip":
+                                # take min/max, can't predict exact length
+                                adjusted[0] = (range[0]*2 - 1) if range[0] else 0
+                                adjusted[1] = (range[1]*4 - 1) if range[1] else 0
                         else:
                             adjusted = range
 
@@ -200,7 +204,7 @@ class Restrictions:
                 if test_set and json:
                     # since the element is restricted still have to check optionality even if EMIT_OPTIONAL_CHECKS is unset
                     # so it does not check restrict range on an unset element
-                    if IsObjectOptional(argument):
+                    if IsObjectOptional(relay):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " && ".join(tests)))
                         else:

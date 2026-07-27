@@ -37,13 +37,14 @@ class DottedDict(dict):
     __setattr__ = dict.__setitem__
     __delattr__ = dict.__delitem__
 
-def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
+def FromString(emit, names, param, restrictions=None, emit_restrictions=False, force_strict=None):
     error_code = AuxJsonInteger("errorCode_", 32)
     converted_result = None
     opt_name = param.TempName("Opt_")
     has_conversion = not isinstance(param, JsonString) or "@arraysize" in param.schema or "@container" in param.schema
     is_optional_type = IsObjectOptional(param) and not IsObjectOptionalOrOpaque(param)
     is_legacy_optional = IsObjectOptionalOrOpaque(param) and not is_optional_type
+    has_default_value = ((is_optional_type or is_legacy_optional) and param.default_value is not None)
     needs_move = False
     error_condition_emitted = False
 
@@ -53,12 +54,20 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
     array_size = param.schema.get("@arraysize")
     encode = param.schema.get("encode")
 
+    strict = force_strict if force_strict is not None else config.STRICT_INDEX_VALIDATION
+
     default_conditions = Restrictions(json=False)
+
+    if restrictions:
+        if has_conversion:
+            restrictions.extend("%s == false" % converted_result)
+
+        restrictions.append(param, override=converted)
 
     if is_optional_type:
         emit.Line("%s %s{};" % (param.original_type_opt, opt_name))
-    elif is_legacy_optional and param.default_value:
-        emit.Line("%s %s{};" % (param.original_type, opt_name))
+    elif is_legacy_optional and param.default_value is not None:
+        emit.Line("%s %s{};" % (param.cpp_native_type, opt_name))
 
     def EmitLocals():
         if isinstance(param, JsonString):
@@ -76,24 +85,27 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
     if not is_optional_type:
         EmitLocals()
 
-    if config.EMIT_OPTIONAL_CHECKS:
+    if (not is_legacy_optional and config.EMIT_OPTIONAL_CHECKS) or is_optional_type or has_default_value or has_conversion or (restrictions and restrictions.present()):
         default_conditions.extend("%s.empty() == true" % param.local_name)
 
     emit.If(default_conditions)
-    if param.default_value:
+
+    if has_default_value:
         emit.Line("%s = %s;" % (opt_name, param.default_value))
-    elif is_optional_type or is_legacy_optional:
-        if config.EMIT_OPTIONAL_CHECKS:
-            emit.Line("// no error, optional")
     elif default_conditions.count():
-        if names:
-            emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
-        if config.STRICT_INDEX_VALIDATION:
-            emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+        if is_optional_type or is_legacy_optional:
+            emit.Line("// no error, optional")
+        elif config.EMIT_OPTIONAL_CHECKS:
+            if names:
+                emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
+            if strict:
+                emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
+                error_condition_emitted = True
+        else:
+            emit.Line("// optionality check disabled")
 
-        error_condition_emitted = True
 
-    if has_conversion or is_optional_type or is_legacy_optional:
+    if is_optional_type or is_legacy_optional or has_default_value or has_conversion or (restrictions and restrictions.present()):
         emit.Else(default_conditions)
 
     if is_optional_type:
@@ -111,8 +123,10 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
                 emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s) != 0);" % (converted_result, param.local_name, converted, length))
             elif encode == "mac":
                 emit.Line("const bool %s = (Core::FromHexString(%s, %s, %s, TCHAR(':')) != 0);" % (converted_result, param.local_name, converted, length))
+            elif encode == "ip":
+                emit.Line("const bool %s = (Core::FromDecString(%s, %s, %s, TCHAR('.')) != 0);" % (converted_result, param.local_name, converted, length))
             else:
-                assert False, "bad encode method"
+                assert False, "unimplemented encoding %s" % encode
 
         if "@arraysize" in param.schema:
             Decode("uint16_t", "sizeof(%s)" % converted)
@@ -134,30 +148,25 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False):
         emit.Line("const bool %s = %s.IsValid();" % (converted_result, converted))
 
     if restrictions:
-        if has_conversion:
-            restrictions.extend("%s == false" % converted_result)
-            restrictions.append(param, override=converted)
-
         if emit_restrictions:
             if emit.If(restrictions):
                 if names:
                     emit.Line('TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %%s.%%s"), %s, %s));' % (Tstring(names.namespace), Tstring(param.parent.name)))
 
-                if config.STRICT_INDEX_VALIDATION:
+                if strict:
                     emit.Line("%s = %s;" % (error_code.temp_name, CoreError("bad_request")))
 
                 error_condition_emitted = True
 
-                if is_optional_type:
+                if is_optional_type or (is_legacy_optional and has_default_value):
                     emit.Else(restrictions)
 
-    if is_optional_type:
+    if is_optional_type or (is_legacy_optional and has_default_value):
         if needs_move:
             emit.Line("%s = std::move(%s);" % (opt_name, converted))
         else:
             emit.Line("%s = %s;" % (opt_name, converted))
 
-    if is_optional_type or (is_legacy_optional and param.default_value):
         converted = opt_name
 
     if emit_restrictions:
@@ -328,7 +337,7 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
 
                     elif isinstance(p, JsonString):
                         encode = p.schema.get("encode")
-                        assert not encode or encode in ["base64", "hex", "mac"]
+                        assert not encode or encode in ["base64", "hex", "mac", "ip"]
 
                         if "@container" in p.schema:
                             encoded_name = "_%sEncoded__" % (p.local_name)
@@ -340,6 +349,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                                 emit.Line("Core::ToHexString(%s, %s);" % (local_name, encoded_name))
                             elif encode == "mac":
                                 emit.Line("Core::ToHexString(%s, %s, TCHAR(':'));" % (local_name,  encoded_name))
+                            elif encode == "ip":
+                                emit.Line("Core::ToDecString(%s, %s, TCHAR('.'));" % (local_name,  encoded_name))
 
                             emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
@@ -354,6 +365,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                                 emit.Line("Core::ToHexString(%s, %s, %s);" % (local_name, p.schema["@arraysize"], encoded_name))
                             elif encode == "mac":
                                 emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, p.schema["@arraysize"], encoded_name))
+                            elif encode == "ip":
+                                emit.Line("Core::ToDecString(%s, %s, %s, TCHAR('.'));" % (local_name, p.schema["@arraysize"], encoded_name))
 
                             emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
@@ -388,6 +401,8 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                                     emit.Line("Core::ToHexString(%s, %s, %s);" % (local_name, length_value, encoded_name))
                                 elif encode == "mac":
                                     emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (local_name, length_value, encoded_name))
+                                elif encode == "ip":
+                                    emit.Line("Core::ToDecString(%s, %s, %s, TCHAR('.'));" % (local_name, length_value, encoded_name))
 
                                 emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
 
@@ -505,12 +520,12 @@ def EmitEvent(emit, ns, root, event, params_type, has_client=False, has_extra_in
                 else:
                     emit.Line("const string %s = %s.substr(0, %s.find('.'));" % (names.index, names.designator, names.designator))
 
-                converted, _ = FromString(emit, None, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                converted, _ = FromString(emit, None, event.sendif_type, Restrictions(json=False, adjust=False), True, force_strict=True)
 
                 cond.append("(%s == %s)" % ( names.id, converted))
             else:
                 if event.sendif_type:
-                    converted, _ = FromString(emit, None, event.sendif_type, emit_restrictions=False)
+                    converted, _ = FromString(emit, None, event.sendif_type, emit_restrictions=False, force_strict=True)
                     if event.sendif_type.optional and not has_extra_index:
                         cond.append("((%s.IsSet() == false) || (%s == %s))" % (converted, names.id, converted))
                     else:
@@ -853,7 +868,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 if event.sendif_type and not event.sendif_deprecated:
                     emit.Line("Core::hresult _errorCode__ = %s;" % CoreError("none"))
-                    converted, _ = FromString(emit, names, event.sendif_type, Restrictions(json=False, adjust=False), True)
+                    converted, _ = FromString(emit, names, event.sendif_type, Restrictions(json=False, adjust=False), True, force_strict=True)
                     call_params.insert((2 if has_lookup else 1), converted)
 
                     emit.Line("if (_errorCode__ == %s) {" % CoreError("none"))
@@ -1157,7 +1172,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                         emit.EnterBlock(conditions, scoped=True)
 
-                    if param_meta.flags.encode in ["base64", "mac", "hex"]:
+                    if param_meta.flags.encode in ["base64", "mac", "hex", "ip"]:
                         if param_meta.flags.encode == "base64":
                             size_var = param.TempName("Size_")
                             emit.Line("uint32_t %s(%s);" % (size_var, size))
@@ -1170,7 +1185,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                             emit.Line("Core::FromHexString(%s.Value(), %s, %s);" % (cpp_name, dest_var, size_var))
                         elif param_meta.flags.encode == "mac":
                             emit.Line("Core::FromHexString(%s.Value(), %s, %s, TCHAR(':'));" % (cpp_name, dest_var, size_var))
-
+                        elif param_meta.flags.encode == "ip":
+                            emit.Line("Core::FromDecString(%s.Value(), %s, %s, TCHAR('.'));" % (cpp_name, dest_var, size_var))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
 
@@ -1468,15 +1484,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     emit.EnterBlock(conditions, scoped=True)
 
-                    if param_meta.flags.encode in ["base64", "mac", "hex"]:
+                    if param_meta.flags.encode in ["base64", "mac", "hex", "ip"]:
                         encoded_name = param.TempName("encoded_")
                         emit.Line("string %s;" % (encoded_name))
+
                         if param_meta.flags.encode == "base64":
                             emit.Line("Core::ToString(%s, %s, true, %s);" % (param.temp_name, size, encoded_name))
                         elif param_meta.flags.encode == "hex":
                             emit.Line("Core::ToHexString(%s, %s, %s);" % (param.temp_name, size, encoded_name))
                         elif param_meta.flags.encode == "mac":
                             emit.Line("Core::ToHexString(%s, %s, %s, TCHAR(':'));" % (param.temp_name, size, encoded_name))
+                        elif param_meta.flags.encode == "ip":
+                            emit.Line("Core::ToDecString(%s, %s, %s, TCHAR('.'));" % (param.temp_name, size, encoded_name))
+
                         emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
@@ -1491,15 +1511,19 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         emit.Line("if (%s.IsSet() == true) {" % param.temp_name)
                         emit.Indent()
 
-                    if param_meta.flags.encode in ["base64", "mac", "hex"]:
+                    if param_meta.flags.encode in ["base64", "mac", "hex", "ip"]:
                         encoded_name = param.TempName("encoded_")
                         emit.Line("string %s;" % (encoded_name))
+
                         if param_meta.flags.encode == "base64":
                             emit.Line("Core::ToString(%s, true, %s);" % (source_var, encoded_name))
                         elif param_meta.flags.encode == "hex":
                             emit.Line("Core::ToHexString(%s, %s);" % (source_var, encoded_name))
                         elif param_meta.flags.encode == "mac":
                             emit.Line("Core::ToHexString(%s, %s, TCHAR(':'));" % (source_var, encoded_name))
+                        elif param_meta.flags.encode == "ip":
+                            emit.Line("Core::ToDecString(%s, %s, TCHAR('.'));" % (source_var, encoded_name))
+
                         emit.Line("%s = std::move(%s);" % (cpp_name, encoded_name))
                     else:
                         assert False, "unimplemented encoding: " + param_meta.flags.encode
