@@ -636,35 +636,40 @@ phase_3_checkpoints:
       code_block: "The Plugin::Metadata<PluginName> static instance declaration and any SERVICE_REGISTRATION calls"
 
     bounded_query:
-      question: "Does the plugin .cpp contain exactly one Plugin::Metadata<PluginName> static registration, does it NOT also contain SERVICE_REGISTRATION in the same file, and do OOP implementation files use SERVICE_REGISTRATION exclusively?"
+      question: "Does the plugin .cpp contain exactly one Plugin::Metadata<PluginName> static registration, and if SERVICE_REGISTRATION also appears in the same file, does it register a DIFFERENT class name (e.g. an OOP implementation class)? SERVICE_REGISTRATION for the SAME class as Plugin::Metadata in the same file is a violation."
       expected_answer: "Yes"
 
     verification_logic:
       - "1. Read the plugin .cpp file (PluginName.cpp)"
       - "2. Check for the presence of exactly ONE static Plugin::Metadata<PluginName> registration"
       - "3. Plugin::Metadata must appear only ONCE for the entire plugin — not in multiple files"
-      - "4. Check whether SERVICE_REGISTRATION also appears in the same plugin .cpp file that contains Plugin::Metadata — this is ALWAYS wrong regardless of OOP mode"
-      - "5. If both Plugin::Metadata and SERVICE_REGISTRATION appear in the same file → VIOLATION (the two mechanisms are mutually exclusive per file)"
-      - "6. All other places (e.g. OOP implementation files) must use SERVICE_REGISTRATION macro instead — not Plugin::Metadata"
-      - "7. For OOP plugins (PLUGIN_<NAME>_MODE = 'Local'): verify at least one SERVICE_REGISTRATION exists in the OOP implementation file"
-      - "8. If Plugin::Metadata is absent → VIOLATION"
-      - "9. If Plugin::Metadata appears more than once across the plugin → VIOLATION"
-      - "10. If OOP part lacks SERVICE_REGISTRATION → VIOLATION"
-      - "11. IMPORTANT — Co-resident plugins in subdirectories: scan ALL subdirectories of the plugin repository (e.g. legacy/, adapters/, compat/) for .cpp files that contain Plugin::Metadata or SERVICE_REGISTRATION for a DIFFERENT plugin class (e.g. Plugin::Network in a legacy/ folder alongside the main plugin). Each such file registers a separate Thunder plugin and must be checked independently: (a) if it contains both Plugin::Metadata AND SERVICE_REGISTRATION for the same plugin class in the same file → VIOLATION; (b) flag the discovery to the user so each co-resident plugin can receive its own full review"
+      - "4. Check whether SERVICE_REGISTRATION also appears in the same file that contains Plugin::Metadata"
+      - "5. If SERVICE_REGISTRATION registers the SAME class as Plugin::Metadata (e.g. Plugin::Metadata<AppGateway> + SERVICE_REGISTRATION(AppGateway, ...)) → VIOLATION — this is duplicate registration of the same class via two mechanisms"
+      - "6. If SERVICE_REGISTRATION registers a DIFFERENT class (e.g. Plugin::Metadata<AppGateway> + SERVICE_REGISTRATION(AppGatewayImplementation, ...)) → ACCEPTABLE — this is a valid pattern where the main plugin file also registers its OOP implementation service"
+      - "7. All other places (e.g. OOP implementation files) must use SERVICE_REGISTRATION macro instead — not Plugin::Metadata"
+      - "8. For OOP plugins (PLUGIN_<NAME>_MODE = 'Local'): verify at least one SERVICE_REGISTRATION exists in the OOP implementation file"
+      - "9. If Plugin::Metadata is absent → VIOLATION"
+      - "10. If Plugin::Metadata appears more than once across the plugin → VIOLATION"
+      - "11. If OOP part lacks SERVICE_REGISTRATION → VIOLATION"
+      - "12. IMPORTANT — Co-resident plugins in subdirectories: scan ALL subdirectories of the plugin repository (e.g. legacy/, adapters/, compat/) for .cpp files that contain Plugin::Metadata or SERVICE_REGISTRATION for a DIFFERENT plugin class (e.g. Plugin::Network in a legacy/ folder alongside the main plugin). Each such file registers a separate Thunder plugin and must be checked independently: (a) if it contains both Plugin::Metadata AND SERVICE_REGISTRATION for the same plugin class in the same file → VIOLATION; (b) flag the discovery to the user so each co-resident plugin can receive its own full review"
 
     conditional: false
     skip_condition: null
 
-    violation_pattern: "Plugin::Metadata<PluginName> registration missing, duplicated, co-located with SERVICE_REGISTRATION in the same file, or OOP part missing SERVICE_REGISTRATION"
+    violation_pattern: "Plugin::Metadata<PluginName> registration missing, duplicated, co-located with SERVICE_REGISTRATION for the SAME class in the same file, or OOP part missing SERVICE_REGISTRATION"
 
     fix_template: |
-      // WRONG — both in the same PluginName.cpp:
-      static Plugin::Metadata<Dictionary> metadata(...);
-      SERVICE_REGISTRATION(Dictionary, 1, 0)  // ← must NOT appear alongside Plugin::Metadata
+      // WRONG — same class registered twice in the same file:
+      static Plugin::Metadata<AppGateway> metadata(...);
+      SERVICE_REGISTRATION(AppGateway, 1, 0)  // ← SAME class as Metadata — violation
+
+      // CORRECT — different classes in the same file:
+      static Plugin::Metadata<AppGateway> metadata(...);
+      SERVICE_REGISTRATION(AppGatewayImplementation, 1, 0)  // ← DIFFERENT class — valid
 
       // WRONG: (Plugin::Metadata missing entirely)
 
-      // Correct — exactly ONE Plugin::Metadata in PluginName.cpp, no SERVICE_REGISTRATION:
+      // Correct — exactly ONE Plugin::Metadata in PluginName.cpp:
       static Plugin::Metadata<Dictionary> metadata(
           Plugin::Information<Dictionary>::Versions,
           Plugin::Information<Dictionary>::Instances,
@@ -1175,116 +1180,106 @@ phase_4_checkpoints:
     phase: "lifecycle"
 
     extraction:
-      target: "Initialize() failure paths — any call to Deinitialize(), and any member pointer assignments (ptr = nullptr) or framework pointer operations done in the failure branch"
-      method: "Read Initialize() body in full, identify every failure return path, and examine what cleanup operations are performed on each path"
-      code_block: "The full Initialize() body, focusing on cleanup paths after each failure condition"
+      target: "Initialize() body — check for any direct call to Deinitialize() and verify that Deinitialize() properly compensates all resources acquired in Initialize()"
+      method: "Read Initialize() and Deinitialize() in full. Initialize() must NOT call Deinitialize() directly — when Initialize() returns a non-empty error string, the Thunder framework itself calls Deinitialize(). Therefore Initialize() should NOT perform its own cleanup on failure paths; it should simply return the error string and let the framework handle teardown via Deinitialize()."
+      code_block: "The full Initialize() body (checking for Deinitialize() calls) and the full Deinitialize() body (checking for proper compensation)"
 
     bounded_query:
-      question: "On every failure path in Initialize(): (1) Is Deinitialize() never called directly? (2) Are only the resources actually acquired on THAT path cleaned up — never setting framework member pointers (e.g. _service = nullptr) that were assigned BEFORE the failure point? Exception: if AddRef() was called on the pointer in Initialize(), then Release() + nullptr IS correct on the failure path because the AddRef itself must be undone. The concern is about nulling pointers where NO matching AddRef was performed in Initialize() — nulling those breaks Deinitialize()'s invariants."
+      question: "Does Initialize() avoid calling Deinitialize() directly? And does Deinitialize() properly compensate all resources that Initialize() may have partially acquired — i.e., for every AddRef there is a Release, for every Register there is an Unregister, for every Root<T>() result there is a Release, with nullptr guards on each to handle partial initialization gracefully?"
       expected_answer: "Yes"
 
     verification_logic:
-      - "1. Read Initialize() in full and identify all failure return paths (paths that return a non-empty error string)"
-      - "2. Check whether Initialize() calls Deinitialize() directly on any failure path → VIOLATION if so"
-      - "3. For each failure path, identify which member pointers were assigned BEFORE the failure point (e.g. _service = service assigned at the top, before Root() which then fails)"
-      - "4. Check whether those already-assigned member pointers are set to nullptr on the failure path"
-      - "5. Setting a framework pointer (like _service) to nullptr in Initialize()'s failure path is a VIOLATION because: (a) Thunder does not call Deinitialize() after a failed Initialize(), making the nullptr assignment redundant; (b) if Deinitialize() is ever reached, any ASSERT(ptr == expected) or guard based on that pointer will fail unexpectedly"
-      - "6. EXCEPTION: it is correct to Release() and nullptr pointers that were acquired specifically in the failing step (e.g. undo a Root() result or a QueryInterface() result) — only framework pointers assigned BEFORE the failure point must not be nulled"
-      - "7. Also check: is the correct explicit cleanup performed for each resource actually acquired before the failure? (Register → Unregister, AddRef → Release, etc.)"
+      - "1. Read Initialize() in full and check whether it calls Deinitialize() directly on any code path → VIOLATION if so"
+      - "2. Initialize() must NOT perform its own cleanup on failure paths — it should just return the non-empty error string. The Thunder framework will call Deinitialize() automatically when Initialize() returns a non-empty string."
+      - "3. If Initialize() contains explicit Release(), Unregister(), or nullptr assignments on failure paths, this is unnecessary (the framework handles it) but NOT a violation — it is redundant but harmless as long as Deinitialize() also handles it with proper nullptr guards."
+      - "4. Read Deinitialize() in full and verify it gracefully handles partial initialization — every resource cleanup must be guarded with a nullptr check (e.g. if (_service != nullptr) { _service->Release(); _service = nullptr; }) so that Deinitialize() works correctly even when Initialize() only partially completed."
+      - "5. If Deinitialize() does NOT have nullptr guards and would crash or double-release when called after a partial Initialize() → VIOLATION"
 
     conditional: false
     skip_condition: null
 
-    violation_pattern: "Initialize() calls Deinitialize() directly, OR nulls a framework member pointer (_service, _shell, etc.) on a failure path when that pointer was assigned before the failure — breaking Deinitialize()'s invariants"
+    violation_pattern: "Initialize() calls Deinitialize() directly; OR Deinitialize() does not gracefully handle partial initialization (missing nullptr guards on resource cleanup)"
 
     fix_template: |
-      // WRONG — Deinitialize() called directly:
+      // WRONG — Initialize() calls Deinitialize() directly:
       string Initialize(PluginHost::IShell* service) {
           _service = service;
           _service->AddRef();
           if (!Setup()) {
-              Deinitialize(service);  // ← do not call Deinitialize from Initialize
+              Deinitialize(service);  // ← WRONG: do not call Deinitialize from Initialize
               return "Setup failed";
           }
           return string();
       }
 
-      // WRONG — _service nulled in failure path after Root() fails:
-      string Initialize(PluginHost::IShell* service) {
-          _service = service;
-          _service->Register(&_notification);
-          _impl = service->Root<IImpl>(...);
-          if (_impl == nullptr) {
-              _service->Unregister(&_notification);  // ← correct: undo what was registered
-              _service = nullptr;                     // ← WRONG: nulls _service unnecessarily;
-                                                      //   breaks Deinitialize()'s ASSERT(_service == service)
-              return "Root failed";
-          }
-          return string();
-      }
-
-      // Correct:
+      // Correct — Initialize() just returns the error; framework calls Deinitialize():
       string Initialize(PluginHost::IShell* service) {
           _service = service;
           _service->AddRef();
           _service->Register(&_notification);
           _impl = service->Root<IImpl>(...);
           if (_impl == nullptr) {
-              _service->Unregister(&_notification);  // undo registration — correct
-              _service->Release();                   // undo AddRef — correct
-              _service = nullptr;                    // safe here because AddRef was done above
-              return "Root failed";
+              return "Root failed";  // just return error — framework will call Deinitialize()
           }
           return string();
       }
 
-      // Note: if _service->AddRef() was NOT called in Initialize(), do NOT Release() or
-      // null _service in the failure path — leave cleanup entirely to Deinitialize().
+      // Deinitialize() must handle partial initialization gracefully:
+      void Deinitialize(PluginHost::IShell* service) {
+          if (_impl != nullptr) {
+              _impl->Release();
+              _impl = nullptr;
+          }
+          _service->Unregister(&_notification);
+          _service->Release();
+          _service = nullptr;
+      }
 
     citation:
-      line_format: "[PluginName.cpp:LINE] Initialize() failure path violates cleanup rules — see rule_27"
+      line_format: "[PluginName.cpp:LINE] Initialize() calls Deinitialize() directly — let the framework handle it"
       rule: "thunder-plugin-rules.yaml / rule_27"
 
   - rule_id: "rule_28"
-    name: "Destructor Must Be Empty"
+    name: "No Plugin Lifecycle Dependencies in Destructor"
     severity: "violation"
     phase: "lifecycle"
 
     extraction:
       target: "Plugin class destructor body"
-      method: "Read the plugin class destructor implementation and reason about whether it performs any non-trivial work"
+      method: "Read the plugin class destructor implementation and reason about whether it performs any work that depends on the plugin lifecycle (Initialize/Deinitialize) or framework state"
       code_block: "The complete destructor body"
 
     bounded_query:
-      question: "Is the plugin destructor body completely empty (no resource cleanup, no logic — all cleanup is in Deinitialize())?"
+      question: "Is the plugin destructor free of any logic that depends on the plugin lifecycle (Initialize/Deinitialize) — no Release() on framework pointers, no Unregister() calls, no service interactions? General C++ cleanup (e.g. deleting owned non-COM objects, closing non-framework resources) is acceptable."
       expected_answer: "Yes"
 
     verification_logic:
       - "1. Read the plugin destructor definition"
-      - "2. The destructor must be empty — all resource cleanup belongs in Deinitialize()"
+      - "2. The destructor must NOT contain any logic that depends on the plugin lifecycle (Initialize/Deinitialize) — no Release() on COM interfaces acquired in Initialize(), no Unregister() calls, no service->* interactions"
       - "3. SYSLOG/TRACE calls for lifecycle tracing are harmless and should be IGNORED — do not flag a destructor that only contains logging"
-      - "4. If the destructor contains any logic or resource release beyond logging → VIOLATION"
+      - "4. General C++ cleanup that does NOT depend on framework or plugin lifecycle state is acceptable (e.g. deleting plain C++ objects, closing file handles not managed by the framework)"
+      - "5. If the destructor contains logic that depends on the plugin lifecycle (framework pointers, COM interfaces, service registrations) → VIOLATION"
 
     conditional: false
     skip_condition: null
 
-    violation_pattern: "Plugin destructor contains cleanup logic — all cleanup must be in Deinitialize()"
+    violation_pattern: "Plugin destructor contains logic that depends on the plugin lifecycle (Initialize/Deinitialize) — such cleanup must be in Deinitialize()"
 
     fix_template: |
       // WRONG:
       Dictionary::~Dictionary() {
           if (_service != nullptr) {
-              _service->Release();   // ← cleanup in destructor is wrong
+              _service->Release();   // ← depends on plugin lifecycle — belongs in Deinitialize()
           }
       }
 
       // Correct:
       Dictionary::~Dictionary() {
-          // empty — cleanup is in Deinitialize()
+          // No plugin lifecycle dependencies here — cleanup is in Deinitialize()
       }
 
     citation:
-      line_format: "[PluginName.cpp:LINE] Destructor contains cleanup logic — move to Deinitialize()"
+      line_format: "[PluginName.cpp:LINE] Destructor contains plugin lifecycle-dependent logic — move to Deinitialize()"
       rule: "thunder-plugin-rules.yaml / rule_28"
 
 # -------------------------------------------------------------------------------------------
@@ -2096,9 +2091,39 @@ general_rules:
     name: "No Heavy Work in Initialize()"
     severity: "violation"
     category: "lifecycle_integrity"
-    review_question: "Using semantic reasoning over Initialize() and Configure() implementations, do they avoid heavy blocking operations such as: synchronous network calls, popen() or shell script execution, long-running filesystem scans, D-Bus/IPC calls, or any operation that could take more than a few milliseconds? Initialize() runs on the Thunder main thread and blocks activation of all other plugins until it returns. Heavy work must be deferred to a WorkerPool job dispatched from Initialize(). CRITICAL for OOP plugins: a synchronous COMRPC call from Initialize() to the OOP implementation (e.g. _impl->Configure(configLine)) blocks the Thunder main thread for the ENTIRE duration of the OOP Configure() execution — if the OOP Configure() calls platform_init(), creates GLib/D-Bus proxies, reads device property files, or starts monitoring loops, ALL of that blocking time is paid on the Thunder main thread. For OOP plugins, read the OOP implementation's Configure() body and platform_init() (or equivalent startup function) and apply the same heavy-work check to them."
+    review_question: |
+      Using semantic reasoning over Initialize() and — for OOP plugins — the OOP implementation's Configure() body and any startup function it calls (e.g. platform_init()), check for the following SPECIFIC blocking operations. These are the only things that count as 'heavy work'. Do NOT apply a time-based heuristic or flag anything vaguely described as 'potentially slow'.
+
+      OPERATIONS THAT COUNT AS HEAVY WORK (flag these):
+        - popen(), system(), fork(), exec() or any child-process spawning
+        - Synchronous network calls: socket connect/send/recv, curl_easy_perform(), HTTP requests
+        - sleep(), usleep(), nanosleep(), std::this_thread::sleep_for() — any explicit delay
+        - D-Bus proxy creation: g_dbus_proxy_new_sync(), g_bus_get_sync(), or any GDBus/GIO blocking call
+        - GLib main loop operations: g_main_loop_run(), g_main_context_iteration() in blocking mode
+        - Platform SDK init calls that internally block: names like platform_init(), hal_init(), rdk_init(), device_init() — ONLY flag if you can trace into the body and confirm one of the above operations occurs inside
+        - Synchronous waiting on a condition variable or semaphore with no timeout
+        - Reading an entire large file or scanning a directory tree with blocking I/O
+
+      OPERATIONS THAT DO NOT COUNT AS HEAVY WORK (do not flag these):
+        - _impl->Configure(configLine) — the COMRPC call itself is not heavy; see OOP rule below
+        - service->Register(_notification) — lightweight framework registration
+        - interface->Register(...) — lightweight
+        - service->SubSystems() — lightweight acquire
+        - Config class parsing (FromString, JSON deserialization of small config payloads)
+        - Memory allocation, string operations, simple arithmetic
+        - A blocking call with a known short fixed timeout (e.g. wait up to 100ms for a flag)
+
+      OOP PLUGIN ANALYSIS RULE (mandatory when plugin is OOP):
+        When Initialize() calls _impl->Configure(configLine) or _impl->Register(...) on the OOP implementation, DO NOT flag the COMRPC call itself. Instead:
+        1. Locate the OOP implementation file (e.g. {PluginName}Implementation.cpp or {PluginName}GnomeProxy.cpp)
+        2. Read the Configure() body (or the Register() implementation) in that file
+        3. Apply the HEAVY WORK list above to what Configure() does directly
+        4. If Configure() calls a startup function (platform_init(), hal_init(), etc.), read that function body too and apply the same list
+        5. Only flag if one of the SPECIFIC operations from the HEAVY WORK list is found inside the OOP implementation
+
+      Initialize() runs on the Thunder main thread and blocks activation of all other plugins until it returns. Any heavy work must be deferred to a WorkerPool job dispatched from Initialize().
     review_method: "Read the full relevant code context (control flow, ownership, lifecycle, and threading where applicable) before deciding PASS/FAIL/SUGGEST. Do not use pattern-only checks."
-    evidence_requirement: "Provide exact [File:line] citation for any failure. For OOP plugins, cite both the blocking COMRPC call in Initialize() (e.g. [NetworkManager.cpp:84]) AND the heavy operation inside the OOP Configure()/platform_init() (e.g. [NetworkManagerGnomeProxy.cpp:315])."
+    evidence_requirement: "Provide exact [File:line] citation for any failure, naming the specific blocking operation found (e.g. 'g_dbus_proxy_new_sync() at [NetworkManagerGnomeProxy.cpp:315]'). For OOP plugins, also cite the COMRPC call in Initialize() that chains into the heavy work (e.g. '[NetworkManager.cpp:84] _impl->Configure() chains to blocking D-Bus proxy creation')."
 
   - rule_id: "rule_84"
     name: "No Override of JSONRPC Dispatch Methods"
