@@ -12,7 +12,7 @@ on:
       - "JsonGenerator/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
   pull_request:
-    branches: [ master ]
+    branches: [ "master" , "development/Disable_Failing_Tests" ]
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
