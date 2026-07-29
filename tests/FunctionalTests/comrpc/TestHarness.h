@@ -56,8 +56,7 @@ namespace Testing {
                 _proxy->Release();
                 _proxy = nullptr;
             }
-            // Use extended timeout (5000ms) for graceful shutdown to handle slow CI
-            _client->Close(5000);
+            _client->Close(1000);
             _client.Release();
             _engine.Release();
         }

@@ -123,7 +123,4 @@ target_link_libraries(ComRpcFunctionalTests
 
 add_test(NAME ComRpcFunctionalTests COMMAND ComRpcFunctionalTests)
 
-# Increase timeout to handle intermittent CI slowness and RPC communication delays
-# Default is 1500s, increased to 3600s (60 minutes) to accommodate slow CI environments
-# Per-test timeout is handled by individual test design; this is the outer timeout
 set_tests_properties(ComRpcFunctionalTests PROPERTIES TIMEOUT 3600)
