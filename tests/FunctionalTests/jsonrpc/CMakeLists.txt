@@ -107,3 +107,7 @@ target_link_libraries(JsonRpcFunctionalTests
 )
 
 add_test(NAME JsonRpcFunctionalTests COMMAND JsonRpcFunctionalTests)
+
+# Increase timeout to handle intermittent CI slowness and RPC communication delays
+# Default is 1500s, increased to 3000s (50 minutes)
+set_tests_properties(JsonRpcFunctionalTests PROPERTIES TIMEOUT 3000)
