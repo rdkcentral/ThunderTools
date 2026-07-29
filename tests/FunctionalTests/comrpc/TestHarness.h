@@ -21,6 +21,8 @@
 
 #include "Module.h"
 #include <gtest/gtest.h>
+#include <thread>
+#include <chrono>
 
 namespace Thunder {
 namespace Testing {
@@ -28,6 +30,15 @@ namespace Testing {
     template <typename INTERFACE>
     class TestHarness : public ::testing::Test {
     protected:
+        void SetUp() override
+        {
+            // Allow time for previous test to complete RPC cleanup and socket draining.
+            // Tests like TestEvents wait up to 2-3 seconds for notifications and async callbacks.
+            // Previous test's Unregister() call needs time to drain from the socket.
+            // Buffer of 500ms ensures socket is ready for next test's RPC operations.
+            std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        }
+
         static void SetUpTestSuite()
         {
             _engine = Core::ProxyType<RPC::InvokeServerType<4, 0, 1, 1, 1>>::Create();

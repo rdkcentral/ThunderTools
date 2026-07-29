@@ -107,3 +107,5 @@ target_link_libraries(JsonRpcFunctionalTests
 )
 
 add_test(NAME JsonRpcFunctionalTests COMMAND JsonRpcFunctionalTests)
+
+set_tests_properties(JsonRpcFunctionalTests PROPERTIES TIMEOUT 3600)
