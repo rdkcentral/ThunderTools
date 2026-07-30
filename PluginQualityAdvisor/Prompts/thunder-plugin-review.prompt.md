@@ -232,7 +232,7 @@ GitHub shortcodes (`:x:`, `:warning:`, `:bulb:`) do NOT render in VS Code Markdo
 
 End chat output with:
 ```
-📄 Full report saved: PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md
+📄 Full report saved: PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
 ```
 
@@ -265,10 +265,10 @@ End chat output with:
 
 ---
 
-## Step 6 - Generate Markdown Report
+## Step 6 - Generate HTML Report
 
-After reporting all results in chat, generate a Markdown report file with clickable navigation.
-**File path:** `PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
+After reporting all results in chat, generate an HTML report file with clickable navigation and syntax-highlighted code blocks.
+**File path:** `PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`
 
 - Create `PluginQualityAdvisor/Reports/plugin/` if it does not exist
 - Never overwrite an existing file - append `_2`, `_3` etc. if a file with that name already exists
@@ -279,6 +279,41 @@ Run the following commands in the plugin's git root to populate the report heade
 - Branch: `git rev-parse --abbrev-ref HEAD`
 - Commit SHA: `git rev-parse --short HEAD`
 If git is unavailable, use `unknown`.
+
+**HTML shell (wrap the entire report content in this):**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Thunder Plugin Review - {PluginName}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cmake.min.js"></script>
+<script>hljs.highlightAll();</script>
+<style>
+  body { font-family: sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 20px; color: #24292f; line-height: 1.6; }
+  h1 { border-bottom: 2px solid #d0d7de; padding-bottom: 10px; }
+  h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 6px; margin-top: 40px; }
+  h3 { margin-top: 30px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+  th { background: #f6f8fa; font-weight: 600; }
+  tr:nth-child(even) { background: #f6f8fa; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow-x: auto; }
+  code { font-family: monospace; font-size: 13px; }
+  p > code { background: #eef0f3; padding: 2px 5px; border-radius: 3px; }
+  .back-link { font-size: 13px; color: #0969da; }
+  hr { border: none; border-top: 1px solid #d0d7de; margin: 30px 0; }
+</style>
+</head>
+<body>
+<!-- report content here -->
+</body>
+</html>
+```
 
 ### Report Template
 
@@ -419,7 +454,7 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 **Post-generation message in chat:**
 ```
 📄 Full report saved:
-   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md
+   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
 ```
 
@@ -430,7 +465,7 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 1. **Write the file using terminal** — do NOT use create_file or file editing tools for the report. Use:
 
 ```powershell
-   [System.IO.File]::WriteAllText("<full-path-to-report>.md", $content, [System.Text.UTF8Encoding]::new($false))
+   [System.IO.File]::WriteAllText("<full-path-to-report>.html", $content, [System.Text.UTF8Encoding]::new($false))
 ```
 
 This bypasses VS Code's editor buffer which can overwrite content with an empty file.
@@ -438,11 +473,11 @@ This bypasses VS Code's editor buffer which can overwrite content with an empty 
 2. **Verify the file is not empty** — after writing, check the file size:
 
 ```powershell
-   (Get-Item "<full-path-to-report>.md").Length
+   (Get-Item "<full-path-to-report>.html").Length
 ```
 
 If the size is 0, the write failed — retry once.
 
-3. **Open in Markdown Preview** — run VS Code command `markdown.showPreview` on the generated report file so anchor links work and the user sees a navigable report with clickable issue links.
+3. **Open in browser** — run VS Code command `simpleBrowser.show` with the file URI, or open the `.html` file directly in a browser. highlight.js renders syntax highlighting and anchor links work natively.
 
-4. **Do NOT open the report in the editor** — opening `.md` files in the editor triggers notebook mode which creates an unwanted `codebook-md/` config folder and tries to execute code blocks. Always use preview-only.
+4. **Do NOT open the report in the VS Code editor** — the editor shows raw HTML. Always open in browser or Simple Browser preview.
