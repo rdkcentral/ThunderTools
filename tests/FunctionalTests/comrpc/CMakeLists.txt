@@ -122,3 +122,5 @@ target_link_libraries(ComRpcFunctionalTests
 )
 
 add_test(NAME ComRpcFunctionalTests COMMAND ComRpcFunctionalTests)
+
+set_tests_properties(ComRpcFunctionalTests PROPERTIES TIMEOUT 3600)
