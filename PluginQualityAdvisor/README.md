@@ -1,4 +1,4 @@
-# ThunderPluginQualityAdvisor
+﻿# ThunderPluginQualityAdvisor
 
 AI-driven validation tools for Thunder plugin and COM interface development, powered by VS Code GitHub Copilot Chat.
 
@@ -91,7 +91,7 @@ Validates a Thunder COM interface header against core and advisory rules defined
 /thunder-interface-review INetworkControl.h
 ```
 
-**Output:** Issue summary table with detailed findings, saved as a Markdown report with clickable navigation.
+**Output:** Issue summary table with detailed findings, saved as an HTML report with clickable navigation and syntax-highlighted code blocks.
 
 ---
 
@@ -177,9 +177,9 @@ ThunderTools/PluginQualityAdvisor/
 |   +-- thunder-interface-rules.yaml
 +-- Reports/
     +-- plugin/
-    |   +-- {PluginName}_{YYYY-MM-DD}.md
+    |   +-- {PluginName}_{YYYY-MM-DD}.html
     +-- interface/
-        +-- {InterfaceName}_{YYYY-MM-DD}.md
+        +-- {InterfaceName}_{YYYY-MM-DD}.html
 ```
 
 ---
@@ -196,4 +196,4 @@ ThunderTools/PluginQualityAdvisor/
 
 ## Reports
 
-After each review, a Markdown report is generated under `Reports/plugin/` or `Reports/interface/`. Reports contain an Issue Summary table with clickable links to Detailed Findings sections, each with a plain-English explanation, code found, and fix.
+After each review, a self-contained **HTML report** is generated under `Reports/plugin/` or `Reports/interface/`. Reports include an Issue Summary table with clickable anchor links to Detailed Findings sections (plain-English explanation, code found, and fix), with syntax-highlighted code blocks powered by highlight.js. Open the `.html` file in a browser or VS Code Simple Browser.
