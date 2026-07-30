@@ -1,4 +1,4 @@
-# Proposal: Thunder PluginQualityAdvisor System
+﻿# Proposal: Thunder PluginQualityAdvisor System
 
 ## Intent
 
@@ -54,8 +54,8 @@ automatically.
 
 **Review reports** (Markdown, generated after each review run)
 - Single `.md` file per review with Issue Summary table and Detailed Findings
-- Plugin report: `Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
-- Interface report: `Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
+- Plugin report: `Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`
+- Interface report: `Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`
 - Issue Summary table with clickable `[rule_id - Name](#issue-N)` links navigating to detailed sections
 - Each finding has: What's wrong (plain English), Code found, Fix
 - PASS and SKIP rules excluded — only failures shown
@@ -102,7 +102,7 @@ ThunderTools/PluginQualityAdvisor/
 │   └── thunder-interface-rules.yaml
 └── Reports/
     ├── plugin/
-    │   └── {PluginName}_{YYYY-MM-DD}.md
+    │   └── {PluginName}_{YYYY-MM-DD}.html
     └── interface/
-        └── {InterfaceName}_{YYYY-MM-DD}.md
+        └── {InterfaceName}_{YYYY-MM-DD}.html
 ```

@@ -1,28 +1,27 @@
-# Spec: Thunder PluginQualityAdvisor Report Generation
+﻿# Spec: Thunder PluginQualityAdvisor Report Generation
 
 ## Purpose
 
-After every `/thunder-plugin-review` or `/thunder-interface-review` run, the system generates a
-Markdown report file with an Issue Summary table and Detailed Findings sections with clickable navigation.
+After every `/thunder-plugin-review` or `/thunder-interface-review` run, the system generates a self-contained HTML report file with an Issue Summary table and Detailed Findings sections with clickable navigation and syntax-highlighted code blocks.
 
 ---
 
 ## Requirements
 
-### REQ-R1 — Plugin review Markdown report
+### REQ-R1 — Plugin review HTML report
 
 **Scenario:** `/thunder-plugin-review` completes all 84 rules
-- The system MUST generate a Markdown file at:
-  `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
+- The system MUST generate an HTML file at:
+  `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`
 - If a file with that name already exists, append `_2`, `_3` etc. (never overwrite)
 - The report MUST contain: header with totals, Issue Summary table, and Detailed Findings sections
 - PASS and SKIP rules are NOT included — only VIOLATION, WARNING, and SUGGESTION
 
-### REQ-R2 — Interface review Markdown report
+### REQ-R2 — Interface review HTML report
 
 **Scenario:** `/thunder-interface-review` completes all 19 rules
-- The system MUST generate a Markdown file at:
-  `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
+- The system MUST generate an HTML file at:
+  `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`
 - Same no-overwrite rule applies
 - Same structure: header, Issue Summary table, Detailed Findings
 
@@ -30,8 +29,8 @@ Markdown report file with an Issue Summary table and Detailed Findings sections 
 
 The report MUST start with:
 
-```markdown
-# Thunder Plugin Review - {PluginName}
+```html
+<!-- Thunder Plugin Review - {PluginName} -->
 
 **Date:** {YYYY-MM-DD}  
 **Plugin:** {PluginName}  
@@ -46,7 +45,7 @@ The report MUST contain an Issue Summary table with clickable navigation:
 |--------|-------------|
 | Issue No. | Sequential number |
 | Status | ❌ VIOLATION / ⚠️ WARNING / 💡 SUGGESTION (Unicode emoji, never GitHub shortcodes) |
-| Rule | Clickable link: `[rule_id - Name](#issue-N)` navigating to detailed section |
+| Rule | Clickable link: `<a href="#issue-N">rule_id - Name</a>` navigating to detailed section |
 | File | Source file name |
 | Line | Exact line number |
 | Issue | Short description |
@@ -55,12 +54,12 @@ The report MUST contain an Issue Summary table with clickable navigation:
 
 Each issue MUST have a detailed section with:
 
-- Heading: `### Issue N` (creates `#issue-n` anchor for navigation)
+- Heading: `<h3 id="issue-N">Issue N</h3>` (creates `#issue-n` anchor for navigation)
 - Rule ID and name as bold text: `**rule_XX - Rule Name**`
 - Status line: `**Status:** ❌ VIOLATION | **File:** filename | **Line:** N`
 - **What's wrong:** Plain-English explanation a junior developer can understand
-- **Code found:** Actual code from the file with file:line comment in a fenced code block
-- **Fix:** Corrected code in a fenced code block
+- **Code found:** Actual code from the file with file:line comment in a `<pre><code class="language-cpp">` block (highlight.js syntax-highlighted)
+- **Fix:** Corrected code in a `<pre><code class="language-cpp">` block
 - If severity was downgraded: **Note:** paragraph explaining why
 
 Issues MUST be ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS.
@@ -74,13 +73,13 @@ Issues MUST be ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGES
 
 - The report MUST be written via terminal (`[System.IO.File]::WriteAllText`) to avoid VS Code editor buffer conflicts
 - After writing, the file size MUST be verified (non-zero)
-- The report MUST be opened in Markdown Preview (`markdown.showPreview`), NOT in the editor
-- The editor MUST NOT open the file directly (triggers notebook mode and creates `codebook-md/` folder)
+- The report MUST be opened in a browser or VS Code Simple Browser (`simpleBrowser.show`), NOT in the editor
+- The editor MUST NOT open the file directly (shows raw HTML)
 
 Post-generation chat message:
 ```
 📄 Full report saved:
-   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md
+   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
 ```
 
@@ -88,8 +87,8 @@ Post-generation chat message:
 
 If no issues were found, generate:
 
-```markdown
-# Thunder Plugin Review - {PluginName}
+```html
+<!-- Thunder Plugin Review - {PluginName} -->
 
 **Date:** {YYYY-MM-DD}  
 **Plugin:** {PluginName}  
@@ -106,18 +105,18 @@ If no issues were found, generate:
 ThunderTools/PluginQualityAdvisor/
 └── Reports/
     ├── plugin/
-    │   ├── Dictionary_2026-07-16.md
-    │   └── NetworkControl_2026-07-16.md
+    │   ├── Dictionary_2026-07-16.html
+    │   └── NetworkControl_2026-07-16.html
     └── interface/
-        ├── INetworkControl_2026-07-16.md
-        └── IDictionary_2026-07-16.md
+        ├── INetworkControl_2026-07-16.html
+        └── IDictionary_2026-07-16.html
 ```
 
 ---
 
 ## Out of Scope
 
-- CSV or Excel format (replaced by Markdown reports)
+- CSV or Excel format
 - Report viewer command (Markdown Preview is sufficient)
 - Diff between two reports (future)
 - Automatic email or CI upload (future)

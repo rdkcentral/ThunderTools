@@ -1,4 +1,4 @@
-# Design: Thunder Plugin QA System
+﻿# Design: Thunder Plugin QA System
 
 ## Architecture Overview
 
@@ -23,7 +23,7 @@ Plugin files in ThunderNanoServices/Dictionary/
 Chat report: Issue Summary table, failures only
        │
        ▼
-Reports/plugin/Dictionary_2026-06-05.md   ← Markdown report with clickable issue navigation
+Reports/plugin/Dictionary_2026-06-05.html   <- HTML report with clickable issue navigation and syntax-highlighted code blocks
 ```
 
 ```

@@ -1,4 +1,4 @@
-# Delta for Interface Validation and Plugin Generation
+﻿# Delta for Interface Validation and Plugin Generation
 
 ## ADDED Requirements
 
@@ -27,7 +27,7 @@ a Thunder COM interface header against 19 rules (16 core + 3 advisory).
 - THEN it applies all 19 rules loaded from `thunder-interface-rules.yaml` in order:
   core_1_1 through core_16_1 (16 core), then advisory_m1_1 through advisory_m3_1 (3 advisory)
 - AND outputs an Issue Summary table with columns: Issue No. | Status | Rule | File | Line | Issue
-- AND generates a Markdown report with clickable navigation to Detailed Findings
+- AND generates a self-contained HTML report with clickable navigation to Detailed Findings and syntax-highlighted code blocks
 
 ---
 

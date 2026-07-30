@@ -1,4 +1,4 @@
-# Tasks: Thunder Plugin QA System
+﻿# Tasks: Thunder Plugin QA System
 
 ## Phase 1: YAML rule definitions
 
@@ -255,7 +255,7 @@
       - Your Task: 5 steps (identify file → load YAML → validate all 19 rules →
         report with Issue Summary table (❌/⚠️/💡) → provide specific fixes)
       - Step 4 — Validate Findings: eliminate false positives before reporting
-      - Step 6 — Generate Markdown Report: file path format, Issue Summary table with
+      - Step 6 - Generate HTML Report: file path format, Issue Summary table with
         clickable navigation, Detailed Findings sections, write via terminal, open in preview
       - Post-generation action: write via terminal, verify non-empty, open in Markdown Preview
       - Contextual Judgment: JUDGE step table with Status field mapping
@@ -413,9 +413,9 @@
 
 ## Phase 5: Report generation
 
-- [x] 5.1 Add Step 6 (Markdown report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
+- [x] 5.1 Add Step 6 (HTML report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
       - Appended after Command Examples section
-      - File path: `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.md`
+      - File path: `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`
       - Create folder if absent; never overwrite (append _2, _3 suffix)
       - Report structure: header with totals, Issue Summary table, Detailed Findings sections
       - Issue Summary table: Issue No. | Status | Rule (clickable link) | File | Line | Issue
@@ -425,14 +425,14 @@
       - Verify non-empty after writing; open in Markdown Preview (not editor)
       - Empty report (all pass): header + "✅ All rules passed"
 
-- [x] 5.2 Add Step 6 (Markdown report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
+- [x] 5.2 Add Step 6 (HTML report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
       - Same format as plugin report
-      - File path: `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
+      - File path: `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`
       - Same no-overwrite rule, same report structure, same post-generation actions
 
 - [x] 5.3 Create spec `ThunderTools/openspec/changes/thunder-plugin-qa/specs/reports/spec.md`
-      - REQ-R1: plugin Markdown report path + no-overwrite rule
-      - REQ-R2: interface Markdown report path + no-overwrite rule
+      - REQ-R1: plugin HTML report path + no-overwrite rule
+      - REQ-R2: interface HTML report path + no-overwrite rule
       - REQ-R3: report header format with totals
       - REQ-R4: Issue Summary table with clickable navigation
       - REQ-R5: Detailed Findings sections format
