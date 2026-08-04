@@ -2,30 +2,18 @@ name: Build ThunderTools on Linux
 
 on:
   push:
-    branches: ["master"]
+    branches: ["R4_4"]
   pull_request:
-    branches: ["master"]
+    branches: ["R4_4"]
  
 jobs:
   Thunder:
-    uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
+    uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R4_4
 
   ThunderInterfaces:
     needs: Thunder
-    uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@master
-
-  ThunderLibraries:
-    needs: Thunder
-    uses: WebPlatformForEmbedded/ThunderLibraries/.github/workflows/Linux build template.yml@main
-
-  ThunderClientLibraries:
-    needs: ThunderInterfaces
-    uses: rdkcentral/ThunderClientLibraries/.github/workflows/Linux build template.yml@master
+    uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@R4_4
 
   ThunderNanoServices:
     needs: ThunderInterfaces
-    uses: rdkcentral/ThunderNanoServices/.github/workflows/Linux build template.yml@master
-
-  ThunderNanoServicesRDK:
-    needs: ThunderInterfaces
-    uses: WebPlatformForEmbedded/ThunderNanoServicesRDK/.github/workflows/Linux build template.yml@master
+    uses: rdkcentral/ThunderNanoServices/.github/workflows/Linux build template.yml@R4_4

@@ -197,7 +197,6 @@ def Flatten(identifier, scope):
                 identifier = identifier[:idx] + identifier[idx + len(item):]
             else:
                 idx += len(item)
-
     return identifier
 
 
@@ -2862,7 +2861,7 @@ if __name__ == "__main__":
                         if i and sorted_faces[i - 1].id == f.id:
                             log.Warn("duplicate interface ID %s (%s) of %s" % \
                                 (hex(f.id) if isinstance(f.id, int) else "?", f.id, f.obj.full_name))
-             args.project_dir       else:
+                    else:
                         log.Info("can't evaluate interface ID '%s' of %s" % (f.id, f.obj.full_name))
 
                 if len(interface_files) > 1 and BE_VERBOSE:
