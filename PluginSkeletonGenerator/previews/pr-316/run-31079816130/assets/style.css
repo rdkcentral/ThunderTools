@@ -1,0 +1,12 @@
+:root{
+  color-scheme: dark;
+  --bg:#0d1117; --fg:#c9d1d9; --muted:#8b949e; --link:#58a6ff;
+  --border:#30363d; --card:#161b22;
+}
+body{margin:0;font:18px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,sans-serif;background:var(--bg);color:var(--fg)}
+a{color:var(--link);text-decoration:none} a:hover{text-decoration:underline}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.nav{display:flex;gap:14px;flex-wrap:wrap;padding:14px 24px;border-bottom:1px solid var(--border);
+     background:rgba(13,17,23,.92);position:sticky;top:0;z-index:10}
+.nav a{padding:6px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card)}
+h1{font-size:28px;margin:18px 0}
