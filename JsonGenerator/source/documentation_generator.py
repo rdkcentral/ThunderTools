@@ -508,7 +508,7 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 if is_property and "index" in props:
                     idx = props["index"][0] if props["index"][0] else props["index"][1]
-                    call_method += ("@" + str(idx["example"].strip('"')) if "example" in idx else "?")
+                    call_method += ("@" + str(idx["example"]) if "example" in idx else "?")
                     generic_method += "@<index>"
 
                 if "@async" in props:
