@@ -1187,7 +1187,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                 # example not specified, let's invent something...
 
                                 if method.vars[0].meta.default:
-                                    _index["example"] = method.vars[0].meta.default[0]
+                                    _index["example"] = method.vars[0].meta.default[0].strip('"')
                                 elif "enum" in _index:
                                     _index["example"] = _index["enum"][0]
                                 else:
