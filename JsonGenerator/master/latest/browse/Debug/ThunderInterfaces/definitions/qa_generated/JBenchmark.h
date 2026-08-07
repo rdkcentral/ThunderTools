@@ -52,8 +52,8 @@ namespace QualityAssurance {
                 });
 
             // Method: 'collectData' - Collect the results of the most recent benchmark run
-            _module__.PluginHost::JSONRPC::template Register<void, Core::JSON::ArrayType<JsonData::Benchmark::BenchmarkResultData>>(_T("collectData"),
-                [_implementation__](Core::JSON::ArrayType<JsonData::Benchmark::BenchmarkResultData>& report) -> uint32_t {
+            _module__.PluginHost::JSONRPC::template Register<void, Core::JSON::ArrayType<JsonData::Benchmark::BenchmarkResultInfo>>(_T("collectData"),
+                [_implementation__](Core::JSON::ArrayType<JsonData::Benchmark::BenchmarkResultInfo>& report) -> uint32_t {
                     uint32_t _errorCode__ = Core::ERROR_NONE;
 
                     RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>* _report_{};
@@ -68,6 +68,34 @@ namespace QualityAssurance {
                             while (_report_->Next(_resultItem__) == true) { report.Add() = _resultItem__; }
                             _report_->Release();
                         }
+                    }
+
+                    return (_errorCode__);
+                });
+
+            // Method: 'setBaseline' - Set an explicit baseline from externally-supplied results, e
+            _module__.PluginHost::JSONRPC::template Register<JsonData::Benchmark::SetBaselineParamsData, void>(_T("setBaseline"),
+                [_implementation__](const JsonData::Benchmark::SetBaselineParamsData& params) -> uint32_t {
+                    uint32_t _errorCode__ = Core::ERROR_NONE;
+
+                    if ((params.IsSet() == false) || (params.IsDataValid() == false)) {
+                        TRACE_GLOBAL(Trace::Error, (_T("Invalid parameters for JSON-RPC call: %s.%s"), _T("JBenchmark"), _T("setBaseline")));
+                        _errorCode__ = Core::ERROR_BAD_REQUEST;
+                    }
+                    else {
+                        RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>* _baseline_{};
+                        std::list<QualityAssurance::IBenchmark::BenchmarkResult> _baselineElements_{};
+                        auto _baselineIterator_ = params.Baseline.Elements();
+                        while (_baselineIterator_.Next() == true) { _baselineElements_.push_back(_baselineIterator_.Current()); }
+                        using _baselineIteratorImplType_ = RPC::IteratorType<RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>>;
+                        _baseline_ = Core::ServiceType<_baselineIteratorImplType_>::Create<RPC::IIteratorType<QualityAssurance::IBenchmark::BenchmarkResult, QualityAssurance::ID_BENCHMARK_RESULT_ITERATOR>>(std::move(_baselineElements_));
+                        ASSERT(_baseline_ != nullptr);
+
+                        _errorCode__ = _implementation__->SetBaseline(_baseline_);
+                        if (_baseline_ != nullptr) {
+                            _baseline_->Release();
+                        }
+
                     }
 
                     return (_errorCode__);
@@ -147,6 +175,7 @@ namespace QualityAssurance {
             // Unregister methods and properties...
             _module__.PluginHost::JSONRPC::Unregister(_T("trigger"));
             _module__.PluginHost::JSONRPC::Unregister(_T("collectData"));
+            _module__.PluginHost::JSONRPC::Unregister(_T("setBaseline"));
             _module__.PluginHost::JSONRPC::Unregister(_T("latencyThreshold"));
             _module__.PluginHost::JSONRPC::Unregister(_T("memoryThreshold"));
         }
