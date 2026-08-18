@@ -180,8 +180,9 @@ namespace ProxyStubs {
     //  (3) virtual Core::hresult LatencyThreshold(uint32_t&) const = 0
     //  (4) virtual Core::hresult MemoryThreshold(const uint64_t) = 0
     //  (5) virtual Core::hresult MemoryThreshold(uint64_t&) const = 0
-    //  (6) virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0
-    //  (7) virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0
+    //  (6) virtual Core::hresult SetBaseline(QualityAssurance::IBenchmark::IBenchmarkResultIterator*) = 0
+    //  (7) virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0
+    //  (8) virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0
     //
 
     static ProxyStub::MethodHandler QualityAssuranceBenchmarkStubMethods[] = {
@@ -277,7 +278,33 @@ namespace ProxyStubs {
             writer.Number<uint64_t>(_maxMemoryGrowthBytes);
         },
 
-        // (6) virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0
+        // (6) virtual Core::hresult SetBaseline(QualityAssurance::IBenchmark::IBenchmarkResultIterator*) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
+            QualityAssurance::IBenchmark* implementation = reinterpret_cast<QualityAssurance::IBenchmark*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::instance_id _baselineInstanceId__ = reader.Number<Core::instance_id>();
+
+            QualityAssurance::IBenchmark::IBenchmarkResultIterator* _baseline{};
+            ProxyStub::UnknownProxy* _baselineProxy__ = nullptr;
+            if (_baselineInstanceId__ != 0) {
+                _baselineProxy__ = RPC::Administrator::Instance().ProxyInstance(channel, _baselineInstanceId__, false, _baseline);
+                ASSERT((_baseline != nullptr) && (_baselineProxy__ != nullptr));
+            }
+
+            Core::hresult result = implementation->SetBaseline(_baseline);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
+
+            if (_baselineProxy__ != nullptr) {
+                RPC::Administrator::Instance().Release(_baselineProxy__, message->Response());
+            }
+        },
+
+        // (7) virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             QualityAssurance::IBenchmark* implementation = reinterpret_cast<QualityAssurance::IBenchmark*>(message->Parameters().Implementation());
@@ -303,7 +330,7 @@ namespace ProxyStubs {
             }
         },
 
-        // (7) virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0
+        // (8) virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0
         //
         [](Core::ProxyType<Core::IPCChannel>& channel, Core::ProxyType<RPC::InvokeMessage>& message) {
             QualityAssurance::IBenchmark* implementation = reinterpret_cast<QualityAssurance::IBenchmark*>(message->Parameters().Implementation());
@@ -521,8 +548,9 @@ namespace ProxyStubs {
     //  (3) virtual Core::hresult LatencyThreshold(uint32_t&) const = 0
     //  (4) virtual Core::hresult MemoryThreshold(const uint64_t) = 0
     //  (5) virtual Core::hresult MemoryThreshold(uint64_t&) const = 0
-    //  (6) virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0
-    //  (7) virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0
+    //  (6) virtual Core::hresult SetBaseline(QualityAssurance::IBenchmark::IBenchmarkResultIterator*) = 0
+    //  (7) virtual Core::hresult Register(QualityAssurance::IBenchmark::INotification*) = 0
+    //  (8) virtual Core::hresult Unregister(QualityAssurance::IBenchmark::INotification*) = 0
     //
 
     class QualityAssuranceBenchmarkProxy final : public ProxyStub::UnknownProxyType<QualityAssurance::IBenchmark> {
@@ -634,9 +662,29 @@ namespace ProxyStubs {
             return (hresult);
         }
 
-        Core::hresult Register(QualityAssurance::IBenchmark::INotification* _sink) override
+        Core::hresult SetBaseline(QualityAssurance::IBenchmark::IBenchmarkResultIterator* _baseline) override
         {
             IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(6));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Core::instance_id>(RPC::instance_cast(_baseline));
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+
+                _Complete(reader);
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Register(QualityAssurance::IBenchmark::INotification* _sink) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(7));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
@@ -656,7 +704,7 @@ namespace ProxyStubs {
 
         Core::hresult Unregister(QualityAssurance::IBenchmark::INotification* _sink) override
         {
-            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(7));
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(8));
 
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Number<Core::instance_id>(RPC::instance_cast(_sink));
