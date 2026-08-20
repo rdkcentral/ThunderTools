@@ -198,22 +198,45 @@ TEST_F(TestOptionals, ProcessOptionalBuffer_NoOutput) {
 
 // ===== Optional vector =====
 
-TEST_F(TestOptionals, ProcessOptionalVector) {
+TEST_F(TestOptionals, ProcessOptionalVector_Set) {
     std::vector<uint8_t> input{1,2,3,4};
-    std::vector<uint8_t> output{};
-    ASSERT_EQ(_proxy->ProcessOptionalVector(input, output), Core::ERROR_NONE);
-    for (uint8_t i = 0; i < sizeof(input); i++) {
-        EXPECT_EQ(output[i], input[i]*2);
+    Core::OptionalType<std::vector<uint8_t>> optOutput;;
+    Core::OptionalType<std::vector<uint8_t>> optInput;
+    optInput = input;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().size(), input.size());
+    // process multiplies by 2
+    for (uint8_t i = 0; i < input.size(); i++) {
+        EXPECT_EQ(optOutput.Value()[i], input[i]*2);
     }
 }
 
-TEST_F(TestOptionals, ProcessOptionalInlineVector) {
+TEST_F(TestOptionals, ProcessOptionalVector_Unset) {
+    Core::OptionalType<std::vector<uint8_t>> optOutput;
+    Core::OptionalType<std::vector<uint8_t>> optInput;;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
     std::vector<uint8_t> data{1,2,3,4};
     std::vector<uint8_t> copy = data;
-    ASSERT_EQ(_proxy->ProcessOptionalVector(data), Core::ERROR_NONE);
-    for (uint8_t i = 0; i < sizeof(input); i++) {
-        EXPECT_EQ(data[i], copy[i]*2);
+    Core::OptionalType<std::vector<uint8_t>> optData;
+    optData = data;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optData), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), true);
+    ASSERT_EQ(optData.Value().size(), copy.size());
+    // process multiplies by 2
+    for (uint8_t i = 0; i < copy.size(); i++) {
+        EXPECT_EQ(optData.Value()[i], copy[i]*2);
     }
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector_Unset) {
+    Core::OptionalType<std::vector<uint8_t>> optData;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optData), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), false);
 }
 
 // ===== AllOptional =====
