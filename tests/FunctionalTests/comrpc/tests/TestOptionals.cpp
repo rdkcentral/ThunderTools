@@ -196,6 +196,26 @@ TEST_F(TestOptionals, ProcessOptionalBuffer_NoOutput) {
     EXPECT_EQ(written, 0u);
 }
 
+// ===== Optional vector =====
+
+TEST_F(TestOptionals, ProcessOptionalVector) {
+    std::vector<uint8_t> input{1,2,3,4};
+    std::vector<uint8_t> output{};
+    ASSERT_EQ(_proxy->ProcessOptionalVector(input, output), Core::ERROR_NONE);
+    for (uint8_t i = 0; i < sizeof(input); i++) {
+        EXPECT_EQ(output[i], input[i]*2);
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector) {
+    std::vector<uint8_t> data{1,2,3,4};
+    std::vector<uint8_t> copy = data;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(data), Core::ERROR_NONE);
+    for (uint8_t i = 0; i < sizeof(input); i++) {
+        EXPECT_EQ(data[i], copy[i]*2);
+    }
+}
+
 // ===== AllOptional =====
 
 TEST_F(TestOptionals, AllOptional_AllUnset) {

@@ -120,6 +120,25 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult ProcessOptionalVector(
+            const OptionalType<std::vector<uint8_t>>& input,
+            OptionalType<std::vector<uint8_t>>& output) override
+        {
+            std::transform(input.begin(), input.end(), output.begin(), [](int x) {
+                return x * 2;
+            });
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult ProcessOptionalInlineVector(
+            OptionalType<std::vector<uint8_t>>& data) override
+        {
+            std::for_each(data.begin(), data.end(), [](int &num) {
+                num *= 2;
+            });
+            return Core::ERROR_NONE;
+        }
+
         Core::hresult AllOptional(
             const Core::OptionalType<uint32_t>& a,
             const Core::OptionalType<uint32_t>& b,

@@ -130,6 +130,17 @@ namespace FunctionalTest {
             const uint16_t maxOutputSize,
             uint16_t& written /* @out */) = 0;
 
+        // ===== Optional vectors =====
+
+        // @brief Process an input vector into an output vector.
+        virtual Core::hresult ProcessOptionalVector(
+            const OptionalType<std::vector<uint8_t>>& input /* @restrict:8 */,
+            OptionalType<std::vector<uint8_t>>& input /* @out @restrict:8 */) = 0;
+
+        // @brief Process an input vector into same output vector.
+        virtual Core::hresult ProcessOptionalInlineVector(
+            OptionalType<std::vector<uint8_t>>& data /* @iout @restrict:8 */) = 0;
+
         // ===== Edge cases =====
 
         // @brief Compute a result from up to three optional unsigned integers.
