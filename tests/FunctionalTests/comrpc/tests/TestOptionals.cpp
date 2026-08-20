@@ -200,7 +200,7 @@ TEST_F(TestOptionals, ProcessOptionalBuffer_NoOutput) {
 
 TEST_F(TestOptionals, ProcessOptionalVector_Set) {
     std::vector<uint8_t> input{1,2,3,4};
-    Core::OptionalType<std::vector<uint8_t>> optOutput;;
+    Core::OptionalType<std::vector<uint8_t>> optOutput;
     Core::OptionalType<std::vector<uint8_t>> optInput;
     optInput = input;
     ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);

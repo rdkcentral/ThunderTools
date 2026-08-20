@@ -121,8 +121,8 @@ namespace TestImplementation {
         }
 
         Core::hresult ProcessOptionalVector(
-            const OptionalType<std::vector<uint8_t>>& input,
-            OptionalType<std::vector<uint8_t>>& output) override
+            const Core::OptionalType<std::vector<uint8_t>>& input,
+            Core::OptionalType<std::vector<uint8_t>>& output) override
         {
             if (input.IsSet() == true) {
                 std::vector<uint8_t> data;
@@ -135,7 +135,7 @@ namespace TestImplementation {
         }
 
         Core::hresult ProcessOptionalInlineVector(
-            OptionalType<std::vector<uint8_t>>& data) override
+            Core::OptionalType<std::vector<uint8_t>>& data) override
         {
             if (data.IsSet() == true) {
                 std::for_each(data.Value().begin(), data.Value().end(), [](int &num) {
