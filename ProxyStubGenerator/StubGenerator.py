@@ -1567,14 +1567,17 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     length = EmitParam(interface, p.length, Normalize("%sSize" % obj_name))
                     ReadParameter(length)
                     CheckRange(p, ("%s" % length.as_rvalue))
-                    emit.Line("%s.reserve(%s);" % (p.as_rvalue, length.as_rvalue))
+                    # Build into obj_name if it's a freshly declared local, otherwise
+                    # (suppress_type) obj_name == p.name and p.as_rvalue is the real target.
+                    builder = obj_name if not p.suppress_type else p.as_rvalue
+                    emit.Line("%s.reserve(%s);" % (builder, length.as_rvalue))
 
                     index = chr(ord('i') + p.name.count('Item'))
                     element = EmitParam(interface, p.element, Normalize(obj_name + "Item"), parent=p)
                     emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
                     emit.IndentInc()
                     ReadParameter(element)
-                    emit.Line("%s.push_back(std::move(%s));" % (p.as_rvalue, element.as_rvalue))
+                    emit.Line("%s.push_back(std::move(%s));" % (builder, element.as_rvalue))
                     emit.IndentDec()
                     emit.Line("}")
 
