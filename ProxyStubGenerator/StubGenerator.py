@@ -2401,7 +2401,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.Line("}")
                         emit.Line("else {")
                         emit.IndentInc()
-                        emit.Line("%s = %();" % (p.name, p.type_name))
+                        emit.Line("%s = %s();" % (p.name, p.type_name))
                         emit.IndentDec()
                         emit.Line("}")
 
