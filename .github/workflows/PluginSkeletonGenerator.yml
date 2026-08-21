@@ -669,15 +669,13 @@ jobs:
         architecture: ['32', '64']
 
     steps:
+      - name: Checkout ThunderTools
+        uses: actions/checkout@v5
+
       - name: Install build tools
-        shell: bash
-        run: |
-          set -euo pipefail
-          sudo apt-get update
-          sudo apt-get install -y ninja-build
-          if [[ "${{ matrix.architecture }}" == "32" ]]; then
-            sudo apt-get install -y gcc-multilib g++-multilib
-          fi
+        uses: ./.github/actions/apt-dependencies
+        with:
+          architecture: ${{ matrix.architecture }}
 
       - name: Download all artifacts from this run
         uses: actions/download-artifact@v4
