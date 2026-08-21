@@ -5,6 +5,10 @@ inputs:
     description: Target architecture, using 32 for i386 and 64 or tests64 for amd64
     required: false
     default: 64
+  systemd:
+    description: Install Systemd development libraries for the target architecture
+    required: false
+    default: false
 runs:
   using: composite
   steps:
@@ -12,6 +16,7 @@ runs:
       shell: bash
       env:
         TARGET_ARCHITECTURE: ${{ inputs.architecture }}
+        INSTALL_SYSTEMD: ${{ inputs.systemd }}
       run: |
         set -euo pipefail
         export DEBIAN_FRONTEND=noninteractive
@@ -93,7 +98,6 @@ runs:
             libegl-dev:i386
             libgles2-mesa-dev:i386
             libpng-dev:i386
-            libsystemd-dev:i386
             libicu-dev:i386
             libarchive-dev:i386
             libcurl4-openssl-dev:i386
@@ -115,7 +119,6 @@ runs:
             libegl-dev
             libgles2-mesa-dev
             libpng-dev
-            libsystemd-dev
             libicu-dev
             libarchive-dev
             libcurl4-openssl-dev
@@ -123,6 +126,14 @@ runs:
             libgpgme-dev
             libgpg-error-dev
           )
+        fi
+
+        if [ "$INSTALL_SYSTEMD" = "true" ]; then
+          if [ "$TARGET_ARCHITECTURE" = "32" ]; then
+            PKGS+=(libsystemd-dev:i386)
+          else
+            PKGS+=(libsystemd-dev)
+          fi
         fi
 
         run_apt update
