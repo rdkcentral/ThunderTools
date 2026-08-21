@@ -191,7 +191,7 @@ namespace TestImplementation {
         {
             if (data.IsSet() == true) {
 
-                if ((data.Value().optionalMagic().IsSet() == true) and (unset == true)) {
+                if ((data.Value().optionalMagic.IsSet() == true) and (unset == true)) {
                     data.Value().optionalMagic = Core::OptionalType<string>();
                 }
 
@@ -199,12 +199,12 @@ namespace TestImplementation {
                     num *= 2;
                 });
 
-                if (data.Value().optionalData().IsSet() == true) {
+                if (data.Value().optionalData.IsSet() == true) {
                     if (unset == true) {
                         data.Value().optionalData = Core::OptionalType<std::vector<uint8_t>>();
                     }
                     else {
-                        std::for_each(data.Value().optionalData().Value().begin(), data.Value().optionalData().Value().end(), [](uint8_t& num) {
+                        std::for_each(data.Value().optionalData.Value().begin(), data.Value().optionalData.Value().end(), [](uint8_t& num) {
                             num *= 2;
                         });
                     }
