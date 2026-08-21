@@ -181,7 +181,7 @@ namespace TestImplementation {
                 output = std::move(cp);
             }
             else {
-                output = {};
+                output = Core::OptionalType<Compound>();
             }
         }
 
@@ -192,7 +192,7 @@ namespace TestImplementation {
             if (data.IsSet() == true) {
 
                 if ((data.Value().optionalMagic().IsSet() == true) and (unset == true)) {
-                    data.Value().optionalMagic = {};
+                    data.Value().optionalMagic = Core::OptionalType<string>();
                 }
 
                 std::for_each(data.Value().data.begin(), data.Value().data.end(), [](uint8_t& num) {
@@ -201,7 +201,7 @@ namespace TestImplementation {
 
                 if (data.Value().optionalData().IsSet() == true) {
                     if (unset == true) {
-                        data.Value().optionalData = {};
+                        data.Value().optionalData = Core::OptionalType<std::vector<uint8_t>>();
                     }
                     else {
                         std::for_each(data.Value().optionalData().Value().begin(), data.Value().optionalData().Value().end(), [](uint8_t& num) {
