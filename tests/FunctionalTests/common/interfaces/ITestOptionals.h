@@ -158,7 +158,7 @@ namespace FunctionalTest {
         // @brief Process an vector in a struct to the same struct
         // @param unset Change a set optional to unset
         virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
-            Core::OptionalType<Compound>& data /* @iout*/,
+            Core::OptionalType<Compound>& data /* @inout*/,
             const bool unset) = 0;
 
         // ===== Edge cases =====

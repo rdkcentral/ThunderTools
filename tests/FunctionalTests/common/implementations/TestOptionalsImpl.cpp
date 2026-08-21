@@ -190,18 +190,26 @@ namespace TestImplementation {
             const bool unset) override
         {
             if (data.IsSet() == true) {
+
+                if ((data.Value().optionalMagic().IsSet() == true) and (unset == true)) {
+                    data.Value().optionalMagic = {};
+                }
+
                 std::for_each(data.Value().data.begin(), data.Value().data.end(), [](uint8_t& num) {
                     num *= 2;
                 });
+
                 if (data.Value().optionalData().IsSet() == true) {
-                    std::for_each(data.Value().optionalData().Value().begin(), data.Value().optionalData().Value().end(), [](uint8_t& num) {
-                        num *= 2;
-                    });
+                    if (unset == true) {
+                        data.Value().optionalData = {};
+                    }
+                    else {
+                        std::for_each(data.Value().optionalData().Value().begin(), data.Value().optionalData().Value().end(), [](uint8_t& num) {
+                            num *= 2;
+                        });
+                    }
                 }
-                else {
-                    data.Value().optionalData = {};
-                }
-            }
+s            }
         }
 
         Core::hresult AllOptional(
