@@ -139,7 +139,8 @@ namespace TestImplementation {
         }
 
         Core::hresult ProcessOptionalInlineVector(
-            Core::OptionalType<std::vector<uint8_t>>& data, const bool unset) override
+            Core::OptionalType<std::vector<uint8_t>>& data,
+            const bool unset) override
         {
             if (data.IsSet() == true) {
                 if (unset == true) {
@@ -152,6 +153,55 @@ namespace TestImplementation {
                 }
             }
             return Core::ERROR_NONE;
+        }
+
+        Core::hresult ProcessOptionalVectorInOptionalStruct(
+            const Core::OptionalType<Compound>& input,
+            Core::OptionalType<Compound>& output) override
+        {
+            if (input.IsSet() == true) {
+                Compound cp;
+                cp.magic = input.Value().magic;
+                cp.optionalMagic = input.Value().optionalMagic;
+
+                std::for_each(input.Value().data.begin(), input.Value().data.end(), [](uint8_t& num) {
+                    num *= 2;
+                });
+
+                if (input.Value().optionalData.IsSet() == true) {
+                    std::vector<uint8_t> data;
+                    data.resize(input.Value().optionalData.Value().size());
+                    std::transform(input.Value().optionalData.Value().begin(), input.Value().optionalData.Value().end(), data.begin(), [](uint8_t x) {
+                        return static_cast<uint8_t>(x * 2);
+                    });
+
+                    cp.optionalData = std::move(data);
+                }
+
+                output = std::move(cp);
+            }
+            else {
+                output = {};
+            }
+        }
+
+        virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
+            Core::OptionalType<Compound>& data,
+            const bool unset) override
+        {
+            if (data.IsSet() == true) {
+                std::for_each(data.Value().data.begin(), data.Value().data.end(), [](uint8_t& num) {
+                    num *= 2;
+                });
+                if (data.Value().optionalData().IsSet() == true) {
+                    std::for_each(data.Value().optionalData().Value().begin(), data.Value().optionalData().Value().end(), [](uint8_t& num) {
+                        num *= 2;
+                    });
+                }
+                else {
+                    data.Value().optionalData = {};
+                }
+            }
         }
 
         Core::hresult AllOptional(

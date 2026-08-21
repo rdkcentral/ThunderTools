@@ -35,7 +35,7 @@ namespace FunctionalTest {
             string magic;
             Core::OptionalType<string> optionalMagic;
             std::vector<uint8_t> data /* @restrict:8 */;
-            Core::OptionalType<std::vector<uint8_t> optionalData /* @restrict:8 */;
+            Core::OptionalType<std::vector<uint8_t>> optionalData /* @restrict:8 */;
         };
 
         // ===== Optional input parameters =====
@@ -157,8 +157,8 @@ namespace FunctionalTest {
 
         // @brief Process an vector in a struct to the same struct
         // @param unset Change a set optional to unset
-        virtual Core::hresult ProcessOptionalVectorInOptionalStruct(
-            Core::OptionalType<Compound>& output /* @iout*/,
+        virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
+            Core::OptionalType<Compound>& data /* @iout*/,
             const bool unset) = 0;
 
         // ===== Edge cases =====
