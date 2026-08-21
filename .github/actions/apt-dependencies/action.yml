@@ -49,6 +49,9 @@ runs:
             if [ "$attempt" -gt 2 ] && [ $(( (attempt - 1) % 2 )) -eq 0 ]; then
               mirror_index=$((mirror_index + 1))
               switch_ubuntu_mirror "${MIRRORS[$mirror_index]}"
+              if [ "$operation" != "update" ]; then
+                timeout 300s sudo apt-get update "${APT_OPTS[@]}"
+              fi
             fi
             if timeout 300s sudo apt-get "$operation" "${APT_OPTS[@]}" "$@"; then
               return 0
@@ -64,34 +67,14 @@ runs:
         PKGS=(
           python3-venv
           python3-pip
-          libusb-1.0-0
-          zlib1g
-          libssl3
           build-essential
           cmake
           ninja-build
-          libgtest-dev
-          libusb-1.0-0-dev
-          zlib1g-dev
-          libssl-dev
-          libsbc-dev
-          libgbm-dev
-          libdrm-dev
-          libegl-dev
-          libgles2-mesa-dev
-          libpng-dev
-          libsystemd-dev
-          libicu-dev
           autoconf
           automake
           libtool
           libtool-bin
           pkg-config
-          libarchive-dev
-          libcurl4-openssl-dev
-          libgpgme-dev
-          libgpg-error-dev
-          libgstreamer1.0-dev
         )
 
         if [ "$TARGET_ARCHITECTURE" = "32" ]; then
@@ -116,6 +99,29 @@ runs:
             libgpgme-dev:i386
             libgpg-error-dev:i386
             libgstreamer1.0-dev:i386
+          )
+        else
+          PKGS+=(
+            libusb-1.0-0
+            zlib1g
+            libssl3
+            libgtest-dev
+            libusb-1.0-0-dev
+            zlib1g-dev
+            libssl-dev
+            libsbc-dev
+            libgbm-dev
+            libdrm-dev
+            libegl-dev
+            libgles2-mesa-dev
+            libpng-dev
+            libsystemd-dev
+            libicu-dev
+            libarchive-dev
+            libcurl4-openssl-dev
+            libgstreamer1.0-dev
+            libgpgme-dev
+            libgpg-error-dev
           )
         fi
 
