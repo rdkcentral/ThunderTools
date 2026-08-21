@@ -224,7 +224,7 @@ TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
     std::vector<uint8_t> copy = data;
     Core::OptionalType<std::vector<uint8_t>> optData;
     optData = data;
-    ASSERT_EQ(_proxy->ProcessOptionalVector(optData), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData), Core::ERROR_NONE);
     ASSERT_EQ(optData.IsSet(), true);
     ASSERT_EQ(optData.Value().size(), copy.size());
     // process multiplies by 2
@@ -235,7 +235,7 @@ TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
 
 TEST_F(TestOptionals, ProcessOptionalInlineVector_Unset) {
     Core::OptionalType<std::vector<uint8_t>> optData;
-    ASSERT_EQ(_proxy->ProcessOptionalVector(optData), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData), Core::ERROR_NONE);
     ASSERT_EQ(optData.IsSet(), false);
 }
 
