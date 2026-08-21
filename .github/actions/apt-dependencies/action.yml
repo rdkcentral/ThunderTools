@@ -70,6 +70,7 @@ runs:
           build-essential
           cmake
           ninja-build
+          libgtest-dev
           autoconf
           automake
           libtool
@@ -83,7 +84,6 @@ runs:
             g++-multilib
             gcc-13-multilib
             g++-13-multilib
-            libgtest-dev:i386
             libusb-1.0-0-dev:i386
             zlib1g-dev:i386
             libssl-dev:i386
@@ -106,7 +106,6 @@ runs:
             libusb-1.0-0
             zlib1g
             libssl3
-            libgtest-dev
             libusb-1.0-0-dev
             zlib1g-dev
             libssl-dev
