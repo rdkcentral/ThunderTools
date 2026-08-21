@@ -164,8 +164,8 @@ namespace TestImplementation {
                 cp.magic = input.Value().magic;
                 cp.optionalMagic = input.Value().optionalMagic;
 
-                std::for_each(input.Value().data.begin(), input.Value().data.end(), [](uint8_t& num) {
-                    num *= 2;
+                std::transform(input.Value().data.begin(), input.Value().data.end(), cp.data.begin(), [](uint8_t x) {
+                    return static_cast<uint8_t>(x * 2);
                 });
 
                 if (input.Value().optionalData.IsSet() == true) {
