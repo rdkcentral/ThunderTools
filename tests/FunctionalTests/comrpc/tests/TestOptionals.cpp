@@ -199,7 +199,7 @@ TEST_F(TestOptionals, ProcessOptionalBuffer_NoOutput) {
 // ===== Optional vector =====
 
 TEST_F(TestOptionals, ProcessOptionalVector_Set) {
-    std::vector<uint8_t> input{1,2,3,4};
+    std::vector<uint8_t> input{ 1,2,3,4 };
     Core::OptionalType<std::vector<uint8_t>> optOutput;
     Core::OptionalType<std::vector<uint8_t>> optInput;
     optInput = input;
@@ -220,11 +220,11 @@ TEST_F(TestOptionals, ProcessOptionalVector_Unset) {
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
-    std::vector<uint8_t> data{1,2,3,4};
+    std::vector<uint8_t> data{ 1,2,3,4 };
     std::vector<uint8_t> copy = data;
     Core::OptionalType<std::vector<uint8_t>> optData;
     optData = data;
-    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
     ASSERT_EQ(optData.IsSet(), true);
     ASSERT_EQ(optData.Value().size(), copy.size());
     // process multiplies by 2
@@ -235,8 +235,63 @@ TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
 
 TEST_F(TestOptionals, ProcessOptionalInlineVector_Unset) {
     Core::OptionalType<std::vector<uint8_t>> optData;
-    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
     ASSERT_EQ(optData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector_SetToUnset) {
+    std::vector<uint8_t> data{ 1,2,3,4 };
+    std::vector<uint8_t> copy = data;
+    Core::OptionalType<std::vector<uint8_t>> optData;
+    optData = data;
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, true), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
+    Compound compoud;
+    compound.magic = "hokus";
+    compound.optionalMagic = "pokus";
+    compound.data = { 1,2,3,4 };
+    compound.optionalData = { 11,12,13,14 };
+    Core::OptionalType<std::vector<uint8_t>> optOutput;
+    Core::OptionalType<std::vector<uint8_t>> optInput;
+    optInput = compound;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), true);
+    EXPECT_EQ(optOutput.Value().magic, compound.magic);
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), true)
+    EXPECT_EQ(optOutput.Value().optionalMagic.Value(), compound.optionalMagic.Value());
+    ASSERT_EQ(optOutput.Value().data.size(), compound.data.size());
+    // process multiplies by 2
+    for (uint8_t i = 0; i < compound.data.size(); i++) {
+        EXPECT_EQ(optOutput.Value().data[i], compound.data[i]*2);
+    }
+    ASSERT_EQ(optOutput.Value().optionalData.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().optionalData.Value().size(), compound.optionalData.Value().size());
+    // process multiplies by 2
+    for (uint8_t i = 0; i < compound.optionalData.Value().size(); i++) {
+        EXPECT_EQ(optOutput.Value().optionalData.Value()[i], compound.optionalData.Value()[i]*2);
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
+    Compound compoud;
+    compound.magic = "hokus";
+    compound.data = { 1,2,3,4 };
+    Core::OptionalType<std::vector<uint8_t>> optOutput;
+    Core::OptionalType<std::vector<uint8_t>> optInput;
+    optInput = compound;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), true);
+    EXPECT_EQ(optOutput.Value().magic, compound.magic);
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), false)
+    ASSERT_EQ(optOutput.Value().data.size(), compound.data.size());
+    // process multiplies by 2
+    for (uint8_t i = 0; i < compound.data.size(); i++) {
+        EXPECT_EQ(optOutput.Value().data[i], compound.data[i]*2);
+    }
+    ASSERT_EQ(optOutput.Value().optionalData.IsSet(), false);
 }
 
 // ===== AllOptional =====

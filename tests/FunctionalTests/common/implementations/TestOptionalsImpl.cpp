@@ -139,12 +139,17 @@ namespace TestImplementation {
         }
 
         Core::hresult ProcessOptionalInlineVector(
-            Core::OptionalType<std::vector<uint8_t>>& data) override
+            Core::OptionalType<std::vector<uint8_t>>& data, const bool unset) override
         {
             if (data.IsSet() == true) {
-                std::for_each(data.Value().begin(), data.Value().end(), [](uint8_t& num) {
-                    num *= 2;
-                });
+                if (unset == true) {
+                    data = Core::OptionalType<std::vector<uint8_t>>();
+                }
+                else {
+                    std::for_each(data.Value().begin(), data.Value().end(), [](uint8_t& num) {
+                        num *= 2;
+                    });
+                }
             }
             return Core::ERROR_NONE;
         }
