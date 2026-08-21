@@ -14,7 +14,7 @@
 
 cmake_minimum_required(VERSION 3.15)
 
-option(FUNCTIONAL_TESTS "Enable functional interface tests" OFF)
+option(FUNCTIONAL_TESTS "Enable functional interface tests" ON)
 
 if(FUNCTIONAL_TESTS)
     add_subdirectory(FunctionalTests)

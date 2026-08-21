@@ -126,7 +126,7 @@ namespace TestImplementation {
         {
             if (input.IsSet() == true) {
                 std::vector<uint8_t> data;
-                std::transform(input.Value().begin(), input.Value().end(), data.begin(), [](int x) {
+                std::transform(input.Value().begin(), input.Value().end(), data.begin(), [](uint8_t x) {
                     return x * 2;
                 });
                 output = std::move(data);
@@ -138,7 +138,7 @@ namespace TestImplementation {
             Core::OptionalType<std::vector<uint8_t>>& data) override
         {
             if (data.IsSet() == true) {
-                std::for_each(data.Value().begin(), data.Value().end(), [](int &num) {
+                std::for_each(data.Value().begin(), data.Value().end(), [](uint8_t &num) {
                     num *= 2;
                 });
             }
