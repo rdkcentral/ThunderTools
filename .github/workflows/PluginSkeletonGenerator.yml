@@ -669,6 +669,9 @@ jobs:
         architecture: ['32', '64']
 
     steps:
+      - name: Checkout ThunderTools
+        uses: actions/checkout@v5
+
       - name: Install build tools
         uses: ./.github/actions/apt-dependencies
         with:
