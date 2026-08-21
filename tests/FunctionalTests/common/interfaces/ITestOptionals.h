@@ -135,7 +135,7 @@ namespace FunctionalTest {
         // @brief Process an input vector into an output vector.
         virtual Core::hresult ProcessOptionalVector(
             const Core::OptionalType<std::vector<uint8_t>>& input /* @restrict:8 */,
-            Core::OptionalType<std::vector<uint8_t>>& input /* @out @restrict:8 */) = 0;
+            Core::OptionalType<std::vector<uint8_t>>& output /* @out @restrict:8 */) = 0;
 
         // @brief Process an input vector into same output vector.
         virtual Core::hresult ProcessOptionalInlineVector(

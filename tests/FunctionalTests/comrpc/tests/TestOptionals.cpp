@@ -214,7 +214,7 @@ TEST_F(TestOptionals, ProcessOptionalVector_Set) {
 
 TEST_F(TestOptionals, ProcessOptionalVector_Unset) {
     Core::OptionalType<std::vector<uint8_t>> optOutput;
-    Core::OptionalType<std::vector<uint8_t>> optInput;;
+    Core::OptionalType<std::vector<uint8_t>> optInput;
     ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
     ASSERT_EQ(optOutput.IsSet(), false);
 }
