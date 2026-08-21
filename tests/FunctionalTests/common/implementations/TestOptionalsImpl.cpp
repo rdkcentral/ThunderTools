@@ -183,6 +183,7 @@ namespace TestImplementation {
             else {
                 output = Core::OptionalType<Compound>();
             }
+            return Core::ERROR_NONE;
         }
 
         virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
@@ -209,7 +210,8 @@ namespace TestImplementation {
                         });
                     }
                 }
-s            }
+            }
+            return Core::ERROR_NONE;
         }
 
         Core::hresult AllOptional(
