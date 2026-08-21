@@ -2330,7 +2330,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         ReadParameter(length)
 
                         if not p.optional:
-                            emit.Line("%s.clear()" % (p.as_rvalue))
+                            emit.Line("%s.clear();" % (p.as_rvalue))
 
                         emit.Line("%s.reserve(%s);" % (obj_name, length.as_rvalue))
 
@@ -2401,7 +2401,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.Line("}")
                         emit.Line("else {")
                         emit.IndentInc()
-                        emit.Line("%s = {};" % (p.name))
+                        emit.Line("%s = %();" % (p.name, p.type_name))
                         emit.IndentDec()
                         emit.Line("}")
 
