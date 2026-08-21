@@ -1,0 +1,123 @@
+name: Install apt dependencies
+description: Update Ubuntu package indexes with mirror failover and install the shared CI dependency set
+inputs:
+  architecture:
+    description: Target architecture, using 32 for i386 and 64 or tests64 for amd64
+    required: false
+    default: 64
+runs:
+  using: composite
+  steps:
+    - name: Update and install apt dependencies
+      shell: bash
+      env:
+        TARGET_ARCHITECTURE: ${{ inputs.architecture }}
+      run: |
+        set -euo pipefail
+        export DEBIAN_FRONTEND=noninteractive
+
+        if [ "$TARGET_ARCHITECTURE" = "32" ]; then
+          sudo dpkg --add-architecture i386
+        fi
+
+        APT_OPTS=(
+          -o Acquire::Retries=3
+          -o Acquire::http::Timeout=20
+          -o Acquire::https::Timeout=20
+          -o Acquire::ConnectTimeout=10
+          -o Dpkg::Lock::Timeout=60
+        )
+        MIRRORS=("archive.ubuntu.com/ubuntu" "mirror.ubuntu.com/ubuntu")
+
+        switch_ubuntu_mirror() {
+          local mirror="$1"
+          echo "Switching Ubuntu mirror to http://${mirror}"
+          for source_file in /etc/apt/sources.list /etc/apt/sources.list.d/ubuntu.sources; do
+            if [ -f "$source_file" ]; then
+              sudo sed -i -E "s#^(URIs:[[:space:]]+|deb[[:space:]]+)[^[:space:]]+#\1http://${mirror}#" "$source_file"
+            fi
+          done
+        }
+
+        run_apt() {
+          local operation="$1"
+          shift
+          local attempt
+          local mirror_index=-1
+
+          for attempt in {1..6}; do
+            if [ "$attempt" -gt 2 ] && [ $(( (attempt - 1) % 2 )) -eq 0 ]; then
+              mirror_index=$((mirror_index + 1))
+              switch_ubuntu_mirror "${MIRRORS[$mirror_index]}"
+            fi
+            if timeout 300s sudo apt-get "$operation" "${APT_OPTS[@]}" "$@"; then
+              return 0
+            fi
+            echo "apt-get $operation failed (attempt $attempt), retrying..."
+            sleep $((attempt*15))
+          done
+
+          echo "apt-get $operation failed after trying 3 Ubuntu mirrors"
+          return 1
+        }
+
+        PKGS=(
+          python3-venv
+          python3-pip
+          libusb-1.0-0
+          zlib1g
+          libssl3
+          build-essential
+          cmake
+          ninja-build
+          libgtest-dev
+          libusb-1.0-0-dev
+          zlib1g-dev
+          libssl-dev
+          libsbc-dev
+          libgbm-dev
+          libdrm-dev
+          libegl-dev
+          libgles2-mesa-dev
+          libpng-dev
+          libsystemd-dev
+          libicu-dev
+          autoconf
+          automake
+          libtool
+          libtool-bin
+          pkg-config
+          libarchive-dev
+          libcurl4-openssl-dev
+          libgpgme-dev
+          libgpg-error-dev
+          libgstreamer1.0-dev
+        )
+
+        if [ "$TARGET_ARCHITECTURE" = "32" ]; then
+          PKGS+=(
+            gcc-multilib
+            g++-multilib
+            gcc-13-multilib
+            g++-13-multilib
+            libusb-1.0-0-dev:i386
+            zlib1g-dev:i386
+            libssl-dev:i386
+            libsbc-dev:i386
+            libgbm-dev:i386
+            libdrm-dev:i386
+            libegl-dev:i386
+            libgles2-mesa-dev:i386
+            libpng-dev:i386
+            libsystemd-dev:i386
+            libicu-dev:i386
+            libarchive-dev:i386
+            libcurl4-openssl-dev:i386
+            libgpgme-dev:i386
+            libgpg-error-dev:i386
+            libgstreamer1.0-dev:i386
+          )
+        fi
+
+        run_apt update
+        run_apt install -y --no-install-recommends "${PKGS[@]}"
