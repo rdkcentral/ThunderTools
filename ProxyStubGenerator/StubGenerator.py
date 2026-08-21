@@ -1632,7 +1632,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                     if not p.suppress_type:
                         if p.optional:
-                            obj_name = Normalize(obj_name + "Object__")
+                            obj_name = Normalize(p.name + "Object__")
                             emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
                         else:
                             emit.Line("%s %s{};" % (p.type_name, obj_name))
@@ -1641,7 +1641,6 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     ReadParameter(length)
                     CheckRange(p, ("%s" % length.as_rvalue))
                     emit.Line("%s.reserve(%s);" % (obj_name, length.as_rvalue))
-
                     index = chr(ord('i') + p.name.count('Item'))
                     element = EmitParam(interface, p.element, Normalize(obj_name + "Item"), parent=p)
                     emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
@@ -2320,17 +2319,32 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     elif p.is_dynamic_array:
                         length = EmitLength(interface, p.length, Normalize(p.name + "Size"))
                         element = EmitParam(interface, p.element, Normalize(p.name + "Item"), parent=p)
+
+                        obj_name = p.as_rvalue
+
+                        if p.optional:
+                            obj_name = Normalize(p.name + "Object__")
+                            emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
+
                         emit.Line("%s{};" % (length.temporary_no_cv))
                         ReadParameter(length)
-                        emit.Line("%s.reserve(%s);" % (p.as_rvalue, length.as_rvalue))
+
+                        if not p.optional:
+                            emit.Line("%s.clear()" % (p.as_rvalue))
+
+                        emit.Line("%s.reserve(%s);" % (obj_name, length.as_rvalue))
+
                         index = chr(ord('i') + p.name.count('Item'))
                         emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
                         emit.IndentInc()
                         emit.Line("%s{};" % (element.temporary_no_cv))
                         ReadParameter(element)
-                        emit.Line("%s.push_back(std::move(%s));" % (p.as_rvalue, element.as_rvalue))
+                        emit.Line("%s.push_back(std::move(%s));" % (obj_name, element.as_rvalue))
                         emit.IndentDec()
                         emit.Line("}")
+
+                        if p.optional:
+                            emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                     elif p.is_buffer:
                         CheckFrame(p)
@@ -2383,6 +2397,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         _EmitAssignment(p.optional if p.optional else p)
 
                     if p.optional and (not p.is_array or no_array):
+                        emit.IndentDec()
+                        emit.Line("}")
+                        emit.Line("else {")
+                        emit.IndentInc()
+                        emit.Line("%s = {};" % (p.name))
                         emit.IndentDec()
                         emit.Line("}")
 
