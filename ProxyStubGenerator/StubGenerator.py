@@ -1640,18 +1640,18 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     length = EmitParam(interface, p.length, Normalize("%sSize" % obj_name))
                     ReadParameter(length)
                     CheckRange(p, ("%s" % length.as_rvalue))
-                    emit.Line("%s.reserve(%s);" % (p.as_rvalue, length.as_rvalue))
+                    emit.Line("%s.reserve(%s);" % (obj_name, length.as_rvalue))
 
                     index = chr(ord('i') + p.name.count('Item'))
                     element = EmitParam(interface, p.element, Normalize(obj_name + "Item"), parent=p)
                     emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
                     emit.IndentInc()
                     ReadParameter(element)
-                    emit.Line("%s.push_back(std::move(%s));" % (p.as_rvalue, element.as_rvalue))
+                    emit.Line("%s.push_back(std::move(%s));" % (obj_name, element.as_rvalue))
                     emit.IndentDec()
                     emit.Line("}")
 
-                    if p.optional:
+                    if not p.suppress_type and p.optional:
                         emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                 # POD
