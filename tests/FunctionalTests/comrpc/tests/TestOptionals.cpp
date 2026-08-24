@@ -257,7 +257,7 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
     Core::OptionalType<ITestOptionals::Compound> optOutput;
     Core::OptionalType<ITestOptionals::Compound> optInput;
     optInput = compound;
-    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
     ASSERT_EQ(optOutput.IsSet(), true);
     EXPECT_EQ(optOutput.Value().magic, compound.magic);
     ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), true)
@@ -282,7 +282,7 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
     Core::OptionalType<ITestOptionals::Compound> optOutput;
     Core::OptionalType<ITestOptionals::Compound> optInput;
     optInput = compound;
-    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
     ASSERT_EQ(optOutput.IsSet(), true);
     EXPECT_EQ(optOutput.Value().magic, compound.magic);
     ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), false)
