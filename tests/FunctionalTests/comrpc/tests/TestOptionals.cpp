@@ -260,7 +260,7 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
     ASSERT_EQ(optOutput.IsSet(), true);
     EXPECT_EQ(optOutput.Value().magic, compound.magic);
-    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), true)
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), true);
     EXPECT_EQ(optOutput.Value().optionalMagic.Value(), compound.optionalMagic.Value());
     ASSERT_EQ(optOutput.Value().data.size(), compound.data.size());
     // process multiplies by 2
@@ -285,7 +285,7 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
     ASSERT_EQ(optOutput.IsSet(), true);
     EXPECT_EQ(optOutput.Value().magic, compound.magic);
-    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), false)
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), false);
     ASSERT_EQ(optOutput.Value().data.size(), compound.data.size());
     // process multiplies by 2
     for (uint8_t i = 0; i < compound.data.size(); i++) {
