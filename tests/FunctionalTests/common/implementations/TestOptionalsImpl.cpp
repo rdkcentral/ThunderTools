@@ -163,7 +163,7 @@ namespace TestImplementation {
                 Compound cp;
                 cp.magic = input.Value().magic;
                 cp.optionalMagic = input.Value().optionalMagic;
-                cp.data.reserve(input.Value().data.size());
+                cp.data.resize(input.Value().data.size());
 
                 std::transform(input.Value().data.begin(), input.Value().data.end(), cp.data.begin(), [](uint8_t x) {
                     return static_cast<uint8_t>(x * 2);
