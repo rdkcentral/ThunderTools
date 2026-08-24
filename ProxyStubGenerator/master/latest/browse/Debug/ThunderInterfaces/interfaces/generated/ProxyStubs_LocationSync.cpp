@@ -239,17 +239,32 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.city = reader.Text();
                 }
+                else {
+                    _info.city = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.country = reader.Text();
+                }
+                else {
+                    _info.country = Core::OptionalType<string>();
                 }
                 if (reader.Boolean() == true) {
                     _info.region = reader.Text();
                 }
+                else {
+                    _info.region = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.timeZone = reader.Text();
                 }
+                else {
+                    _info.timeZone = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.publicIP = reader.Text();
+                }
+                else {
+                    _info.publicIP = Core::OptionalType<string>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

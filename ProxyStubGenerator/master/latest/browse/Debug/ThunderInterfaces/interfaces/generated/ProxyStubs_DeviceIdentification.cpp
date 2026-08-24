@@ -84,8 +84,14 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.firmwareVersion = reader.Text();
                 }
+                else {
+                    _info.firmwareVersion = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.chipset = reader.Text();
+                }
+                else {
+                    _info.chipset = Core::OptionalType<string>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

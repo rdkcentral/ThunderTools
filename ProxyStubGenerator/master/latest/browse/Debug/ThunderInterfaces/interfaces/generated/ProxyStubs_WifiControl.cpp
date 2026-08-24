@@ -707,6 +707,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
                 }
+                else {
+                    _info.keys = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
+                }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }
@@ -727,6 +730,9 @@ namespace ProxyStubs {
                 _info.method = reader.Number<Exchange::IWifiControl::Security>();
                 if (reader.Boolean() == true) {
                     _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
+                }
+                else {
+                    _info.keys = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -792,6 +798,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     result.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
                 }
+                else {
+                    result.keys = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
+                }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }
@@ -833,6 +842,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.ssid = reader.Text();
                 }
+                else {
+                    _info.ssid = Core::OptionalType<string>();
+                }
                 _info.bssid = reader.Number<uint64_t>();
                 _info.frequency = reader.Number<uint32_t>();
                 _info.signal = reader.Number<int32_t>();
@@ -856,6 +868,9 @@ namespace ProxyStubs {
                 result = reader.Boolean();
                 if (reader.Boolean() == true) {
                     _info.ssid = reader.Text();
+                }
+                else {
+                    _info.ssid = Core::OptionalType<string>();
                 }
                 _info.bssid = reader.Number<uint64_t>();
                 _info.frequency = reader.Number<uint32_t>();
@@ -923,6 +938,9 @@ namespace ProxyStubs {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 if (reader.Boolean() == true) {
                     result.ssid = reader.Text();
+                }
+                else {
+                    result.ssid = Core::OptionalType<string>();
                 }
                 result.bssid = reader.Number<uint64_t>();
                 result.frequency = reader.Number<uint32_t>();
@@ -1187,15 +1205,27 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _configInfo.ssid = reader.Text();
                 }
+                else {
+                    _configInfo.ssid = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _configInfo.secret = reader.Text();
+                }
+                else {
+                    _configInfo.secret = Core::OptionalType<string>();
                 }
                 if (reader.Boolean() == true) {
                     _configInfo.identity = reader.Text();
                 }
+                else {
+                    _configInfo.identity = Core::OptionalType<string>();
+                }
                 _configInfo.method = reader.Number<Exchange::IWifiControl::Security>();
                 if (reader.Boolean() == true) {
                     _configInfo.key = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
+                }
+                else {
+                    _configInfo.key = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

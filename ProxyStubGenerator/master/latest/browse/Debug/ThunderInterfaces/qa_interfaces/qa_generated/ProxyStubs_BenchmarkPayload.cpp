@@ -1132,6 +1132,7 @@ namespace ProxyStubs {
                 hresult = reader.Number<Core::hresult>();
                 uint16_t _outputSize{};
                 _outputSize = reader.Number<uint16_t>();
+                _output.clear();
                 _output.reserve(_outputSize);
                 for (uint16_t i = 0; i < _outputSize; i++) {
                     uint32_t _outputItem{};

@@ -386,6 +386,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.source = reader.Text();
                 }
+                else {
+                    _info.source = Core::OptionalType<string>();
+                }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }

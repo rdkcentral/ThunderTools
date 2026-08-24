@@ -889,6 +889,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _value.metadata = reader.Text();
                 }
+                else {
+                    _value.metadata = Core::OptionalType<string>();
+                }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }

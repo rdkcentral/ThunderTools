@@ -2888,6 +2888,9 @@ namespace ProxyStubs {
                             if (reader.Length() < (Core::RealSize<Controller::IMetadata::Data::BuildInfo::extensiontype>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _buildInfo.Extensions = reader.Number<Controller::IMetadata::Data::BuildInfo::extensiontype>();
                         }
+                        else {
+                            _buildInfo.Extensions = Core::OptionalType<Controller::IMetadata::Data::BuildInfo::extensiontype>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _buildInfo.Messaging = reader.Boolean();
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -2902,6 +2905,9 @@ namespace ProxyStubs {
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _buildInfo.TraceLevel = reader.Number<uint8_t>();
+                        }
+                        else {
+                            _buildInfo.TraceLevel = Core::OptionalType<uint8_t>();
                         }
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _buildInfo.ThreadPoolCount = reader.Number<uint8_t>();

@@ -1496,6 +1496,9 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _value_metadataPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _value.metadata = reader.Text();
                         }
+                        else {
+                            _value.metadata = Core::OptionalType<string>();
+                        }
                     }
 
                     return (hresult);

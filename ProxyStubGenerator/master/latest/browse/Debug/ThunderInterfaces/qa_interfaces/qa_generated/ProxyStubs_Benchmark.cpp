@@ -424,6 +424,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.failureReason = reader.Number<QualityAssurance::IBenchmark::FailureReason>();
                 }
+                else {
+                    _info.failureReason = Core::OptionalType<QualityAssurance::IBenchmark::FailureReason>();
+                }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
             }
@@ -454,6 +457,9 @@ namespace ProxyStubs {
                 _info.passed = reader.Boolean();
                 if (reader.Boolean() == true) {
                     _info.failureReason = reader.Number<QualityAssurance::IBenchmark::FailureReason>();
+                }
+                else {
+                    _info.failureReason = Core::OptionalType<QualityAssurance::IBenchmark::FailureReason>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -528,6 +534,9 @@ namespace ProxyStubs {
                 result.passed = reader.Boolean();
                 if (reader.Boolean() == true) {
                     result.failureReason = reader.Number<QualityAssurance::IBenchmark::FailureReason>();
+                }
+                else {
+                    result.failureReason = Core::OptionalType<QualityAssurance::IBenchmark::FailureReason>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

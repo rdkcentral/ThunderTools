@@ -508,11 +508,17 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _profile.codecParams = reader.Text();
                 }
+                else {
+                    _profile.codecParams = Core::OptionalType<string>();
+                }
                 _profile.channels = reader.Number<uint8_t>();
                 _profile.resolution = reader.Number<uint8_t>();
                 _profile.sampleRate = reader.Number<uint32_t>();
                 if (reader.Boolean() == true) {
                     _profile.bitRate = reader.Number<uint32_t>();
+                }
+                else {
+                    _profile.bitRate = Core::OptionalType<uint32_t>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

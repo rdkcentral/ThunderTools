@@ -1801,6 +1801,9 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _buildInfo.Extensions = reader.Number<Controller::IMetadata::Data::BuildInfo::extensiontype>();
                 }
+                else {
+                    _buildInfo.Extensions = Core::OptionalType<Controller::IMetadata::Data::BuildInfo::extensiontype>();
+                }
                 _buildInfo.Messaging = reader.Boolean();
                 _buildInfo.ExceptionCatching = reader.Boolean();
                 _buildInfo.DeadlockDetection = reader.Boolean();
@@ -1808,6 +1811,9 @@ namespace ProxyStubs {
                 _buildInfo.InstanceIDBits = reader.Number<uint8_t>();
                 if (reader.Boolean() == true) {
                     _buildInfo.TraceLevel = reader.Number<uint8_t>();
+                }
+                else {
+                    _buildInfo.TraceLevel = Core::OptionalType<uint8_t>();
                 }
                 _buildInfo.ThreadPoolCount = reader.Number<uint8_t>();
                 _buildInfo.COMRPCTimeOut = reader.Number<uint32_t>();

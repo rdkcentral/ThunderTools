@@ -598,12 +598,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_modelPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.model = reader.Text();
                         }
+                        else {
+                            _info.model = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _info_serialPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_serialPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.serial = reader.Text();
+                        }
+                        else {
+                            _info.serial = Core::OptionalType<string>();
                         }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
@@ -612,6 +618,9 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_firmwarePeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.firmware = reader.Text();
                         }
+                        else {
+                            _info.firmware = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -619,12 +628,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_softwarePeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.software = reader.Text();
                         }
+                        else {
+                            _info.software = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _info_manufacturerPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_manufacturerPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.manufacturer = reader.Text();
+                        }
+                        else {
+                            _info.manufacturer = Core::OptionalType<string>();
                         }
                     }
 

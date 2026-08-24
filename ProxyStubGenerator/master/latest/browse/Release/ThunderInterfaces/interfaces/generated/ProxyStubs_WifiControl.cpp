@@ -1219,6 +1219,9 @@ namespace ProxyStubs {
                         if (reader.Length() < (Core::RealSize<Exchange::IWifiControl::SecurityInfo::Key>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
                     }
+                    else {
+                        _info.keys = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
+                    }
 
                     return (Core::ERROR_NONE);
                 } ();
@@ -1252,6 +1255,9 @@ namespace ProxyStubs {
                     if (reader.Boolean() == true) {
                         if (reader.Length() < (Core::RealSize<Exchange::IWifiControl::SecurityInfo::Key>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _info.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
+                    }
+                    else {
+                        _info.keys = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
                     }
 
                     return (Core::ERROR_NONE);
@@ -1362,6 +1368,9 @@ namespace ProxyStubs {
                         if (reader.Length() < (Core::RealSize<Exchange::IWifiControl::SecurityInfo::Key>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         result.keys = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
                     }
+                    else {
+                        result.keys = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
+                    }
 
                     return (Core::ERROR_NONE);
                 } ();
@@ -1417,6 +1426,9 @@ namespace ProxyStubs {
                         if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_ssidPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _info.ssid = reader.Text();
                     }
+                    else {
+                        _info.ssid = Core::OptionalType<string>();
+                    }
                     if (reader.Length() < (Core::RealSize<uint64_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                     _info.bssid = reader.Number<uint64_t>();
                     if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -1458,6 +1470,9 @@ namespace ProxyStubs {
                         const uint16_t _info_ssidPeekedLen__ = reader.PeekNumber<uint16_t>();
                         if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_ssidPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _info.ssid = reader.Text();
+                    }
+                    else {
+                        _info.ssid = Core::OptionalType<string>();
                     }
                     if (reader.Length() < (Core::RealSize<uint64_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                     _info.bssid = reader.Number<uint64_t>();
@@ -1575,6 +1590,9 @@ namespace ProxyStubs {
                         const uint16_t result_ssidPeekedLen__ = reader.PeekNumber<uint16_t>();
                         if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + result_ssidPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         result.ssid = reader.Text();
+                    }
+                    else {
+                        result.ssid = Core::OptionalType<string>();
                     }
                     if (reader.Length() < (Core::RealSize<uint64_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                     result.bssid = reader.Number<uint64_t>();
@@ -1994,12 +2012,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _configInfo_ssidPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _configInfo.ssid = reader.Text();
                         }
+                        else {
+                            _configInfo.ssid = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _configInfo_secretPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _configInfo_secretPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _configInfo.secret = reader.Text();
+                        }
+                        else {
+                            _configInfo.secret = Core::OptionalType<string>();
                         }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
@@ -2008,12 +2032,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _configInfo_identityPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _configInfo.identity = reader.Text();
                         }
+                        else {
+                            _configInfo.identity = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (Core::RealSize<Exchange::IWifiControl::Security>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _configInfo.method = reader.Number<Exchange::IWifiControl::Security>();
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<Exchange::IWifiControl::SecurityInfo::Key>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _configInfo.key = reader.Number<Exchange::IWifiControl::SecurityInfo::Key>();
+                        }
+                        else {
+                            _configInfo.key = Core::OptionalType<Exchange::IWifiControl::SecurityInfo::Key>();
                         }
                     }
 

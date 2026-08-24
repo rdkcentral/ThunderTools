@@ -363,17 +363,32 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     _info.model = reader.Text();
                 }
+                else {
+                    _info.model = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.serial = reader.Text();
+                }
+                else {
+                    _info.serial = Core::OptionalType<string>();
                 }
                 if (reader.Boolean() == true) {
                     _info.firmware = reader.Text();
                 }
+                else {
+                    _info.firmware = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.software = reader.Text();
                 }
+                else {
+                    _info.software = Core::OptionalType<string>();
+                }
                 if (reader.Boolean() == true) {
                     _info.manufacturer = reader.Text();
+                }
+                else {
+                    _info.manufacturer = Core::OptionalType<string>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

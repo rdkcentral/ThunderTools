@@ -842,6 +842,9 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _profile_codecParamsPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _profile.codecParams = reader.Text();
                         }
+                        else {
+                            _profile.codecParams = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _profile.channels = reader.Number<uint8_t>();
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -852,6 +855,9 @@ namespace ProxyStubs {
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint32_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _profile.bitRate = reader.Number<uint32_t>();
+                        }
+                        else {
+                            _profile.bitRate = Core::OptionalType<uint32_t>();
                         }
                     }
 

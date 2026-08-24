@@ -467,11 +467,11 @@ namespace ProxyStubs {
                     uint8_t _addressObject__Size = reader.Number<uint8_t>();
                     ASSERT((_addressObject__Size >= 6) && (_addressObject__Size <= 6));
                     if (!((_addressObject__Size >= 6) && (_addressObject__Size <= 6))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }
-                    _address.Value().reserve(_addressObject__Size);
+                    _addressObject__.reserve(_addressObject__Size);
                     for (uint8_t i = 0; i < _addressObject__Size; i++) {
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         uint8_t _addressObject__Item = reader.Number<uint8_t>();
-                        _address.Value().push_back(std::move(_addressObject__Item));
+                        _addressObject__.push_back(std::move(_addressObject__Item));
                     }
                     _address = std::move(_addressObject__);
                 }
@@ -1626,11 +1626,11 @@ namespace ProxyStubs {
                     uint8_t _addressObject__Size = reader.Number<uint8_t>();
                     ASSERT((_addressObject__Size >= 6) && (_addressObject__Size <= 6));
                     if (!((_addressObject__Size >= 6) && (_addressObject__Size <= 6))) { return (COM_ERROR | Core::ERROR_INVALID_RANGE); }
-                    _address.Value().reserve(_addressObject__Size);
+                    _addressObject__.reserve(_addressObject__Size);
                     for (uint8_t i = 0; i < _addressObject__Size; i++) {
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         uint8_t _addressObject__Item = reader.Number<uint8_t>();
-                        _address.Value().push_back(std::move(_addressObject__Item));
+                        _addressObject__.push_back(std::move(_addressObject__Item));
                     }
                     _address = std::move(_addressObject__);
                 }
@@ -2725,6 +2725,7 @@ namespace ProxyStubs {
                         uint8_t _stringTablesSize{};
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _stringTablesSize = reader.Number<uint8_t>();
+                        _stringTables.clear();
                         _stringTables.reserve(_stringTablesSize);
                         for (uint8_t i = 0; i < _stringTablesSize; i++) {
                             string _stringTablesItem{};
@@ -2766,6 +2767,7 @@ namespace ProxyStubs {
                         uint8_t _stringTablesSize{};
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _stringTablesSize = reader.Number<uint8_t>();
+                        _stringTables.clear();
                         _stringTables.reserve(_stringTablesSize);
                         for (uint8_t i = 0; i < _stringTablesSize; i++) {
                             string _stringTablesItem{};
@@ -2778,6 +2780,7 @@ namespace ProxyStubs {
                         uint8_t _intTablesSize{};
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _intTablesSize = reader.Number<uint8_t>();
+                        _intTables.clear();
                         _intTables.reserve(_intTablesSize);
                         for (uint8_t i = 0; i < _intTablesSize; i++) {
                             uint8_t _intTablesItem{};
@@ -2816,18 +2819,23 @@ namespace ProxyStubs {
                     if ((hresult & COM_ERROR) == 0) {
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
+                            std::vector<string> _stringTablesObject__{};
                             uint8_t _stringTablesSize{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _stringTablesSize = reader.Number<uint8_t>();
-                            _stringTables.Value().reserve(_stringTablesSize);
+                            _stringTablesObject__.reserve(_stringTablesSize);
                             for (uint8_t i = 0; i < _stringTablesSize; i++) {
                                 string _stringTablesItem{};
                                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 const uint16_t _stringTablesItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _stringTablesItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _stringTablesItem = reader.Text();
-                                _stringTables.Value().push_back(std::move(_stringTablesItem));
+                                _stringTablesObject__.push_back(std::move(_stringTablesItem));
                             }
+                            _stringTables = std::move(_stringTablesObject__);
+                        }
+                        else {
+                            _stringTables = Core::OptionalType<std::vector<string>>();
                         }
                     }
 
@@ -2926,6 +2934,7 @@ namespace ProxyStubs {
                         uint8_t _pod_param1Size{};
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _pod_param1Size = reader.Number<uint8_t>();
+                        _pod.param1.clear();
                         _pod.param1.reserve(_pod_param1Size);
                         for (uint8_t i = 0; i < _pod_param1Size; i++) {
                             string _pod_param1Item{};
@@ -2938,6 +2947,7 @@ namespace ProxyStubs {
                         uint8_t _pod_param2Size{};
                         if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _pod_param2Size = reader.Number<uint8_t>();
+                        _pod.param2.clear();
                         _pod.param2.reserve(_pod_param2Size);
                         for (uint8_t i = 0; i < _pod_param2Size; i++) {
                             string _pod_param2Item{};
@@ -2949,33 +2959,43 @@ namespace ProxyStubs {
                         }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
+                            std::vector<string> _pod_param3Object__{};
                             uint8_t _pod_param3Size{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _pod_param3Size = reader.Number<uint8_t>();
-                            _pod.param3.Value().reserve(_pod_param3Size);
+                            _pod_param3Object__.reserve(_pod_param3Size);
                             for (uint8_t i = 0; i < _pod_param3Size; i++) {
                                 string _pod_param3Item{};
                                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 const uint16_t _pod_param3ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _pod_param3ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _pod_param3Item = reader.Text();
-                                _pod.param3.Value().push_back(std::move(_pod_param3Item));
+                                _pod_param3Object__.push_back(std::move(_pod_param3Item));
                             }
+                            _pod.param3 = std::move(_pod_param3Object__);
+                        }
+                        else {
+                            _pod.param3 = Core::OptionalType<std::vector<string>>();
                         }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
+                            std::vector<string> _pod_param4Object__{};
                             uint8_t _pod_param4Size{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _pod_param4Size = reader.Number<uint8_t>();
-                            _pod.param4.Value().reserve(_pod_param4Size);
+                            _pod_param4Object__.reserve(_pod_param4Size);
                             for (uint8_t i = 0; i < _pod_param4Size; i++) {
                                 string _pod_param4Item{};
                                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 const uint16_t _pod_param4ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _pod_param4ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _pod_param4Item = reader.Text();
-                                _pod.param4.Value().push_back(std::move(_pod_param4Item));
+                                _pod_param4Object__.push_back(std::move(_pod_param4Item));
                             }
+                            _pod.param4 = std::move(_pod_param4Object__);
+                        }
+                        else {
+                            _pod.param4 = Core::OptionalType<std::vector<string>>();
                         }
                         if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         const uint16_t _pod_param5_param0PeekedLen__ = reader.PeekNumber<uint16_t>();
@@ -2993,6 +3013,9 @@ namespace ProxyStubs {
                             if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _pod_param6Object__.param1 = reader.Boolean();
                             _pod.param6 = std::move(_pod_param6Object__);
+                        }
+                        else {
+                            _pod.param6 = Core::OptionalType<Example::ISimpleAsync::SmallRecord>();
                         }
                     }
 
@@ -3033,6 +3056,7 @@ namespace ProxyStubs {
                             uint8_t _podObject___param1Size{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _podObject___param1Size = reader.Number<uint8_t>();
+                            _podObject__.param1.clear();
                             _podObject__.param1.reserve(_podObject___param1Size);
                             for (uint8_t i = 0; i < _podObject___param1Size; i++) {
                                 string _podObject___param1Item{};
@@ -3045,6 +3069,7 @@ namespace ProxyStubs {
                             uint8_t _podObject___param2Size{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _podObject___param2Size = reader.Number<uint8_t>();
+                            _podObject__.param2.clear();
                             _podObject__.param2.reserve(_podObject___param2Size);
                             for (uint8_t i = 0; i < _podObject___param2Size; i++) {
                                 string _podObject___param2Item{};
@@ -3056,33 +3081,43 @@ namespace ProxyStubs {
                             }
                             if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             if (reader.Boolean() == true) {
+                                std::vector<string> _podObject___param3Object__{};
                                 uint8_t _podObject___param3Size{};
                                 if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _podObject___param3Size = reader.Number<uint8_t>();
-                                _podObject__.param3.Value().reserve(_podObject___param3Size);
+                                _podObject___param3Object__.reserve(_podObject___param3Size);
                                 for (uint8_t i = 0; i < _podObject___param3Size; i++) {
                                     string _podObject___param3Item{};
                                     if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     const uint16_t _podObject___param3ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                     if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _podObject___param3ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     _podObject___param3Item = reader.Text();
-                                    _podObject__.param3.Value().push_back(std::move(_podObject___param3Item));
+                                    _podObject___param3Object__.push_back(std::move(_podObject___param3Item));
                                 }
+                                _podObject__.param3 = std::move(_podObject___param3Object__);
+                            }
+                            else {
+                                _podObject__.param3 = Core::OptionalType<std::vector<string>>();
                             }
                             if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             if (reader.Boolean() == true) {
+                                std::vector<string> _podObject___param4Object__{};
                                 uint8_t _podObject___param4Size{};
                                 if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _podObject___param4Size = reader.Number<uint8_t>();
-                                _podObject__.param4.Value().reserve(_podObject___param4Size);
+                                _podObject___param4Object__.reserve(_podObject___param4Size);
                                 for (uint8_t i = 0; i < _podObject___param4Size; i++) {
                                     string _podObject___param4Item{};
                                     if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     const uint16_t _podObject___param4ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                     if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _podObject___param4ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     _podObject___param4Item = reader.Text();
-                                    _podObject__.param4.Value().push_back(std::move(_podObject___param4Item));
+                                    _podObject___param4Object__.push_back(std::move(_podObject___param4Item));
                                 }
+                                _podObject__.param4 = std::move(_podObject___param4Object__);
+                            }
+                            else {
+                                _podObject__.param4 = Core::OptionalType<std::vector<string>>();
                             }
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _podObject___param5_param0PeekedLen__ = reader.PeekNumber<uint16_t>();
@@ -3101,7 +3136,13 @@ namespace ProxyStubs {
                                 _podObject___param6Object__.param1 = reader.Boolean();
                                 _podObject__.param6 = std::move(_podObject___param6Object__);
                             }
+                            else {
+                                _podObject__.param6 = Core::OptionalType<Example::ISimpleAsync::SmallRecord>();
+                            }
                             _pod = std::move(_podObject__);
+                        }
+                        else {
+                            _pod = Core::OptionalType<Example::ISimpleAsync::Record>();
                         }
                     }
 
@@ -3137,35 +3178,48 @@ namespace ProxyStubs {
                             Example::ISimpleAsync::Record2 _podObject__{};
                             if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             if (reader.Boolean() == true) {
+                                std::vector<string> _podObject___param3Object__{};
                                 uint8_t _podObject___param3Size{};
                                 if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _podObject___param3Size = reader.Number<uint8_t>();
-                                _podObject__.param3.Value().reserve(_podObject___param3Size);
+                                _podObject___param3Object__.reserve(_podObject___param3Size);
                                 for (uint8_t i = 0; i < _podObject___param3Size; i++) {
                                     string _podObject___param3Item{};
                                     if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     const uint16_t _podObject___param3ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                     if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _podObject___param3ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     _podObject___param3Item = reader.Text();
-                                    _podObject__.param3.Value().push_back(std::move(_podObject___param3Item));
+                                    _podObject___param3Object__.push_back(std::move(_podObject___param3Item));
                                 }
+                                _podObject__.param3 = std::move(_podObject___param3Object__);
+                            }
+                            else {
+                                _podObject__.param3 = Core::OptionalType<std::vector<string>>();
                             }
                             if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             if (reader.Boolean() == true) {
+                                std::vector<string> _podObject___param4Object__{};
                                 uint8_t _podObject___param4Size{};
                                 if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _podObject___param4Size = reader.Number<uint8_t>();
-                                _podObject__.param4.Value().reserve(_podObject___param4Size);
+                                _podObject___param4Object__.reserve(_podObject___param4Size);
                                 for (uint8_t i = 0; i < _podObject___param4Size; i++) {
                                     string _podObject___param4Item{};
                                     if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     const uint16_t _podObject___param4ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                     if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _podObject___param4ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                     _podObject___param4Item = reader.Text();
-                                    _podObject__.param4.Value().push_back(std::move(_podObject___param4Item));
+                                    _podObject___param4Object__.push_back(std::move(_podObject___param4Item));
                                 }
+                                _podObject__.param4 = std::move(_podObject___param4Object__);
+                            }
+                            else {
+                                _podObject__.param4 = Core::OptionalType<std::vector<string>>();
                             }
                             _pod = std::move(_podObject__);
+                        }
+                        else {
+                            _pod = Core::OptionalType<Example::ISimpleAsync::Record2>();
                         }
                     }
 
@@ -3198,33 +3252,43 @@ namespace ProxyStubs {
                     if ((hresult & COM_ERROR) == 0) {
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
+                            std::vector<string> _pod_param3Object__{};
                             uint8_t _pod_param3Size{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _pod_param3Size = reader.Number<uint8_t>();
-                            _pod.param3.Value().reserve(_pod_param3Size);
+                            _pod_param3Object__.reserve(_pod_param3Size);
                             for (uint8_t i = 0; i < _pod_param3Size; i++) {
                                 string _pod_param3Item{};
                                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 const uint16_t _pod_param3ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _pod_param3ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _pod_param3Item = reader.Text();
-                                _pod.param3.Value().push_back(std::move(_pod_param3Item));
+                                _pod_param3Object__.push_back(std::move(_pod_param3Item));
                             }
+                            _pod.param3 = std::move(_pod_param3Object__);
+                        }
+                        else {
+                            _pod.param3 = Core::OptionalType<std::vector<string>>();
                         }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
+                            std::vector<string> _pod_param4Object__{};
                             uint8_t _pod_param4Size{};
                             if (reader.Length() < (Core::RealSize<uint8_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _pod_param4Size = reader.Number<uint8_t>();
-                            _pod.param4.Value().reserve(_pod_param4Size);
+                            _pod_param4Object__.reserve(_pod_param4Size);
                             for (uint8_t i = 0; i < _pod_param4Size; i++) {
                                 string _pod_param4Item{};
                                 if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 const uint16_t _pod_param4ItemPeekedLen__ = reader.PeekNumber<uint16_t>();
                                 if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _pod_param4ItemPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                                 _pod_param4Item = reader.Text();
-                                _pod.param4.Value().push_back(std::move(_pod_param4Item));
+                                _pod_param4Object__.push_back(std::move(_pod_param4Item));
                             }
+                            _pod.param4 = std::move(_pod_param4Object__);
+                        }
+                        else {
+                            _pod.param4 = Core::OptionalType<std::vector<string>>();
                         }
                     }
 
@@ -3261,6 +3325,9 @@ namespace ProxyStubs {
                             const uint16_t _resultPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _resultPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _result = reader.Text();
+                        }
+                        else {
+                            _result = Core::OptionalType<string>();
                         }
                     }
 

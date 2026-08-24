@@ -114,12 +114,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_firmwareVersionPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.firmwareVersion = reader.Text();
                         }
+                        else {
+                            _info.firmwareVersion = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _info_chipsetPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_chipsetPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.chipset = reader.Text();
+                        }
+                        else {
+                            _info.chipset = Core::OptionalType<string>();
                         }
                     }
 

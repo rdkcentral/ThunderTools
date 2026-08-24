@@ -1905,6 +1905,7 @@ namespace ProxyStubs {
                         uint16_t _outputSize{};
                         if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _outputSize = reader.Number<uint16_t>();
+                        _output.clear();
                         _output.reserve(_outputSize);
                         for (uint16_t i = 0; i < _outputSize; i++) {
                             uint32_t _outputItem{};

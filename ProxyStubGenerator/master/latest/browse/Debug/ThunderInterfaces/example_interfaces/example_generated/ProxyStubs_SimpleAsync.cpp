@@ -283,10 +283,10 @@ namespace ProxyStubs {
                 std::vector<uint8_t> _addressObject__{};
                 uint8_t _addressObject__Size = reader.Number<uint8_t>();
                 ASSERT((_addressObject__Size >= 6) && (_addressObject__Size <= 6));
-                _address.Value().reserve(_addressObject__Size);
+                _addressObject__.reserve(_addressObject__Size);
                 for (uint8_t i = 0; i < _addressObject__Size; i++) {
                     uint8_t _addressObject__Item = reader.Number<uint8_t>();
-                    _address.Value().push_back(std::move(_addressObject__Item));
+                    _addressObject__.push_back(std::move(_addressObject__Item));
                 }
                 _address = std::move(_addressObject__);
             }
@@ -974,10 +974,10 @@ namespace ProxyStubs {
                 std::vector<uint8_t> _addressObject__{};
                 uint8_t _addressObject__Size = reader.Number<uint8_t>();
                 ASSERT((_addressObject__Size >= 6) && (_addressObject__Size <= 6));
-                _address.Value().reserve(_addressObject__Size);
+                _addressObject__.reserve(_addressObject__Size);
                 for (uint8_t i = 0; i < _addressObject__Size; i++) {
                     uint8_t _addressObject__Item = reader.Number<uint8_t>();
-                    _address.Value().push_back(std::move(_addressObject__Item));
+                    _addressObject__.push_back(std::move(_addressObject__Item));
                 }
                 _address = std::move(_addressObject__);
             }
@@ -1678,6 +1678,7 @@ namespace ProxyStubs {
                 hresult = reader.Number<Core::hresult>();
                 uint8_t _stringTablesSize{};
                 _stringTablesSize = reader.Number<uint8_t>();
+                _stringTables.clear();
                 _stringTables.reserve(_stringTablesSize);
                 for (uint8_t i = 0; i < _stringTablesSize; i++) {
                     string _stringTablesItem{};
@@ -1704,6 +1705,7 @@ namespace ProxyStubs {
                 hresult = reader.Number<Core::hresult>();
                 uint8_t _stringTablesSize{};
                 _stringTablesSize = reader.Number<uint8_t>();
+                _stringTables.clear();
                 _stringTables.reserve(_stringTablesSize);
                 for (uint8_t i = 0; i < _stringTablesSize; i++) {
                     string _stringTablesItem{};
@@ -1712,6 +1714,7 @@ namespace ProxyStubs {
                 }
                 uint8_t _intTablesSize{};
                 _intTablesSize = reader.Number<uint8_t>();
+                _intTables.clear();
                 _intTables.reserve(_intTablesSize);
                 for (uint8_t i = 0; i < _intTablesSize; i++) {
                     uint8_t _intTablesItem{};
@@ -1737,14 +1740,19 @@ namespace ProxyStubs {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
                 if (reader.Boolean() == true) {
+                    std::vector<string> _stringTablesObject__{};
                     uint8_t _stringTablesSize{};
                     _stringTablesSize = reader.Number<uint8_t>();
-                    _stringTables.Value().reserve(_stringTablesSize);
+                    _stringTablesObject__.reserve(_stringTablesSize);
                     for (uint8_t i = 0; i < _stringTablesSize; i++) {
                         string _stringTablesItem{};
                         _stringTablesItem = reader.Text();
-                        _stringTables.Value().push_back(std::move(_stringTablesItem));
+                        _stringTablesObject__.push_back(std::move(_stringTablesItem));
                     }
+                    _stringTables = std::move(_stringTablesObject__);
+                }
+                else {
+                    _stringTables = Core::OptionalType<std::vector<string>>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -1806,6 +1814,7 @@ namespace ProxyStubs {
                 _pod.param0 = reader.Text();
                 uint8_t _pod_param1Size{};
                 _pod_param1Size = reader.Number<uint8_t>();
+                _pod.param1.clear();
                 _pod.param1.reserve(_pod_param1Size);
                 for (uint8_t i = 0; i < _pod_param1Size; i++) {
                     string _pod_param1Item{};
@@ -1814,6 +1823,7 @@ namespace ProxyStubs {
                 }
                 uint8_t _pod_param2Size{};
                 _pod_param2Size = reader.Number<uint8_t>();
+                _pod.param2.clear();
                 _pod.param2.reserve(_pod_param2Size);
                 for (uint8_t i = 0; i < _pod_param2Size; i++) {
                     string _pod_param2Item{};
@@ -1821,24 +1831,34 @@ namespace ProxyStubs {
                     _pod.param2.push_back(std::move(_pod_param2Item));
                 }
                 if (reader.Boolean() == true) {
+                    std::vector<string> _pod_param3Object__{};
                     uint8_t _pod_param3Size{};
                     _pod_param3Size = reader.Number<uint8_t>();
-                    _pod.param3.Value().reserve(_pod_param3Size);
+                    _pod_param3Object__.reserve(_pod_param3Size);
                     for (uint8_t i = 0; i < _pod_param3Size; i++) {
                         string _pod_param3Item{};
                         _pod_param3Item = reader.Text();
-                        _pod.param3.Value().push_back(std::move(_pod_param3Item));
+                        _pod_param3Object__.push_back(std::move(_pod_param3Item));
                     }
+                    _pod.param3 = std::move(_pod_param3Object__);
+                }
+                else {
+                    _pod.param3 = Core::OptionalType<std::vector<string>>();
                 }
                 if (reader.Boolean() == true) {
+                    std::vector<string> _pod_param4Object__{};
                     uint8_t _pod_param4Size{};
                     _pod_param4Size = reader.Number<uint8_t>();
-                    _pod.param4.Value().reserve(_pod_param4Size);
+                    _pod_param4Object__.reserve(_pod_param4Size);
                     for (uint8_t i = 0; i < _pod_param4Size; i++) {
                         string _pod_param4Item{};
                         _pod_param4Item = reader.Text();
-                        _pod.param4.Value().push_back(std::move(_pod_param4Item));
+                        _pod_param4Object__.push_back(std::move(_pod_param4Item));
                     }
+                    _pod.param4 = std::move(_pod_param4Object__);
+                }
+                else {
+                    _pod.param4 = Core::OptionalType<std::vector<string>>();
                 }
                 _pod.param5.param0 = reader.Text();
                 _pod.param5.param1 = reader.Boolean();
@@ -1847,6 +1867,9 @@ namespace ProxyStubs {
                     _pod_param6Object__.param0 = reader.Text();
                     _pod_param6Object__.param1 = reader.Boolean();
                     _pod.param6 = std::move(_pod_param6Object__);
+                }
+                else {
+                    _pod.param6 = Core::OptionalType<Example::ISimpleAsync::SmallRecord>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -1871,6 +1894,7 @@ namespace ProxyStubs {
                     _podObject__.param0 = reader.Text();
                     uint8_t _podObject___param1Size{};
                     _podObject___param1Size = reader.Number<uint8_t>();
+                    _podObject__.param1.clear();
                     _podObject__.param1.reserve(_podObject___param1Size);
                     for (uint8_t i = 0; i < _podObject___param1Size; i++) {
                         string _podObject___param1Item{};
@@ -1879,6 +1903,7 @@ namespace ProxyStubs {
                     }
                     uint8_t _podObject___param2Size{};
                     _podObject___param2Size = reader.Number<uint8_t>();
+                    _podObject__.param2.clear();
                     _podObject__.param2.reserve(_podObject___param2Size);
                     for (uint8_t i = 0; i < _podObject___param2Size; i++) {
                         string _podObject___param2Item{};
@@ -1886,24 +1911,34 @@ namespace ProxyStubs {
                         _podObject__.param2.push_back(std::move(_podObject___param2Item));
                     }
                     if (reader.Boolean() == true) {
+                        std::vector<string> _podObject___param3Object__{};
                         uint8_t _podObject___param3Size{};
                         _podObject___param3Size = reader.Number<uint8_t>();
-                        _podObject__.param3.Value().reserve(_podObject___param3Size);
+                        _podObject___param3Object__.reserve(_podObject___param3Size);
                         for (uint8_t i = 0; i < _podObject___param3Size; i++) {
                             string _podObject___param3Item{};
                             _podObject___param3Item = reader.Text();
-                            _podObject__.param3.Value().push_back(std::move(_podObject___param3Item));
+                            _podObject___param3Object__.push_back(std::move(_podObject___param3Item));
                         }
+                        _podObject__.param3 = std::move(_podObject___param3Object__);
+                    }
+                    else {
+                        _podObject__.param3 = Core::OptionalType<std::vector<string>>();
                     }
                     if (reader.Boolean() == true) {
+                        std::vector<string> _podObject___param4Object__{};
                         uint8_t _podObject___param4Size{};
                         _podObject___param4Size = reader.Number<uint8_t>();
-                        _podObject__.param4.Value().reserve(_podObject___param4Size);
+                        _podObject___param4Object__.reserve(_podObject___param4Size);
                         for (uint8_t i = 0; i < _podObject___param4Size; i++) {
                             string _podObject___param4Item{};
                             _podObject___param4Item = reader.Text();
-                            _podObject__.param4.Value().push_back(std::move(_podObject___param4Item));
+                            _podObject___param4Object__.push_back(std::move(_podObject___param4Item));
                         }
+                        _podObject__.param4 = std::move(_podObject___param4Object__);
+                    }
+                    else {
+                        _podObject__.param4 = Core::OptionalType<std::vector<string>>();
                     }
                     _podObject__.param5.param0 = reader.Text();
                     _podObject__.param5.param1 = reader.Boolean();
@@ -1913,7 +1948,13 @@ namespace ProxyStubs {
                         _podObject___param6Object__.param1 = reader.Boolean();
                         _podObject__.param6 = std::move(_podObject___param6Object__);
                     }
+                    else {
+                        _podObject__.param6 = Core::OptionalType<Example::ISimpleAsync::SmallRecord>();
+                    }
                     _pod = std::move(_podObject__);
+                }
+                else {
+                    _pod = Core::OptionalType<Example::ISimpleAsync::Record>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -1936,26 +1977,39 @@ namespace ProxyStubs {
                 if (reader.Boolean() == true) {
                     Example::ISimpleAsync::Record2 _podObject__{};
                     if (reader.Boolean() == true) {
+                        std::vector<string> _podObject___param3Object__{};
                         uint8_t _podObject___param3Size{};
                         _podObject___param3Size = reader.Number<uint8_t>();
-                        _podObject__.param3.Value().reserve(_podObject___param3Size);
+                        _podObject___param3Object__.reserve(_podObject___param3Size);
                         for (uint8_t i = 0; i < _podObject___param3Size; i++) {
                             string _podObject___param3Item{};
                             _podObject___param3Item = reader.Text();
-                            _podObject__.param3.Value().push_back(std::move(_podObject___param3Item));
+                            _podObject___param3Object__.push_back(std::move(_podObject___param3Item));
                         }
+                        _podObject__.param3 = std::move(_podObject___param3Object__);
+                    }
+                    else {
+                        _podObject__.param3 = Core::OptionalType<std::vector<string>>();
                     }
                     if (reader.Boolean() == true) {
+                        std::vector<string> _podObject___param4Object__{};
                         uint8_t _podObject___param4Size{};
                         _podObject___param4Size = reader.Number<uint8_t>();
-                        _podObject__.param4.Value().reserve(_podObject___param4Size);
+                        _podObject___param4Object__.reserve(_podObject___param4Size);
                         for (uint8_t i = 0; i < _podObject___param4Size; i++) {
                             string _podObject___param4Item{};
                             _podObject___param4Item = reader.Text();
-                            _podObject__.param4.Value().push_back(std::move(_podObject___param4Item));
+                            _podObject___param4Object__.push_back(std::move(_podObject___param4Item));
                         }
+                        _podObject__.param4 = std::move(_podObject___param4Object__);
+                    }
+                    else {
+                        _podObject__.param4 = Core::OptionalType<std::vector<string>>();
                     }
                     _pod = std::move(_podObject__);
+                }
+                else {
+                    _pod = Core::OptionalType<Example::ISimpleAsync::Record2>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -1976,24 +2030,34 @@ namespace ProxyStubs {
                 RPC::Data::Frame::Reader reader(message->Response().Reader());
                 hresult = reader.Number<Core::hresult>();
                 if (reader.Boolean() == true) {
+                    std::vector<string> _pod_param3Object__{};
                     uint8_t _pod_param3Size{};
                     _pod_param3Size = reader.Number<uint8_t>();
-                    _pod.param3.Value().reserve(_pod_param3Size);
+                    _pod_param3Object__.reserve(_pod_param3Size);
                     for (uint8_t i = 0; i < _pod_param3Size; i++) {
                         string _pod_param3Item{};
                         _pod_param3Item = reader.Text();
-                        _pod.param3.Value().push_back(std::move(_pod_param3Item));
+                        _pod_param3Object__.push_back(std::move(_pod_param3Item));
                     }
+                    _pod.param3 = std::move(_pod_param3Object__);
+                }
+                else {
+                    _pod.param3 = Core::OptionalType<std::vector<string>>();
                 }
                 if (reader.Boolean() == true) {
+                    std::vector<string> _pod_param4Object__{};
                     uint8_t _pod_param4Size{};
                     _pod_param4Size = reader.Number<uint8_t>();
-                    _pod.param4.Value().reserve(_pod_param4Size);
+                    _pod_param4Object__.reserve(_pod_param4Size);
                     for (uint8_t i = 0; i < _pod_param4Size; i++) {
                         string _pod_param4Item{};
                         _pod_param4Item = reader.Text();
-                        _pod.param4.Value().push_back(std::move(_pod_param4Item));
+                        _pod_param4Object__.push_back(std::move(_pod_param4Item));
                     }
+                    _pod.param4 = std::move(_pod_param4Object__);
+                }
+                else {
+                    _pod.param4 = Core::OptionalType<std::vector<string>>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);
@@ -2015,6 +2079,9 @@ namespace ProxyStubs {
                 hresult = reader.Number<Core::hresult>();
                 if (reader.Boolean() == true) {
                     _result = reader.Text();
+                }
+                else {
+                    _result = Core::OptionalType<string>();
                 }
             } else {
                 ASSERT((hresult & COM_ERROR) != 0);

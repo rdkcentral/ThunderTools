@@ -368,12 +368,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_cityPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.city = reader.Text();
                         }
+                        else {
+                            _info.city = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _info_countryPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_countryPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.country = reader.Text();
+                        }
+                        else {
+                            _info.country = Core::OptionalType<string>();
                         }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
@@ -382,6 +388,9 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_regionPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.region = reader.Text();
                         }
+                        else {
+                            _info.region = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
@@ -389,12 +398,18 @@ namespace ProxyStubs {
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_timeZonePeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.timeZone = reader.Text();
                         }
+                        else {
+                            _info.timeZone = Core::OptionalType<string>();
+                        }
                         if (reader.Length() < (1)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         if (reader.Boolean() == true) {
                             if (reader.Length() < (Core::RealSize<uint16_t>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             const uint16_t _info_publicIPPeekedLen__ = reader.PeekNumber<uint16_t>();
                             if (reader.Length() < (static_cast<uint32_t>(Core::RealSize<uint16_t>()) + _info_publicIPPeekedLen__)) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                             _info.publicIP = reader.Text();
+                        }
+                        else {
+                            _info.publicIP = Core::OptionalType<string>();
                         }
                     }
 

@@ -689,6 +689,9 @@ namespace ProxyStubs {
                         if (reader.Length() < (Core::RealSize<QualityAssurance::IBenchmark::FailureReason>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _info.failureReason = reader.Number<QualityAssurance::IBenchmark::FailureReason>();
                     }
+                    else {
+                        _info.failureReason = Core::OptionalType<QualityAssurance::IBenchmark::FailureReason>();
+                    }
 
                     return (Core::ERROR_NONE);
                 } ();
@@ -744,6 +747,9 @@ namespace ProxyStubs {
                     if (reader.Boolean() == true) {
                         if (reader.Length() < (Core::RealSize<QualityAssurance::IBenchmark::FailureReason>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         _info.failureReason = reader.Number<QualityAssurance::IBenchmark::FailureReason>();
+                    }
+                    else {
+                        _info.failureReason = Core::OptionalType<QualityAssurance::IBenchmark::FailureReason>();
                     }
 
                     return (Core::ERROR_NONE);
@@ -875,6 +881,9 @@ namespace ProxyStubs {
                     if (reader.Boolean() == true) {
                         if (reader.Length() < (Core::RealSize<QualityAssurance::IBenchmark::FailureReason>())) { return (COM_ERROR | Core::ERROR_READ_ERROR); }
                         result.failureReason = reader.Number<QualityAssurance::IBenchmark::FailureReason>();
+                    }
+                    else {
+                        result.failureReason = Core::OptionalType<QualityAssurance::IBenchmark::FailureReason>();
                     }
 
                     return (Core::ERROR_NONE);
