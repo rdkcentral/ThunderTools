@@ -193,7 +193,7 @@ namespace TestImplementation {
         {
             if (data.IsSet() == true) {
 
-                if ((data.Value().optionalMagic.IsSet() == true) and (unset == true)) {
+                if ((data.Value().optionalMagic.IsSet() == true) && (unset == true)) {
                     data.Value().optionalMagic = Core::OptionalType<string>();
                 }
 

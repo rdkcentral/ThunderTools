@@ -205,8 +205,8 @@ TEST_F(TestOptionals, ProcessOptionalVector_Set) {
     Core::OptionalType<std::vector<uint8_t>> optInput;
     optInput = input;
     ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
-    EXPECT_EQ(optOutput.IsSet(), true);
-    EXPECT_EQ(optOutput.Value().size(), input.size());
+    ASSERT_EQ(optOutput.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().size(), input.size());
     if (optOutput.Value().size() == input.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < input.size(); i++) {
@@ -229,8 +229,8 @@ TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
     Core::OptionalType<std::vector<uint8_t>> optData;
     optData = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
-    EXPECT_EQ(optData.IsSet(), true);
-    EXPECT_EQ(optData.Value().size(), data.size());
+    ASSERT_EQ(optData.IsSet(), true);
+    ASSERT_EQ(optData.Value().size(), data.size());
     if (optData.Value().size() == data.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.size(); i++) {
