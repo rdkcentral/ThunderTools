@@ -150,12 +150,12 @@ namespace FunctionalTest {
             Core::OptionalType<std::vector<uint8_t>>& data /* @inout @restrict:8 */,
             const bool unset) = 0;
 
-        // @brief Process an vector in a struct
+        // @brief Process  vector in a struct
         virtual Core::hresult ProcessOptionalVectorInOptionalStruct(
             const Core::OptionalType<Compound>& input,
             Core::OptionalType<Compound>& output /* @out */) = 0;
 
-        // @brief Process an vector in a struct to the same struct
+        // @brief Process a vector in a struct to the same struct
         // @param unset Change a set optional to unset
         virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
             Core::OptionalType<Compound>& data /* @inout*/,

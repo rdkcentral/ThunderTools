@@ -266,19 +266,19 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
     Core::OptionalType<ITestOptionals::Compound> optInput;
     optInput = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
-    EXPECT_EQ(optOutput.IsSet(), true);
+    ASSERT_EQ(optOutput.IsSet(), true);
     EXPECT_EQ(optOutput.Value().magic, data.magic);
-    EXPECT_EQ(optOutput.Value().optionalMagic.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), true);
     EXPECT_EQ(optOutput.Value().optionalMagic.Value(), data.optionalMagic.Value());
-    EXPECT_EQ(optOutput.Value().data.size(), data.data.size());
+    ASSERT_EQ(optOutput.Value().data.size(), data.data.size());
     if (optOutput.Value().data.size() == data.data.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.data.size(); i++) {
             EXPECT_EQ(optOutput.Value().data[i], data.data[i]*2);
         }
     }
-    EXPECT_EQ(optOutput.Value().optionalData.IsSet(), true);
-    EXPECT_EQ(optOutput.Value().optionalData.Value().size(), data.optionalData.Value().size());
+    ASSERT_EQ(optOutput.Value().optionalData.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().optionalData.Value().size(), data.optionalData.Value().size());
     if (optOutput.Value().optionalData.Value().size() == data.optionalData.Value().size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.optionalData.Value().size(); i++) {
@@ -296,17 +296,17 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
     Core::OptionalType<ITestOptionals::Compound> optInput;
     optInput = data;
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
-    EXPECT_EQ(optOutput.IsSet(), true);
+    ASSERT_EQ(optOutput.IsSet(), true);
     EXPECT_EQ(optOutput.Value().magic, data.magic);
-    EXPECT_EQ(optOutput.Value().optionalMagic.IsSet(), false);
-    EXPECT_EQ(optOutput.Value().data.size(), data.data.size());
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), false);
+    ASSERT_EQ(optOutput.Value().data.size(), data.data.size());
     if (optOutput.Value().data.size() == data.data.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.data.size(); i++) {
             EXPECT_EQ(optOutput.Value().data[i], data.data[i]*2);
         }
     }
-    EXPECT_EQ(optOutput.Value().optionalData.IsSet(), false);
+    ASSERT_EQ(optOutput.Value().optionalData.IsSet(), false);
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Set) {
@@ -319,19 +319,19 @@ TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Set) {
     Core::OptionalType<ITestOptionals::Compound> optData;
     optData = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, false), Core::ERROR_NONE);
-    EXPECT_EQ(optData.IsSet(), true);
+    ASSERT_EQ(optData.IsSet(), true);
     EXPECT_EQ(optData.Value().magic, data.magic);
-    EXPECT_EQ(optData.Value().optionalMagic.IsSet(), true);
+    ASSERT_EQ(optData.Value().optionalMagic.IsSet(), true);
     EXPECT_EQ(optData.Value().optionalMagic.Value(), data.optionalMagic.Value());
-    EXPECT_EQ(optData.Value().data.size(), data.data.size());
+    ASSERT_EQ(optData.Value().data.size(), data.data.size());
     if (optData.Value().data.size() == data.data.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.data.size(); i++) {
             EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
         }
     }
-    EXPECT_EQ(optData.Value().optionalData.IsSet(), true);
-    EXPECT_EQ(optData.Value().optionalData.Value().size(), data.optionalData.Value().size());
+    ASSERT_EQ(optData.Value().optionalData.IsSet(), true);
+    ASSERT_EQ(optData.Value().optionalData.Value().size(), data.optionalData.Value().size());
     if (optData.Value().optionalData.Value().size() == data.optionalData.Value().size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.optionalData.Value().size(); i++) {
@@ -348,17 +348,17 @@ TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Unset) {
     Core::OptionalType<ITestOptionals::Compound> optData;
     optData = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, false), Core::ERROR_NONE);
-    EXPECT_EQ(optData.IsSet(), true);
+    ASSERT_EQ(optData.IsSet(), true);
     EXPECT_EQ(optData.Value().magic, data.magic);
-    EXPECT_EQ(optData.Value().optionalMagic.IsSet(), false);
-    EXPECT_EQ(optData.Value().data.size(), data.data.size());
+    ASSERT_EQ(optData.Value().optionalMagic.IsSet(), false);
+    ASSERT_EQ(optData.Value().data.size(), data.data.size());
     if (optData.Value().data.size() == data.data.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.data.size(); i++) {
             EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
         }
     }
-    EXPECT_EQ(optData.Value().optionalData.IsSet(), false);
+    ASSERT_EQ(optData.Value().optionalData.IsSet(), false);
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_SetToUnset) {
@@ -371,17 +371,17 @@ TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_SetToUnset) {
     Core::OptionalType<ITestOptionals::Compound> optData;
     optData = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, true /* change setbit! */), Core::ERROR_NONE);
-    EXPECT_EQ(optData.IsSet(), true);
+    ASSERT_EQ(optData.IsSet(), true);
     EXPECT_EQ(optData.Value().magic, data.magic);
-    EXPECT_EQ(optData.Value().optionalMagic.IsSet(), false);
-    EXPECT_EQ(optData.Value().data.size(), data.data.size());
+    ASSERT_EQ(optData.Value().optionalMagic.IsSet(), false);
+    ASSERT_EQ(optData.Value().data.size(), data.data.size());
     if (optData.Value().data.size() == data.data.size()) {
         // process multiplies by 2
         for (uint8_t i = 0; i < data.data.size(); i++) {
             EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
         }
     }
-    EXPECT_EQ(optData.Value().optionalData.IsSet(), false);
+    ASSERT_EQ(optData.Value().optionalData.IsSet(), false);
 }
 
 // ===== AllOptional =====
