@@ -14,12 +14,14 @@ on:
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
+      - "tests/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
   pull_request:
     branches: [ master ]
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
+      - "tests/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
 
 jobs:
