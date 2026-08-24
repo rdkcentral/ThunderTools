@@ -341,7 +341,7 @@ TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Set) {
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Unset) {
-    // Unset optional vector in a struct round trip to the same vector sparameter.
+    // Unset optional vector in a struct round trip to the same vector parameter.
     ITestOptionals::Compound data;
     data.magic = "hokus";
     data.data = { 1,2,3,4 };

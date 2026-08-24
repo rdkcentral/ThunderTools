@@ -187,7 +187,7 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
-        virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
+        Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
             Core::OptionalType<Compound>& data,
             const bool unset) override
         {
