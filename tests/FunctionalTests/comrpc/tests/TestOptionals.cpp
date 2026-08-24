@@ -249,7 +249,7 @@ TEST_F(TestOptionals, ProcessOptionalInlineVector_SetToUnset) {
 }
 
 TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
-    Compound compoud;
+    ITestOptionals::Compound compoud;
     compound.magic = "hokus";
     compound.optionalMagic = "pokus";
     compound.data = { 1,2,3,4 };
@@ -276,7 +276,7 @@ TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
 }
 
 TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
-    Compound compoud;
+    ITestOptionals::Compound compoud;
     compound.magic = "hokus";
     compound.data = { 1,2,3,4 };
     Core::OptionalType<std::vector<uint8_t>> optOutput;
