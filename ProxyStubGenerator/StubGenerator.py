@@ -1633,6 +1633,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     if p.optional:
                         obj_name = Normalize(p.name + "Object__")
                         emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
+                    elif not p.suppress_type:
+                        emit.Line("%s %s{};" % (p.type_name, obj_name))
 
                     length = EmitParam(interface, p.length, Normalize("%sSize" % obj_name))
                     ReadParameter(length)
