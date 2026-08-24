@@ -199,6 +199,7 @@ TEST_F(TestOptionals, ProcessOptionalBuffer_NoOutput) {
 // ===== Optional vector =====
 
 TEST_F(TestOptionals, ProcessOptionalVector_Set) {
+    // Set optional vector round trip.
     std::vector<uint8_t> input{ 1,2,3,4 };
     Core::OptionalType<std::vector<uint8_t>> optOutput;
     Core::OptionalType<std::vector<uint8_t>> optInput;
@@ -215,6 +216,7 @@ TEST_F(TestOptionals, ProcessOptionalVector_Set) {
 }
 
 TEST_F(TestOptionals, ProcessOptionalVector_Unset) {
+    // Unset optional vector round trip.
     Core::OptionalType<std::vector<uint8_t>> optOutput;
     Core::OptionalType<std::vector<uint8_t>> optInput;
     ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
@@ -222,85 +224,164 @@ TEST_F(TestOptionals, ProcessOptionalVector_Unset) {
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
+    // Set optional vector round trip to the same vector parameter.
     std::vector<uint8_t> data{ 1,2,3,4 };
-    std::vector<uint8_t> copy = data;
     Core::OptionalType<std::vector<uint8_t>> optData;
     optData = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
     EXPECT_EQ(optData.IsSet(), true);
-    EXPECT_EQ(optData.Value().size(), copy.size());
-    if (optData.Value().size() == copy.size()) {
+    EXPECT_EQ(optData.Value().size(), data.size());
+    if (optData.Value().size() == data.size()) {
         // process multiplies by 2
-        for (uint8_t i = 0; i < copy.size(); i++) {
-            EXPECT_EQ(optData.Value()[i], copy[i]*2);
+        for (uint8_t i = 0; i < data.size(); i++) {
+            EXPECT_EQ(optData.Value()[i], data[i]*2);
         }
     }
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVector_Unset) {
+    // Unset optional vector round trip to the same vector parameter.
     Core::OptionalType<std::vector<uint8_t>> optData;
     ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
     EXPECT_EQ(optData.IsSet(), false);
 }
 
 TEST_F(TestOptionals, ProcessOptionalInlineVector_SetToUnset) {
+    // Set optional vector change into unset in the same vector parameter.
     std::vector<uint8_t> data{ 1,2,3,4 };
     Core::OptionalType<std::vector<uint8_t>> optData;
     optData = data;
-    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, true), Core::ERROR_NONE);
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, true  /* change setbit! */), Core::ERROR_NONE);
     EXPECT_EQ(optData.IsSet(), false);
 }
 
 TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
-    ITestOptionals::Compound compound;
-    compound.magic = "hokus";
-    compound.optionalMagic = "pokus";
-    compound.data = { 1,2,3,4 };
-    compound.optionalData = { 11,12,13,14 };
+    // Set optional vector in a struct round trip.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.optionalMagic = "pokus";
+    data.data = { 1,2,3,4 };
+    data.optionalData = { 11,12,13,14 };
     Core::OptionalType<ITestOptionals::Compound> optOutput;
     Core::OptionalType<ITestOptionals::Compound> optInput;
-    optInput = compound; // copy!
+    optInput = data; // copy!
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
     EXPECT_EQ(optOutput.IsSet(), true);
-    EXPECT_EQ(optOutput.Value().magic, compound.magic);
+    EXPECT_EQ(optOutput.Value().magic, data.magic);
     EXPECT_EQ(optOutput.Value().optionalMagic.IsSet(), true);
-    EXPECT_EQ(optOutput.Value().optionalMagic.Value(), compound.optionalMagic.Value());
-    EXPECT_EQ(optOutput.Value().data.size(), compound.data.size());
-    if (optOutput.Value().data.size() == compound.data.size()) {
+    EXPECT_EQ(optOutput.Value().optionalMagic.Value(), data.optionalMagic.Value());
+    EXPECT_EQ(optOutput.Value().data.size(), data.data.size());
+    if (optOutput.Value().data.size() == data.data.size()) {
         // process multiplies by 2
-        for (uint8_t i = 0; i < compound.data.size(); i++) {
-            EXPECT_EQ(optOutput.Value().data[i], compound.data[i]*2);
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optOutput.Value().data[i], data.data[i]*2);
         }
     }
     EXPECT_EQ(optOutput.Value().optionalData.IsSet(), true);
-    EXPECT_EQ(optOutput.Value().optionalData.Value().size(), compound.optionalData.Value().size());
-    if (optOutput.Value().optionalData.Value().size() == compound.optionalData.Value().size()) {
+    EXPECT_EQ(optOutput.Value().optionalData.Value().size(), data.optionalData.Value().size());
+    if (optOutput.Value().optionalData.Value().size() == data.optionalData.Value().size()) {
         // process multiplies by 2
-        for (uint8_t i = 0; i < compound.optionalData.Value().size(); i++) {
-            EXPECT_EQ(optOutput.Value().optionalData.Value()[i], compound.optionalData.Value()[i]*2);
+        for (uint8_t i = 0; i < data.optionalData.Value().size(); i++) {
+            EXPECT_EQ(optOutput.Value().optionalData.Value()[i], data.optionalData.Value()[i]*2);
         }
     }
 }
 
 TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
-    ITestOptionals::Compound compound;
-    compound.magic = "hokus";
-    compound.data = { 1,2,3,4 };
+    // Unset optional vector in a struct round trip.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.data = { 1,2,3,4 };
     Core::OptionalType<ITestOptionals::Compound> optOutput;
     Core::OptionalType<ITestOptionals::Compound> optInput;
-    optInput = compound;
+    optInput = data;
     ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
     EXPECT_EQ(optOutput.IsSet(), true);
-    EXPECT_EQ(optOutput.Value().magic, compound.magic);
+    EXPECT_EQ(optOutput.Value().magic, data.magic);
     EXPECT_EQ(optOutput.Value().optionalMagic.IsSet(), false);
-    EXPECT_EQ(optOutput.Value().data.size(), compound.data.size());
-    if (optOutput.Value().data.size() == compound.data.size()) {
+    EXPECT_EQ(optOutput.Value().data.size(), data.data.size());
+    if (optOutput.Value().data.size() == data.data.size()) {
         // process multiplies by 2
-        for (uint8_t i = 0; i < compound.data.size(); i++) {
-            EXPECT_EQ(optOutput.Value().data[i], compound.data[i]*2);
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optOutput.Value().data[i], data.data[i]*2);
         }
     }
     EXPECT_EQ(optOutput.Value().optionalData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Set) {
+    // Set optional vector in a struct round trip to the same vector parameter.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.optionalMagic = "pokus";
+    data.data = { 1,2,3,4 };
+    data.optionalData = { 11,12,13,14 };
+    Core::OptionalType<ITestOptionals::Compound> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, false), Core::ERROR_NONE);
+    EXPECT_EQ(optData.IsSet(), true);
+    EXPECT_EQ(optData.Value().magic, data.magic);
+    EXPECT_EQ(optData.Value().optionalMagic.IsSet(), true);
+    EXPECT_EQ(optData.Value().optionalMagic.Value(), data.optionalMagic.Value());
+    EXPECT_EQ(optData.Value().data.size(), data.data.size());
+    if (optData.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
+        }
+    }
+    EXPECT_EQ(optData.Value().optionalData.IsSet(), true);
+    EXPECT_EQ(optData.Value().optionalData.Value().size(), data.optionalData.Value().size());
+    if (optData.Value().optionalData.Value().size() == data.optionalData.Value().size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.optionalData.Value().size(); i++) {
+            EXPECT_EQ(optData.Value().optionalData.Value()[i], data.optionalData.Value()[i]*2);
+        }
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Unset) {
+    // Unset optional vector in a struct round trip to the same vector sparameter.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.data = { 1,2,3,4 };
+    Core::OptionalType<ITestOptionals::Compound> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, false), Core::ERROR_NONE);
+    EXPECT_EQ(optData.IsSet(), true);
+    EXPECT_EQ(optData.Value().magic, data.magic);
+    EXPECT_EQ(optData.Value().optionalMagic.IsSet(), false);
+    EXPECT_EQ(optData.Value().data.size(), data.data.size());
+    if (optData.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
+        }
+    }
+    EXPECT_EQ(optData.Value().optionalData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_SetToUnset) {
+    // Set optional vector in a struct change to unset in the same vector parameter.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.optionalMagic = "pokus";
+    data.data = { 1,2,3,4 };
+    data.optionalData = { 11,12,13,14 };
+    Core::OptionalType<ITestOptionals::Compound> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, true /* change setbit! */), Core::ERROR_NONE);
+    EXPECT_EQ(optData.IsSet(), true);
+    EXPECT_EQ(optData.Value().magic, data.magic);
+    EXPECT_EQ(optData.Value().optionalMagic.IsSet(), false);
+    EXPECT_EQ(optData.Value().data.size(), data.data.size());
+    if (optData.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
+        }
+    }
+    EXPECT_EQ(optData.Value().optionalData.IsSet(), false);
 }
 
 // ===== AllOptional =====
