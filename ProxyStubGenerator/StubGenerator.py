@@ -1630,12 +1630,9 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                 elif p.is_dynamic_array:
                     obj_name = p.name
 
-                    if not p.suppress_type:
-                        if p.optional:
-                            obj_name = Normalize(p.name + "Object__")
-                            emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
-                        else:
-                            emit.Line("%s %s{};" % (p.type_name, obj_name))
+                    if p.optional:
+                        obj_name = Normalize(p.name + "Object__")
+                        emit.Line("%s %s{};" % (p.optional.type_name, obj_name))
 
                     length = EmitParam(interface, p.length, Normalize("%sSize" % obj_name))
                     ReadParameter(length)
@@ -1650,7 +1647,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.IndentDec()
                     emit.Line("}")
 
-                    if not p.suppress_type and p.optional:
+                    if p.optional:
                         emit.Line("%s = std::move(%s);" % (p.name, obj_name))
 
                 # POD
