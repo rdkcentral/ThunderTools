@@ -56,7 +56,7 @@ namespace FunctionalTest {
         // @property @wrapped
         // Explicitly wrapped: expected to be wrapped even if a property
         virtual Core::hresult AttributeWrapped(const string& value) = 0;
-        virtual Core::hresult AttributeWrapped(string& value /* @ut */) const = 0;
+        virtual Core::hresult AttributeWrapped(string& value /* @out */) const = 0;
     };
 
 } // namespace FunctionalTest
