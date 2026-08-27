@@ -52,19 +52,19 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
-        Core::hresult Attribute(string& value) const override = 0;
+        Core::hresult Attribute(string& value) const override
         {
             value = _attribute;
             return Core::ERROR_NONE;
         }
 
-        Core::hresult AttributeWrapped(const string& value) override = 0;
+        Core::hresult AttributeWrapped(const string& value) override
         {
-            _attribte = value;
+            _attribute = value;
             return Core::ERROR_NONE;
         }
 
-        Core::hresult AttributeWrapped(string& value) const override = 0;
+        Core::hresult AttributeWrapped(string& value) const override
         {
             value = _attribute;
             return Core::ERROR_NONE;
