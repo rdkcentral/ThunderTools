@@ -29,28 +29,26 @@ class TestWrappedInterfaceJsonRpc : public JsonRpcTesting::JsonRpcTestHarness {}
 
 TEST_F(TestWrappedInterfaceJsonRpc, GetCounter_WrappedInObject) {
     string response;
-    EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("getCounter", R"({})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("getCounter", "", response));
     // Interface-level wrapped: single return value wrapped in object using parameter name as key
     EXPECT_EQ(response, R"({"counter":42})") << "Response: " << response;
 }
 
 TEST_F(TestWrappedInterfaceJsonRpc, GetName_WrappedInObject) {
     string response;
-    EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("getName", R"({})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("getName", "", response));
     EXPECT_EQ(response, R"({"name":"WrappedDevice"})") << "Response: " << response;
 }
 
 TEST_F(TestWrappedInterfaceJsonRpc, Echo_WrappedInObject) {
     string response;
-    EXPECT_EQ(Core::ERROR_NONE,
-        CallMethod("echo", R"({"value":99})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("echo", R"({"value":99})", response));
     EXPECT_EQ(response, R"({"result":99})") << "Response: " << response;
 }
 
 TEST_F(TestWrappedInterfaceJsonRpc, Attribute_UnwrappedProperty) {
     string response;
+    // Interface wrapped but it should not apply to properties
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("attribute", R"({"value":"hokus"})", response));
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("attribute", "", response));
     EXPECT_EQ(response, R"("hokus")") << "Response: " << response;
@@ -58,6 +56,7 @@ TEST_F(TestWrappedInterfaceJsonRpc, Attribute_UnwrappedProperty) {
 
 TEST_F(TestWrappedInterfaceJsonRpc, Attribute_WrappedProperty) {
     string response;
+    // Interface wrapped and the property is explictly wrapped, so it does apply
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("attributeWrapped", R"({"value":"pokus"})", response));
     ASSERT_EQ(Core::ERROR_NONE, CallMethod("attributeWrapped", "", response));
     EXPECT_EQ(response, R"({"value":"pokus"})") << "Response: " << response;
