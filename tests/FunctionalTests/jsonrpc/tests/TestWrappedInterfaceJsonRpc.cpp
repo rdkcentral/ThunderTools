@@ -53,7 +53,7 @@ TEST_F(TestWrappedInterfaceJsonRpc, Attribute_UnwrappedProperty) {
     string response;
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("attribute", R"({"value":"hokus"})", response));
     EXPECT_EQ(Core::ERROR_NONE, CallMethod("attribute", R"({})", response));
-    EXPECT_EQ(response, R"({"hokus"})") << "Response: " << response;
+    EXPECT_EQ(response, R"("hokus")") << "Response: " << response;
 }
 
 TEST_F(TestWrappedInterfaceJsonRpc, Attribute_WrappedProperty) {

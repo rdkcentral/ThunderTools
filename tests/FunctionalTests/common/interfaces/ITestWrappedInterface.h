@@ -51,7 +51,7 @@ namespace FunctionalTest {
         // @property
         // A property is expected not to be wrapped even if interface is wrapped
         virtual Core::hresult Attribute(const string& value) = 0;
-        virtual Core::hresult Attribute(string& value /* @ut */) const = 0;
+        virtual Core::hresult Attribute(string& value /* @out */) const = 0;
 
         // @property @wrapped
         // Explicitly wrapped: expected to be wrapped even if a property
