@@ -47,6 +47,16 @@ namespace FunctionalTest {
         // @param value Input value.
         // @param result Receives echoed value.
         virtual Core::hresult Echo(const uint32_t value /* @in */, uint32_t& result /* @out */) const = 0;
+
+        // @property
+        // A property is expected not to be wrapped even if interface is wrapped
+        virtual Core::hresult Attribute(const string& value) = 0;
+        virtual Core::hresult Attribute(string& value /* @ut */) const = 0;
+
+        // @property @wrapped
+        // Explicitly wrapped: expected to be wrapped even if a property
+        virtual Core::hresult AttributeWrapped(const string& value) = 0;
+        virtual Core::hresult AttributeWrapped(string& value /* @ut */) const = 0;
     };
 
 } // namespace FunctionalTest

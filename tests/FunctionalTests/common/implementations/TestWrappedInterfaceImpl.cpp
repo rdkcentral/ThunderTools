@@ -46,9 +46,36 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult Attribute(const string& value) override
+        {
+            _attribute = value;
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult Attribute(string& value) const override = 0;
+        {
+            value = _attribute;
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult AttributeWrapped(const string& value) override = 0;
+        {
+            _attribte = value;
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult AttributeWrapped(string& value) const override = 0;
+        {
+            value = _attribute;
+            return Core::ERROR_NONE;
+        }
+
         BEGIN_INTERFACE_MAP(TestWrappedInterfaceImpl)
         INTERFACE_ENTRY(FunctionalTest::ITestWrappedInterface)
         END_INTERFACE_MAP
+
+    private:
+        string _attribute;
     };
 
     static Factory::Registrar<FunctionalTest::ITestWrappedInterface, TestWrappedInterfaceImpl> g_wrappedInterfaceRegistrar;
