@@ -51,14 +51,14 @@ TEST_F(TestWrappedInterfaceJsonRpc, Echo_WrappedInObject) {
 
 TEST_F(TestWrappedInterfaceJsonRpc, Attribute_UnwrappedProperty) {
     string response;
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("attribute", R"({"value":"hokus"})", response));
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("attribute", R"({})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("attribute", R"({"value":"hokus"})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("attribute", "", response));
     EXPECT_EQ(response, R"("hokus")") << "Response: " << response;
 }
 
 TEST_F(TestWrappedInterfaceJsonRpc, Attribute_WrappedProperty) {
     string response;
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("attributeWrapped", R"({"value":"pokus"})", response));
-    EXPECT_EQ(Core::ERROR_NONE, CallMethod("attributeWrapped", R"({})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("attributeWrapped", R"({"value":"pokus"})", response));
+    ASSERT_EQ(Core::ERROR_NONE, CallMethod("attributeWrapped", "", response));
     EXPECT_EQ(response, R"({"value":"pokus"})") << "Response: " << response;
 }
