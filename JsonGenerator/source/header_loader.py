@@ -1051,7 +1051,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 log.WarnLine(method, "%s(): @wrapped has no effect on this method" % method.name)
 
             if len(properties) == 1:
-                if not is_property and (method_wrapped or (wrapped_result and properties[list(properties.keys())[0]]["type"] != "object")):
+                if (method_wrapped or (not is_property and wrapped_result and properties[list(properties.keys())[0]]["type"] != "object")):
                     params["required"] = required
                     return params
                 else:
@@ -1110,6 +1110,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
+            # Copy over decorators the other method of a property
+            if method.retval.meta.decorators and method.retval.meta.is_property:
+                for mm in face.obj.methods:
+                    if mm != method and mm.name == method.name:
+                        mm.retval.meta.decorators = method.retval.meta.decorators
+                        break
+
             method_name = compute_name(log, _case_converter, method.retval, _case_converter.METHODS, relay=method)
 
             if method.retval.meta.alt == method_name:
@@ -1148,9 +1155,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             if method.retval.meta.is_property or (prefix + method_name) in properties:
                 if "async" in method.retval.meta.decorators:
                     raise CppParseError(method, "a property cannot be asynchronous")
-
-                if "wrapped" in method.retval.meta.decorators:
-                    log.WarnLine(method, "%s(): @wrapped is not supported for properties" % method.name)
 
                 try:
                     obj = properties[prefix + method_name]
