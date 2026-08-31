@@ -29,6 +29,7 @@ COMMON_OBJECT_SUFFIX = "Info"
 ENUM_SUFFIX = "Type"
 
 # Configurables
+PROJECT_DIRECTORY = None
 CLASSNAME_FROM_REF = True
 DEFAULT_INT_SIZE = 32
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
@@ -101,6 +102,7 @@ class BoolAction(argparse.Action):
 
 
 def Parse(cmdline):
+    global PROJECT_DIRECTORY
     global FRAMEWORK_NAMESPACE
     global DEFAULT_DEFINITIONS_FILE
     global INTERFACE_NAMESPACES
@@ -140,32 +142,49 @@ def Parse(cmdline):
     argparser.add_argument('path',
             nargs="*",
             help="JSON file(s) and/or C++ header files, wildcards are allowed")
-    argparser.add_argument("-d",
-            "--docs",
+    argparser.add_argument("-d", "--docs",
             dest="docs",
             action="store_true",
             default=False,
             help="generate documentation")
-    argparser.add_argument("-c",
-            "--code",
+    argparser.add_argument("-c", "--code",
             dest="code",
             action="store_true",
             default=False,
             help="generate C++ code building JSON classes and complete JSON-RPC functionality (the latter only if applicable)")
-    argparser.add_argument("-o",
-            "--output",
+    argparser.add_argument("-o", "--output-dir",
             dest="output_dir",
             metavar="PATH",
             action="store",
             default=None,
             help="output directory, absolute path or directory relative to output file (default: output in the same directory as the source file)")
+    argparser.add_argument("--output",
+            dest="output_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help=argparse.SUPPRESS) # deprecated
+    argparser.add_argument(
+            "--cpp-output-dir",
+            dest="cpp_output_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help="output directory for cpp files, absolute path or directory relative to output file")
     argparser.add_argument(
             "--cpp-output",
             dest="cpp_output_dir",
             metavar="PATH",
             action="store",
             default=None,
-            help="output directory for cpp files, absolute path or directory relative to output file")
+            help=argparse.SUPPRESS) # deprecated
+    argparser.add_argument(
+            "--project-dir",
+            dest="project_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help="project directory (where to look for Ids.h and Module.h, default: same location as the source file)")
     argparser.add_argument(
             "--force",
             dest="force",
