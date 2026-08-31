@@ -94,7 +94,9 @@ function(ProxyStubGenerator)
     endif()
 
     if(Argument_PROJECT_DIR)
-        file(MAKE_DIRECTORY "${Argument_PROJECT_DIR}")
+        if(NOT IS_DIRECTORY "${Argument_PROJECT_DIR}")
+             message(FATAL_ERROR "ProxyStubGenerator PROJECT_DIR '${Argument_PROJECT_DIR}' is not a directory.")
+        endif()
         list(APPEND _execute_command  "--project-dir" "${Argument_PROJECT_DIR}")
     endif()
 
