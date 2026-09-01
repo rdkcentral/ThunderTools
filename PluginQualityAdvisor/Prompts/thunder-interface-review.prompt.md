@@ -39,12 +39,16 @@ Rules are loaded at runtime from: `PluginQualityAdvisor/rules/thunder-interface-
 ## Your Task
 
 1. **Identify** the interface file to validate (from user's command or ask if not provided)
-2. **Load** `PluginQualityAdvisor/rules/thunder-interface-rules.yaml` for full rule definitions
-3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_16_1, then advisory_m1_1 → advisory_m3_1)
+2. **Load** — load `PluginQualityAdvisor/rules/thunder-interface-rules.yaml`, resolved relative to the `PluginQualityAdvisor` folder this prompt file itself lives in (the folder registered via `chat.promptFilesLocations`) — **not** via a workspace-wide file search. The interface source repo open in the current workspace does not contain the `PluginQualityAdvisor` tool folder; searching for it there will always return no matches even though the file exists. Actually check for the file at that resolved location rather than assuming; if, after genuinely checking there, it is not there, do not fabricate or recall rule content from memory — stop and report to the user that `thunder-interface-rules.yaml` could not be found, rather than proceeding with assumed rules.
+2b. **Load Exemptions** — do not assume this file is missing; actually check. Read `PluginQualityAdvisor/Exemptions/thunder-interface-exemptions.local.yaml`, resolved relative to the same `PluginQualityAdvisor` folder as the rules YAML above — **not** via a workspace-wide file search, since the interface source repo open in the current workspace does not contain that folder. Perform a real file check at that resolved location and, if it exists, actually open and read its full contents — do not skip this step or default to "not found" because the file is commonly absent on a fresh clone. If the `Exemptions/` folder or the file genuinely does not exist at that location, do **not** create it — simply treat all rules as not exempted and continue.
+    Resolve which rules are exempted for `{InterfaceName}`: an entry applies if its `rule_id` (or every rule in its `category`) matches, AND its `scope` is `"global"` or includes `{InterfaceName}` by name. This is a lookup only — it does not remove any rule from validation in the next step.
+3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_16_1, then advisory_m1_1 → advisory_m3_1) — every rule runs in full regardless of exemption status (see "## Step 3 - Execute Rules" below)
 4. **Report** using the Issue Summary table format below
 5. **Provide** specific fix examples using the `fix_template` from the YAML
 
 For each rule, apply contextual judgment (JUDGE step): if the developer's approach technically violates a rule but is valid and reasonable in their specific context, downgrade the severity and populate the `Reasoning` field.
+
+**Exemption check runs after JUDGE, never before:** once a rule's effective status is finalized, check the Step 2b exemption lookup. PASS/SKIP are unaffected. A VIOLATION/WARNING/SUGGESTION for a rule exempted for `{InterfaceName}` is reclassified `EXEMPT` and routed to the Exempted Findings section instead of the Issue Summary — never dropped, never left out of the report, and never used to shortcut running the rule in the first place.
 
 ---
 
@@ -115,11 +119,24 @@ In chat, provide a **concise summary table** of all issues found. Do NOT output 
 - ❌ `VIOLATION` - blocking issue, must fix — use the character `❌` NOT `:x:`
 - ⚠️ `WARNING` - should fix — use the character `⚠️` NOT `:warning:`
 - 💡 `SUGGESTION` - optional improvement — use the character `💡` NOT `:bulb:`
+- 🔕 `EXEMPT` - reclassified from a real failure via a local exemption (see Contextual Judgment /
+  Exemption Check below). Never shown in the main Issue Summary table, only in Exempted Findings.
 
-End chat output with:
+End chat output with, **if there are no exempted findings**:
 ```
 📄 Full report saved: PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+
+**If one or more findings were exempted**, add the exempted count:
+```
+📄 Full report saved: PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions (+{E} exempted findings — see report)
+```
+
+**Always** end with, regardless of whether anything was exempted this run:
+```
+💬 To exempt an interface finding, run: python PluginQualityAdvisor/exempt_manager.py --rule-set interface add {rule_id} --scope {InterfaceName}
 ```
 
 ---
@@ -178,7 +195,7 @@ If git is unavailable, use `unknown`.
 **Date:** {YYYY-MM-DD}  
 **Interface:** {InterfaceName}  
 **Repo:** {repo-url}  
-**Total Rules:** 19 | **Passed:** N | **Failed:** N | **Skipped:** N
+**Total Rules:** 19 | **Passed:** N | **Failed:** N | **Skipped:** N | **Exempted:** N
 
 ---
 
@@ -238,24 +255,25 @@ virtual Core::hresult SetVolume(const int volume) = 0;
 virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 ```
 
+---
+
+## Exempted Findings
+
+*Only present if one or more rules failed AND are exempted for {InterfaceName} in
+`Exemptions/thunder-interface-exemptions.local.yaml`. Omit this entire section if there are none — do
+not render an empty table.*
+
+**Table only — no per-finding detail blocks, no "What's wrong"/"Code found"/"Fix" expansion, and no
+Exemption Reason column** — exemptions have no reason field at all. Keep each row to one short line:
+
+| Rule | Status | File | Line | Issue |
+|------|--------|------|------|-------|
+| advisory_m2_1 - Enum Underlying Types | 🔕 EXEMPT (would be ⚠️ WARNING) | IHdmiCecSink.h | 30 | Named enum used as a parameter has no explicit underlying type |
+| core_13_1 - Explicit Integer Widths | 🔕 EXEMPT (would be ⚠️ WARNING) | IHdmiCecSink.h | 72 | int parameter instead of uint32_t |
+
+The **Issue** column is a short, single-line plain-English description of what's wrong — the same
+level of brevity as the main Issue Summary table's Issue column, not a restatement of the rule name.
 ```
-
-### Report Generation Rules
-
-- Render the report as a complete, self-contained HTML file using the HTML shell above
-- Use `<h1>` for the report title, `<h2>` for section headings, `<h3 id="issue-N">` for issue headings
-- The issue summary is an HTML `<table>` — each rule name in the Rule column is an `<a href="#issue-N">` link
-- Each detailed section must end with: `<p class="back-link"><a href="#issue-summary">⬆ Back to Issue Summary</a></p>`
-- All code blocks use `<pre><code class="language-cpp">` (or `language-cmake` as appropriate) — highlight.js will syntax-highlight them automatically
-- **"What's wrong"** must be a plain-English explanation a junior developer can understand
-- **"Code found"** must show the actual code from the interface with file:line comment
-- **"Fix"** must show the corrected code
-- If severity was downgraded (JUDGE step), add a **"Note:"** paragraph after the fix explaining why
-- Issues are ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS
-- After Detailed Findings, include a **Skipped Rules** table if any rules were skipped (explaining why each was not applicable)
-- UTF-8 encoding, LF line endings
-
-**If no issues found**, generate:
 
 ```markdown
 # Thunder Interface Review - {InterfaceName}
@@ -263,16 +281,23 @@ virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 **Date:** {YYYY-MM-DD}  
 **Interface:** {InterfaceName}  
 **Repo:** {repo-url}  
-**Total Rules:** 19 | **Passed:** N | **Failed:** 0 | **Skipped:** N
+**Total Rules:** 19 | **Passed:** N | **Failed:** 0 | **Skipped:** N | **Exempted:** 0
 
 ✅ All rules passed - no issues found.
 ```
+
+**If there are no blocking issues but one or more exempted findings exist**, keep the Exempted Findings
+section — a run is never "all clear" purely because nothing is currently blocking.
 
 **Post-generation message in chat:**
 ```
 📄 Full report saved:
    PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+Append `(+{E} exempted findings — see report)` after the counts if `E > 0`. Always follow with:
+```
+💬 To exempt an interface finding, run: python PluginQualityAdvisor/exempt_manager.py --rule-set interface add {rule_id} --scope {InterfaceName}
 ```
 
 ### Post-Generation Action
@@ -310,6 +335,15 @@ If the size is 0, the write failed — retry once.
 | Rule technically violated but developer's approach is valid | Downgrade one level | **Required** |
 
 Severity is **never escalated** above the YAML-defined level.
+
+**Exemption Check (runs after this table, on every rule, never before):** once a rule's effective
+status is finalized above, check the Step 2b exemption lookup built during "Load Exemptions." PASS and
+SKIP are unaffected. A `VIOLATION`/`WARNING`/`SUGGESTION` for a rule exempted for `{InterfaceName}` is
+reclassified `EXEMPT` and routed to the Exempted Findings section instead of the Issue Summary, as a
+single short table row (rule, status, file, line, one-line issue description) — no expanded detail
+block. Exemptions have no reason field at all. This can only move a finding to a different section of
+the report, never delete it — an exempted violation still appears in the output, just not in the
+blocking Issue Summary table.
 
 ---
 

@@ -153,9 +153,8 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
       ...
 ```
 
-- AND bump the file-level `version:` field (e.g. `3.2.1` → `3.2.2`)
-- AND add a CHANGELOG entry in the `description:` block at the top of the file
 - AND save — the next time `/thunder-interface-review` runs it picks up the change automatically
+- NOTE: `thunder-interface-rules.yaml` has a file-level `version:` field, but neither `/thunder-interface-rule-manager` nor any convention in this repo bumps it or maintains a CHANGELOG on rule edits
 
 #### Scenario: Adding a new interface rule
 - GIVEN a developer needs to add a new rule (e.g. `core_14_1`)
@@ -184,55 +183,9 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
       ThunderInterfaces/interfaces/SourceFile.h — real example
 ```
 
-- AND bump `version:` and add a CHANGELOG entry
 - NOTE: No `category` field — it was removed in v3.2.2
 - AND also add a row for `core_14_1` to the Quick Reference table inside
   `thunder-interface-review.prompt.md` (the only prompt edit required when adding a rule)
-
-#### Scenario: Adding a new rule
-- GIVEN a developer needs to add a new rule (e.g. `rule_80`)
-- WHEN they open `thunder-plugin-rules.yaml`
-- THEN they append a new entry to the appropriate phase block:
-
-```yaml
-  - rule_id: "rule_80"
-    name: "Short Name in Title Case"
-    severity: "violation"      # or: warning / suggestion
-    phase: "code_style"
-    conditional: false         # set true if check can be skipped
-    skip_condition: null       # or description of skip condition
-
-    extraction:
-      target: "<what file or block to read>"
-      method: "<how to extract it — describe semantic reading, not regex>"
-      code_block: "<description of the extracted snippet>"
-
-    bounded_query:
-      question: "<single yes/no question>?"
-      expected_answer: "Yes"
-
-    verification_logic:
-      - "1. <step 1 — describe reading as a human developer>"
-      - "2. <step 2>"
-      - "3. If condition → VIOLATION"
-
-    violation_pattern: "<single-line description of violation>"
-
-    fix_template: |
-      // WRONG:
-      <wrong code>
-
-      // Correct:
-      <corrected code>
-
-    citation:
-      line_format: "[PluginName.cpp:LINE] <message>"
-      rule: "thunder-plugin-rules.yaml / rule_80"
-```
-
-- AND increment `total_checkpoints` in the `metadata` block
-- AND update the `organization:` string to reflect the new phase count
-- AND bump `version:` (e.g. `3.0.0` → `3.1.0`)
 
 #### Scenario: Changing a rule severity
 - GIVEN a rule currently at `severity: warning` that should become `severity: violation`
@@ -244,5 +197,4 @@ Adding/removing rules may require updating prompt documentation (e.g., the Quick
 - GIVEN a rule that is no longer applicable (e.g. a Thunder API was deprecated)
 - WHEN the developer deletes the rule entry from the YAML and saves
 - THEN the next prompt run no longer checks that rule
-- AND `total_checkpoints` (for checkpoint YAML) MUST be decremented accordingly
-- AND a CHANGELOG entry MUST document the removal and the reason
+- AND the corresponding row MUST be removed from the Quick Reference table inside `thunder-interface-review.prompt.md`

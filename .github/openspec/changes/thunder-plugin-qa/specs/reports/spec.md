@@ -1,122 +1,91 @@
-﻿# Spec: Thunder PluginQualityAdvisor Report Generation
+# Delta for Report Generation
 
-## Purpose
+## ADDED Requirements
 
-After every `/thunder-plugin-review` or `/thunder-interface-review` run, the system generates a self-contained HTML report file with an Issue Summary table and Detailed Findings sections with clickable navigation and syntax-highlighted code blocks.
+### Requirement: Plugin review generates an HTML report
 
----
+After `/thunder-plugin-review` completes, the system MUST generate a self-contained HTML report at `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`. If that path already exists, the system MUST append `_2`, `_3`, or another suffix and MUST NOT overwrite the existing report.
 
-## Requirements
+#### Scenario: Plugin review completes all rules
 
-### REQ-R1 — Plugin review HTML report
+- GIVEN a plugin review completes all 85 rules
+- WHEN the report is written
+- THEN it MUST contain the header totals, an Issue Summary table for non-exempt findings, Detailed Findings sections for those findings, and an Exempted Findings table when applicable
+- AND PASS and SKIP rules MUST NOT appear as individual issue details
+- AND exempted findings MUST NOT receive individual Detailed Findings sections
 
-**Scenario:** `/thunder-plugin-review` completes all 84 rules
-- The system MUST generate an HTML file at:
-  `ThunderTools/PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`
-- If a file with that name already exists, append `_2`, `_3` etc. (never overwrite)
-- The report MUST contain: header with totals, Issue Summary table, and Detailed Findings sections
-- PASS and SKIP rules are NOT included — only VIOLATION, WARNING, and SUGGESTION
+### Requirement: Interface review generates an HTML report
 
-### REQ-R2 — Interface review HTML report
+After `/thunder-interface-review` completes, the system MUST generate a self-contained HTML report at `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`. If that path already exists, the system MUST append a suffix and MUST NOT overwrite the existing report.
 
-**Scenario:** `/thunder-interface-review` completes all 19 rules
-- The system MUST generate an HTML file at:
-  `ThunderTools/PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`
-- Same no-overwrite rule applies
-- Same structure: header, Issue Summary table, Detailed Findings
+#### Scenario: Interface review completes all rules
 
-### REQ-R3 — Report header
+- GIVEN an interface review completes all 19 rules
+- WHEN the report is written
+- THEN it MUST contain the header totals, an Issue Summary table for non-exempt findings, Detailed Findings sections for those findings, and an Exempted Findings table when applicable
+- AND PASS and SKIP rules MUST NOT appear as individual issue details
+- AND exempted findings MUST NOT receive individual Detailed Findings sections
 
-The report MUST start with:
+### Requirement: Report header contains complete totals
 
-```html
-<!-- Thunder Plugin Review - {PluginName} -->
+The report header MUST include the actual date, plugin or interface name, repository metadata when available, the total rule count, and counts for Passed, Failed, Skipped, and Exempted findings. Totals MUST reconcile to 85 plugin rules or 19 interface rules.
 
-**Date:** {YYYY-MM-DD}  
-**Plugin:** {PluginName}  
-**Total Rules:** 84 | **Passed:** N | **Failed:** N | **Skipped:** N
-```
+#### Scenario: Exempted findings are counted separately
 
-### REQ-R4 — Issue Summary table
+- GIVEN a review has blocking failures and exempted failures
+- WHEN the report header is generated
+- THEN exempted findings MUST be counted under `Exempted`
+- AND they MUST NOT be counted under `Failed`
+- AND `Passed + Failed + Skipped + Exempted` MUST equal the complete rule count
 
-The report MUST contain an Issue Summary table with clickable navigation:
+### Requirement: Issue Summary contains only non-exempt findings
 
-| Column | Description |
-|--------|-------------|
-| Issue No. | Sequential number |
-| Status | ❌ VIOLATION / ⚠️ WARNING / 💡 SUGGESTION (Unicode emoji, never GitHub shortcodes) |
-| Rule | Clickable link: `<a href="#issue-N">rule_id - Name</a>` navigating to detailed section |
-| File | Source file name |
-| Line | Exact line number |
-| Issue | Short description |
+The report MUST contain an Issue Summary table with these columns: Issue No., Status, Rule, File, Line, and Issue. The Rule cell for each non-exempt finding MUST link to its detailed section using a stable `#issue-N` anchor. The Issue value MUST be a concise description.
 
-### REQ-R5 — Detailed Findings sections
+#### Scenario: Exempted finding is excluded from blocking summary
 
-Each issue MUST have a detailed section with:
+- GIVEN a failed rule is reclassified as `EXEMPT`
+- WHEN the Issue Summary is generated
+- THEN that finding MUST NOT appear in the Issue Summary table
+- AND its exempted status MUST remain visible in the separate Exempted Findings section
 
-- Heading: `<h3 id="issue-N">Issue N</h3>` (creates `#issue-n` anchor for navigation)
-- Rule ID and name as bold text: `**rule_XX - Rule Name**`
-- Status line: `**Status:** ❌ VIOLATION | **File:** filename | **Line:** N`
-- **What's wrong:** Plain-English explanation a junior developer can understand
-- **Code found:** Actual code from the file with file:line comment in a `<pre><code class="language-cpp">` block (highlight.js syntax-highlighted)
-- **Fix:** Corrected code in a `<pre><code class="language-cpp">` block
-- If severity was downgraded: **Note:** paragraph explaining why
+### Requirement: Detailed Findings describe non-exempt failures
 
-Issues MUST be ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS.
+Each non-exempt finding MUST have one detailed section containing the rule ID and name, effective status, file and line citation, a plain-English explanation, actual code found, a corrected code example, and a contextual-judgment note when applicable. Findings MUST be ordered by VIOLATION, WARNING, then SUGGESTION.
 
-### REQ-R6 — Folder creation
+`thunder-plugin-review.prompt.md` enforces this ordering with an explicit rule in its Report Generation Rules section. `thunder-interface-review.prompt.md` has no equivalent explicit instruction and relies on default report generation to produce this order.
 
-- `ThunderTools/PluginQualityAdvisor/Reports/plugin/` and `ThunderTools/PluginQualityAdvisor/Reports/interface/`
-  MUST be created if they do not exist before writing the file
+#### Scenario: Non-exempt failure has a detailed section
 
-### REQ-R7 — File writing and post-generation
+- GIVEN a rule failure has no matching exemption
+- WHEN the report is generated
+- THEN the finding MUST appear in the Issue Summary and Detailed Findings
+- AND its detailed section MUST include the exact source citation and actionable fix
 
-- The report MUST be written via terminal (`[System.IO.File]::WriteAllText`) to avoid VS Code editor buffer conflicts
-- After writing, the file size MUST be verified (non-zero)
-- The report MUST be opened in a browser or VS Code Simple Browser (`simpleBrowser.show`), NOT in the editor
-- The editor MUST NOT open the file directly (shows raw HTML)
+### Requirement: Exempted Findings are table-only
 
-Post-generation chat message:
-```
-📄 Full report saved:
-   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
-   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
-```
+When one or more failures are reclassified as `EXEMPT`, the report MUST place them after Skipped Rules in a separate Exempted Findings section. The section MUST contain exactly one table with `Rule`, `Status`, `File`, `Line`, and `Issue` columns. Each Issue value MUST be a concise one-line description.
 
-### REQ-R8 — Empty report (all PASS)
+#### Scenario: Exempted finding has no expanded detail or reason
 
-If no issues were found, generate:
+- GIVEN one or more failures were reclassified as `EXEMPT`
+- WHEN the HTML report is generated
+- THEN exempted findings MUST NOT appear in the blocking Issue Summary
+- AND exempted findings MUST NOT receive `What's wrong`, `Code found`, or `Fix` blocks
+- AND the Exempted Findings table MUST NOT contain a `Reason` or `Exemption Reason` column because the exemption schema has no reason field
 
-```html
-<!-- Thunder Plugin Review - {PluginName} -->
+### Requirement: Report is written and opened safely
 
-**Date:** {YYYY-MM-DD}  
-**Plugin:** {PluginName}  
-**Total Rules:** 84 | **Passed:** N | **Failed:** 0 | **Skipped:** N
+The report directory MUST be created when missing. The report MUST be written through the terminal, verified as non-empty, and opened in a browser or VS Code Simple Browser rather than the editor.
 
-✅ All rules passed - no issues found.
-```
+#### Scenario: Report generation completes
 
----
+- GIVEN the report directory does not exist
+- WHEN report generation completes
+- THEN the required directory MUST be created
+- AND the generated file size MUST be verified as non-zero
+- AND the report MUST be opened in a browser or Simple Browser
 
-## Folder structure
+### Requirement: Empty reviews produce a valid report
 
-```
-ThunderTools/PluginQualityAdvisor/
-└── Reports/
-    ├── plugin/
-    │   ├── Dictionary_2026-07-16.html
-    │   └── NetworkControl_2026-07-16.html
-    └── interface/
-        ├── INetworkControl_2026-07-16.html
-        └── IDictionary_2026-07-16.html
-```
-
----
-
-## Out of Scope
-
-- CSV or Excel format
-- Report viewer command (Markdown Preview is sufficient)
-- Diff between two reports (future)
-- Automatic email or CI upload (future)
+When every rule passes and no rule is skipped or exempted, the report MUST still contain the report header and a clear all-rules-passed message without an empty Detailed Findings section.

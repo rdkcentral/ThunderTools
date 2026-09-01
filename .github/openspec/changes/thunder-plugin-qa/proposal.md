@@ -1,4 +1,4 @@
-﻿# Proposal: Thunder PluginQualityAdvisor System
+# Proposal: Thunder PluginQualityAdvisor System
 
 ## Intent
 
@@ -22,12 +22,12 @@ automatically.
 - Keeps all affected files in sync atomically: YAML + prompt + README + spec
 
 **Plugin checkpoint validation (`/thunder-plugin-review`)**
-- 84 unified rules numbered sequentially (rule_01 to rule_84)
+- 85 unified rules numbered sequentially (rule_01 to rule_85)
 - Each rule: read code semantically -> decide pass/fail -> cite exact line on failure
 - Phases: Module Structure, Code Style, Class Registration, Lifecycle, Implementation,
   COM Interface Rules, Out-of-Process, Configuration, CMake, General
-- Single unified report - no separate sections
-- Report shows ONLY failures - PASS/SKIP appear as counts in summary table only
+- Single unified report with a separate Exempted Findings table when applicable
+- Report shows failures only; PASS/SKIP appear as counts in summary tables
 
 **COM interface validator (`/thunder-interface-review`)**
 - 19 rules: 16 core + 3 advisory
@@ -49,17 +49,18 @@ automatically.
 - Safe: creates timestamped backup, preserves existing settings, idempotent
 
 **YAML rule definitions** (loaded by prompts at runtime, not embedded)
-- `thunder-plugin-rules.yaml` — 84 unified rules (v3.3.0)
+- `thunder-plugin-rules.yaml` — 85 unified rules (v3.3.0)
 - `thunder-interface-rules.yaml` — 19 interface rules (v3.2.2)
 
-**Review reports** (Markdown, generated after each review run)
-- Single `.md` file per review with Issue Summary table and Detailed Findings
+**Review reports** (HTML, generated after each review run)
+- Single `.html` file per review with Issue Summary table and Detailed Findings for non-exempt findings
 - Plugin report: `Reports/plugin/{PluginName}_{YYYY-MM-DD}.html`
 - Interface report: `Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`
-- Issue Summary table with clickable `[rule_id - Name](#issue-N)` links navigating to detailed sections
-- Each finding has: What's wrong (plain English), Code found, Fix
-- PASS and SKIP rules excluded — only failures shown
-- Written via terminal to avoid VS Code editor buffer conflicts; opened in Markdown Preview
+- Issue Summary table with clickable `[rule_id - Name](#issue-N)` links navigating to non-exempt detailed sections
+- Each non-exempt finding has: What's wrong (plain English), Code found, Fix
+- Exempted findings use a separate table with Rule, Status, File, Line, and a concise Issue description; no reason field
+- PASS and SKIP rules excluded from individual findings — only totals are shown
+- Written via terminal to avoid VS Code editor buffer conflicts; opened in a browser or Simple Browser
 
 ## Out of Scope
 
@@ -72,7 +73,7 @@ automatically.
 Use VS Code `.prompt.md` files as slash commands. Each prompt loads its YAML
 rule definitions at runtime so rules can be updated without touching prompt
 logic. Plugin validation uses semantic code review: read code as a human
-developer and reason about meaning. All 84 rules produce the same unified
+developer and reason about meaning. All 85 rules produce the same unified
 output format — no distinction between "automated" and "manual" in the report.
 
 All checkpoint verification uses semantic reasoning — the validator reads code
@@ -91,6 +92,8 @@ it is acceptable. Severity is never escalated above what the YAML defines.
 ThunderTools/PluginQualityAdvisor/
 ├── README.md
 ├── setup-prompts.py           (cross-platform, Python 3)
+├── exempt_manager.py          (standalone local exemption CLI)
+├── Exemptions/                (runtime-created, git-ignored local state)
 ├── Prompts/
 │   ├── thunder-plugin-review.prompt.md
 │   ├── thunder-interface-review.prompt.md
@@ -106,3 +109,15 @@ ThunderTools/PluginQualityAdvisor/
     └── interface/
         └── {InterfaceName}_{YYYY-MM-DD}.html
 ```
+
+## Rule Exemptions
+
+Rule exemptions are part of the PluginQualityAdvisor review system and are documented in this change rather than a separate OpenSpec change. They preserve visibility of accepted deviations without skipping validation.
+
+- Store plugin and interface exemptions in local, git-ignored YAML files under `PluginQualityAdvisor/Exemptions/`.
+- Use the standalone standard-library `PluginQualityAdvisor/exempt_manager.py` for `list`, `add`, `update`, `remove`, and `clear`; no exemption slash command or review-reply shortcut is required.
+- Every rule still executes and receives contextual JUDGE processing. Only a matching failure is reclassified as `EXEMPT` after JUDGE.
+- Exempted findings remain visible in a separate table with `Rule`, `Status`, `File`, `Line`, and a concise one-line `Issue` description.
+- Exempted findings do not receive expanded detail blocks and the exemption schema has no reason or audit-metadata field.
+
+The existing rule catalog remains read-only. It may display exemption status but does not author or modify exemption state.

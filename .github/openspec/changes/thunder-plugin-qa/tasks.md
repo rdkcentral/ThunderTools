@@ -1,10 +1,10 @@
-﻿# Tasks: Thunder Plugin QA System
+# Tasks: Thunder Plugin QA System
 
 ## Phase 1: YAML rule definitions
 
 - [x] 1.1 Create `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` (v3.3.0)
       - metadata block: version, description, approach,
-        total_rules: 84, total_general_rules: 46,
+        total_rules: 85, total_general_rules: 46,
         organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3, Phase5C:2, Phase6:3, Phase7:1, Phase8:1"
       - validation_approach block: principles list + 5-step workflow (including
         Step 3b JUDGE: contextual judgment — if developer's approach technically
@@ -145,9 +145,9 @@
 ## Phase 2: Prompt files
 
 - [x] 2.1 Create `ThunderTools/PluginQualityAdvisor/Prompts/thunder-plugin-review.prompt.md`
-      Frontmatter: title: "Thunder Plugin Rule Review", description (mention 84 unified rules, semantic review)
+      Frontmatter: title: "Thunder Plugin Rule Review", description (mention 85 unified rules, semantic review)
       Sections (in order):
-      - Core Principle: semantic code review for all 84 rules. NEVER pattern-match.
+      - Core Principle: semantic code review for all 85 rules. NEVER pattern-match.
         ❌ open-ended vs ✅ bounded examples. All rules produce the same output format.
       - Report Output Philosophy: CRITICAL note — only report issues; PASS/SKIP as summary counts only;
         line numbers always required; always use ACTUAL plugin name in citations, NEVER {PluginName}
@@ -172,7 +172,7 @@
         5-step workflow (accept name + optional file → locate folder → identify target files
         → run applicable rules only → report)
       - Methodology: Step 1 (load YAML from ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml —
-        contains all 84 rules in phase_X_checkpoints and general_rules sections),
+        contains all 85 rules in phase_X_checkpoints and general_rules sections),
         Step 2 (identify plugin files — primary: ThunderNanoServices/{PluginName}/, fallback: workspace search,
         last resort: ask user; files table: Module.cpp, Module.h, {PluginName}.h, {PluginName}.cpp,
         CMakeLists.txt, {PluginName}.conf.in (optional), {PluginName}Implementation.h/cpp (optional)),
@@ -181,7 +181,7 @@
         Class Registration (Phase 3) applies ONLY to main plugin class — internal helpers excluded
       - Contextual Judgment section: severity downgrade table with concrete example showing
         reasoning field (required on downgrade, omitted otherwise), no escalation rule
-      - A shortened inline quick-reference list of all 84 rules is included in the prompt (rule_id + severity + high-level target only).
+      - A shortened inline quick-reference list of all 85 rules is included in the prompt (rule_id + severity + high-level target only).
         Full rule definitions (extraction, bounded_query, verification_logic, fix_template) are loaded from the YAML files at runtime (source of truth).
         Phase counts:
         Phase 1 Module Structure (3):
@@ -231,16 +231,16 @@
           rule_37 (violation conditional): "CXX_STANDARD Uses Thunder Variable"
         Phase 8 COM Interface Rules (1):
           rule_38 (violation): "COM Methods Return Core::hresult"
-      - Output Format: UNIFIED FILE-WISE grouping — all issues from all 84 rules grouped by
+      - Output Format: UNIFIED FILE-WISE grouping — all issues from all 85 rules grouped by
         source file with a header "### {FileName} — N issue(s)" for each file that has failures;
         within each file group, each failing rule is a YAML block with fields:
         rule_id, status (FAIL/PASS/SKIP), severity (violation/warning/suggestion),
         question, answer, extracted_code with [File:line] prefix, violation_line,
         citation using ACTUAL plugin filename, fix, reasoning.
         NO separate "Part 1" / "Part 2" sections — all findings in one list.
-      - Summary Format: Single unified Summary TABLE with columns Phase | PASS | FAIL | SKIP
-        (one row per phase + one row for "Holistic Rules (8 sub-phases)" + a Total row showing all 84),
-        followed by a numbered Next Steps list referencing [File:line] for each action item
+      - Summary Format: a single header line with Total Rules/Passed/Failed/Skipped/Exempted totals
+        (no separate per-phase breakdown table — considered during design and not implemented, since
+        the header totals plus file-grouped findings already cover it)
       - Key Advantages section, Important Notes section
       - Command Examples at end
 
@@ -320,11 +320,10 @@
           values for selected fields
         - ADD: ask all fields (id, name, severity, description, extraction_logic,
           verification_logic, violation_pattern, fix_template, example) with detailed messages
-      - Step 3 (ADD/UPDATE): update YAML (bump patch version + CHANGELOG entry), update
-        Quick Reference table row + rule detail block in prompt, update spec.md requirement line;
-        update rule count comments
-      - Step 4 (REMOVE): remove from all 3 files; bump version; add CHANGELOG removal entry
-      - Step 5: confirmation report listing all 3 files updated with new version and counts
+      - Step 3 (ADD/UPDATE): update YAML, update Quick Reference table row + rule detail block
+        in prompt, update spec.md requirement line; update rule count comments
+      - Step 4 (REMOVE): remove from all 3 files
+      - Step 5: confirmation report listing all 3 files updated with new counts
       - Core vs Advisory Classification table at end: core = codegen/ABI/crash failures;
         advisory = best practice; wrong list auto-corrected with explanation
 
@@ -372,7 +371,7 @@
       Sections (in order, matching final PluginQualityAdvisor README exactly):
       - Title: Thunder PluginQualityAdvisor
       - Overview: automated validation tools, bullet list: Thunder COM Interfaces (19 rules),
-        Thunder Plugins (38 checkpoints, 8 phases)
+        Thunder Plugins (39 checkpoints, 8 phases)
       - Quick Start: Setup (3 platform options with code blocks), Reload VS Code (2 steps + note),
         Use the Prompts (/thunder-interface-review, /thunder-plugin-review, /thunder-generate-plugin)
         each with description
@@ -422,7 +421,7 @@
       - Detailed Findings: ### Issue N heading, rule_XX bold, What's wrong, Code found, Fix
       - Status symbols: ❌ VIOLATION, ⚠️ WARNING, 💡 SUGGESTION (Unicode emoji only)
       - Write via terminal to avoid VS Code editor buffer conflicts
-      - Verify non-empty after writing; open in Markdown Preview (not editor)
+      - Verify non-empty after writing; open in a browser or VS Code Simple Browser (not the editor)
       - Empty report (all pass): header + "✅ All rules passed"
 
 - [x] 5.2 Add Step 6 (HTML report) to `ThunderTools/PluginQualityAdvisor/Prompts/thunder-interface-review.prompt.md`
@@ -439,3 +438,14 @@
       - REQ-R6: folder creation requirement
       - REQ-R7: file writing via terminal, verification, Markdown Preview
       - REQ-R8: empty report format (all pass case)
+
+## Phase 6: Rule exemptions
+
+- [x] 6.1 Add local, git-ignored plugin and interface exemption storage under `PluginQualityAdvisor/Exemptions/`.
+- [x] 6.2 Retain `PluginQualityAdvisor/exempt_manager.py` as the standard-library-only authoring CLI with `list`, `add`, `update`, `remove`, and `clear`.
+- [x] 6.3 Define the minimal schema with exactly one of `rule_id`, `phase`, or `category`, plus `scope`; do not store reasons or audit metadata.
+- [x] 6.4 Load exemptions without changing rule execution; apply `EXEMPT` only after the effective post-JUDGE status is finalized.
+- [x] 6.5 Keep exempted findings visible in a separate table-only section with `Rule`, `Status`, `File`, `Line`, and concise `Issue` columns.
+- [x] 6.6 Keep both rule catalogs (`thunder-plugin-rule-catalog.prompt.md`, `thunder-interface-rule-catalog.prompt.md`) read-only and remove obsolete exemption prompt/reply references from documentation.
+- [x] 6.8 Create `thunder-interface-rule-catalog.prompt.md` to match the plugin catalog (it was missing after the merge — asymmetric with the plugin side), and document both catalog commands in `README.md`'s Commands table, a dedicated section, and the Project Structure tree.
+- [x] 6.7 Validate the CLI, prompt/report diagnostics, generated report shape, and stale-reference scans.

@@ -62,15 +62,23 @@ Examples:
 
 ### Step 1 - Load Rules
 
-Load `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` **in full** — read the entire file from start to end. This file contains all 84 rules:
-- `phase_1_checkpoints` through `phase_8_checkpoints` - 38 rules with bounded queries
+Load `PluginQualityAdvisor/rules/thunder-plugin-rules.yaml`, resolved relative to the `PluginQualityAdvisor` folder this prompt file itself lives in (the folder registered via `chat.promptFilesLocations`) — **not** via a workspace-wide file search. The plugin/interface source repo open in the current workspace does not contain the `PluginQualityAdvisor` tool folder; searching for it there will always return no matches even though the file exists. Read the file **in full** — start to end. Actually check for the file at that location rather than assuming; if, after genuinely checking there, it is not there, do not fabricate or recall rule content from memory — stop and report to the user that `thunder-plugin-rules.yaml` could not be found, rather than proceeding with assumed rules. This file contains all 85 rules:
+- `phase_1_checkpoints` through `phase_8_checkpoints` - 39 rules with bounded queries (including `rule_85`, appended after `rule_84` in `phase_7_checkpoints`)
 - `general_rules` - 46 holistic rules across 8 sub-phases (rule_39 to rule_84)
 
-**CRITICAL:** Confirm you have loaded ALL rules up to rule_84 before starting the review. If the YAML reading was truncated or incomplete, continue reading until you reach the end. Do NOT start reviewing code until all 84 rules are loaded. Every rule must be evaluated — never skip a rule because it seems low-value or unlikely to apply.
+**CRITICAL:** Confirm you have loaded ALL rules up to rule_85 before starting the review. If the YAML reading was truncated or incomplete, continue reading until you reach the end. Do NOT start reviewing code until all 85 rules are loaded. Every rule must be evaluated — never skip a rule because it seems low-value or unlikely to apply.
 
-**Mandatory gate:** Before proceeding to Step 2, state: "Rules loaded: [N]. Last rule ID loaded: [rule_id]." If N < 84, re-read the YAML from the truncation point before continuing.
+**Mandatory gate:** Before proceeding to Step 2, state: "Rules loaded: [N]. Last rule ID loaded: [rule_id]." If N < 85, re-read the YAML from the truncation point before continuing.
 
 All rules produce the same output format. There is no distinction between "phase checkpoint" and "holistic" in the report.
+
+### Step 1b - Load Exemptions
+
+**Do not assume this file is missing — actually check.** Read `PluginQualityAdvisor/Exemptions/thunder-plugin-exemptions.local.yaml`, resolved relative to the `PluginQualityAdvisor` folder this prompt file lives in (the same folder as the rules YAML in Step 1) — **not** via a workspace-wide file search. The plugin source repo open in the current workspace does not contain the `PluginQualityAdvisor` tool folder; searching for `Exemptions/...` there will always return no matches even when the file exists. Perform a real file check at that resolved location and, if it exists, actually open and read its full contents — do not skip this step or default to "not found" because the file is commonly absent on a fresh clone. If the `Exemptions/` folder or the file genuinely does not exist at that location, do **not** create it — simply treat all rules as not exempted and continue. This is expected on a fresh clone or first-ever use (the file is git-ignored, personal, local-only, and nothing is pre-seeded ahead of time) and is not an error.
+
+Resolve which of the 85 rules are exempted **for `{PluginName}`**: an entry applies if its `rule_id` (or every rule in its `phase`/`category`) matches, AND its `scope` is `"global"` OR includes `{PluginName}` by name.
+
+**CRITICAL — Exemption ≠ Skip:** this step only builds a lookup table for later. It does **not** remove any rule from execution. Every one of the 85 rules is still executed in Step 3, in full, exactly as if this file did not exist. Exemption status is consulted **only once**, after a rule's effective status (post-JUDGE) has already been decided — see "Exemption Check" below. Do not let a rule's exempted status influence how thoroughly it is checked.
 
 ### Step 2 - Identify Plugin Files
 
@@ -112,7 +120,7 @@ If not found: Ask user for location.
 - `namespace WPEFramework` → **pre-Thunder 5.0** plugin
 - `namespace Thunder` → **Thunder 5.0+** plugin
 
-**Completeness sweep — after applying all 84 rules, perform these explicit checks across ALL files:**
+**Completeness sweep — after applying all 85 rules, perform these explicit checks across ALL files:**
 
 > **Semantic reasoning still applies to every sweep match.** The sweep ensures patterns are not *missed* — it does not bypass the JUDGE step. Each match found below must be evaluated in full context before being reported: test files, generated code, comments, string literals, and platform-specific shims may make a pattern acceptable. Apply the same understand-first, reason-in-context logic as for all other rules.
 
@@ -139,6 +147,7 @@ If not found: Ask user for location.
 - **rule_79** (No hardcoded callsigns): search every file for string literals containing `"org.rdk.`, `"org.metrological.`, or any other hardcoded plugin callsign — flag each one; callsigns must come from configuration
 - **rule_81** (Core::GetEnvironment): search every file for `getenv(`, `setenv(`, `putenv(` — flag each; use `Core::GetEnvironment()` / `Core::SetEnvironment()` instead
 - **rule_82** (No sleep anywhere): search every file for `sleep(`, `usleep(`, `std::this_thread::sleep_for(`, `std::this_thread::sleep_until(` — flag every occurrence, not just inside Initialize()
+- **rule_85** (JSON-RPC Definitions Library Linked): search every plugin source file for `#include` lines matching `interfaces/json/J*.h`, `interfaces/json/JsonData_*.h`, `qa_interfaces/json/*`, or `example_interfaces/json/*` — if any are found, check CMakeLists.txt for `find_package(${NAMESPACE}Definitions REQUIRED)` and a `target_link_libraries` call linking `${NAMESPACE}Definitions::${NAMESPACE}Definitions` (or an equivalent `WPEFrameworkDefinitions` compatibility shim)
 ---
 
 ## CRITICAL FILE SCOPING RULES
@@ -189,6 +198,27 @@ reasoning:   # omit if no severity downgrade
 
 ---
 
+## Exemption Check (runs AFTER the JUDGE step, on every rule)
+
+This runs once per rule, immediately after its effective status (PASS/SKIP/VIOLATION/WARNING/
+SUGGESTION) has been finalized by the JUDGE step above — never before, and never as a substitute for
+running the rule.
+
+- **PASS or SKIP** → no exemption logic applies. Report as normal.
+- **VIOLATION / WARNING / SUGGESTION, rule is NOT in the Step 1b exemption lookup for `{PluginName}`**
+  → report as normal, in the Issue Summary and Detailed Findings, exactly as today.
+- **VIOLATION / WARNING / SUGGESTION, rule IS exempted for `{PluginName}`** → reclassify `status` as
+  `EXEMPT`. Do **not** place this finding in the Issue Summary table or the main Detailed Findings.
+  Instead route it to the **Exempted Findings** section (chat output and HTML report — see below) as a
+  single short table row (rule, status, file, line, a one-line plain-English issue description) — no
+  expanded detail block. Exemptions have no reason field at all; there is nothing to carry forward.
+
+**This can only move a finding, never delete it.** A rule that would have failed and is exempted still
+appears in the report — in Exempted Findings instead of Issue Summary. There is no code path that
+causes an exempted violation to vanish from the output entirely.
+
+---
+
 ## Output Format
 
 ### Chat Output - Brief Summary
@@ -230,10 +260,24 @@ Followed by a note pointing to the full report file.
 
 GitHub shortcodes (`:x:`, `:warning:`, `:bulb:`) do NOT render in VS Code Markdown Preview and appear as raw text.
 
-End chat output with:
+**🔕 EXEMPT** — reclassified from a real failure via a local exemption (see Exemption Check above).
+Never shown in the main Issue Summary table; only in the Exempted Findings section.
+
+End chat output with, **if there are no exempted findings**:
 ```
 📄 Full report saved: PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+
+**If one or more findings were exempted**, add the exempted count:
+```
+📄 Full report saved: PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions (+{E} exempted findings — see report)
+```
+
+**Always** end with, regardless of whether anything was exempted this run:
+```
+💬 To exempt a plugin finding, run: python PluginQualityAdvisor/exempt_manager.py --rule-set plugin add {rule_id} --scope {PluginName}
 ```
 
 ---
@@ -250,7 +294,7 @@ End chat output with:
 1. Load `thunder-plugin-rules.yaml` at the start of every review run - rules may have been updated
 2. Never embed rule data in this prompt - always load from YAML at runtime
 3. If a plugin is not found, search the entire workspace before asking the user
-4. Total: 84 rules (rule_01 to rule_84), all sequential, all producing unified output
+4. Total: 85 rules (rule_01 to rule_85), all sequential, all producing unified output
 5. Rule IDs in reports use the format `rule_XX` - no phase prefixes
 
 ## Command Examples
@@ -324,7 +368,7 @@ If git is unavailable, use `unknown`.
 **Plugin:** {PluginName}  
 **Repo:** {plugin-repo-url}  
 **Branch:** {plugin-branch} | **Commit:** {plugin-sha}  
-**Total Rules:** 84 | **Passed:** N | **Failed:** N | **Skipped:** N
+**Total Rules:** 85 | **Passed:** N | **Failed:** N | **Skipped:** N | **Exempted:** N
 
 ---
 
@@ -421,9 +465,42 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 | rule_33 - connectionId Checked | Plugin is in-process |
 | rule_34 - Configuration Class | No .conf.in file present |
 
+---
+
+## Exempted Findings
+
+*Only present if one or more rules failed AND are exempted for {PluginName} in
+`Exemptions/thunder-plugin-exemptions.local.yaml`. Omit this entire section if there are none — do not
+show an empty table.*
+
+**Table only — no per-finding detail blocks, no "What's wrong"/"Code found"/"Fix" expansion, and no
+Exemption Reason column** — exemptions have no reason field at all. Keep each row to one short line:
+
+| Rule | Status | File | Line | Issue |
+|------|--------|------|------|-------|
+| rule_39 - #pragma once | 🔕 EXEMPT (would be 💡 SUGGESTION) | Module.h | 1 | Legacy include guard instead of #pragma once |
+| rule_06 - NULL vs nullptr | 🔕 EXEMPT (would be ⚠️ WARNING) | Dictionary.cpp | 108 | NULL used as null pointer |
+
+The **Issue** column is a short, single-line plain-English description of what's wrong — the same
+level of brevity as the main Issue Summary table's Issue column, not a restatement of the rule name.
 ```
 
 ### Report Generation Rules
+
+**CRITICAL — numbering order (read this before assigning any Issue No.):** Issue numbers MUST be
+assigned **after** sorting, never during rule evaluation. The correct sequence is:
+1. Evaluate all 85 rules and collect every non-exempted failure (VIOLATION/WARNING/SUGGESTION), in
+   whatever order they were checked (typically rule_01 → rule_85).
+2. **Sort that entire collected list by severity — VIOLATIONS first, then WARNINGS, then SUGGESTIONS**
+   — before writing anything to the report.
+3. **Only then** walk the sorted list top to bottom and assign `Issue 1`, `Issue 2`, `Issue 3`, ...
+   sequentially, in that final sorted order.
+Do NOT number a finding at the moment it is discovered during evaluation and then reorder the rows by
+severity afterward — that produces a summary table whose visible Issue No. column is a scrambled
+subsequence (e.g. `2, 4, 5, 7...`) instead of `1, 2, 3...`, because the numbers were frozen before the
+sort. The Issue No. in the summary table, the `#issue-N` anchor, the Rule-column link, and the
+`### Issue N` detail heading for a given finding MUST always be the same N, computed once from the
+final sorted position — never four numbers that drift apart.
 
 - Each issue in the summary table links to its detailed section via the Rule column using `[rule_XX - Name](#issue-N)` anchors
 - Each detailed section heading uses `### Issue N` (creates the `#issue-n` anchor automatically)
@@ -433,11 +510,12 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 - **"Code found"** must show the actual code from the plugin with file:line comment
 - **"Fix"** must show the corrected code with a brief comment explaining the change
 - If severity was downgraded (JUDGE step), add a **"Note:"** paragraph after the fix explaining why
-- Issues are ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS
 - After Detailed Findings, include a **Skipped Rules** table listing rules that were not applicable and why
+- After Skipped Rules, include an **Exempted Findings** section for any rule that failed but is exempted for `{PluginName}` (see Exemption Check) — a table only, one short row per finding (rule, status, file, line, one-line issue description); no per-finding detail block, and no Exemption Reason column (exemptions have no reason field). Omit this section entirely if there are none — never render it empty
+- Exempted findings are never counted in **Failed** in the header — they have their own **Exempted** count instead, and `Passed + Failed + Skipped + Exempted` must equal 85
 - UTF-8 encoding, LF line endings
 
-**If no issues found**, generate:
+**If no blocking issues found and no exempted findings either** (a true clean run), generate:
 
 ```markdown
 # Thunder Plugin Review - {PluginName}
@@ -446,16 +524,31 @@ The `MODULE_NAME` macro should use the `Plugin_` prefix convention for consisten
 **Plugin:** {PluginName}  
 **Repo:** {plugin-repo-url}  
 **Branch:** {plugin-branch} | **Commit:** {plugin-sha}  
-**Total Rules:** 84 | **Passed:** N | **Failed:** 0 | **Skipped:** N
+**Total Rules:** 85 | **Passed:** N | **Failed:** 0 | **Skipped:** N | **Exempted:** 0
 
 ✅ All rules passed - no issues found.
 ```
 
-**Post-generation message in chat:**
+**If there are no blocking issues but one or more exempted findings exist**, still generate the full
+Issue Summary heading with an empty/omitted table, but keep the Exempted Findings section — a run is
+never "all clear" purely because nothing is currently blocking; the exempted findings remain visible.
+
+**Post-generation message in chat** — same message defined in "Output Format" above (do not duplicate
+a different version here): if there are no exempted findings,
 ```
 📄 Full report saved:
    PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+if one or more findings were exempted, add the exempted count:
+```
+📄 Full report saved:
+   PluginQualityAdvisor/Reports/plugin/{PluginName}_{YYYY-MM-DD}.html
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions (+{E} exempted findings — see report)
+```
+and always end with, regardless of whether anything was exempted this run:
+```
+💬 To exempt a plugin finding, run: python PluginQualityAdvisor/exempt_manager.py --rule-set plugin add {rule_id} --scope {PluginName}
 ```
 
 ### Post-Generation Action

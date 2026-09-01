@@ -3,9 +3,9 @@
 # ===========================================================================================
 
 metadata:
-  description: "Unified plugin validation rules — 84 rules numbered sequentially (rule_01 to rule_84), organized into 17 phases plus extended rules"
+  description: "Unified plugin validation rules — 85 rules numbered sequentially (rule_01 to rule_85, with rule_85 appended after rule_84), organized into 17 phases plus extended rules"
   approach: "semantic code review"
-  total_rules: 84
+  total_rules: 85
   organization: |
     rule_01-rule_03: Module Structure (3)
     rule_04-rule_13: Code Style (10)
@@ -14,7 +14,7 @@ metadata:
     rule_29-rule_31: Implementation (3)
     rule_32-rule_33: Out-of-Process (2)
     rule_34-rule_36: Configuration (3)
-    rule_37: CMake (1)
+    rule_37,85: CMake (2)
     rule_38: COM Interface (1)
     rule_39,40,44,67,69: Conventions & Encapsulation (5)
     rule_41,51,62,83: Lifecycle & State Integrity (4)
@@ -27,7 +27,7 @@ metadata:
 
   validation_approach:
     principles:
-      - "ALL 84 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
+      - "ALL 85 rules follow the same review philosophy: understand the whole plugin first, then check specifics"
       - "Step 1 is ALWAYS: read the full plugin code (all files) and build mental model of architecture, ownership, lifecycle, and threading"
       - "Step 2 is: with that full understanding, examine the specific concern each rule asks about"
       - "Never check a specific block in isolation — always reason about it in the context of the full plugin"
@@ -1680,6 +1680,50 @@ phase_7_checkpoints:
     citation:
       line_format: "[CMakeLists.txt:LINE] CXX_STANDARD hardcoded — use ${CXX_STD}"
       rule: "thunder-plugin-rules.yaml / rule_37"
+
+  - rule_id: "rule_85"
+    name: "JSON-RPC Definitions Library Linked"
+    severity: "violation"
+    phase: "cmake"
+
+    extraction:
+      target: "Generated JSON-RPC header includes in plugin source, and find_package/target_link_libraries calls in CMakeLists.txt"
+      method: "Read every plugin source file for #include lines referencing generated JSON-RPC headers, then read CMakeLists.txt for find_package and target_link_libraries calls"
+      code_block: "The #include lines for generated JSON-RPC headers, and the find_package/target_link_libraries lines in CMakeLists.txt"
+
+    bounded_query:
+      question: "If the plugin includes a generated JSON-RPC header (interfaces/json/J*.h, interfaces/json/JsonData_*.h, qa_interfaces/json/*, or example_interfaces/json/*), does CMakeLists.txt call find_package(${NAMESPACE}Definitions REQUIRED) and link ${NAMESPACE}Definitions::${NAMESPACE}Definitions to the plugin target (or an equivalent WPEFrameworkDefinitions compatibility shim)?"
+      expected_answer: "Yes"
+
+    verification_logic:
+      - "1. Read all plugin source files and reason about whether any #include references a generated JSON-RPC header — paths matching interfaces/json/J*.h, interfaces/json/JsonData_*.h, qa_interfaces/json/*, or example_interfaces/json/*"
+      - "2. If no such generated JSON-RPC header is included anywhere in the plugin → SKIP this checkpoint"
+      - "3. If found, read CMakeLists.txt in full and check for find_package(${NAMESPACE}Definitions REQUIRED)"
+      - "4. Check that target_link_libraries links ${NAMESPACE}Definitions::${NAMESPACE}Definitions to the plugin's target"
+      - "5. Also accept an equivalent compatibility shim as satisfying this rule: a find_package(WPEFrameworkDefinitions) fallback paired with an ALIAS target that provides the same ${NAMESPACE}Definitions::${NAMESPACE}Definitions interface — some environments only ship the fixed legacy package name"
+      - "6. If neither the templated find_package/target_link_libraries pair nor the shim equivalent is present → VIOLATION"
+
+    conditional: true
+    skip_condition: "Plugin does not include any generated JSON-RPC header (no interfaces/json/J*.h, JsonData_*.h, qa_interfaces/json/*, or example_interfaces/json/* includes found anywhere in the plugin)"
+
+    violation_pattern: "Plugin includes generated JSON-RPC headers but CMakeLists.txt never find_package/links the Definitions library"
+
+    fix_template: |
+      # WRONG: JSON-RPC headers included, but Definitions library never linked
+      find_package(${NAMESPACE}Plugins REQUIRED)
+      target_link_libraries(${MODULE_NAME} PRIVATE ${NAMESPACE}Plugins::${NAMESPACE}Plugins)
+
+      # Correct: also find_package and link the Definitions library
+      find_package(${NAMESPACE}Plugins REQUIRED)
+      find_package(${NAMESPACE}Definitions REQUIRED)
+      target_link_libraries(${MODULE_NAME}
+          PRIVATE
+              ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+              ${NAMESPACE}Definitions::${NAMESPACE}Definitions)
+
+    citation:
+      line_format: "[CMakeLists.txt:LINE] Generated JSON-RPC headers used but ${NAMESPACE}Definitions not linked"
+      rule: "thunder-plugin-rules.yaml / rule_85"
 
 # -------------------------------------------------------------------------------------------
 # Phase 8: COM Interface Rules
