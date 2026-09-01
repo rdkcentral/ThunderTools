@@ -507,7 +507,8 @@ def Create(log, args, schema, path, indent_size = 4):
                 call_method = "%s.%s" % (classname, _example_callee)
 
                 if is_property and "index" in props:
-                    call_method += ("@" + str(props["index"][0]["example"]) if "example" in props["index"][0] else "?")
+                    idx = props["index"][0] if props["index"][0] else props["index"][1]
+                    call_method += (("@" + str(idx["example"]).strip('"')) if "example" in idx else "?")
                     generic_method += "@<index>"
 
                 if "@async" in props:
@@ -516,16 +517,15 @@ def Create(log, args, schema, path, indent_size = 4):
 
             if is_property:
                 if "index" in props:
-                    if "name" not in props["index"][0] or "example" not in props["index"][0]:
-                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
+                    idx = props["index"][0] if props["index"][0] else props["index"][1]
 
-                    if "type" not in props["index"][0]:
+                    if props["index"][0]  and "type" not in props["index"][0]:
                         props["index"][0]["type"] = "string"
                     if props["index"][1] and ("type" not in props["index"][1]):
                         props["index"][1]["type"] = "string"
 
                     extra_paragraph = "> The *%s* parameter shall be passed as the index to the property, i.e. ``%s@<%s>``." % (
-                        props["index"][0]["name"].lower(), method, props["index"][0]["name"].lower().replace(' ', '-'))
+                        idx["name"].lower(), method, idx["name"].lower().replace(' ', '-'))
 
                     if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
                         extra_paragraph += " The index is optional."
