@@ -31,6 +31,13 @@ namespace FunctionalTest {
     struct EXTERNAL ITestOptionals : virtual public Core::IUnknown {
         enum { ID = ID_TEST_OPTIONALS };
 
+        struct Compound {
+            string magic;
+            Core::OptionalType<string> optionalMagic;
+            std::vector<uint8_t> data /* @restrict:8 */;
+            Core::OptionalType<std::vector<uint8_t>> optionalData /* @restrict:8 */;
+        };
+
         // ===== Optional input parameters =====
 
         // @brief Add two numbers. When b is not set it defaults to 0.
@@ -129,6 +136,30 @@ namespace FunctionalTest {
             uint8_t output[] /* @out @length:written @maxlength:maxOutputSize */,
             const uint16_t maxOutputSize,
             uint16_t& written /* @out */) = 0;
+
+        // ===== Optional vectors =====
+
+        // @brief Process an input vector into an output vector.
+        virtual Core::hresult ProcessOptionalVector(
+            const Core::OptionalType<std::vector<uint8_t>>& input /* @restrict:8 */,
+            Core::OptionalType<std::vector<uint8_t>>& output /* @out @restrict:8 */) = 0;
+
+        // @brief Process an input vector into same output vector.
+        // @param unset Change a set optional to unset
+        virtual Core::hresult ProcessOptionalInlineVector(
+            Core::OptionalType<std::vector<uint8_t>>& data /* @inout @restrict:8 */,
+            const bool unset) = 0;
+
+        // @brief Process  vector in a struct
+        virtual Core::hresult ProcessOptionalVectorInOptionalStruct(
+            const Core::OptionalType<Compound>& input,
+            Core::OptionalType<Compound>& output /* @out */) = 0;
+
+        // @brief Process a vector in a struct to the same struct
+        // @param unset Change a set optional to unset
+        virtual Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
+            Core::OptionalType<Compound>& data /* @inout*/,
+            const bool unset) = 0;
 
         // ===== Edge cases =====
 

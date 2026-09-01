@@ -120,6 +120,101 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult ProcessOptionalVector(
+            const Core::OptionalType<std::vector<uint8_t>>& input,
+            Core::OptionalType<std::vector<uint8_t>>& output) override
+        {
+            if (input.IsSet() == true) {
+                std::vector<uint8_t> data;
+                data.resize(input.Value().size());
+                std::transform(input.Value().begin(), input.Value().end(), data.begin(), [](uint8_t x) {
+                    return static_cast<uint8_t>(x * 2);
+                });
+                output = std::move(data);
+            }
+            else {
+                output = Core::OptionalType<std::vector<uint8_t>>();
+            }
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult ProcessOptionalInlineVector(
+            Core::OptionalType<std::vector<uint8_t>>& data,
+            const bool unset) override
+        {
+            if (data.IsSet() == true) {
+                if (unset == true) {
+                    data = Core::OptionalType<std::vector<uint8_t>>();
+                }
+                else {
+                    std::for_each(data.Value().begin(), data.Value().end(), [](uint8_t& num) {
+                        num *= 2;
+                    });
+                }
+            }
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult ProcessOptionalVectorInOptionalStruct(
+            const Core::OptionalType<Compound>& input,
+            Core::OptionalType<Compound>& output) override
+        {
+            if (input.IsSet() == true) {
+                Compound cp;
+                cp.magic = input.Value().magic;
+                cp.optionalMagic = input.Value().optionalMagic;
+                cp.data.resize(input.Value().data.size());
+
+                std::transform(input.Value().data.begin(), input.Value().data.end(), cp.data.begin(), [](uint8_t x) {
+                    return static_cast<uint8_t>(x * 2);
+                });
+
+                if (input.Value().optionalData.IsSet() == true) {
+                    std::vector<uint8_t> data;
+                    data.resize(input.Value().optionalData.Value().size());
+                    std::transform(input.Value().optionalData.Value().begin(), input.Value().optionalData.Value().end(), data.begin(), [](uint8_t x) {
+                        return static_cast<uint8_t>(x * 2);
+                    });
+
+                    cp.optionalData = std::move(data);
+                }
+
+                output = std::move(cp);
+            }
+            else {
+                output = Core::OptionalType<Compound>();
+            }
+            return Core::ERROR_NONE;
+        }
+
+        Core::hresult ProcessOptionalVectorInOptionalInlineStruct(
+            Core::OptionalType<Compound>& data,
+            const bool unset) override
+        {
+            if (data.IsSet() == true) {
+
+                if ((data.Value().optionalMagic.IsSet() == true) && (unset == true)) {
+                    data.Value().optionalMagic = Core::OptionalType<string>();
+                }
+
+                std::for_each(data.Value().data.begin(), data.Value().data.end(), [](uint8_t& num) {
+                    num *= 2;
+                });
+
+                if (data.Value().optionalData.IsSet() == true) {
+                    if (unset == true) {
+                        data.Value().optionalData = Core::OptionalType<std::vector<uint8_t>>();
+                    }
+                    else {
+                        std::for_each(data.Value().optionalData.Value().begin(), data.Value().optionalData.Value().end(), [](uint8_t& num) {
+                            num *= 2;
+                        });
+                    }
+                }
+            }
+            return Core::ERROR_NONE;
+        }
+
         Core::hresult AllOptional(
             const Core::OptionalType<uint32_t>& a,
             const Core::OptionalType<uint32_t>& b,
