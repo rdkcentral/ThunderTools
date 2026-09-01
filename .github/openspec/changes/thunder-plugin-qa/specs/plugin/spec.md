@@ -18,10 +18,19 @@ ThunderTools/PluginQualityAdvisor/
 ├── README.md
 ├── PLUGIN_GENERATOR_GUIDE.md
 ├── setup-prompts.py               (cross-platform Python 3)
+├── exempt_manager.py               (standalone exemption CLI, no AI required)
+├── Update-Template-Guide/
+│   ├── plugin-rule-template-guide.md
+│   └── interface-rule-template-guide.md
 ├── Prompts/
 │   ├── thunder-plugin-review.prompt.md
 │   ├── thunder-interface-review.prompt.md
-│   └── thunder-generate-plugin.prompt.md
+│   ├── thunder-generate-plugin.prompt.md
+│   ├── thunder-plugin-rule-manager.prompt.md
+│   ├── thunder-interface-rule-manager.prompt.md
+│   ├── thunder-plugin-rule-catalog.prompt.md
+│   └── thunder-interface-rule-catalog.prompt.md
+├── Exemptions/                      (git-ignored, local-only)
 └── rules/
     ├── thunder-plugin-rules.yaml
     └── thunder-interface-rules.yaml
@@ -100,17 +109,18 @@ The `setup-prompts.py` script MUST modify the user-level VS Code `settings.json`
 
 ### Requirement: thunder-plugin-rules.yaml (v3.3.0) created under PluginQualityAdvisor/rules/
 The file `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` MUST exist
-with version `3.3.0` and contain all 84 rules numbered sequentially (rule_01 to rule_84).
+with version `3.3.0` and contain all 85 rules numbered sequentially (rule_01 to rule_85, with
+`rule_85` appended after `rule_84`).
 
 #### Scenario: Metadata block
 - GIVEN the YAML file
 - THEN it MUST contain a `metadata` block with:
-  `version: "3.3.0"`, `total_rules: 84`, `total_general_rules: 46`,
+  `version: "3.3.0"`, `total_rules: 85`, `total_general_rules: 46`,
   `approach: "semantic code review — understand whole plugin first, then check specifics"`,
   and a `validation_approach` block listing the 5-step workflow
   (understand whole plugin → focus on specific concern → reason in context → cite if genuinely wrong → fix)
 
-#### Scenario: All 38 phase checkpoints present with required fields
+#### Scenario: All 39 phase checkpoints present with required fields
 - GIVEN each phase checkpoint entry in the YAML (under phase sections)
 - THEN it MUST contain: `rule_id`, `name` (Title Case), `severity`, `phase`,
   `extraction` block (target / method / code_block),
@@ -133,14 +143,14 @@ with version `3.3.0` and contain all 84 rules numbered sequentially (rule_01 to 
 - AND Holistic Rules (8 sub-phases) MUST NOT have `extraction`, `bounded_query`, or `verification_logic` fields
 
 #### Scenario: Report output is unified — no "automated" vs "manual" split
-- GIVEN any review run completing all 84 rules
+- GIVEN any review run completing all 85 rules
 - THEN the report MUST present ONE unified list of findings grouped by file
 - AND there MUST NOT be separate "Part 1" / "Part 2" or "Automated" / "Manual" sections
-- AND the summary table MUST include all 84 rules in a single table with rows for each
-  phase plus "Holistic Rules (8 sub-phases)" and a "Total (84 rules)" footer row
+- AND the report header MUST reflect all 85 rules via its Passed/Failed/Skipped/Exempted totals — there
+  is no separate per-phase breakdown table
 
 #### Scenario: Phase breakdown matches spec
-- GIVEN the 38 checkpoints distributed across phases
+- GIVEN the 39 checkpoints distributed across phases
 - THEN the counts MUST be:
   Phase 1 (module_structure): 3 — `rule_01`, `rule_02`, `rule_03`
   Phase 2 (code_style): 10 — `rule_04`, `rule_05`, `rule_06`,
@@ -153,10 +163,10 @@ with version `3.3.0` and contain all 84 rules numbered sequentially (rule_01 to 
                              `rule_20`, `rule_21`, `rule_22`, `rule_23`,
                              `rule_24`, `rule_25`, `rule_26`, `rule_27`,
                              `rule_28`
-  Phase 5 (implementation): 4 — `rule_29`, `rule_30`,
+  Phase 5 (implementation): 3 — `rule_29`, `rule_30`, `rule_31`
   Phase 5C (oop): 2 — `rule_32`, `rule_33`
   Phase 6 (configuration): 3 — `rule_34`, `rule_35`, `rule_36`
-  Phase 7 (cmake): 1 — `rule_37`
+  Phase 7 (cmake): 2 — `rule_37`, `rule_85`
   Phase 8 (interfaces): 1 — `rule_38`
 
 ---
@@ -193,7 +203,7 @@ with version `3.2.2` and contain all 19 interface rule definitions (16 core + 3 
 
 ### Requirement: Plugin validation command with unified output
 The system MUST provide a `/thunder-plugin-review <PluginName>` slash command
-in VS Code Copilot Chat that validates a Thunder plugin against all 84 rules
+in VS Code Copilot Chat that validates a Thunder plugin against all 85 rules
 using semantic code review, producing a single unified report.
 
 #### Scenario: Plugin found and reviewed
@@ -202,7 +212,7 @@ using semantic code review, producing a single unified report.
 - THEN it locates `ThunderNanoServices/Dictionary/` automatically
 - AND identifies Dictionary.h, Dictionary.cpp, Module.h, Module.cpp, CMakeLists.txt,
   Dictionary.conf.in, and any OOP implementation files
-- AND executes all 84 rules in order (phase checkpoints first, then General)
+- AND executes all 85 rules in order (phase checkpoints first, then General)
 - AND outputs a single unified report showing ONLY failures with exact line citations
 
 #### Scenario: No plugin name provided
@@ -276,14 +286,14 @@ after contextual judgment — not always the raw YAML severity.
 
 ---
 
-### Requirement: 84 unified rules organised across phase groups and General concerns
+### Requirement: 85 unified rules organised across phase groups and General concerns
 The prompt MUST load rule definitions from
 `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` at runtime.
 Each rule definition includes sufficient information for semantic validation.
-All 84 rules produce the same output format.
+All 85 rules produce the same output format.
 
 Phase breakdown: Phase 1: 3, Phase 2: 10, Phase 3: 3, Phase 4: 12, Phase 5: 3,
-Phase 5C: 2, Phase 6: 3, Phase 7: 1, Phase 8: 1 = 38 phase rules + 46 holistic rules = 84 total.
+Phase 5C: 2, Phase 6: 3, Phase 7: 2, Phase 8: 1 = 39 phase rules + 46 holistic rules = 85 total.
 
 ---
 
@@ -429,7 +439,7 @@ NOT by running regular expressions or keyword searches against raw text.
 - THEN it checks the main plugin class destructor body is completely empty;
   exception: `SYSLOG`/`TRACE` lifecycle tracing calls are harmless and must NOT be flagged;
   resource release, state cleanup, and `ASSERT` calls (unless purely invariant) must be in `Deinitialize()`
-#### Scenario: Phase 5 - Implementation (4 checkpoints, mostly conditional)
+#### Scenario: Phase 5 - Implementation (3 checkpoints, mostly conditional)
 - GIVEN plugin implementation files
 - WHEN checkpoint rule_29 runs (violation, conditional)
 - IF `Exchange::J*::Register` in Initialize: checks matching `::Unregister` in Deinitialize
@@ -480,11 +490,18 @@ NOT by running regular expressions or keyword searches against raw text.
   meaning of each numeric value in context — NOT by searching for number patterns;
   apply judgment: protocol constants (e.g. port 80) are acceptable, deployment tuning values are not
 
-#### Scenario: Phase 7 - CMake (1 checkpoint)
+#### Scenario: Phase 7 - CMake (2 checkpoints)
 - GIVEN CMakeLists.txt
 - WHEN checkpoint rule_37 runs
 - THEN it checks `CXX_STANDARD` is set to `${CXX_STD}` (Thunder variable), not a literal like `11` or `14`;
   the validator MUST read CMakeLists.txt in full and reason about each target's property settings
+- WHEN checkpoint rule_85 runs (violation, conditional)
+- IF the plugin includes a generated JSON-RPC header (`interfaces/json/J*.h`, `interfaces/json/JsonData_*.h`,
+  `qa_interfaces/json/*`, or `example_interfaces/json/*`): checks CMakeLists.txt calls
+  `find_package(${NAMESPACE}Definitions REQUIRED)` and links
+  `${NAMESPACE}Definitions::${NAMESPACE}Definitions` to the plugin target (a `WPEFrameworkDefinitions`
+  compatibility shim providing the same target is also acceptable)
+- SKIP if the plugin includes no generated JSON-RPC header
 ---
 ---
 
@@ -497,7 +514,8 @@ All rules produce the same output format — there is no separate section for th
 - GIVEN the phase checkpoint evaluation is complete
 - WHEN the validator runs the 46 holistic rules (8 sub-phases)
 - THEN any failures appear in the same file-grouped findings list as phase checkpoint failures
-- AND the summary table includes a "Holistic Rules (8 sub-phases)" row with PASS/FAIL/SKIP counts
+- AND holistic-rule PASS/FAIL/SKIP/EXEMPT outcomes are reflected in the same header totals as phase
+  checkpoints — there is no separate "Holistic Rules" row, since there is no per-phase table at all
 - AND there is NO separate "Part 2" or "Manual Review" heading in the output
   `rule_id`, `rule` (name), `status` (PASS/FAIL/SUGGEST), `severity`,
   `extracted_code` (with [File:line] prefix where applicable), `violation_line`,
@@ -591,25 +609,17 @@ reasoning: "..."
 ---
 ---
 
-### Requirement: Checkpoint summary as table and Next Steps as numbered list
-The report MUST include a `### Checkpoint Summary` table after all file sections.
+### Requirement: PASS and SKIP totals appear only in the report header
+The report MUST NOT list individual PASS or SKIP checkpoints anywhere. Their counts appear only as
+the aggregate `Passed`/`Skipped` numbers in the single report header line, alongside `Total Rules`,
+`Failed`, and `Exempted`. There is no separate per-phase breakdown table — a phase-by-phase PASS/FAIL/
+SKIP/EXEMPT table was considered during design and explicitly not implemented, since the header totals
+plus the file-grouped findings already give the developer everything needed to act, without an
+additional table to scan past.
 
-#### Scenario: Summary table format
+#### Scenario: Header totals are the only summary-level counts
 - GIVEN a completed review
-- THEN the summary MUST be a markdown table:
-
-  | Phase | PASS | FAIL | SKIP |
-  |-------|------|------|------|
-  | Phase 1: Module Structure | 3 | 0 | 0 |
-  | ... | ... | ... | ... |
-  | **Total** | **N** | **N** | **N** |
-
-
-- AND a `### Next Steps` numbered list follows the table
-- AND each item references the exact `[File:line]` location and checkpoint ID
-  | ... | ... | ... | ... |
-- AND a `### Next Steps` numbered list follows the table- AND each item references the exact `[File:line]` location and checkpoint ID
-
-- AND each item references the exact `[File:line]` location and checkpoint ID
-  | **Total** | **N** | **N** | **N** |
-- AND each item references the exact `[File:line]` location and checkpoint ID- AND a `### Next Steps` numbered list follows the table
+- THEN the report header MUST read in the form
+  `Total Rules: 85 | Passed: N | Failed: N | Skipped: N | Exempted: N`
+- AND `Passed + Failed + Skipped + Exempted` MUST equal 85
+- AND no other section of the report MAY restate these counts broken down by phase

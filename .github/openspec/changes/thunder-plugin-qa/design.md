@@ -2,7 +2,7 @@
 
 ## Architecture Overview
 
-Three VS Code Copilot Chat slash commands, each backed by a `.prompt.md` file.
+The system uses VS Code Copilot Chat slash commands backed by `.prompt.md` files.
 Rules are stored in separate YAML files and loaded at runtime — prompts contain
 behaviour logic, YAML files contain the rule data. This separation means rules
 can be updated without touching prompt logic.
@@ -14,7 +14,7 @@ User types /thunder-plugin-review Dictionary
 thunder-plugin-review.prompt.md
        │
        ▼
-rules/thunder-plugin-rules.yaml   ← 84 unified rules (rule_01 to rule_84)
+rules/thunder-plugin-rules.yaml   ← 85 unified rules (rule_01 to rule_85)
        │
        ▼
 Plugin files in ThunderNanoServices/Dictionary/
@@ -23,7 +23,7 @@ Plugin files in ThunderNanoServices/Dictionary/
 Chat report: Issue Summary table, failures only
        │
        ▼
-Reports/plugin/Dictionary_2026-06-05.md   ← Markdown report with clickable issue navigation
+Reports/plugin/Dictionary_2026-06-05.html   <- HTML report with clickable issue navigation and syntax-highlighted code blocks
 ```
 
 ```
@@ -52,7 +52,7 @@ Atomically updates 4 files:
   `/thunder-generate-plugin`, `/thunder-plugin-rule-manager`, or
   `/thunder-interface-rule-manager` in Copilot Chat
 
-**Prompt file frontmatter (required by VS Code):**
+**Prompt file frontmatter (optional, not required for the command to function):**
 
 ```markdown
 ---
@@ -61,10 +61,17 @@ description: Semantic code review for Thunder plugins — understand first, then
 ---
 ```
 
-## Unified Review Methodology (ALL 84 rules)
+Some prompt files in this delivery include this block (both rule-manager prompts, both rule-catalog
+prompts) and some don't (`thunder-plugin-review.prompt.md`, `thunder-interface-review.prompt.md`,
+`thunder-generate-plugin.prompt.md`) — all of them register and run correctly as slash commands either
+way. Where present, frontmatter gives the command a nicer name/description in the Copilot Chat command
+picker; it is not load-bearing for basic invocation.
 
-Every rule — whether it targets a specific block (rule_01–39) or a broader concern
-(rule_39–70) — uses the same "understand first, then check" approach:
+## Unified Review Methodology (ALL 85 rules)
+
+Every rule — whether it targets a specific block (the 39 phase checkpoints:
+`rule_01`–`rule_38` and `rule_85`) or a broader concern (`rule_39`–`rule_84`)
+— uses the same "understand first, then check" approach:
 
 1. **UNDERSTAND** — Read ALL plugin source files first. Build a complete mental model
    of the plugin's architecture: lifecycle flow, threading model, ownership patterns,
@@ -102,10 +109,10 @@ defined in the YAML source.
 
 The YAML file contains two sections that produce identical report output:
 
-**Phase checkpoints** (38 rules, under `phase_X_checkpoints` keys):
+**Phase checkpoints** (39 rules, under `phase_X_checkpoints` keys):
 - Fields: `rule_id`, `name`, `severity`, `phase`, `extraction`, `bounded_query`, `verification_logic`, `conditional`, `skip_condition`, `citation`, `fix_template`
 
-**Holistic Rules (8 sub-phases)** (40 rules, under `general_rules` key):
+**Holistic Rules (8 sub-phases)** (46 rules, under `general_rules` key):
 - Fields: `rule_id`, `name`, `severity`, `category`, `review_question`, `review_method`, `evidence_requirement`
 
 Both types produce the same YAML output block in the report. The structural
@@ -261,14 +268,43 @@ The `setup-prompts.py` script does the following:
 ## YAML File Versioning
 
 - `thunder-plugin-rules.yaml`: version 3.3.0
-  - 38 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3,
-  - 38 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3,
+  - 39 checkpoints, organisation: Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3,
+    Phase5C:2, Phase6:3, Phase7:2, Phase8:1; plus 46 holistic rules
   - New checkpoints added over v1.0.0: rule_08 (nullptr after Release), rule_09–10 (COM ownership + no-throw), rule_16
     rule_33 (connectionId guard),
     rule_35 (JSON::Container configuration), rule_36 (no hardcoded numeric tuning parameters)
 
 - `thunder-interface-rules.yaml`: version 3.2.2
   - 16 core rules + 3 advisory = 19 total
-  - 16 core rules + 3 advisory = 19 total
   - advisory_m3_1 explicitly excludes std::vector (core_12_1 covers that)
   - No `category` field — removed in v3.2.2
+
+## Exemption Architecture
+
+Exemption handling is an extension of the existing review flow, not a separate prompt or service. The standalone Python CLI writes local state, and the review prompts read that state.
+
+```text
+python PluginQualityAdvisor/exempt_manager.py --rule-set plugin add rule_14 --scope Dictionary
+       |
+       v
+PluginQualityAdvisor/Exemptions/thunder-plugin-exemptions.local.yaml
+       |
+       v
+Load rules -> load exemptions -> execute all rules -> JUDGE -> apply exemption -> report
+                                                        |
+                         +------------------------------+------------------------------+
+                         v                                                             v
+              EXEMPT table-only row                               normal Issue Summary + Detailed Findings
+```
+
+The interface review uses the same flow with its own local file and 19-rule set. Only `exempt_manager.py` creates the folder/file, and only when it actually writes (e.g. `add`) — never on a pure read. Neither review prompt creates anything: if the folder or file is missing when a review runs, it simply treats every rule as not exempted and continues, leaving the filesystem untouched. Local files are ignored by Git and are not shared policy.
+
+## Exemption Schema and CLI
+
+Each entry contains exactly one selector (`rule_id`, `phase`, or `category`) and `scope`. Scope is `global` or a list of plugin/interface names. The schema has no reason, expiry, author, or other audit metadata.
+
+`PluginQualityAdvisor/exempt_manager.py` is the only authoring interface. It uses the Python standard library and supports `list`, `add`, `update`, `remove`, and `clear` with `--rule-set plugin|interface`. The read-only rule catalog may display exemption status but never changes local state.
+
+## Exemption Report Boundary
+
+PASS and SKIP remain unchanged. A non-exempt failure stays in the normal Issue Summary and receives a detailed finding. A matching VIOLATION, WARNING, or SUGGESTION is reclassified as `EXEMPT` only after JUDGE, omitted from the blocking Issue Summary, and rendered once in a separate table with exactly `Rule`, `Status`, `File`, `Line`, and `Issue` columns. The Issue value is concise and one line; no expanded `What's wrong`, `Code found`, `Fix`, or reason block is generated for exempted findings.

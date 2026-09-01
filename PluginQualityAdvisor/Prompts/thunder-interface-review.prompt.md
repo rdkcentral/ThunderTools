@@ -39,12 +39,16 @@ Rules are loaded at runtime from: `PluginQualityAdvisor/rules/thunder-interface-
 ## Your Task
 
 1. **Identify** the interface file to validate (from user's command or ask if not provided)
-2. **Load** `PluginQualityAdvisor/rules/thunder-interface-rules.yaml` for full rule definitions
-3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_16_1, then advisory_m1_1 → advisory_m3_1)
+2. **Load** — load `PluginQualityAdvisor/rules/thunder-interface-rules.yaml`, resolved relative to the `PluginQualityAdvisor` folder this prompt file itself lives in (the folder registered via `chat.promptFilesLocations`) — **not** via a workspace-wide file search. The interface source repo open in the current workspace does not contain the `PluginQualityAdvisor` tool folder; searching for it there will always return no matches even though the file exists. Actually check for the file at that resolved location rather than assuming; if, after genuinely checking there, it is not there, do not fabricate or recall rule content from memory — stop and report to the user that `thunder-interface-rules.yaml` could not be found, rather than proceeding with assumed rules.
+2b. **Load Exemptions** — do not assume this file is missing; actually check. Read `PluginQualityAdvisor/Exemptions/thunder-interface-exemptions.local.yaml`, resolved relative to the same `PluginQualityAdvisor` folder as the rules YAML above — **not** via a workspace-wide file search, since the interface source repo open in the current workspace does not contain that folder. Perform a real file check at that resolved location and, if it exists, actually open and read its full contents — do not skip this step or default to "not found" because the file is commonly absent on a fresh clone. If the `Exemptions/` folder or the file genuinely does not exist at that location, do **not** create it — simply treat all rules as not exempted and continue.
+    Resolve which rules are exempted for `{InterfaceName}`: an entry applies if its `rule_id` (or every rule in its `category`) matches, AND its `scope` is `"global"` or includes `{InterfaceName}` by name. This is a lookup only — it does not remove any rule from validation in the next step.
+3. **Validate** the interface against All 19 Rules in order (core_1_1 → core_16_1, then advisory_m1_1 → advisory_m3_1) — every rule runs in full regardless of exemption status (see "## Step 3 - Execute Rules" below)
 4. **Report** using the Issue Summary table format below
 5. **Provide** specific fix examples using the `fix_template` from the YAML
 
 For each rule, apply contextual judgment (JUDGE step): if the developer's approach technically violates a rule but is valid and reasonable in their specific context, downgrade the severity and populate the `Reasoning` field.
+
+**Exemption check runs after JUDGE, never before:** once a rule's effective status is finalized, check the Step 2b exemption lookup. PASS/SKIP are unaffected. A VIOLATION/WARNING/SUGGESTION for a rule exempted for `{InterfaceName}` is reclassified `EXEMPT` and routed to the Exempted Findings section instead of the Issue Summary — never dropped, never left out of the report, and never used to shortcut running the rule in the first place.
 
 ---
 
@@ -106,7 +110,7 @@ In chat, provide a **concise summary table** of all issues found. Do NOT output 
 | 1 | ❌ VIOLATION | core_10_1 - @json Tag | IHdmiCecSink.h | 45 | @json tag missing — ZERO JSON-RPC code generated |
 | 2 | ⚠️ WARNING | core_13_1 - Explicit Integer Widths | IHdmiCecSink.h | 72 | int parameter — use uint32_t |
 
-📄 Full report: `PluginQualityAdvisor/Reports/interface/IHdmiCecSink_2026-07-16.md`
+📄 Full report: `PluginQualityAdvisor/Reports/interface/IHdmiCecSink_2026-07-16.html`
 ```
 
 ### Status Symbols
@@ -115,20 +119,33 @@ In chat, provide a **concise summary table** of all issues found. Do NOT output 
 - ❌ `VIOLATION` - blocking issue, must fix — use the character `❌` NOT `:x:`
 - ⚠️ `WARNING` - should fix — use the character `⚠️` NOT `:warning:`
 - 💡 `SUGGESTION` - optional improvement — use the character `💡` NOT `:bulb:`
+- 🔕 `EXEMPT` - reclassified from a real failure via a local exemption (see Contextual Judgment /
+  Exemption Check below). Never shown in the main Issue Summary table, only in Exempted Findings.
 
-End chat output with:
+End chat output with, **if there are no exempted findings**:
 ```
-📄 Full report saved: PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md
+📄 Full report saved: PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+
+**If one or more findings were exempted**, add the exempted count:
+```
+📄 Full report saved: PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html
+   {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions (+{E} exempted findings — see report)
+```
+
+**Always** end with, regardless of whether anything was exempted this run:
+```
+💬 To exempt an interface finding, run: python PluginQualityAdvisor/exempt_manager.py --rule-set interface add {rule_id} --scope {InterfaceName}
 ```
 
 ---
 
-## Step 6 - Generate Markdown Report
+## Step 6 - Generate HTML Report
 
-After reporting results in chat, generate a Markdown report file with clickable navigation.
+After reporting results in chat, generate an HTML report file with clickable navigation and syntax-highlighted code blocks.
 
-**File path:** `PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md`
+**File path:** `PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html`
 
 - Create `PluginQualityAdvisor/Reports/interface/` if it does not exist
 - Never overwrite an existing file - append `_2`, `_3` etc. if needed
@@ -138,6 +155,38 @@ Run the following command in the interface file's git root to get the repo URL:
 - Repo URL: `git remote get-url origin`
 If git is unavailable, use `unknown`.
 
+**HTML shell (wrap the entire report content in this):**
+
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Thunder Interface Review - {InterfaceName}</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/languages/cmake.min.js"></script>
+<script>hljs.highlightAll();</script>
+<style>
+  body { font-family: sans-serif; max-width: 1100px; margin: 40px auto; padding: 0 20px; color: #24292f; line-height: 1.6; }
+  h1 { border-bottom: 2px solid #d0d7de; padding-bottom: 10px; }
+  h2 { border-bottom: 1px solid #d0d7de; padding-bottom: 6px; margin-top: 40px; }
+  h3 { margin-top: 30px; }
+  table { border-collapse: collapse; width: 100%; margin: 16px 0; }
+  th, td { border: 1px solid #d0d7de; padding: 8px 12px; text-align: left; }
+  th { background: #f6f8fa; font-weight: 600; }
+  tr:nth-child(even) { background: #f6f8fa; }
+  pre { background: #f6f8fa; border: 1px solid #d0d7de; border-radius: 6px; padding: 16px; overflow-x: auto; }
+  code { font-family: monospace; font-size: 13px; }
+  .back-link { font-size: 13px; color: #0969da; }
+</style>
+</head>
+<body>
+<!-- report content here -->
+</body>
+</html>
+```
+
 ### Report Template
 
 ```markdown
@@ -146,7 +195,7 @@ If git is unavailable, use `unknown`.
 **Date:** {YYYY-MM-DD}  
 **Interface:** {InterfaceName}  
 **Repo:** {repo-url}  
-**Total Rules:** 19 | **Passed:** N | **Failed:** N | **Skipped:** N
+**Total Rules:** 19 | **Passed:** N | **Failed:** N | **Skipped:** N | **Exempted:** N
 
 ---
 
@@ -206,23 +255,25 @@ virtual Core::hresult SetVolume(const int volume) = 0;
 virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 ```
 
+---
+
+## Exempted Findings
+
+*Only present if one or more rules failed AND are exempted for {InterfaceName} in
+`Exemptions/thunder-interface-exemptions.local.yaml`. Omit this entire section if there are none — do
+not render an empty table.*
+
+**Table only — no per-finding detail blocks, no "What's wrong"/"Code found"/"Fix" expansion, and no
+Exemption Reason column** — exemptions have no reason field at all. Keep each row to one short line:
+
+| Rule | Status | File | Line | Issue |
+|------|--------|------|------|-------|
+| advisory_m2_1 - Enum Underlying Types | 🔕 EXEMPT (would be ⚠️ WARNING) | IHdmiCecSink.h | 30 | Named enum used as a parameter has no explicit underlying type |
+| core_13_1 - Explicit Integer Widths | 🔕 EXEMPT (would be ⚠️ WARNING) | IHdmiCecSink.h | 72 | int parameter instead of uint32_t |
+
+The **Issue** column is a short, single-line plain-English description of what's wrong — the same
+level of brevity as the main Issue Summary table's Issue column, not a restatement of the rule name.
 ```
-
-### Report Generation Rules
-
-- Each issue in the summary table links to its detailed section via the Rule column using `[rule_id - Name](#issue-N)` anchors
-- Each detailed section heading uses `### Issue N` (creates the `#issue-n` anchor automatically)
-- Each detailed section must end with a back-link to the summary table: `[\u2B06 Back to Issue Summary](#issue-summary)` — this allows readers to click back to the table after reading a finding
-- The rule ID and name appear as bold text on the first line under the heading
-- **"What's wrong"** must be a plain-English explanation a junior developer can understand
-- **"Code found"** must show the actual code from the interface with file:line comment
-- **"Fix"** must show the corrected code
-- If severity was downgraded (JUDGE step), add a **"Note:"** paragraph after the fix explaining why
-- Issues are ordered by severity: VIOLATIONS first, then WARNINGS, then SUGGESTIONS
-- After Detailed Findings, include a **Skipped Rules** table if any rules were skipped (explaining why each was not applicable)
-- UTF-8 encoding, LF line endings
-
-**If no issues found**, generate:
 
 ```markdown
 # Thunder Interface Review - {InterfaceName}
@@ -230,16 +281,23 @@ virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 **Date:** {YYYY-MM-DD}  
 **Interface:** {InterfaceName}  
 **Repo:** {repo-url}  
-**Total Rules:** 19 | **Passed:** N | **Failed:** 0 | **Skipped:** N
+**Total Rules:** 19 | **Passed:** N | **Failed:** 0 | **Skipped:** N | **Exempted:** 0
 
 ✅ All rules passed - no issues found.
 ```
 
+**If there are no blocking issues but one or more exempted findings exist**, keep the Exempted Findings
+section — a run is never "all clear" purely because nothing is currently blocking.
+
 **Post-generation message in chat:**
 ```
 📄 Full report saved:
-   PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.md
+   PluginQualityAdvisor/Reports/interface/{InterfaceName}_{YYYY-MM-DD}.html
    {N} issue(s) - {violations} violations, {warnings} warnings, {suggestions} suggestions
+```
+Append `(+{E} exempted findings — see report)` after the counts if `E > 0`. Always follow with:
+```
+💬 To exempt an interface finding, run: python PluginQualityAdvisor/exempt_manager.py --rule-set interface add {rule_id} --scope {InterfaceName}
 ```
 
 ### Post-Generation Action
@@ -249,20 +307,20 @@ virtual Core::hresult SetVolume(const uint32_t volume) = 0;
 1. **Write the file using terminal** — do NOT use create_file or file editing tools for the report. Use:
 
 ```powershell
-   [System.IO.File]::WriteAllText("<full-path-to-report>.md", $content, [System.Text.UTF8Encoding]::new($false))
+   [System.IO.File]::WriteAllText("<full-path-to-report>.html", $content, [System.Text.UTF8Encoding]::new($false))
 ```
 
 2. **Verify the file is not empty** — after writing, check the file size:
 
 ```powershell
-   (Get-Item "<full-path-to-report>.md").Length
+   (Get-Item "<full-path-to-report>.html").Length
 ```
 
 If the size is 0, the write failed — retry once.
 
-3. **Open in Markdown Preview** — run VS Code command `markdown.showPreview` on the generated report file so anchor links work.
+3. **Open in browser** — run VS Code command `simpleBrowser.show` with the file URI, or open the `.html` file in a browser. highlight.js renders syntax highlighting and anchor links work natively.
 
-4. **Do NOT open the report in the editor** — opening `.md` files in the editor triggers notebook mode which creates an unwanted `codebook-md/` folder. Always use preview-only.
+4. **Do NOT open the report in the VS Code editor** — the editor shows raw HTML. Always open in browser or Simple Browser preview.
 
 ---
 
@@ -277,6 +335,15 @@ If the size is 0, the write failed — retry once.
 | Rule technically violated but developer's approach is valid | Downgrade one level | **Required** |
 
 Severity is **never escalated** above the YAML-defined level.
+
+**Exemption Check (runs after this table, on every rule, never before):** once a rule's effective
+status is finalized above, check the Step 2b exemption lookup built during "Load Exemptions." PASS and
+SKIP are unaffected. A `VIOLATION`/`WARNING`/`SUGGESTION` for a rule exempted for `{InterfaceName}` is
+reclassified `EXEMPT` and routed to the Exempted Findings section instead of the Issue Summary, as a
+single short table row (rule, status, file, line, one-line issue description) — no expanded detail
+block. Exemptions have no reason field at all. This can only move a finding to a different section of
+the report, never delete it — an exempted violation still appears in the output, just not in the
+blocking Issue Summary table.
 
 ---
 
