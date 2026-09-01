@@ -5,7 +5,7 @@
 - [x] 1.1 Create `ThunderTools/PluginQualityAdvisor/rules/thunder-plugin-rules.yaml` (v3.3.0)
       - metadata block: version, description, approach,
         total_rules: 85, total_general_rules: 46,
-        organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3, Phase5C:2, Phase6:3, Phase7:1, Phase8:1"
+        organization: "Phase1:3, Phase2:10, Phase3:3, Phase4:12, Phase5:3, Phase5C:2, Phase6:3, Phase7:2, Phase8:1"
       - validation_approach block: principles list + 5-step workflow (including
         Step 3b JUDGE: contextual judgment — if developer's approach technically
         violates a rule but is valid and reasonable in context, downgrade severity
@@ -80,7 +80,9 @@
         rule_34 (violation conditional): startmode declaration
         rule_35 (violation conditional): Config Core::JSON::Container
         rule_36 (violation): no hardcoded numeric tuning params
-      - phase_7_checkpoints (1): rule_37 (violation conditional): CXX_STANDARD uses ${CXX_STD}
+      - phase_7_checkpoints (2):
+        rule_37 (violation conditional): CXX_STANDARD uses ${CXX_STD}
+        rule_85 (violation): Generated JSON-RPC headers require the Definitions library linked
       - phase_8_checkpoints (1): rule_38 (violation): "COM Methods Return Core::hresult"
 
       Holistic Rules (8 sub-phases) (40, all in general_rules section):
@@ -227,8 +229,9 @@
           rule_34 (violation conditional): startmode declaration
           rule_35 (violation conditional): Config Core::JSON::Container
           rule_36 (violation): no hardcoded numeric tuning params
-        Phase 7 CMake (1):
+        Phase 7 CMake (2):
           rule_37 (violation conditional): "CXX_STANDARD Uses Thunder Variable"
+          rule_85 (violation): "JSON-RPC Definitions Library Linked"
         Phase 8 COM Interface Rules (1):
           rule_38 (violation): "COM Methods Return Core::hresult"
       - Output Format: UNIFIED FILE-WISE grouping — all issues from all 85 rules grouped by

@@ -1191,7 +1191,7 @@ phase_4_checkpoints:
     verification_logic:
       - "1. Read Initialize() in full and check whether it calls Deinitialize() directly on any code path → VIOLATION if so"
       - "2. Initialize() must NOT perform its own cleanup on failure paths — it should just return the non-empty error string. The Thunder framework will call Deinitialize() automatically when Initialize() returns a non-empty string."
-      - "3. If Initialize() contains explicit Release(), Unregister(), or nullptr assignments on failure paths, this is unnecessary (the framework handles it) but NOT a violation — it is redundant but harmless as long as Deinitialize() also handles it with proper nullptr guards."
+      - "3. If Initialize() contains explicit Release(), Unregister(), or nullptr assignments on failure paths, treat this as redundant (the framework handles it) and only flag it if it causes incorrect behavior (e.g. double-release due to missing guards in Deinitialize())."
       - "4. Read Deinitialize() in full and verify it gracefully handles partial initialization — every resource cleanup must be guarded with a nullptr check (e.g. if (_service != nullptr) { _service->Release(); _service = nullptr; }) so that Deinitialize() works correctly even when Initialize() only partially completed."
       - "5. If Deinitialize() does NOT have nullptr guards and would crash or double-release when called after a partial Initialize() → VIOLATION"
 
