@@ -2899,10 +2899,15 @@ if __name__ == "__main__":
     log.show_infos = BE_VERBOSE
     log.show_warnings = SHOW_WARNINGS
     OUTPUT_DIRECTORY = args.output_directory
-    PROJECT_DIRECTORY = args.project_directory
     EMIT_TRACES = args.traces
     scan_only = False
     keep_incomplete = args.keep_incomplete
+
+    if args.project_directory:
+        if not os.path.exists(args.project_directory):
+            sys.exit("ERROR: Project directory '%s' does not exist" % args.project_directory)
+        else:
+            PROJECT_DIRECTORY = args.project_directory
 
     if args.framework_namespace:
         FRAMEWORK_NAMESPACE = args.framework_namespace
@@ -3025,6 +3030,11 @@ if __name__ == "__main__":
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
                 output_file = os.path.join(("." if not OUTPUT_DIRECTORY else OUTPUT_DIRECTORY), name)
+
+                out_dir = os.path.dirname(output_file)
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+
                 lua_file = open(output_file, "w")
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()

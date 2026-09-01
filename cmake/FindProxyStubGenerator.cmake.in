@@ -85,10 +85,8 @@ function(ProxyStubGenerator)
     if(Argument_OUTPUT_DIR)
         file(MAKE_DIRECTORY "${Argument_OUTPUT_DIR}")
         list(APPEND _execute_command  "--output-dir" "${Argument_OUTPUT_DIR}")
-    endif()
-
-    # deprecated
-    if(Argument_OUTDIR)
+    elseif(Argument_OUTDIR)
+        # deprecated
         file(MAKE_DIRECTORY "${Argument_OUTDIR}")
         list(APPEND _execute_command  "--output-dir" "${Argument_OUTDIR}")
     endif()

@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import os
+import sys
 import posixpath
 import argparse
 from enum import Enum
@@ -431,7 +432,12 @@ def Parse(cmdline):
     EMIT_RESTRICT_CHECKS = args.restrict_checks
     EMIT_OPTIONAL_CHECKS = args.optional_checks
     STRICT_VALIDATION = args.strict_validation
-    PROJECT_DIRECTORY = args.project_dir
+
+    if args.project_dir:
+        if not os.path.exists(args.project_dir):
+            sys.exit("ERROR: Project directory '%s' does not exist" % args.project_dir)
+        else:
+            PROJECT_DIRECTORY = args.project_dir
 
     # index validation follows parameter validation setting unless it's explicitly set
     STRICT_INDEX_VALIDATION = args.strict_validation if args.strict_index_validation is None else args.strict_index_validation
