@@ -434,8 +434,8 @@ def Parse(cmdline):
     STRICT_VALIDATION = args.strict_validation
 
     if args.project_dir:
-        if not os.path.exists(args.project_dir):
-            sys.exit("ERROR: Project directory '%s' does not exist" % args.project_dir)
+        if not os.path.isdir(args.project_dir):
+            sys.exit("ERROR: Project path '%s' is not a valid directory" % args.project_dir)
         else:
             PROJECT_DIRECTORY = args.project_dir
 

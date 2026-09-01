@@ -2904,8 +2904,8 @@ if __name__ == "__main__":
     keep_incomplete = args.keep_incomplete
 
     if args.project_directory:
-        if not os.path.exists(args.project_directory):
-            sys.exit("ERROR: Project directory '%s' does not exist" % args.project_directory)
+        if not os.path.isdir(args.project_directory):
+            sys.exit("ERROR: Project path '%s' is not a valid directory" % args.project_directory)
         else:
             PROJECT_DIRECTORY = args.project_directory
 
