@@ -65,6 +65,8 @@ DEFAULT_DEFINITIONS_FILE = "default.h"
 MODULE_FILE = "Module.h"
 IDS_FILE = "Ids.h"
 
+PROJECT_DIRECTORY = None
+
 log = Log.Log(NAME, BE_VERBOSE, SHOW_WARNINGS)
 
 
@@ -2712,8 +2714,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
         emit.Line()
 
-        if os.path.isfile(os.path.join(os.path.dirname(source_file), "Module.h")):
-            emit.Line('#include "Module.h"')
+        if PROJECT_DIRECTORY:
+            if os.path.isfile(os.path.join(PROJECT_DIRECTORY, MODULE_FILE)):
+                emit.Line('#include "%s"' % MODULE_FILE)
+        else:
+            if os.path.isfile(os.path.join(os.path.dirname(source_file), MODULE_FILE)):
+                emit.Line('#include "%s"' % MODULE_FILE)
 
         if os.path.isfile(os.path.join(os.path.dirname(source_file), interface_header_name)):
             emit.Line('#include "%s"' % interface_header_name)
@@ -2818,12 +2824,18 @@ if __name__ == "__main__":
                            action="store",
                            default=FRAMEWORK_NAMESPACE,
                            help="set framework namespace (default: %s)" % FRAMEWORK_NAMESPACE)
-    argparser.add_argument("--outdir",
-                           dest="outdir",
+    argparser.add_argument("-o", "--output-dir",
+                           dest="output_directory",
                            metavar="DIR",
                            action="store",
-                           default="",
+                           default=None,
                            help="specify output directory (default: generate files in the same directory as source)")
+    argparser.add_argument("--outdir",
+                           dest="output_directory",
+                           metavar="DIR",
+                           action="store",
+                           default=None,
+                           help=argparse.SUPPRESS) # deprecated
     argparser.add_argument("--no-warnings",
                            dest="no_warnings",
                            action="store_true",
@@ -2849,13 +2861,30 @@ if __name__ == "__main__":
                            action="store_true",
                            default=ENABLE_ITERATOR_OPTIMIZATION,
                            help="pass collated iterator data in one go (default: pass interface)")
+    argparser.add_argument("--project-dir",
+                           dest="project_directory",
+                           metavar="PATH",
+                           type=str,
+                           default=None,
+                           help="project directory (where to look for Ids.h and Module.h, default: same location as the source file)")
+    argparser.add_argument("--projectdir",
+                           dest="project_directory",
+                           metavar="PATH",
+                           type=str,
+                           default=None,
+                           help=argparse.SUPPRESS) # deprecated
     argparser.add_argument("-i",
                            dest="extra_includes",
                            metavar="FILE",
                            action='append',
                            default=[],
                            help="include an additional C++ header file, can be used multiple times")
-    argparser.add_argument('-I', dest="includePaths", metavar="INCLUDE_DIR", action='append', default=[], type=str,
+    argparser.add_argument('-I',
+                           dest="includePaths",
+                           metavar="PATH",
+                           action='append',
+                           default=[],
+                           type=str,
                            help='add an include search path, can be used multiple times')
 
     args = argparser.parse_args(sys.argv[1:])
@@ -2869,10 +2898,16 @@ if __name__ == "__main__":
     ENABLE_ITERATOR_OPTIMIZATION = args.collated_iterators
     log.show_infos = BE_VERBOSE
     log.show_warnings = SHOW_WARNINGS
-    OUTDIR = args.outdir
+    OUTPUT_DIRECTORY = args.output_directory
     EMIT_TRACES = args.traces
     scan_only = False
     keep_incomplete = args.keep_incomplete
+
+    if args.project_directory:
+        if not os.path.isdir(args.project_directory):
+            sys.exit("ERROR: Project path '%s' is not a valid directory" % args.project_directory)
+        else:
+            PROJECT_DIRECTORY = args.project_directory
 
     if args.framework_namespace:
         FRAMEWORK_NAMESPACE = args.framework_namespace
@@ -2994,7 +3029,12 @@ if __name__ == "__main__":
         if interface_files:
             if args.lua_code:
                 name = "protocol-thunder-comrpc.data"
-                output_file = ("." if not OUTDIR else OUTDIR) + os.sep + name
+                output_file = os.path.join(("." if not OUTPUT_DIRECTORY else OUTPUT_DIRECTORY), name)
+
+                out_dir = os.path.dirname(output_file)
+                if not os.path.exists(out_dir):
+                    os.makedirs(out_dir)
+
                 lua_file = open(output_file, "w")
                 emit = Emitter(lua_file, INDENT_SIZE)
                 lua_interfaces = dict()
@@ -3005,8 +3045,15 @@ if __name__ == "__main__":
                     source_path = os.path.dirname(source_file)
 
                     extra_includes = []
-                    extra_includes.append("@" + os.path.join(source_path, MODULE_FILE))
-                    extra_includes.append("@" + os.path.join(source_path, IDS_FILE))
+
+                    if PROJECT_DIRECTORY:
+                        extra_includes.append("@" + os.path.join(PROJECT_DIRECTORY, MODULE_FILE))
+                        extra_includes.append("@" + os.path.join(PROJECT_DIRECTORY, IDS_FILE))
+                    else:
+                        extra_includes.append("@" + os.path.join(source_path, MODULE_FILE))
+                        extra_includes.append("@" + os.path.join(source_path, IDS_FILE))
+
+
                     extra_includes.extend(args.extra_includes)
 
                     definition_file = "@" + os.path.join(os.path.dirname(os.path.realpath(__file__)), DEFAULT_DEFINITIONS_FILE)
@@ -3016,7 +3063,7 @@ if __name__ == "__main__":
                     if args.code:
                         log.Header(source_file)
 
-                        output_file = os.path.join(os.path.dirname(source_file) if not OUTDIR else OUTDIR,
+                        output_file = os.path.join(os.path.dirname(source_file) if not OUTPUT_DIRECTORY else OUTPUT_DIRECTORY,
                             PROXYSTUB_CPP_NAME % CreateName(os.path.basename(source_file)).split(".", 1)[0])
 
                         out_dir = os.path.dirname(output_file)

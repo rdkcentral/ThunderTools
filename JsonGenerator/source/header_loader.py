@@ -1623,8 +1623,14 @@ def LoadInterface(file, log, all, include_paths):
 
         files = []
         files.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)))
-        files.append("@" + os.path.join(source_path, MODULE_FILE))
-        files.append("@" + os.path.join(source_path, IDS_FILE))
+
+        if config.PROJECT_DIRECTORY:
+            files.append("@" + os.path.join(config.PROJECT_DIRECTORY, MODULE_FILE))
+            files.append("@" + os.path.join(config.PROJECT_DIRECTORY, IDS_FILE))
+        else:
+            files.append("@" + os.path.join(source_path, MODULE_FILE))
+            files.append("@" + os.path.join(source_path, IDS_FILE))
+
         files.append(file)
 
         tree = CppParser.ParseFiles(files, config.FRAMEWORK_NAMESPACE, include_paths, log)

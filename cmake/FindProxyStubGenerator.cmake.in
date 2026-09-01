@@ -33,7 +33,7 @@ function(ProxyStubGenerator)
     endif()
 
     set(optionsArgs SECURE COHERENT TRACES VERBOSE NO_WARNINGS KEEP FORCE_GENERATE COLLATED_ITERATORS)
-    set(oneValueArgs OUTDIR FRAMEWORK_NAMESPACE)
+    set(oneValueArgs OUTDIR OUTPUT_DIR PROJECT_DIR FRAMEWORK_NAMESPACE)
     set(multiValueArgs INPUT INCLUDE INCLUDE_PATH NAMESPACE)
 
     cmake_parse_arguments(Argument "${optionsArgs}" "${oneValueArgs}" "${multiValueArgs}" ${ARGN} )
@@ -82,9 +82,20 @@ function(ProxyStubGenerator)
         list(APPEND _execute_command  "--framework-namespace" "${Argument_FRAMEWORK_NAMESPACE}")
     endif()
 
-    if(Argument_OUTDIR)
+    if(Argument_OUTPUT_DIR)
+        file(MAKE_DIRECTORY "${Argument_OUTPUT_DIR}")
+        list(APPEND _execute_command  "--output-dir" "${Argument_OUTPUT_DIR}")
+    elseif(Argument_OUTDIR)
+        # deprecated
         file(MAKE_DIRECTORY "${Argument_OUTDIR}")
-        list(APPEND _execute_command  "--outdir" "${Argument_OUTDIR}")
+        list(APPEND _execute_command  "--output-dir" "${Argument_OUTDIR}")
+    endif()
+
+    if(Argument_PROJECT_DIR)
+        if(NOT IS_DIRECTORY "${Argument_PROJECT_DIR}")
+             message(FATAL_ERROR "ProxyStubGenerator PROJECT_DIR '${Argument_PROJECT_DIR}' is not a directory.")
+        endif()
+        list(APPEND _execute_command  "--project-dir" "${Argument_PROJECT_DIR}")
     endif()
 
     foreach(_namespace ${Argument_NAMESPACE})
