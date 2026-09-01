@@ -82,7 +82,7 @@ Options:
 - Phase 5 - Implementation (currently: rule_29 to rule_31)
 - Phase 5C - Out-of-Process (currently: rule_32 to rule_33)
 - Phase 6 - Configuration (currently: rule_34 to rule_36)
-- Phase 7 - CMake (currently: rule_37)
+- Phase 7 - CMake (currently: rule_37, rule_85)
 - Phase 8 - COM Interface Rules (currently: rule_38)
 
 ---
