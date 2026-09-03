@@ -75,7 +75,7 @@ def FromString(emit, names, param, restrictions=None, emit_restrictions=False, f
                 emit.Line("%s %s[%s];" % (param.original_type, converted, array_size))
             elif "@container" in param.schema:
                 emit.Line("%s %s{};" % (param.original_type, converted))
-        elif isinstance(param, (JsonInteger, JsonBoolean)):
+        elif isinstance(param, (JsonEnum, JsonInteger, JsonBoolean)):
             emit.Line("%s %s{};" % (param.cpp_native_type, converted))
         elif isinstance(param, JsonMacAddress):
             emit.Line("%s %s{%s.c_str()};" % (param.cpp_native_type, converted, param.original_name))
