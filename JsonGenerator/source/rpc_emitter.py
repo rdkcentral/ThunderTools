@@ -68,7 +68,7 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
                 emit.Line("%s %s[%s];" % (param.original_type, converted, array_size))
             elif "@container" in param.schema:
                 emit.Line("%s %s{};" % (param.original_type, converted))
-        elif isinstance(param, (JsonInteger, JsonBoolean)):
+        elif isinstance(param, (JsonEnum, JsonInteger, JsonBoolean)):
             emit.Line("%s %s{};" % (param.cpp_native_type, converted))
         elif isinstance(param, JsonMacAddress):
             emit.Line("%s %s{%s.c_str()};" % (param.cpp_native_type, converted, param.original_name))
@@ -123,8 +123,8 @@ def FromString(emit, param, restrictions=None, emit_restrictions=False):
 
     elif isinstance(param, JsonEnum):
         emit.Line("Core::EnumerateType<%s> %s(%s.c_str());" % (param.cpp_native_type, converted_enum, param.original_name))
-        emit.Line("%s %s{%s.Value()};" % (param.cpp_native_type, converted, converted_enum))
         emit.Line("const bool %s = %s.IsSet();" % (converted_result, converted_enum))
+        emit.Line("%s = %s.Value();" % (converted, converted_enum))
 
     elif isinstance(param, JsonMacAddress):
         emit.Line("const bool %s = %s.IsValid();" % (converted_result, converted))
