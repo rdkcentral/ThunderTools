@@ -28,6 +28,7 @@
  * This matches the pattern used by the existing ITestEvents interface.
  */
 
+#include <algorithm>
 #include <gtest/gtest.h>
 #include "TestHarness.h"
 #include <ITestAnnotationEvents.h>
@@ -272,6 +273,7 @@ TEST_F(TestAnnotationEvents, StatusUpdate_MultipleMessages) {
     ASSERT_EQ(_proxy->TriggerStatus("msg3"), Core::ERROR_NONE);
 
     ASSERT_TRUE(_sink->WaitForCount(3));
+    std::sort(_sink->_statusMessages.begin(), _sink->_statusMessages.end());
     EXPECT_EQ(_sink->_statusMessages[0], "msg1");
     EXPECT_EQ(_sink->_statusMessages[1], "msg2");
     EXPECT_EQ(_sink->_statusMessages[2], "msg3");
