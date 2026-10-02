@@ -14,6 +14,7 @@ The build is fully self-contained: Thunder and GoogleTest are fetched automatica
 | `TEST_RESTRICTIONS` | `ITestRestrictions` | ✓ | ✓ | `@restrict` range validation on integers (signed/unsigned), floats, strings (length), the `nonempty` shorthand, the `K`-suffix, and `OptionalType` combined with a range |
 | `TEST_ENUMS` | `ITestEnums` | ✓ | ✓ | Enum serialisation: `@encode:text`, `@encode:bitmask`, `@property`, in/out/inout parameters, optional enums |
 | `TEST_STRUCTS` | `ITestStructs` | ✓ | ✓ | POD struct marshalling: in/out/inout parameters, nested structs, `std::vector<struct>`, `@opaque`, `@index` (property slot), `@restrict` on vectors |
+| `TEST_VECTORS` | `ITestVectors` | ✓ | — | `std::vector` input/output/inout marshalling for primitives, structs, nested vectors, optional elements, optional vectors, and vectors inside structs |
 | `TEST_EVENTS` | `ITestEvents` | ✓ | — | Event callback pattern (`@event`, `INotification`): scalar payloads, struct payloads, `std::vector` payloads, `OptionalType` payloads, `@statuslistener` |
 | `TEST_ASYNC` | `ITestAsync` | ✓ | ✓ | `@async` pattern: concurrent slots, `ICallback` interface, `@property` with `@index`, `OptionalType` in a callback |
 | `TEST_INTERFACES` | `ITestInterfaces` | ✓ | — | Generator control annotations: `@interface` (void\* + ID dynamic typing), `@stub` (server-side only), `@omit` (excluded from both proxy and stub) |
