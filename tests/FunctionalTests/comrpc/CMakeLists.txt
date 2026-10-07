@@ -59,6 +59,10 @@ if(TEST_STRUCTS)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestStructs.cpp)
 endif()
 
+if(TEST_VECTORS)
+    target_sources(ComRpcFunctionalTests PRIVATE tests/TestVectors.cpp)
+endif()
+
 if(TEST_ENCODING_MAC)
     target_sources(ComRpcFunctionalTests PRIVATE tests/TestEncodingMac.cpp)
 endif()

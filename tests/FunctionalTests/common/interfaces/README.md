@@ -24,6 +24,9 @@ Covers the `@restrict` annotation across all value kinds: exact-value restrictio
 ### ITestStructs
 Validates POD struct marshalling: nested structs (`Rectangle` contains `Point`), structs as `@in`/`@out`/`@inout` parameters, multi-struct calls, `std::vector<Struct>` with `@restrict`, `@property` with `@index` for per-slot addressing, and `@opaque` for raw JSON pass-through.
 
+### ITestVectors
+Validates COM-RPC `std::vector` marshalling in every parameter direction for primitive, struct, nested-vector, and optional elements; optional vectors; and vector members in structs. Every vector uses the full `0..255` range of its 8-bit wire length because ProxyStubGenerator requires a maximum bound on wire-visible vectors.
+
 ### ITestIterators
 Validates `RPC::IStringIterator` and `RPC::IValueIterator` lifecycle: creation (normal, empty, large), and the store-and-query pattern that avoids COM-RPC channel deadlock. Clients hand an iterator to the server (which drains it synchronously), then query the cached results via a separate call — keeping the channel free for callbacks. Not tagged `@json 1.0.0` as iterators have no clean JSON mapping.
 
@@ -82,9 +85,9 @@ Pins the generator behaviour for `@uncompliant:collapsed` (deprecated — do not
 | `@restrict` (string length) | ITestRestrictions |
 | `@restrict:nonempty` | ITestRestrictions |
 | `@restrict:K` suffix | ITestRestrictions |
-| `@restrict` on `std::vector` | ITestStructs, ITestEvents |
+| `@restrict` on `std::vector` | ITestStructs, ITestVectors, ITestEvents |
 | `@default` | ITestAsync, ITestOptionals |
-| `@optional` / `Core::OptionalType<T>` | ITestAsync, ITestOptionals, ITestEnums, ITestEvents, ITestRestrictions |
+| `@optional` / `Core::OptionalType<T>` | ITestAsync, ITestOptionals, ITestVectors, ITestEnums, ITestEvents, ITestRestrictions |
 | `@property` (read-write) | ITestEnums, ITestStructs, ITestAsync, ITestJsonUncompliantExtended, ITestJsonUncompliantCollapsed |
 | `@property` (read-only) | ITestEnums, ITestAsync |
 | `@property` (write-only) | ITestEnums |
@@ -105,8 +108,11 @@ Pins the generator behaviour for `@uncompliant:collapsed` (deprecated — do not
 | `@uncompliant:extended` ⚠️ deprecated | ITestJsonUncompliantExtended |
 | `@uncompliant:collapsed` ⚠️ deprecated | ITestJsonUncompliantCollapsed |
 | `@json 1.0.0` | ITestPrimitives, ITestEnums, ITestOptionals, ITestRestrictions, ITestStructs, ITestEvents, ITestAsync, ITestEncodingMac, ITestJsonShape, ITestJsonTextKeep, ITestJsonTextCase, ITestJsonCompliant, ITestJsonUncompliantExtended, ITestJsonUncompliantCollapsed |
-| `std::vector<Primitive>` | ITestStructs |
-| `std::vector<Struct>` | ITestStructs, ITestEvents |
+| `std::vector<Primitive>` | ITestStructs, ITestVectors |
+| `std::vector<Struct>` | ITestStructs, ITestVectors, ITestEvents |
+| `std::vector<std::vector<Primitive>>` | ITestVectors |
+| `std::vector<Core::OptionalType<Primitive>>` | ITestVectors |
+| `Core::OptionalType<std::vector<Primitive>>` | ITestOptionals, ITestVectors |
 | `RPC::IStringIterator` | ITestIterators |
 | `RPC::IValueIterator` | ITestIterators |
 
