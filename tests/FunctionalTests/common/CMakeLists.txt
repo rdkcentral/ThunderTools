@@ -184,6 +184,10 @@ if (TEST_STRUCTS)
     AddTestInterface("Structs" COM_RPC JSON_RPC)
 endif()
 
+if (TEST_VECTORS)
+    AddTestInterface("Vectors" COM_RPC)  # COM-RPC only — JsonGenerator does not support nested vectors
+endif()
+
 if (TEST_RESTRICTIONS)
     AddTestInterface("Restrictions" COM_RPC JSON_RPC)
 endif()
