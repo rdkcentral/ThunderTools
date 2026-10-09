@@ -731,7 +731,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line()
 
         initializer = []
-        sorted_vars = _BuildVars(method.params if (method.params and not method.params.is_void) else None, None)
+        sorted_vars = _BuildVars(method.params if (method.params and not method.params.is_void) else None, None, None)
 
         for vname, [p, _, _] in sorted_vars:
             initializer.append(trim(p.local_proto))
@@ -1707,11 +1707,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             else:
                 params = copy.copy(m.properties[0])
                 response = copy.copy(m.properties[1])
-                richerror = copy.copy(m.properties[2])
+
+            richerror = copy.copy(m.properties[2])
 
             params.Rename("Params")
             response.Rename("Result")
-            richerror.Rename("RichError")
         else:
             params = copy.copy(m.properties[0])
             response = copy.copy(m.properties[1])
@@ -1979,7 +1979,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 maybe_index = index_name if has_index else None
 
-                _Invoke(m, conditional_invoke, _BuildVars(None, normalized_response), None, normalized_response, normalized_richerror, params_parent, response_parent,
+                _Invoke(m, conditional_invoke, _BuildVars(None, normalized_response, normalized_richerror), None, normalized_response, normalized_richerror, params_parent, response_parent,
                         const_cast=is_read_write, test_param=not is_read_write, index=maybe_index, context=has_context)
 
                 if indexes_are_different:
@@ -1998,7 +1998,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 maybe_index = index_name if has_index else None
 
-                _Invoke(m, conditional_invoke, _BuildVars(normalized_params, None), normalized_params, None, normalized_richerror, params_parent, response_parent,
+                _Invoke(m, conditional_invoke, _BuildVars(normalized_params, None, normalized_richerror), normalized_params, None, normalized_richerror, params_parent, response_parent,
                         param_const_cast=is_read_write, test_param=not is_read_write, index=maybe_index, context=has_context)
 
                 if is_read_write:

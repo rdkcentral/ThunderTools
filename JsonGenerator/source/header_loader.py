@@ -1001,7 +1001,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
-                if var.meta.output and (("Core::ErrorDetails" in var_type.type.type) == error):
+                if var.meta.output and (("Core::ErrorDetails" in str(var_type.type.type)) == error):
                     var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_"):

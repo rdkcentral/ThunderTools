@@ -734,7 +734,6 @@ class JsonObject(JsonRefCounted, JsonType):
                         else:
                             classonly = self.original_type.split("::")[-1]
 
-                        print(classonly)
                         classname = MakeObject(classonly[0].upper() + classonly[1:])
                     elif len(self.properties) == 1 and not isinstance(self.parent, JsonMethod):
                         classname = MakeObject(self.properties[0].cpp_name)
