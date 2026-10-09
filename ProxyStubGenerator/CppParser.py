@@ -215,6 +215,9 @@ class Optional(Intrinsic):
         Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.Proto())
         self.optional = subtype
 
+    def __str__(self):
+        return "Core::OptionalType<%s>" % self.optional.Proto()
+
 
 class Nullptr_t(Fundamental):
     def __init__(self):
@@ -836,9 +839,13 @@ class Identifier():
                     if found:
                         # take closest match
                         if isinstance(found, TemplateClass):
-                            # if we're pointing to a class template, then let's instantiate it!
-                            self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
-                            del self.type[i + 1]
+                            if isinstance(parent, TemplateClass):
+                                self.type[i] = Type(found.SemiInstantiate(self.type[i + 1], parent))
+                                del self.type[i + 1]
+                            else:
+                                # if we're pointing to a class template, then let's instantiate it!
+                                self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
+                                del self.type[i + 1]
                         else:
                             self.type[i] = found if isinstance(found, TemplateTypeParameter) else Type(found)
 
@@ -1139,8 +1146,6 @@ class Type:
     def __str__(self):
         return self.Proto()
 
-    def __repr__(self):
-        return "type " + str(self)
 
 
 def TypeStr(s):
@@ -1721,6 +1726,30 @@ class InstantiatedTemplateClass(Class):
             s.append(self.params[i].name + " = " + str(self.args[i]))
         return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
 
+class SemiInstantiatedTemplateClass(Class):
+    def __init__(self, parent_block, name, params, args):
+        Class.__init__(self, parent_block, name)
+        self.params = params
+        self.args = args
+        self.resolvedArgs = [Identifier(parent_block, self, [x], []) for x in args]
+        assert len(self.params) == len(self.args)
+
+    def __str__(self):
+        s = []
+        for i, _ in enumerate(self.params):
+            rhs = ("".join(self.resolvedArgs[i].type) if isinstance(self.resolvedArgs[i].type, list) else self.resolvedArgs[i].type.Proto())
+            s.append(self.params[i].name + " = " + rhs)
+        _str = "class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
+        _str += " [with %s]" % (", ".join(s))
+        if self.is_iterator:
+            _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
+        return _str
+
+    def __repr__(self):
+        s = []
+        for i, _ in enumerate(self.params):
+            s.append(self.params[i].name + " = " + str(self.args[i]))
+        return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
 
 class TemplateClass(Class):
     def ParseArguments(self, string):
@@ -1730,7 +1759,6 @@ class TemplateClass(Class):
             raise ParserError("unbalanced template angle brackets in <%s>" % string)
         params = [x.strip() for x in string[string.find('<')+1:string.rfind('>')-1].strip().split(',')]
         return params
-
 
     def __init__(self, parent_block, name, params):
         Class.__init__(self, parent_block, name)
@@ -1745,8 +1773,32 @@ class TemplateClass(Class):
                 param = TemplateNonTypeParameter(self, p.split(), index=paramList.index(p))
             self.paramList.append(param)
 
+    def SemiInstantiate(self, arguments, parent):
+        instance = None
+        strArgs = self.ParseArguments(arguments)
+
+        if ((self.parent.name == "Core") and (self.name == "OptionalType")):
+            if len(strArgs) == 1:
+                instance = Optional(OptionalElement(parent, strArgs))
+                instance.meta = self.meta
+            else:
+                raise ParserError("Invalid template arguments to %s" % instance)
+
+        elif ((self.parent.name == "std") and (self.name == "vector")):
+            if len(strArgs) == 1:
+                instance = Vector(VectorElement(parent, strArgs))
+                instance.meta = self.meta
+            else:
+                raise ParserError("Invalid template arguments to %s" % instance)
+
+        else:
+            instance = SemiInstantiatedTemplateClass(self.parent, self.name, self.paramList, strArgs)
+
+        return instance
+
     def Instantiate(self, arguments, parent):
         def _Substitute(identifier):
+
             if isinstance(identifier.type, list):
                 for i, v in enumerate(identifier.type):
                     if isinstance(v, TemplateTypeParameter):
@@ -1754,12 +1806,37 @@ class TemplateClass(Class):
                             identifier.type[i] = strArgs[paramDict[v.name].index]
                             identifier.ResolveIdentifiers(instance)
                             break
-            if (isinstance(identifier, Enumerator) or isinstance(identifier, Variable)) and identifier.value:
+
+            elif (isinstance(identifier, Enumerator) or isinstance(identifier, Variable)) and identifier.value:
                 for i, v in enumerate(identifier.value):
                     if isinstance(v, TemplateNonTypeParameter):
                         identifier.value[i] = strArgs[argDict[v.name].index]
                         identifier.value = Evaluate(identifier.value, scope=parent)
                         break
+
+            elif isinstance(identifier.type.type, Optional):
+                optional = identifier.type.type
+                if isinstance(optional.optional.type, list):
+                    for i, v in enumerate(optional.optional.type):
+                        if isinstance(v, TemplateTypeParameter):
+                            if v.name in paramDict:
+                                resolved = optional.optional
+                                resolved.type[i] = strArgs[paramDict[v.name].index]
+                                resolved.ResolveIdentifiers(identifier)
+                                identifier.type.type = Optional(resolved)
+                                break
+
+            elif isinstance(identifier.type.type, Vector):
+                vector = identifier.type.type
+                if isinstance(vector.element.type, list):
+                    for i, v in enumerate(vector.element.type):
+                        if isinstance(v, TemplateTypeParameter):
+                            if v.name in paramDict:
+                                resolved = vector.element
+                                resolved.type[i] = strArgs[paramDict[v.name].index]
+                                resolved.ResolveIdentifiers(identifier)
+                                identifier.type.type = Vector(resolved)
+                                break
 
         strArgs = self.ParseArguments(arguments)
         paramDict = dict(zip([x.name for x in self.parameters], self.parameters))
@@ -1796,7 +1873,6 @@ class TemplateClass(Class):
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         else:
-
             for t in self.typedefs:
                 newTypedef = copy.copy(t)
                 newTypedef.parent = instance
