@@ -900,7 +900,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         restrictions = Restrictions(json=False, adjust=False)
         return FromString(emit, names, index, restrictions, True)
 
-    def _BuildVars(params, response):
+    def _BuildVars(params, response, richerror):
         # Build param/response dictionaries (dictionaries will ensure they do not repeat)
         vars = OrderedDict()
 
@@ -929,6 +929,10 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 else:
                     vars[response.local_name][1] += "w"
                     vars[response.local_name][2].var = vars[response.local_name]
+
+        if richerror:
+            vars[richerror.local_name] = [richerror, "ew", DottedDict()]
+            vars[richerror.local_name][2].var = vars[richerror.local_name]
 
         sorted_vars = sorted(vars.items(), key=lambda x: x[1][0].schema["@position"])
 
@@ -1000,7 +1004,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         return sorted_vars
 
-    def _Invoke(method, conditional_invoke, sorted_vars, params, response, parent="", repsonse_parent="", const_cast=False, param_const_cast=False, test_param=True, index=None, context=False):
+    def _Invoke(method, conditional_invoke, sorted_vars, params, response, richerror, parent="", repsonse_parent="", const_cast=False, param_const_cast=False, test_param=True, index=None, context=False):
 
         index_name = index
 
@@ -1056,6 +1060,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.If(lookup_conditions)
 
         for _, [param, param_type, param_meta] in sorted_vars:
+
             if param_meta.flags.is_buffer_length:
                 continue
 
@@ -1333,7 +1338,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                         vector = param.TempName("container") if param.optional else param.temp_name
 
                         if param.optional:
-                            emit.Line("%s %s;" % (param.original_type, vector))
+                            emit.Line("%s %s;" % (param.cpp_native_type, vector))
 
                         emit.Line("auto %s = %s.Elements();" % (temp, parent + param.cpp_name))
                         emit.Line("while (%s.Next() == true) { %s.push_back(%s.Current()); }" % (temp, vector, temp))
@@ -1451,12 +1456,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         # Emit result handling and serialization to JSON data
 
-        if response:
-            emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
-            emit.Indent()
-
+        def EmitResponse(is_richerror=False):
             for _, [param, param_type, param_meta] in sorted_vars:
-                if "w" not in param_type:
+                if ("w" not in param_type) or (is_richerror != ("e" in param_type)):
                     continue
 
                 rhs = param.temp_name
@@ -1624,6 +1626,21 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     emit.ExitBlock(legacy_optional_conditions)
 
+        if response:
+            emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
+            emit.Indent()
+            EmitResponse()
+            emit.Unindent()
+            emit.Line("}")
+
+        if richerror:
+            if response:
+                emit.Line("else {")
+            else:
+                emit.Line("if (%s != %s) {" % (error_code.temp_name, CoreError("none")))
+
+            emit.Indent()
+            EmitResponse(True)
             emit.Unindent()
             emit.Line("}")
 
@@ -1690,17 +1707,21 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             else:
                 params = copy.copy(m.properties[0])
                 response = copy.copy(m.properties[1])
+                richerror = copy.copy(m.properties[2])
 
             params.Rename("Params")
             response.Rename("Result")
+            richerror.Rename("RichError")
         else:
             params = copy.copy(m.properties[0])
             response = copy.copy(m.properties[1])
+            richerror = copy.copy(m.properties[2])
 
         normalized_params = params if (params and not params.is_void) else None
         normalized_response = response if (response and not response.is_void) else None
+        normalized_richerror = richerror if (richerror and not richerror.is_void) else None
 
-        sorted_vars = _BuildVars(normalized_params, normalized_response)
+        sorted_vars = _BuildVars(normalized_params, normalized_response, normalized_richerror)
 
         has_auto_lookup_params = False
         has_custom_lookup_params = False
@@ -1877,6 +1898,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             if not response.is_void:
                 function_params.append("%s&" % response.cpp_type)
 
+            if not richerror.is_void:
+                function_params.append("%s&" % richerror.cpp_type)
+
             template_params.append("std::function<uint32_t(%s)>" % (", ".join(function_params)))
 
         emit.Line("%s.PluginHost::JSONRPC::template Register<%s>(%s, " % (names.module, (", ".join(template_params)), Tstring(m.json_name)))
@@ -1900,6 +1924,9 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         if not response.is_void:
             lambda_params.append("%s& %s" % (response.cpp_type, response.local_name))
 
+        if not richerror.is_void:
+            lambda_params.append("%s& %s" % (richerror.cpp_type, richerror.local_name))
+
         captures = []
         captures.append(names.impl)
 
@@ -1919,7 +1946,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         emit.Line()
 
         if not is_property:
-            _Invoke(m, False, sorted_vars, normalized_params, normalized_response, params_parent, response_parent, context=has_context)
+            _Invoke(m, False, sorted_vars, normalized_params, normalized_response, normalized_richerror, params_parent, response_parent, context=has_context)
         else:
             is_read_only = m.readonly
             is_write_only = m.writeonly
@@ -1952,7 +1979,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 maybe_index = index_name if has_index else None
 
-                _Invoke(m, conditional_invoke, _BuildVars(None, normalized_response), None, normalized_response, params_parent, response_parent,
+                _Invoke(m, conditional_invoke, _BuildVars(None, normalized_response), None, normalized_response, normalized_richerror, params_parent, response_parent,
                         const_cast=is_read_write, test_param=not is_read_write, index=maybe_index, context=has_context)
 
                 if indexes_are_different:
@@ -1971,7 +1998,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                 maybe_index = index_name if has_index else None
 
-                _Invoke(m, conditional_invoke, _BuildVars(normalized_params, None), normalized_params, None, params_parent, response_parent,
+                _Invoke(m, conditional_invoke, _BuildVars(normalized_params, None), normalized_params, None, normalized_richerror, params_parent, response_parent,
                         param_const_cast=is_read_write, test_param=not is_read_write, index=maybe_index, context=has_context)
 
                 if is_read_write:

@@ -22,6 +22,7 @@ import copy
 import posixpath
 import tempfile
 import json
+import hashlib
 from collections import OrderedDict
 
 try:
@@ -727,7 +728,13 @@ class JsonObject(JsonRefCounted, JsonType):
                 else:
                     # Make the name out of properties, but not for params/result types
                     if self.original_type:
-                        classonly = self.original_type.split("::")[-1]
+
+                        if '<' in self.original_type:
+                            classonly = "instance" + hashlib.sha1(self.original_type.encode('utf-8')).hexdigest()[:16]
+                        else:
+                            classonly = self.original_type.split("::")[-1]
+
+                        print(classonly)
                         classname = MakeObject(classonly[0].upper() + classonly[1:])
                     elif len(self.properties) == 1 and not isinstance(self.parent, JsonMethod):
                         classname = MakeObject(self.properties[0].cpp_name)
@@ -864,6 +871,7 @@ class JsonMethod(JsonObject):
         props = OrderedDict()
         props["params"] = schema["params"] if "params" in schema else {"type": "null"}
         props["result"] = schema["result"] if "result" in schema else {"type": "null"}
+        props["error"] = schema["error"] if "error" in schema else {"type": "null"}
         method_schema = {"type": "object", "properties": props}
 
         if "@originalname" in schema:

@@ -657,7 +657,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 # std::vector
                 elif isinstance(cppType, CppParser.DynamicArray):
                     if isinstance(cppType.element.Type().type, (CppParser.Optional, CppParser.DynamicArray)):
-                        raise CppParseError(var, "usupported type for std::vector element")
+                        raise CppParseError(var, "unsupported type for std::vector element")
 
                     props = { "items": ConvertParameter(cppType.element, is_member=True, quiet=quiet), "@container": "vector" }
 
@@ -714,6 +714,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
                     if "Core::JSONRPC::Context" in cppType.full_name:
                         result = [ "@context", {} ]
+                    elif "Core::ErrorDetails" in cppType.full_name:
+                        result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif cppType.is_json and cppType.is_custom_lookup:
@@ -806,10 +808,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
             if args != None:
                 properties.update(args)
-                try:
-                    properties["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
-                except:
-                    pass
+                properties["@originaltype"] = StripFrameworkNamespace(var.type.type.type)
 
             if var.meta.brief:
                 # Also attempt to craft some description
@@ -991,7 +990,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
         def BuildIndex(var, test=False):
             return BuildParameters(None, [var], rpc_format.COLLAPSED, is_property=False, is_index=True, test=test)
 
-        def BuildResult(method, vars, is_property=False, test=False):
+        def BuildResult(method, vars, is_property=False, test=False, error=False):
             params = {"type": "object"}
             properties = OrderedDict()
             required = []
@@ -1002,7 +1001,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
-                if var.meta.output:
+                if var.meta.output and (("Core::ErrorDetails" in var_type.type.type) == error):
                     var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_"):
@@ -1302,10 +1301,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                         if "async" in method.retval.meta.decorators:
                             obj["@async"] = True
 
-                        #if "properties" in params and params["properties"]:
-                        #    if method.name.lower() in [x.lower() for x in params["required"]]:
-                        #        raise CppParseError(method, "parameters must not use the same name as the method")
-
+                    error = BuildResult(method, method.vars, error=True)
+                    if error:
+                        obj["error"] = error
 
                     obj["result"] = BuildResult(method, method.vars)
                     methods[prefix + method_name] = obj
