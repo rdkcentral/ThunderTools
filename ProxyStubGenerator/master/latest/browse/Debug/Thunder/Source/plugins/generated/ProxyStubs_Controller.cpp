@@ -182,6 +182,8 @@ namespace ProxyStubs {
     //  (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
     //  (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
     //  (3) virtual Core::hresult Configuration(const string&, const string&) = 0
+    //  (4) virtual Core::hresult Attribute(const Core::OptionalType<Controller::IConfiguration::attribute>&, string&) const = 0
+    //  (5) virtual Core::hresult Attribute(const Controller::IConfiguration::attribute, const string&) = 0
     //
 
     static ProxyStub::MethodHandler ControllerConfigurationStubMethods[] = {
@@ -253,6 +255,43 @@ namespace ProxyStubs {
             const string _configuration = reader.Text();
 
             Core::hresult result = implementation->Configuration(static_cast<const string&>(_callsign), static_cast<const string&>(_configuration));
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
+        },
+
+        // (4) virtual Core::hresult Attribute(const Core::OptionalType<Controller::IConfiguration::attribute>&, string&) const = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            const Controller::IConfiguration* implementation = reinterpret_cast<const Controller::IConfiguration*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            Core::OptionalType<Controller::IConfiguration::attribute> _attribute{};
+            if (reader.Boolean() == true) {
+                _attribute = reader.Number<Controller::IConfiguration::attribute>();
+            }
+
+            string _value{};
+
+            Core::hresult result = implementation->Attribute(static_cast<const Core::OptionalType<Controller::IConfiguration::attribute>&>(_attribute), _value);
+
+            RPC::Data::Frame::Writer writer(message->Response().Writer());
+            writer.Number<Core::hresult>(result);
+            writer.Text(_value);
+        },
+
+        // (5) virtual Core::hresult Attribute(const Controller::IConfiguration::attribute, const string&) = 0
+        //
+        [](Core::ProxyType<Core::IPCChannel>& /* channel */, Core::ProxyType<RPC::InvokeMessage>& message) {
+            Controller::IConfiguration* implementation = reinterpret_cast<Controller::IConfiguration*>(message->Parameters().Implementation());
+            ASSERT(implementation != nullptr);
+
+            RPC::Data::Frame::Reader reader(message->Parameters().Reader());
+            const Controller::IConfiguration::attribute _attribute = reader.Number<Controller::IConfiguration::attribute>();
+            const string _value = reader.Text();
+
+            Core::hresult result = implementation->Attribute(_attribute, static_cast<const string&>(_value));
 
             RPC::Data::Frame::Writer writer(message->Response().Writer());
             writer.Number<Core::hresult>(result);
@@ -1037,6 +1076,8 @@ namespace ProxyStubs {
     //  (1) virtual Core::hresult Restore(const Core::OptionalType<string>&) = 0
     //  (2) virtual Core::hresult Configuration(const Core::OptionalType<string>&, string&) const = 0
     //  (3) virtual Core::hresult Configuration(const string&, const string&) = 0
+    //  (4) virtual Core::hresult Attribute(const Core::OptionalType<Controller::IConfiguration::attribute>&, string&) const = 0
+    //  (5) virtual Core::hresult Attribute(const Controller::IConfiguration::attribute, const string&) = 0
     //
 
     class ControllerConfigurationProxy final : public ProxyStub::UnknownProxyType<Controller::IConfiguration> {
@@ -1117,6 +1158,47 @@ namespace ProxyStubs {
             RPC::Data::Frame::Writer writer(message->Parameters().Writer());
             writer.Text(_callsign);
             writer.Text(_configuration);
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Attribute(const Core::OptionalType<Controller::IConfiguration::attribute>& _attribute, string& _value) const override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(4));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Boolean(_attribute.IsSet());
+            if (_attribute.IsSet() == true) {
+                writer.Number<Controller::IConfiguration::attribute>(_attribute.Value());
+            }
+
+            Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
+            if (hresult == Core::ERROR_NONE) {
+                RPC::Data::Frame::Reader reader(message->Response().Reader());
+                hresult = reader.Number<Core::hresult>();
+                _value = reader.Text();
+            } else {
+                ASSERT((hresult & COM_ERROR) != 0);
+            }
+
+            return (hresult);
+        }
+
+        Core::hresult Attribute(const Controller::IConfiguration::attribute _attribute, const string& _value) override
+        {
+            IPCMessage message(static_cast<const ProxyStub::UnknownProxy&>(*this).Message(5));
+
+            RPC::Data::Frame::Writer writer(message->Parameters().Writer());
+            writer.Number<Controller::IConfiguration::attribute>(_attribute);
+            writer.Text(_value);
 
             Core::hresult hresult = static_cast<const ProxyStub::UnknownProxy&>(*this).Invoke(message);
             if (hresult == Core::ERROR_NONE) {
