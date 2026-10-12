@@ -808,7 +808,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
             if args != None:
                 properties.update(args)
-                properties["@originaltype"] = StripFrameworkNamespace(var.type.type.type)
+                if "@originaltype" not in properties:
+                    properties["@originaltype"] = StripFrameworkNamespace(var.type.TypeName())
 
             if var.meta.brief:
                 # Also attempt to craft some description
