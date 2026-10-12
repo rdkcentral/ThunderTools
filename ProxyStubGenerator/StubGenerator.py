@@ -1647,7 +1647,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     emit.Line("for (%s %s = 0; %s < %s; %s++) {" % (p.length.type_name, index, index, length.as_rvalue, index))
                     emit.IndentInc()
                     ReadParameter(element)
-                    emit.Line("%s.push_back(std::move(%s));" % (obj_name, element.as_rvalue))
+                    emit.Line("%s.push_back(std::move(%s));" % (obj_name, element.name))
                     emit.IndentDec()
                     emit.Line("}")
 
@@ -2289,7 +2289,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             emit.IndentInc()
                             emit.Line("%s{};" % element.temporary_no_cv)
                             ReadParameter(element)
-                            emit.Line("%s.push_back(std::move(%s));" % (internal, element.as_rvalue))
+                            emit.Line("%s.push_back(std::move(%s));" % (internal, element.name))
                             emit.IndentDec()
                             emit.Line("}")
 
@@ -2321,7 +2321,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         length = EmitLength(interface, p.length, Normalize(p.name + "Size"))
                         element = EmitParam(interface, p.element, Normalize(p.name + "Item"), parent=p)
 
-                        obj_name = p.as_rvalue
+                        obj_name = p.name
 
                         if p.optional:
                             obj_name = Normalize(p.name + "Object__")
@@ -2340,7 +2340,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                         emit.IndentInc()
                         emit.Line("%s{};" % (element.temporary_no_cv))
                         ReadParameter(element)
-                        emit.Line("%s.push_back(std::move(%s));" % (obj_name, element.as_rvalue))
+                        emit.Line("%s.push_back(std::move(%s));" % (obj_name, element.name))
                         emit.IndentDec()
                         emit.Line("}")
 
