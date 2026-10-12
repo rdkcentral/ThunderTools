@@ -1879,6 +1879,11 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         # Emit method prologue
         template_params = [ params.cpp_type, response.cpp_type ]
 
+        register_method = "Register" if richerror.is_void else "RegisterwithError"
+
+        if not richerror.is_void:
+            template_params.append(richerror.cpp_type)
+
         if needs_handler:
             function_params = []
 
@@ -1899,11 +1904,13 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 function_params.append("%s&" % response.cpp_type)
 
             if not richerror.is_void:
+                assert False
                 function_params.append("%s&" % richerror.cpp_type)
+                template_params.append(richerror.cpp_type)
 
             template_params.append("std::function<uint32_t(%s)>" % (", ".join(function_params)))
 
-        emit.Line("%s.PluginHost::JSONRPC::template Register<%s>(%s, " % (names.module, (", ".join(template_params)), Tstring(m.json_name)))
+        emit.Line("%s.PluginHost::JSONRPC::template %s<%s>(%s, " % (names.module, register_method, (", ".join(template_params)), Tstring(m.json_name)))
         emit.Indent()
 
         lambda_params = []
