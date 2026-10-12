@@ -1741,7 +1741,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             async_events.append(m.callback.notification)
             async_methods.append(m.callback)
 
-        m.processed_vars = [params, response, normalized_params, normalized_response, sorted_vars, has_auto_lookup_params, has_custom_lookup_params, (m.callback != None)]
+        m.processed_vars = [params, response, richerror, normalized_params, normalized_response, normalized_richerror, sorted_vars, has_auto_lookup_params, has_custom_lookup_params, (m.callback != None)]
 
     if listener_events:
         _EmitHandlerInterface(listener_events, auto_lookup_events + custom_lookup_events)
@@ -1854,7 +1854,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         is_property = isinstance(m, JsonProperty)
         has_index = is_property and m.index
 
-        params, response, normalized_params, normalized_response, sorted_vars, has_auto_lookup_params, has_custom_lookup_params, has_async_params = m.processed_vars
+        params, response, richerror, normalized_params, normalized_response, normalized_richerror, sorted_vars, has_auto_lookup_params, has_custom_lookup_params, has_async_params = m.processed_vars
 
         any_index = (m.index[0] if m.index[0] else m.index[1]) if has_index else None
         indexes_are_different = not m.index[2] if has_index else False
