@@ -383,6 +383,14 @@ def LookupIdentifier(identifier, scope=None):
     found = []
     __Search(global_namespace, found, "::" + identifier)
 
+    _stripped = identifier
+    while not found and "::" in _stripped:
+        _stripped = _stripped.split("::", 1)[1]
+        __Search(global_namespace, found, "::" + _stripped)
+
+    if found:
+        identifier = _stripped
+
     if scope:
         current = scope.full_name
         while not selected:
