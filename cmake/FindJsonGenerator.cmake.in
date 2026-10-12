@@ -209,6 +209,14 @@ function(JsonGenerator)
         list(APPEND _execute_command "--framework-namespace" "${Argument_FRAMEWORK_NAMESPACE}")
     endif()
 
+    if (Argument_CASE_CONVENTION)
+        list(APPEND _execute_command "--case-convention" "${Argument_CASE_CONVENTION}")
+    endif()
+
+    if(Argument_IGNORE_CASE_CONVENTION)
+        list(APPEND _execute_command  "--ignore-source-case-convention")
+    endif()
+
     foreach(_namespace ${Argument_NAMESPACE})
         list(APPEND _execute_command "--namespace" "${_namespace}")
     endforeach(_namespace)
