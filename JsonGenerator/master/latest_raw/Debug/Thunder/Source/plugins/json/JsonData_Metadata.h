@@ -1062,6 +1062,7 @@ namespace JsonData {
 } // namespace JsonData
 
 // Enum conversion handlers
+ENUM_CONVERSION_HANDLER(Exchange::Controller::IConfiguration::attribute)
 ENUM_CONVERSION_HANDLER(PluginHost::IShell::state)
 ENUM_CONVERSION_HANDLER(PluginHost::IShell::reason)
 ENUM_CONVERSION_HANDLER(Exchange::Controller::ILifeTime::state)

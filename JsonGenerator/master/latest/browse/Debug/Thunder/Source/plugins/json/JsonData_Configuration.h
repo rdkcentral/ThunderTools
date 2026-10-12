@@ -53,5 +53,8 @@ namespace JsonData {
 
 } // namespace JsonData
 
+// Enum conversion handlers
+ENUM_CONVERSION_HANDLER(Exchange::Controller::IConfiguration::attribute)
+
 }
 

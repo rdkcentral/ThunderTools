@@ -124,6 +124,77 @@ namespace Exchange {
                         return (_errorCode__);
                     });
 
+                // Indexed Property: 'attribute' - Framework attributes
+                _module__.PluginHost::JSONRPC::template Register<Core::JSON::String, Core::JSON::String, std::function<uint32_t(const string&, const Core::JSON::String&, Core::JSON::String&)>>(_T("attribute"),
+                    [_implementation__](const string& attribute, const Core::JSON::String& params, Core::JSON::String& result) -> uint32_t {
+                        uint32_t _errorCode__ = Core::ERROR_NONE;
+
+                        if (params.IsSet() == false) {
+                            Core::OptionalType<Exchange::Controller::IConfiguration::attribute> _attributeOpt__{};
+
+                            if (attribute.empty() == true) {
+                                // no error, optional
+                            }
+                            else {
+                                Exchange::Controller::IConfiguration::attribute _attributeConv__{};
+                                Core::EnumerateType<Exchange::Controller::IConfiguration::attribute> _attributeConvEnum__(attribute.c_str());
+                                const bool _attributeConvResult__ = _attributeConvEnum__.IsSet();
+                                _attributeConv__ = _attributeConvEnum__.Value();
+
+                                if (_attributeConvResult__ == false) {
+                                    TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JConfiguration"), _T("attribute")));
+                                    _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                }
+                                else {
+                                    _attributeOpt__ = _attributeConv__;
+                                }
+                            }
+
+                            if (_errorCode__ == Core::ERROR_NONE) {
+                                string _result_{};
+
+                                _errorCode__ = (static_cast<const IConfiguration*>(_implementation__))->Attribute(_attributeOpt__, _result_);
+
+                                if (_errorCode__ == Core::ERROR_NONE) {
+
+                                    if (_result_.empty() == false) {
+                                        result = _result_;
+                                        result.SetQuoted(false);
+                                    }
+                                }
+                            }
+                        }
+                        else {
+                            Exchange::Controller::IConfiguration::attribute _attributeConv__{};
+
+                            if (attribute.empty() == true) {
+                                TRACE_GLOBAL(Trace::Error, (_T("Missing index for JSON-RPC call: %s.%s"), _T("JConfiguration"), _T("attribute")));
+                                _errorCode__ = Core::ERROR_BAD_REQUEST;
+                            }
+                            else {
+                                Core::EnumerateType<Exchange::Controller::IConfiguration::attribute> _attributeConvEnum__(attribute.c_str());
+                                const bool _attributeConvResult__ = _attributeConvEnum__.IsSet();
+                                _attributeConv__ = _attributeConvEnum__.Value();
+
+                                if (_attributeConvResult__ == false) {
+                                    TRACE_GLOBAL(Trace::Error, (_T("Invalid index for JSON-RPC call: %s.%s"), _T("JConfiguration"), _T("attribute")));
+                                    _errorCode__ = Core::ERROR_BAD_REQUEST;
+                                }
+                            }
+
+                            if (_errorCode__ == Core::ERROR_NONE) {
+                                const string _params_{params};
+
+                                _errorCode__ = _implementation__->Attribute(_attributeConv__, _params_);
+
+                            }
+
+                            result.Null(true);
+                        }
+
+                        return (_errorCode__);
+                    });
+
             }
 
             template<typename MODULE>
@@ -134,6 +205,7 @@ namespace Exchange {
                 _module__.PluginHost::JSONRPC::Unregister(_T("storeconfig"));
                 _module__.PluginHost::JSONRPC::Unregister(_T("restore"));
                 _module__.PluginHost::JSONRPC::Unregister(_T("configuration"));
+                _module__.PluginHost::JSONRPC::Unregister(_T("attribute"));
             }
 
             POP_WARNING()
