@@ -126,6 +126,18 @@ class Interface():
         self.file = file
 
 
+# A set of interface namespaces handled in one pass. Behaves as its first (primary) namespace string.
+class NamespaceSet(str):
+    def __new__(cls, namespaces):
+        obj = str.__new__(cls, namespaces[0])
+        obj.all = list(namespaces)
+        return obj
+
+
+def InNamespace(full_name, ns):
+    return any(full_name.startswith(n + "::") for n in getattr(ns, "all", [ns]))
+
+
 # Looks for interface classes (ie. classes inheriting from Core::Unknown and specifying ID enum).
 def FindInterfaceClasses(tree, namespace):
     interfaces = []
@@ -141,7 +153,7 @@ def FindInterfaceClasses(tree, namespace):
                     omit_interface_used = True
 
                 if not isinstance(c, CppParser.TemplateClass) and (not isinstance(c, CppParser.InstantiatedTemplateClass) or c.refs > 0):
-                    if (c.full_name.startswith(interface_namespace + "::")):
+                    if InNamespace(c.full_name, interface_namespace):
                         inherits_iunknown = False
                         for a in c.ancestors:
                             if CLASS_IUNKNOWN in str(a[0]):
@@ -176,6 +188,11 @@ def FindInterfaceClasses(tree, namespace):
 
 # Cut out scope resolution operators from all identifiers found in a string
 def Flatten(identifier, scope):
+
+    for single in getattr(scope, "all", [scope])[1:]:
+        identifier = Flatten(identifier, str(single))
+
+    scope = str(scope)
 
     if not scope.startswith("::"):
         scope = "::" + scope
@@ -1472,7 +1489,7 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
 
             log.Info("Processing '%s' interface data..." % Flatten(obj.type, ns))
 
-            if not obj.full_name.startswith(ns + "::"):
+            if not InNamespace(obj.full_name, ns):
                 log.Info("class %s not in requested namespace (%s)" % (obj.full_name, ns))
             elif obj.omit:
                 omit_interface_used = True
@@ -2822,10 +2839,9 @@ if __name__ == "__main__":
                         new_faces = []
                         some_omitted = False
 
-                        for ns in INTERFACE_NAMESPACES:
-                            output, some_omitted = GenerateStubs2(output_file, source_file, args.project_dir, tree, ns, scan_only)
+                        output, some_omitted = GenerateStubs2(output_file, source_file, args.project_dir, tree, NamespaceSet(INTERFACE_NAMESPACES), scan_only)
 
-                            new_faces += output
+                        new_faces += output
 
                         if not new_faces:
                             if not some_omitted:
