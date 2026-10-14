@@ -195,6 +195,9 @@ def FindInterfaceClasses(tree, namespace):
 # Cut out scope resolution operators from all identifiers found in a string
 def Flatten(identifier, scope):
 
+    if isinstance(scope, NamespaceSet):
+        return Flatten(identifier, "::" + FRAMEWORK_NAMESPACE)
+
     for single in getattr(scope, "all", [scope])[1:]:
         identifier = Flatten(identifier, str(single))
 
@@ -2764,17 +2767,8 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line()
         emit.IndentInc()
 
-        # import every requested namespace by its full path; the stubs live in the framework
-        # namespace, which needs no import of itself
-        using_namespaces = []
-        for n in getattr(ns, "all", [ns]):
-            if n != "::" + FRAMEWORK_NAMESPACE and n not in using_namespaces:
-                using_namespaces.append(n)
-
-        for name in using_namespaces:
-            emit.Line("using namespace %s;" % name)
-
-        if using_namespaces:
+        if not isinstance(ns, NamespaceSet) and interface_namespace != STUB_NAMESPACE.split("::")[-2]:
+            emit.Line("using namespace %s;" % interface_namespace)
             emit.Line()
 
         emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
