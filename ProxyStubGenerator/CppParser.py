@@ -390,7 +390,7 @@ def LookupIdentifier(identifier, scope=None):
     # A qualified name may start with a namespace that is an alias of the framework namespace
     # (e.g. Thunder::Core::X while the type lives in WPEFramework::Core). Retry without such a
     # leading alias; other qualifications are never dropped, so unknown names stay undefined.
-    _stripped = identifier
+    _stripped = identifier.lstrip(":")
     while not found and "::" in _stripped and _stripped.split("::", 1)[0] in NAMESPACE_ALIASES:
         _stripped = _stripped.split("::", 1)[1]
         __Search(global_namespace, found, "::" + _stripped)
