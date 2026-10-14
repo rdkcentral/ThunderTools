@@ -1509,6 +1509,12 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
                     proxy_name = CreateName(interface_name) + "Proxy"
                     stub_name = CreateName(interface_name) + "Stub"
                     prepared_params = [PrepareParams(method, interface) for method in emit_methods]
+
+                    # all requested namespaces are flattened, so equally named interfaces of different namespaces would clash
+                    if interface_name in announce_list and announce_list[interface_name][4].obj.full_name != obj.full_name:
+                        raise CppParser.ParserError("interfaces %s and %s of namespaces in the same pass have the same name, use separate runs" %
+                                                    (announce_list[interface_name][4].obj.full_name, obj.full_name))
+            
                     announce_list[interface_name] = [emit_methods, stub_methods_name, stub_name, proxy_name, interface, prepared_params]
 
         #
@@ -2696,6 +2702,10 @@ if __name__ == "__main__":
     for i, ns in enumerate(INTERFACE_NAMESPACES):
         if not ns.startswith("::"):
             INTERFACE_NAMESPACES[i] = "::" + ns
+
+    # An interface namespace other than the framework one (e.g. Thunder on R4, where the framework is
+    # still WPEFramework) may be used to qualify framework types; resolve it as an alias.
+    CppParser.NAMESPACE_ALIASES = set(n.split("::")[1] for n in INTERFACE_NAMESPACES if len(n.split("::")) > 1 and n.split("::")[1] != FRAMEWORK_NAMESPACE)
 
     if args.help_tags:
         print("The following special tags are supported:")
