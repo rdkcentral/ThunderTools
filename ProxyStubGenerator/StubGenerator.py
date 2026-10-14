@@ -126,6 +126,18 @@ class Interface():
         self.file = file
 
 
+# A set of interface namespaces handled in one pass. Behaves as its first (primary) namespace string.
+class NamespaceSet(str):
+    def __new__(cls, namespaces):
+        obj = str.__new__(cls, namespaces[0])
+        obj.all = list(namespaces)
+        return obj
+
+
+def InNamespace(full_name, ns):
+    return any(full_name.startswith(n + "::") for n in getattr(ns, "all", [ns]))
+
+
 # Looks for interface classes (ie. classes inheriting from Core::Unknown and specifying ID enum).
 def FindInterfaceClasses(tree, namespace):
     interfaces = []
@@ -141,7 +153,7 @@ def FindInterfaceClasses(tree, namespace):
                     omit_interface_used = True
 
                 if not isinstance(c, CppParser.TemplateClass) and (not isinstance(c, CppParser.InstantiatedTemplateClass) or c.refs > 0):
-                    if (c.full_name.startswith(interface_namespace + "::")):
+                    if InNamespace(c.full_name, interface_namespace):
                         inherits_iunknown = False
                         for a in c.ancestors:
                             if CLASS_IUNKNOWN in str(a[0]):
@@ -176,6 +188,11 @@ def FindInterfaceClasses(tree, namespace):
 
 # Cut out scope resolution operators from all identifiers found in a string
 def Flatten(identifier, scope):
+
+    for single in getattr(scope, "all", [scope])[1:]:
+        identifier = Flatten(identifier, str(single))
+
+    scope = str(scope)
 
     if not scope.startswith("::"):
         scope = "::" + scope
@@ -661,6 +678,16 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
 
     if scan_only:
         return interfaces, omit_interface_used
+
+    # all requested namespaces are flattened, so equally named interfaces of different namespaces would clash;
+    # check this before the output file is touched
+    flattened = dict()
+    for face in interfaces:
+        if not face.obj.omit:
+            name = Flatten(face.obj.full_name, ns)
+            if flattened.setdefault(name, face.obj.full_name) != face.obj.full_name:
+                raise CppParser.ParserError("interfaces %s and %s of namespaces in the same pass have the same name, use separate runs" %
+                                            (flattened[name], face.obj.full_name))
 
     interface_header_name = os.path.basename(source_file)
 
@@ -1472,7 +1499,7 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
 
             log.Info("Processing '%s' interface data..." % Flatten(obj.type, ns))
 
-            if not obj.full_name.startswith(ns + "::"):
+            if not InNamespace(obj.full_name, ns):
                 log.Info("class %s not in requested namespace (%s)" % (obj.full_name, ns))
             elif obj.omit:
                 omit_interface_used = True
@@ -1492,6 +1519,7 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
                     proxy_name = CreateName(interface_name) + "Proxy"
                     stub_name = CreateName(interface_name) + "Stub"
                     prepared_params = [PrepareParams(method, interface) for method in emit_methods]
+
                     announce_list[interface_name] = [emit_methods, stub_methods_name, stub_name, proxy_name, interface, prepared_params]
 
         #
@@ -2525,8 +2553,16 @@ def GenerateStubs2(output_file, source_file, project_dir, tree, ns, scan_only=Fa
         emit.Line()
         emit.IndentInc()
 
-        if (interface_namespace != STUB_NAMESPACE.split("::")[-2]):
-            emit.Line("using namespace %s;" % interface_namespace)
+        using_namespaces = []
+        for n in getattr(ns, "all", [ns]):
+            name = n.split("::")[-1]
+            if name != STUB_NAMESPACE.split("::")[-2] and name not in using_namespaces:
+                using_namespaces.append(name)
+
+        for name in using_namespaces:
+            emit.Line("using namespace %s;" % name)
+
+        if using_namespaces:
             emit.Line()
 
         emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
@@ -2680,6 +2716,9 @@ if __name__ == "__main__":
         if not ns.startswith("::"):
             INTERFACE_NAMESPACES[i] = "::" + ns
 
+    # An interface namespace other than the framework one (e.g. Thunder on R4, where the framework is
+    # still WPEFramework) may be used to qualify framework types; resolve it as an alias.
+
     if args.help_tags:
         print("The following special tags are supported:")
         print("   @stop                  - a hard stop for parsing the file")
@@ -2822,10 +2861,9 @@ if __name__ == "__main__":
                         new_faces = []
                         some_omitted = False
 
-                        for ns in INTERFACE_NAMESPACES:
-                            output, some_omitted = GenerateStubs2(output_file, source_file, args.project_dir, tree, ns, scan_only)
+                        output, some_omitted = GenerateStubs2(output_file, source_file, args.project_dir, tree, NamespaceSet(INTERFACE_NAMESPACES), scan_only)
 
-                            new_faces += output
+                        new_faces += output
 
                         if not new_faces:
                             if not some_omitted:
