@@ -319,6 +319,12 @@ class Range():
         return "range[%s]" % str(self)
 
 
+# Namespaces known to be aliases of the framework namespace, set by the generator
+NAMESPACE_ALIASES = set()
+# The concrete namespace those aliases stand for (the framework namespace), set by the generator
+NAMESPACE_ALIAS_TARGET = None
+
+
 def LookupIdentifier(identifier, scope=None):
     def __Search(tree, found, T):
         var_match = [v for v in tree.vars if v.full_name.endswith(T)]
@@ -382,6 +388,18 @@ def LookupIdentifier(identifier, scope=None):
 
     found = []
     __Search(global_namespace, found, "::" + identifier)
+
+    # A qualified name may start with a namespace that is an alias of the framework namespace
+    # (e.g. Thunder::Core::X while the type lives in WPEFramework::Core). Replace that leading
+    # alias by the concrete framework namespace, so the lookup cannot match an unrelated namespace
+    # that happens to contain the same name. Other qualifications are never rewritten.
+    if not found and NAMESPACE_ALIAS_TARGET:
+        _stripped = identifier.lstrip(":")
+        while not found and "::" in _stripped and _stripped.split("::", 1)[0] in NAMESPACE_ALIASES:
+            _stripped = NAMESPACE_ALIAS_TARGET + "::" + _stripped.split("::", 1)[1]
+            __Search(global_namespace, found, "::" + _stripped)
+        if found:
+            identifier = _stripped
 
     if scope:
         current = scope.full_name

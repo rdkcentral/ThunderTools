@@ -2718,6 +2718,8 @@ if __name__ == "__main__":
 
     # An interface namespace other than the framework one (e.g. Thunder on R4, where the framework is
     # still WPEFramework) may be used to qualify framework types; resolve it as an alias.
+    CppParser.NAMESPACE_ALIASES = set(n.split("::")[1] for n in INTERFACE_NAMESPACES if len(n.split("::")) > 1 and n.split("::")[1] != FRAMEWORK_NAMESPACE)
+    CppParser.NAMESPACE_ALIAS_TARGET = FRAMEWORK_NAMESPACE
 
     if args.help_tags:
         print("The following special tags are supported:")
