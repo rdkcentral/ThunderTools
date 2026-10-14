@@ -129,6 +129,18 @@ class Interface():
         self.file = file
 
 
+# A set of interface namespaces handled in one pass. Behaves as its first (primary) namespace string.
+class NamespaceSet(str):
+    def __new__(cls, namespaces):
+        obj = str.__new__(cls, namespaces[0])
+        obj.all = list(namespaces)
+        return obj
+
+
+def InNamespace(full_name, ns):
+    return any(full_name.startswith(n + "::") for n in getattr(ns, "all", [ns]))
+
+
 # Looks for interface classes (ie. classes inheriting from Core::IUnknown and specifying ID enum).
 def FindInterfaceClasses(tree, namespace):
     interfaces = []
@@ -144,7 +156,7 @@ def FindInterfaceClasses(tree, namespace):
                     omit_interface_used = True
 
                 if not isinstance(c, CppParser.TemplateClass) and (not isinstance(c, CppParser.InstantiatedTemplateClass) or c.refs > 0):
-                    if (c.full_name.startswith(interface_namespace + "::")):
+                    if (InNamespace(c.full_name, interface_namespace)):
                         if (c.is_iterator and ENABLE_ITERATOR_OPTIMIZATION) and not c.is_force_interface:
                             log.Info("Skipping iterator %s" % c.name, source_file)
                         else:
@@ -182,6 +194,11 @@ def FindInterfaceClasses(tree, namespace):
 
 # Cut out scope resolution operators from all identifiers found in a string
 def Flatten(identifier, scope):
+
+    for single in getattr(scope, "all", [scope])[1:]:
+        identifier = Flatten(identifier, str(single))
+
+    scope = str(scope)
 
     if not scope.startswith("::"):
         scope = "::" + scope
@@ -691,6 +708,17 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
     if scan_only:
         return interfaces, omit_interface_used
+
+    # all requested namespaces are flattened, so interfaces of different namespaces can end up with the
+    # same generated names (stub, proxy and stub methods symbols are derived with CreateName, which
+    # also drops a leading I, so IFoo and Foo clash too); check this before the output file is touched
+    flattened = dict()
+    for face in interfaces:
+        if not face.obj.omit:
+            name = CreateName(Flatten(face.obj.full_name, ns))
+            if flattened.setdefault(name, face.obj.full_name) != face.obj.full_name:
+                raise CppParser.ParserError("interfaces %s and %s of the same pass would generate the same proxy and stub names, use separate runs" %
+                                            (flattened[name], face.obj.full_name))
 
     interface_header_name = os.path.basename(source_file)
 
@@ -1515,7 +1543,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
             log.Info("Processing '%s' interface data..." % Flatten(obj.type, ns))
 
-            if not obj.full_name.startswith(ns + "::"):
+            if not InNamespace(obj.full_name, ns):
                 log.Info("class %s not in requested namespace (%s)" % (obj.full_name, ns))
             elif obj.omit:
                 omit_interface_used = True
@@ -1535,6 +1563,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     proxy_name = CreateName(interface_name) + "Proxy"
                     stub_name = CreateName(interface_name) + "Stub"
                     prepared_params = [PrepareParams(method, interface) for method in emit_methods]
+
                     announce_list[interface_name] = [emit_methods, stub_methods_name, stub_name, proxy_name, interface, prepared_params]
 
         #
@@ -2735,8 +2764,17 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line()
         emit.IndentInc()
 
-        if (interface_namespace != STUB_NAMESPACE.split("::")[-2]):
-            emit.Line("using namespace %s;" % interface_namespace)
+        # import every requested namespace by its full path; the stubs live in the framework
+        # namespace, which needs no import of itself
+        using_namespaces = []
+        for n in getattr(ns, "all", [ns]):
+            if n != "::" + FRAMEWORK_NAMESPACE and n not in using_namespaces:
+                using_namespaces.append(n)
+
+        for name in using_namespaces:
+            emit.Line("using namespace %s;" % name)
+
+        if using_namespaces:
             emit.Line()
 
         emit.Line("PUSH_WARNING(DISABLE_WARNING_DEPRECATED_USE)")
@@ -3073,10 +3111,9 @@ if __name__ == "__main__":
                         new_faces = []
                         some_omitted = False
 
-                        for ns in INTERFACE_NAMESPACES:
-                            output, some_omitted = GenerateStubs2(output_file, source_file, tree, ns, scan_only)
+                        output, some_omitted = GenerateStubs2(output_file, source_file, tree, NamespaceSet(INTERFACE_NAMESPACES), scan_only)
 
-                            new_faces += output
+                        new_faces += output
 
                         if not new_faces:
                             if os.path.isfile(output_file):
