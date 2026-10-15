@@ -31,7 +31,9 @@
 // Thunder::FunctionalTest. This covers:
 //   - finding interfaces of more than one requested namespace in one header,
 //   - a type with the same short name in both namespaces (NamespacePayload),
-//   - a framework type qualified through the legacy name (WPEFramework::Core::...).
+//   - a framework type qualified through the legacy name (WPEFramework::Core::...),
+//   - a nested namespace with the name of a requested top-level namespace, which must
+//     resolve in its enclosing scope first, as in C++ (WPEFramework::ScopedPayload).
 
 namespace Thunder {
 
@@ -42,10 +44,23 @@ namespace FunctionalTest {
         uint16_t tag;
     };
 
+    // Nested namespace with the name of a requested top-level namespace. Inside
+    // Thunder::FunctionalTest, WPEFramework::ScopedPayload is this one, not
+    // ::WPEFramework::ScopedPayload below.
+    namespace WPEFramework {
+
+        struct ScopedPayload {
+            uint32_t count;
+        };
+
+    } // namespace WPEFramework
+
     struct EXTERNAL ITestNamespacesPrimary : virtual public Core::IUnknown {
         enum { ID = ID_TEST_NAMESPACES_PRIMARY };
 
         virtual Core::hresult EchoPayload(const NamespacePayload& input /* @in */, NamespacePayload& output /* @out */) const = 0;
+
+        virtual Core::hresult EchoScoped(const WPEFramework::ScopedPayload& input /* @in */, WPEFramework::ScopedPayload& output /* @out */) const = 0;
     };
 
 } // namespace FunctionalTest
@@ -53,6 +68,12 @@ namespace FunctionalTest {
 } // namespace Thunder
 
 namespace WPEFramework {
+
+// Same qualified name as Thunder::FunctionalTest::WPEFramework::ScopedPayload seen from
+// Thunder::FunctionalTest, different layout.
+struct ScopedPayload {
+    string name;
+};
 
 namespace FunctionalTest {
 

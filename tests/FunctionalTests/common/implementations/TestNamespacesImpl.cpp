@@ -37,6 +37,12 @@ namespace TestImplementation {
             return Core::ERROR_NONE;
         }
 
+        Core::hresult EchoScoped(const FunctionalTest::WPEFramework::ScopedPayload& input, FunctionalTest::WPEFramework::ScopedPayload& output) const override
+        {
+            output = input;
+            return Core::ERROR_NONE;
+        }
+
         BEGIN_INTERFACE_MAP(TestNamespacesPrimaryImpl)
         INTERFACE_ENTRY(FunctionalTest::ITestNamespacesPrimary)
         END_INTERFACE_MAP

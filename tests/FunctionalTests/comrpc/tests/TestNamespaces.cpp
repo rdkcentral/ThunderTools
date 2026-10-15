@@ -43,6 +43,16 @@ TEST_F(TestNamespacesPrimary, EchoPayload)
     EXPECT_EQ(output.tag, input.tag);
 }
 
+TEST_F(TestNamespacesPrimary, EchoScopedPayloadOfNestedNamespace)
+{
+    FunctionalTest::WPEFramework::ScopedPayload input{};
+    input.count = 7;
+
+    FunctionalTest::WPEFramework::ScopedPayload output{};
+    EXPECT_EQ(_proxy->EchoScoped(input, output), Core::ERROR_NONE);
+    EXPECT_EQ(output.count, input.count);
+}
+
 TEST_F(TestNamespacesLegacy, EchoInstanceQualifiedThroughLegacyName)
 {
     const Core::instance_id input = static_cast<Core::instance_id>(0x12345678);
