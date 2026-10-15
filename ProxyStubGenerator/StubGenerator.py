@@ -141,6 +141,12 @@ def InNamespace(full_name, ns):
     return any(full_name.startswith(n + "::") for n in getattr(ns, "all", [ns]))
 
 
+# True if more than one namespace was actually requested. A NamespaceSet of just one namespace
+# (e.g. a single --namespace value from the command line) must behave like a plain string scope.
+def IsMultiNamespace(ns):
+    return len(getattr(ns, "all", [ns])) > 1
+
+
 # Looks for interface classes (ie. classes inheriting from Core::IUnknown and specifying ID enum).
 def FindInterfaceClasses(tree, namespace):
     interfaces = []
@@ -195,7 +201,7 @@ def FindInterfaceClasses(tree, namespace):
 # Cut out scope resolution operators from all identifiers found in a string
 def Flatten(identifier, scope):
 
-    if isinstance(scope, NamespaceSet):
+    if IsMultiNamespace(scope):
         return Flatten(identifier, "::" + FRAMEWORK_NAMESPACE)
 
     for single in getattr(scope, "all", [scope])[1:]:
@@ -2767,7 +2773,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
         emit.Line()
         emit.IndentInc()
 
-        if not isinstance(ns, NamespaceSet) and interface_namespace != STUB_NAMESPACE.split("::")[-2]:
+        if not IsMultiNamespace(ns) and interface_namespace != STUB_NAMESPACE.split("::")[-2]:
             emit.Line("using namespace %s;" % interface_namespace)
             emit.Line()
 
