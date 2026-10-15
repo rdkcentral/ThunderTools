@@ -2959,6 +2959,13 @@ if __name__ == "__main__":
         if not ns.startswith("::"):
             INTERFACE_NAMESPACES[i] = "::" + ns
 
+    # A whole top-level namespace given without nesting (e.g. Thunder on R4, where the framework is
+    # still WPEFramework) that differs from the framework namespace is taken as an alias of it and
+    # may be used to qualify framework types. Nested namespaces (e.g. Company::Types) are real
+    # namespaces and never aliases.
+    CppParser.NAMESPACE_ALIASES = set(n.split("::")[1] for n in INTERFACE_NAMESPACES if len(n.split("::")) == 2 and n.split("::")[1] != FRAMEWORK_NAMESPACE)
+    CppParser.NAMESPACE_ALIAS_TARGET = FRAMEWORK_NAMESPACE
+
     if args.help_tags:
         print("The following special tags are supported:")
         print("   @stop                  - a hard stop for parsing the file")
