@@ -416,8 +416,22 @@ def LookupIdentifier(identifier, scope=None):
         _name = identifier.lstrip(":")
         if "::" in _name and _name.split("::", 1)[0] in NAMESPACE_ALIASES:
             alias_lookup = True
-            __Search(global_namespace, found, "::" + _name)
-            found[:] = __Exact(found, _name)
+
+            # As in C++, a relative name resolves in the current and enclosing scopes first,
+            # e.g. a nested namespace that happens to have the name of an alias.
+            if not identifier.startswith("::") and scope:
+                current = scope.full_name
+                while current and not found:
+                    candidate = (current + "::" + _name).lstrip(":")
+                    __Search(global_namespace, found, "::" + candidate)
+                    found[:] = __Exact(found, candidate)
+                    if found:
+                        identifier = candidate
+                    current = "::".join(current.split("::")[0:-1])
+
+            if not found:
+                __Search(global_namespace, found, "::" + _name)
+                found[:] = __Exact(found, _name)
 
             if not found:
                 _resolved = NAMESPACE_ALIAS_TARGET + "::" + _name.split("::", 1)[1]
