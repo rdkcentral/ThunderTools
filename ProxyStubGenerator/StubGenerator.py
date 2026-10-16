@@ -792,7 +792,11 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             if matches:
                                 return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["sizeof(_%s)" % matches[0].name]), variable_name)
                             else:
-                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["".join(length_name)]), variable_name)
+                                # A type, not a parameter: qualify it instead of passing it through as written.
+                                type_name = length_name[2]
+                                resolved = CppParser.LookupIdentifier(type_name, scope=interface.obj) if CppParser.is_valid_scoped(type_name) else None
+                                qualified = Flatten(resolved.full_name, ns) if resolved else type_name
+                                return EmitIdentifier(interface, CppParser.Temporary(self.identifier.parent, ("%s %s" % ("uint8_t", variable_name)).split(), ["sizeof(%s)" % qualified]), variable_name)
 
                         matches = [v for v in self.identifier.parent.vars if v.name == "".join(length_name)]
 
