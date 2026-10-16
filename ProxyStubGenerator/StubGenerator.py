@@ -823,7 +823,22 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     return None
 
                 if not isinstance(identifier.type, CppParser.Type):
-                    undefined = CppParser.Type(CppParser.Undefined(identifier.type))
+                    undefined_tokens = identifier.type
+                    if identifier.parent and (identifier.parent.stub or identifier.parent.omit) and IsMultiNamespace(ns) \
+                            and isinstance(undefined_tokens, list):
+                        # @stub/@omit let an unresolved type through verbatim, relying on the
+                        # 'using namespace <interface_namespace>;' emitted for it. Multi-namespace mode
+                        # suppresses that directive, so qualify here instead (skipping any leading
+                        # cv-qualifier keyword), unless already qualified.
+                        joined = " ".join(t for t in undefined_tokens if isinstance(t, str))
+                        if "::" not in joined:
+                            insert_at = next((i for i, t in enumerate(undefined_tokens)
+                                               if isinstance(t, str) and t not in ("const", "volatile")), None)
+                            if insert_at is not None:
+                                undefined_tokens = list(undefined_tokens)
+                                undefined_tokens[insert_at:insert_at] = [ns.split("::")[-1], "::"]
+                                identifier.type = undefined_tokens
+                    undefined = CppParser.Type(CppParser.Undefined(undefined_tokens))
                     if identifier.parent and (not identifier.parent.stub and not identifier.parent.omit):
                         raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type)), ns))
                     else:
