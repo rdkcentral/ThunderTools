@@ -864,8 +864,12 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             insert_at = next((i for i, t in enumerate(undefined_tokens)
                                                if isinstance(t, str) and t not in ("const", "volatile")), None)
                             if insert_at is not None:
+                                # ns, used as a plain string, is always the first --namespace given;
+                                # find the one this interface was actually scanned under instead.
+                                own_ns = next((n for n in getattr(ns, "all", [ns])
+                                               if interface.obj.full_name.startswith(n + "::")), ns)
                                 undefined_tokens = list(undefined_tokens)
-                                undefined_tokens[insert_at:insert_at] = [ns.split("::")[-1], "::"]
+                                undefined_tokens[insert_at:insert_at] = [own_ns.split("::")[-1], "::"]
                                 identifier.type = undefined_tokens
                     undefined = CppParser.Type(CppParser.Undefined(undefined_tokens))
                     if identifier.parent and (not identifier.parent.stub and not identifier.parent.omit):
