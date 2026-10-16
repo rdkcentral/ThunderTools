@@ -427,6 +427,8 @@ def LookupIdentifier(identifier, scope=None):
             if not found:
                 __Search(global_namespace, found, "::" + _name)
                 found[:] = __Exact(found, _name)
+                if found:
+                    identifier = _name
 
             if not found:
                 _resolved = NAMESPACE_ALIAS_TARGET + "::" + _name.split("::", 1)[1]
