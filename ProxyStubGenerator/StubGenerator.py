@@ -219,7 +219,7 @@ def Flatten(identifier, scope):
 
             if idx == -1:
                 break
-            elif idx == 0 or (not identifier[idx - 1].isalnum() and identifier[idx - 1] != ':'):
+            elif idx == 0 or (identifier[idx - 1] not in ':_' and not identifier[idx - 1].isalnum()):
                 identifier = identifier[:idx] + identifier[idx + len(item):]
             else:
                 idx += len(item)
