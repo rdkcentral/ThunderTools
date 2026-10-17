@@ -55,6 +55,8 @@ namespace Thunder {
         ID_TEST_PREFIX_UNDERSCORE        = ID_INTERFACE_OFFSET + 0x01A,
         ID_TEST_WRAPPED_INTERFACE        = ID_INTERFACE_OFFSET + 0x01B,
         ID_TEST_VECTORS                  = ID_INTERFACE_OFFSET + 0x01C,
+        ID_TEST_NAMESPACES_PRIMARY       = ID_INTERFACE_OFFSET + 0x01D,
+        ID_TEST_NAMESPACES_LEGACY        = ID_INTERFACE_OFFSET + 0x01E,
     };
 
 } // namespace FunctionalTest

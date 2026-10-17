@@ -252,6 +252,27 @@ if (TEST_WRAPPED_INTERFACE)
     AddTestInterface("WrappedInterface" COM_RPC JSON_RPC)
 endif()
 
+if (TEST_NAMESPACES)
+    # One header with interfaces in two top-level namespaces, generated in a single pass.
+    # It needs its own generator call, as the other headers use the default namespace only.
+    message(STATUS "Enabling Namespaces test")
+
+    target_sources(FunctionalTestCommon PRIVATE
+        "${CMAKE_CURRENT_SOURCE_DIR}/implementations/TestNamespacesImpl.cpp"
+    )
+
+    ProxyStubGenerator(
+        INPUT "${CMAKE_CURRENT_SOURCE_DIR}/interfaces/ITestNamespaces.h"
+        OUTDIR "${COM_RPC_OUTPUT_DIR}/namespaces"
+        INCLUDE_PATH ${GENERATOR_SEARCH_PATH}
+        NAMESPACE Thunder WPEFramework
+    )
+
+    target_sources(FunctionalTestProxySources PRIVATE
+        "${COM_RPC_OUTPUT_DIR}/namespaces/ProxyStubs_TestNamespaces.cpp"
+    )
+endif()
+
 list(LENGTH COM_RPC_INTERFACE_HEADERS NUM_COM_TESTS)
 list(LENGTH JSON_INTERFACE_HEADERS NUM_JSON_TESTS)
 
