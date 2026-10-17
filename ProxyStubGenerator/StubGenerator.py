@@ -853,29 +853,18 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
 
                 if not isinstance(identifier.type, CppParser.Type):
                     undefined_tokens = identifier.type
-                    if identifier.parent and (identifier.parent.stub or identifier.parent.omit) and IsMultiNamespace(ns) \
-                            and isinstance(undefined_tokens, list) and all(isinstance(t, str) for t in undefined_tokens):
-                        # @stub/@omit let an unresolved type through verbatim, relying on the
-                        # 'using namespace <interface_namespace>;' emitted for it. Multi-namespace mode
-                        # suppresses that directive, so qualify a fully bare name (e.g.
-                        # "UnresolvedType") with the namespace this interface itself was scanned
-                        # under -- not just ns, which as a plain string is always the *first*
-                        # --namespace given, and not only its last component, which can collide with
-                        # another namespace's last component. Any name that already carries "::",
-                        # relative (e.g. "std::ostream", "Types::Payload") or absolute, is left
-                        # untouched: we cannot tell a project-local relative reference apart from a
-                        # foreign one like std:: or boost::, so guessing would risk corrupting a
-                        # correct reference instead of merely leaving an incorrect one unqualified.
-                        joined = " ".join(t for t in undefined_tokens)
-                        if "::" not in joined:
-                            insert_at = next((i for i, t in enumerate(undefined_tokens)
-                                               if t not in ("const", "volatile")), None)
-                            if insert_at is not None:
-                                own_ns = next((n for n in getattr(ns, "all", [ns])
-                                               if interface.obj.full_name.startswith(n + "::")), ns)
-                                undefined_tokens = list(undefined_tokens)
-                                undefined_tokens[insert_at:insert_at] = [own_ns, "::"]
-                                identifier.type = undefined_tokens
+                    # @stub/@omit let an unresolved type through verbatim, relying on the
+                    # 'using namespace <interface_namespace>;' emitted for it. Multi-namespace mode
+                    # suppresses that directive, so a bare or relatively-qualified unresolved type
+                    # in a @stub/@omit signature can fail to compile there even though it compiles
+                    # fine in single-namespace mode. Qualifying it here was tried and reverted: the
+                    # generator sees only the type's text, with no way to tell a reference that
+                    # belongs to the interface's own, not-fully-read namespace (e.g. "Types::Payload"
+                    # or a bare "UnresolvedType") apart from one that is genuinely foreign and must
+                    # stay untouched (e.g. "std::ostream", a bare "FILE" from <stdio.h>). Every
+                    # heuristic tried to separate the two produced a real counterexample that broke
+                    # compilation, so this is left as a known, accepted limitation rather than guessed
+                    # at: the type is always emitted exactly as the parser saw it.
                     undefined = CppParser.Type(CppParser.Undefined(undefined_tokens))
                     if identifier.parent and (not identifier.parent.stub and not identifier.parent.omit):
                         raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type)), ns))
