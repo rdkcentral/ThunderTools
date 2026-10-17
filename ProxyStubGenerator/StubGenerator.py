@@ -857,26 +857,25 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                             and isinstance(undefined_tokens, list) and all(isinstance(t, str) for t in undefined_tokens):
                         # @stub/@omit let an unresolved type through verbatim, relying on the
                         # 'using namespace <interface_namespace>;' emitted for it. Multi-namespace mode
-                        # suppresses that directive, so qualify here instead: strip any leading
-                        # cv-qualifier(s), and unless what remains is already absolute (starts with
-                        # "::", including the tokenizer's "const::X" no-space form), prefix it with
-                        # the namespace this interface itself was scanned under -- not just ns, which
-                        # as a plain string is always the *first* --namespace given, and not only its
-                        # last component, which can collide with another namespace's last component.
-                        rest = " ".join(t.strip() for t in undefined_tokens).strip()
-                        cv_words = []
-                        while True:
-                            m = re.match(r'^(const|volatile)(::|\s+|$)(.*)$', rest)
-                            if not m:
-                                break
-                            cv_words.append(m.group(1))
-                            rest = (m.group(2) if m.group(2) == "::" else "") + m.group(3)
-                        if not rest.startswith("::"):
-                            own_ns = next((n for n in getattr(ns, "all", [ns])
-                                           if interface.obj.full_name.startswith(n + "::")), ns)
-                            rest = own_ns + "::" + rest
-                        undefined_tokens = [(" ".join(cv_words) + " " if cv_words else "") + rest]
-                        identifier.type = undefined_tokens
+                        # suppresses that directive, so qualify a fully bare name (e.g.
+                        # "UnresolvedType") with the namespace this interface itself was scanned
+                        # under -- not just ns, which as a plain string is always the *first*
+                        # --namespace given, and not only its last component, which can collide with
+                        # another namespace's last component. Any name that already carries "::",
+                        # relative (e.g. "std::ostream", "Types::Payload") or absolute, is left
+                        # untouched: we cannot tell a project-local relative reference apart from a
+                        # foreign one like std:: or boost::, so guessing would risk corrupting a
+                        # correct reference instead of merely leaving an incorrect one unqualified.
+                        joined = " ".join(t for t in undefined_tokens)
+                        if "::" not in joined:
+                            insert_at = next((i for i, t in enumerate(undefined_tokens)
+                                               if t not in ("const", "volatile")), None)
+                            if insert_at is not None:
+                                own_ns = next((n for n in getattr(ns, "all", [ns])
+                                               if interface.obj.full_name.startswith(n + "::")), ns)
+                                undefined_tokens = list(undefined_tokens)
+                                undefined_tokens[insert_at:insert_at] = [own_ns, "::"]
+                                identifier.type = undefined_tokens
                     undefined = CppParser.Type(CppParser.Undefined(undefined_tokens))
                     if identifier.parent and (not identifier.parent.stub and not identifier.parent.omit):
                         raise TypenameError(identifier, "'%s': undefined type" % Flatten(str(" ".join(identifier.type)), ns))
