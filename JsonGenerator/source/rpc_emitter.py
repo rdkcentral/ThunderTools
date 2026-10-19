@@ -1462,7 +1462,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     continue
 
                 rhs = param.temp_name
-                cpp_name = (repsonse_parent + param.cpp_name) if repsonse_parent else param.local_name
+                cpp_name = (repsonse_parent + param.cpp_name) if repsonse_parent and not is_richerror else param.local_name
 
                 # Special case for C-style buffers disguised as s-encoded strings
                 if isinstance(param, JsonString) and param_meta.flags.encode and "@container" not in param.schema:
@@ -1905,7 +1905,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
             if not richerror.is_void:
                 function_params.append("%s&" % richerror.cpp_type)
-                template_params.append(richerror.cpp_type)
 
             template_params.append("std::function<uint32_t(%s)>" % (", ".join(function_params)))
 

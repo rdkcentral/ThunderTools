@@ -1316,8 +1316,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(method.vars[value], "property setter method must have one input parameter")
 
-                        if richerror_var:
-                            obj["error"] = BuildRichError(method, [richerror_var])
+                    if richerror_var:
+                        obj["error"] = BuildRichError(method, [richerror_var])
                 else:
                     raise CppParseError(method, "properties must have one parameter, at most one index parameter and at most one rich error parameter")
 

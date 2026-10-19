@@ -729,8 +729,14 @@ class JsonObject(JsonRefCounted, JsonType):
                     # Make the name out of properties, but not for params/result types
                     if self.original_type:
 
-                        if '<' in self.original_type:
-                            classonly = "instance" + hashlib.sha1(self.original_type.encode('utf-8')).hexdigest()[:16]
+                        template_begin = self.original_type.find('<')
+
+                        if template_begin != -1:
+                            template_end = self.original_type.rfind('>')
+                            template_name = self.original_type[:template_begin]
+                            arguments = self.original_type[template_begin+1:template_end]
+                            suffix = arguments.split("::")[-1].replace("_t","").replace("_","")
+                            classonly = template_name.split("::")[-1] + "With" + suffix[0].upper() + suffix[1:]
                         else:
                             classonly = self.original_type.split("::")[-1]
 
