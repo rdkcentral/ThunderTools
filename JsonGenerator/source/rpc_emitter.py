@@ -1904,7 +1904,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                 function_params.append("%s&" % response.cpp_type)
 
             if not richerror.is_void:
-                assert False
                 function_params.append("%s&" % richerror.cpp_type)
                 template_params.append(richerror.cpp_type)
 

@@ -714,8 +714,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
                     if "Core::JSONRPC::Context" in cppType.full_name:
                         result = [ "@context", {} ]
-                    elif "Core::ErrorDetails" in cppType.full_name:
-                        result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif (cppType.vars and not cppType.methods) or not verify:
                         result = GenerateObject(cppType, isinstance(var.type.Type(), CppParser.Typedef))
                     elif cppType.is_json and cppType.is_custom_lookup:
@@ -988,6 +986,16 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 else:
                     return params
 
+        def IsRichError(var_type):
+            if isinstance(var_type.type, CppParser.Optional) and isinstance(var_type.type.optional.type.type, CppParser.Class):
+                is_richerror = "richerror" in var_type.type.optional.type.type.meta.decorators
+            elif isinstance(var_type.type, CppParser.Class) and ("richerror" in var_type.type.meta.decorators):
+                raise CppParseError(var, "rich error parameter must be of type Core::OptionalType<Core::ErrorDetails<T>>")
+            else:
+                is_richerror = False
+
+            return is_richerror
+
         def BuildIndex(var, test=False):
             return BuildParameters(None, [var], rpc_format.COLLAPSED, is_property=False, is_index=True, test=test)
 
@@ -1002,7 +1010,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
-                if var.meta.output and (("Core::ErrorDetails" in str(var_type.type.type)) == error):
+                is_richerror = IsRichError(var_type)
+
+                if is_richerror and (not var.meta.output or var.meta.input):
+                    raise CppParseError(var, "rich error parameter must be an output parameter")
+
+                if var.meta.output and (is_richerror == error):
                     var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_"):
@@ -1063,6 +1076,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 void = {"type": "null"}
                 void["description"] = "Always null"
                 return void
+
+        def BuildRichError(method, vars):
+            return BuildResult(method, vars, error=True)
 
         def compute_prefix(log, converter, obj, suffix=None):
             prefix = ""
@@ -1165,33 +1181,51 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 obj["@originalname"] = method.name
                 method.retval.meta.is_property = True
 
-                indexed_property = (len(method.vars) == 2 and method.vars[0].meta.is_index)
+                max_params = 1
+                richerror_var = None
+                index_var = None
 
-                if len(method.vars) == 1 or (len(method.vars) == 2 and indexed_property):
-                    if indexed_property:
-                        #if method.vars[0].type.IsPointer():
-                        #    raise CppParseError(method.vars[0], "index to a property must not be a pointer")
+                for idx, var in enumerate(method.vars):
+                    var_type = ResolveTypedef(var.type)
 
-                        if not method.vars[0].type.IsConst() and method.vars[0].type.IsReference():
-                            raise CppParseError(method.vars[0], "index to a property must be an const input parameter")
+                    if IsRichError(var_type):
+                        richerror_var = method.vars[idx]
+                        max_params += 1
+
+                        if idx != len(method.vars) - 1:
+                            raise CppParseError(method.vars[idx], "rich error parameter must be last in a property")
+
+                if (len(method.vars) > 1 and method.vars[0].meta.is_index):
+                    index_var = method.vars[0]
+                    value_var = method.vars[1]
+                    max_params += 1
+                else:
+                    value_var = method.vars[0]
+
+                assert value_var is not None
+
+                if len(method.vars) <= max_params:
+                    if index_var is not None:
+                        if not index_var.type.IsConst() and index_var.type.IsReference():
+                            raise CppParseError(index_var, "index to a property must be an const input parameter")
 
                         if "index" not in obj:
                             obj["index"] = [None, None]
 
                         _index_idx = (0 if "const" in method.qualifiers else 1)
 
-                        obj["index"][_index_idx] = BuildIndex(method.vars[0])
+                        obj["index"][_index_idx] = BuildIndex(index_var)
                         _index = obj["index"][_index_idx]
 
                         if _index:
-                            _index["name"] = _case_converter.transform(method.vars[0].name, _case_converter.PARAMS)
-                            _index["@originalname"] = method.vars[0].name
+                            _index["name"] = _case_converter.transform(index_var.name, _case_converter.PARAMS)
+                            _index["@originalname"] = index_var.name
 
                             if "example" not in _index:
                                 # example not specified, let's invent something...
 
-                                if method.vars[0].meta.default:
-                                    _index["example"] = method.vars[0].meta.default[0]
+                                if index_var.meta.default:
+                                    _index["example"] = index_var.meta.default[0]
                                 elif "enum" in _index:
                                     _index["example"] = _index["enum"][0]
                                 else:
@@ -1200,13 +1234,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                 _index["fake_example"] = True
 
                             if _index["type"] not in ["integer", "string", "boolean"]:
-                                raise CppParseError(method.vars[0], "index to a property must be integer, enum, boolean, string, encoded array of bytes or encoded std::vector of bytes")
+                                raise CppParseError(index_var, "index to a property must be integer, enum, boolean, string, encoded array of bytes or encoded std::vector of bytes")
                         else:
-                            raise CppParseError(method.vars[0], "failed to determine type of index")
+                            raise CppParseError(index_var, "failed to determine type of index")
 
                         if obj["index"][0] and obj["index"][1]:
                             if obj["index"][0]["type"] != obj["index"][1]["type"]:
-                                raise CppParseError(method.vars[0], "setter and getter of the same property must have same index type")
+                                raise CppParseError(index_var, "setter and getter of the same property must have same index type")
 
                             if "description" in obj["index"][0] and "description" not in obj["index"][1]:
                                 obj["index"][1]["description"] = obj["index"][0]["description"]
@@ -1223,14 +1257,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                         if method.vars[1].meta.is_index:
                             raise CppParseError(method.vars[0], "index must be the first parameter to property method")
 
-                        value = 1
-                    else:
-                        value = 0 # no index
-
                     if "const" in method.qualifiers:
                         # getter
-                        if method.vars[value].type.IsConst():
-                            raise CppParseError(method.vars[value], "property getter method must not use const parameter")
+                        if value_var.type.IsConst():
+                            raise CppParseError(value_var, "property getter method must not use const parameter")
                         else:
                             # These are predefined by JSON-RPC standerd, so do not follow case convention rules
                             if rpc_format == config.RpcFormat.COLLAPSED:
@@ -1244,15 +1274,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                 obj["readonly"] = True
 
                             if result_name not in obj:
-                                obj[result_name] = BuildResult(method, [method.vars[value]], is_property=True)
+                                obj[result_name] = BuildResult(method, [value_var], is_property=True)
                             else:
-                                test = BuildResult(method, [method.vars[value]], is_property=True, test=True)
+                                test = BuildResult(method, [value_var], is_property=True, test=True)
 
                                 if not test:
-                                    raise CppParseError(method.vars[value], "property getter method must have one output parameter")
+                                    raise CppParseError(value_var, "property getter method must have one output parameter")
 
                                 if obj[result_name]["type"] != test["type"]:
-                                    raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*1)")
+                                    raise CppParseError(value_var, "setter and getter of the same property must have same type (*1)")
 
                                 if "@bypointer" in test and test["@bypointer"]:
                                     obj[result_name]["@bypointer"] = True
@@ -1261,8 +1291,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                 raise CppParseError(method.vars[value], "property getter method must have one output parameter")
                     else:
                         # setter
-                        if not method.vars[value].type.IsConst():
-                            raise CppParseError(method.vars[value], "property setter method must use a const parameter")
+                        if not value_var.type.IsConst():
+                            raise CppParseError(value_var, "property setter method must use a const parameter")
                         else:
                             if "readonly" in obj:
                                 del obj["readonly"]
@@ -1270,23 +1300,26 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                 obj["writeonly"] = True
 
                             if "params" not in obj:
-                                obj["params"] = BuildParameters(None, [method.vars[value]], rpc_format, is_property=True)
+                                obj["params"] = BuildParameters(None, [value_var], rpc_format, is_property=True)
                             else:
-                                test = BuildParameters(None, [method.vars[value]], rpc_format, is_property=True, test=True)
+                                test = BuildParameters(None, [value_var], rpc_format, is_property=True, test=True)
 
                                 if not test:
-                                    raise CppParseError(method.vars[value], "property setter method must have one input parameter")
+                                    raise CppParseError(value_var, "property setter method must have one input parameter")
 
                                 if obj["params"]["type"] != test["type"]:
-                                    raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*2)")
+                                    raise CppParseError(value_var, "setter and getter of the same property must have same type (*2)")
 
                                 if "@bypointer" in test and test["@bypointer"]:
                                     obj[result_name]["@bypointer"] = True
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(method.vars[value], "property setter method must have one input parameter")
+
+                        if richerror_var:
+                            obj["error"] = BuildRichError(method, [richerror_var])
                 else:
-                    raise CppParseError(method, "properties must have one parameter and at most one index parameter")
+                    raise CppParseError(method, "properties must have one parameter, at most one index parameter and at most one rich error parameter")
 
             elif not event_params: # method is not related to notifications
                 var_type = ResolveTypedef(method.retval.type)
@@ -1302,7 +1335,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                         if "async" in method.retval.meta.decorators:
                             obj["@async"] = True
 
-                    error = BuildResult(method, method.vars, error=True)
+                    error = BuildRichError(method, method.vars)
                     if error:
                         obj["error"] = error
 
