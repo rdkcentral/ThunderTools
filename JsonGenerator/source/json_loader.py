@@ -735,8 +735,7 @@ class JsonObject(JsonRefCounted, JsonType):
                             template_end = self.original_type.rfind('>')
                             template_name = self.original_type[:template_begin]
                             arguments = self.original_type[template_begin+1:template_end]
-                            suffix = arguments.split("::")[-1].replace("_t","").replace("_","")
-                            classonly = template_name.split("::")[-1] + "With" + suffix[0].upper() + suffix[1:]
+                            classonly = template_name.split("::")[-1] + "Instance" + hashlib.sha256(arguments.encode('utf-8')).hexdigest()[:16]
                         else:
                             classonly = self.original_type.split("::")[-1]
 

@@ -1255,7 +1255,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                 del obj["index"][1]["fake_example"]
 
                         if method.vars[1].meta.is_index:
-                            raise CppParseError(method.vars[0], "index must be the first parameter to property method")
+                            raise CppParseError(method.vars[1], "index must be the first parameter to property method")
 
                     if "const" in method.qualifiers:
                         # getter
@@ -1288,7 +1288,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                     obj[result_name]["@bypointer"] = True
 
                             if obj[result_name] == None:
-                                raise CppParseError(method.vars[value], "property getter method must have one output parameter")
+                                raise CppParseError(value_var, "property getter method must have one output parameter")
                     else:
                         # setter
                         if not value_var.type.IsConst():
@@ -1314,10 +1314,15 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                     obj[result_name]["@bypointer"] = True
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
-                                raise CppParseError(method.vars[value], "property setter method must have one input parameter")
+                                raise CppParseError(value_var, "property setter method must have one input parameter")
 
                     if richerror_var:
-                        obj["error"] = BuildRichError(method, [richerror_var])
+                        if "error" not in obj:
+                            obj["error"] = BuildRichError(method, [richerror_var])
+                        else:
+                            test = BuildRichError(method, [richerror_var])
+                            if not test or test != obj["error"]:
+                                raise CppParseError(richerror_var, "Setter and getter must have the same rich error parameter type")
                 else:
                     raise CppParseError(method, "properties must have one parameter, at most one index parameter and at most one rich error parameter")
 
