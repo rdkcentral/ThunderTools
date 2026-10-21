@@ -1841,7 +1841,7 @@ class TemplateClass(Class):
                         identifier.value = Evaluate(identifier.value, scope=parent)
                         break
 
-            elif isinstance(identifier.type.type, Optional):
+            elif isinstance(identifier.type, Type) and isinstance(identifier.type.type, Optional):
                 optional = identifier.type.type
                 if isinstance(optional.optional.type, list):
                     for i, v in enumerate(optional.optional.type):
@@ -1854,7 +1854,7 @@ class TemplateClass(Class):
                                 identifier.type.type = Optional(resolved)
                                 break
 
-            elif isinstance(identifier.type.type, Vector):
+            elif isinstance(identifier.type, Type) and isinstance(identifier.type.type, Vector):
                 vector = identifier.type.type
                 if isinstance(vector.element.type, list):
                     for i, v in enumerate(vector.element.type):
