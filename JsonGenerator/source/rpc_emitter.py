@@ -1717,6 +1717,8 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             response = copy.copy(m.properties[1])
             richerror = copy.copy(m.properties[2])
 
+        richerror.Rename("Error")
+
         normalized_params = params if (params and not params.is_void) else None
         normalized_response = response if (response and not response.is_void) else None
         normalized_richerror = richerror if (richerror and not richerror.is_void) else None

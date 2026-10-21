@@ -1758,10 +1758,15 @@ class TemplateClass(Class):
     def ParseArguments(self, string):
         # This is greatly simplified!!!
         # Templates with multiple arguments that itself are template with multiple arguments will not work!!!
-        if string.count('<') != string.count('>') and string.count('<') > 0:
-            raise ParserError("unbalanced template angle brackets in <%s>" % string)
-        stripped = string[string.find('<')+1:string.rfind('>')-1].strip()
-        return [x.strip() for x in stripped.split(',')] if stripped else None
+        if string:
+            if string.count('<') != string.count('>') and string.count('<') > 0:
+                raise ParserError("unbalanced template angle brackets in <%s>" % string)
+
+            stripped = string[string.find('<')+1:string.rfind('>')-1].strip()
+            if stripped:
+                return [x.strip() for x in stripped.split(',')]
+
+        return None
 
     def __init__(self, parent_block, name, params, specialization_arguments=None):
         Class.__init__(self, parent_block, name)
@@ -2573,26 +2578,27 @@ def Parse(contents,log = None):
                 new_class = Union(current_block[-1], name)
             else:
                 new_class = None
+                specialization_arguments = None
+
                 # Look up previous classes in case there already was a forward declaration of this class
                 for idx, cl in enumerate(current_block[-1].classes):
-                    if cl.name == name and not isinstance(cl, TemplateClass):
-                        if len(cl.methods) == 0:
+                    if cl.name == name:
+                        if not cl.methods and not cl.vars:
                             new_class = cl
                             # move the class to to bottom
                             current_block[-1].classes.append(new_class)
                             del current_block[-1].classes[idx]
+                        elif last_template_def:
+                            if (len(tokens) >= i + 4) and (tokens[i + 2] == '<'):
+                                specialization_arguments = " ".join(tokens[i+2:i+4+tokens[i+3:].index('>')])
+                            else:
+                                raise ParserError("duplicate template class name: " + cl.name)
                         else:
                             raise ParserError("duplicate class name: " + cl.name)
                         break
 
                 if new_class == None:
                     if last_template_def:
-                        if tokens[i + 2] == '<':
-                            end = tokens[i+3:].index('>')
-                            specialization_arguments = " ".join(tokens[i+2:i+4+tokens[i+3:].index('>')])
-                        else:
-                            specialization_arguments = ""
-
                         new_class = TemplateClass(current_block[-1], name, " ".join(last_template_def), specialization_arguments)
                         last_template_def = []
                     else:
