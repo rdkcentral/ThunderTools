@@ -986,7 +986,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 else:
                     return params
 
-        def IsRichError(var_type):
+        def IsRichError(var, var_type):
             if isinstance(var_type.type, CppParser.Optional) and isinstance(var_type.type.optional.type.type, CppParser.Class):
                 is_richerror = "richerror" in var_type.type.optional.type.type.meta.decorators
             elif isinstance(var_type.type, CppParser.Class) and ("richerror" in var_type.type.meta.decorators):
@@ -1010,7 +1010,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
-                is_richerror = IsRichError(var_type)
+                is_richerror = IsRichError(var, var_type)
 
                 if is_richerror and (not var.meta.output or var.meta.input):
                     raise CppParseError(var, "rich error parameter must be an output parameter")
@@ -1187,7 +1187,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                 for idx, var in enumerate(method.vars):
                     var_type = ResolveTypedef(var.type)
 
-                    if IsRichError(var_type):
+                    if IsRichError(var, var_type):
                         raise CppParseError(var, "properties must not have a rich error parameter")
 
                 if (len(method.vars) > 1 and method.vars[0].meta.is_index):
