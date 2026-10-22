@@ -931,6 +931,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     vars[response.local_name][2].var = vars[response.local_name]
 
         if richerror:
+            assert richerror.local_name not in vars
             vars[richerror.local_name] = [richerror, "ew", DottedDict()]
             vars[richerror.local_name][2].var = vars[richerror.local_name]
 
@@ -1462,7 +1463,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
                     continue
 
                 rhs = param.temp_name
-                cpp_name = (repsonse_parent + param.cpp_name) if repsonse_parent and not is_richerror else param.local_name
+                cpp_name = (repsonse_parent + param.cpp_name) if (repsonse_parent and not is_richerror) else param.local_name
 
                 # Special case for C-style buffers disguised as s-encoded strings
                 if isinstance(param, JsonString) and param_meta.flags.encode and "@container" not in param.schema:

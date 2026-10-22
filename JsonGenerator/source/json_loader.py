@@ -728,7 +728,6 @@ class JsonObject(JsonRefCounted, JsonType):
                 else:
                     # Make the name out of properties, but not for params/result types
                     if self.original_type:
-
                         template_begin = self.original_type.find('<')
 
                         if template_begin != -1:

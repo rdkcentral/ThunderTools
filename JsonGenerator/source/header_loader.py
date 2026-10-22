@@ -987,12 +987,17 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                     return params
 
         def IsRichError(var, var_type):
-            if isinstance(var_type.type, CppParser.Optional) and isinstance(var_type.type.optional.type.type, CppParser.Class):
-                is_richerror = "richerror" in var_type.type.optional.type.type.meta.decorators
-            elif isinstance(var_type.type, CppParser.Class) and ("richerror" in var_type.type.meta.decorators):
-                raise CppParseError(var, "rich error parameter must be of type Core::OptionalType<Core::ErrorDetails<T>>")
+            is_richerror = False
+
+            if isinstance(var_type.type, CppParser.Optional):
+                resolved = ResolveTypedef(var_type.type.optional.type.type)
+                if isinstance(resolved.type, CppParser.Class):
+                    is_richerror = "richerror" in resolved.type.meta.decorators
             else:
-                is_richerror = False
+                is_richerror = "richerror" in var.meta.decorators
+
+            if not isinstance(var_type.type, CppParser.Optional) and is_richerror:
+                raise CppParseError(var, "rich error parameter must be a Core::OptionalType<T> type")
 
             return is_richerror
 
@@ -1004,16 +1009,23 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             properties = OrderedDict()
             required = []
 
-            method_wrapped = method and "wrapped" in method.retval.meta.decorators
+            method_wrapped = not error and method and "wrapped" in method.retval.meta.decorators
             extracted = None
+            has_richerror = False
 
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
                 is_richerror = IsRichError(var, var_type)
 
-                if is_richerror and (not var.meta.output or var.meta.input):
-                    raise CppParseError(var, "rich error parameter must be an output parameter")
+                if is_richerror:
+                    if has_richerror:
+                        raise CppParseError(var, "only one rich error parameter is expected")
+
+                    if not var.meta.output or var.meta.input:
+                        raise CppParseError(var, "rich error parameter must be an output parameter")
+
+                    has_richerror = True
 
                 if var.meta.output and (is_richerror == error):
                     var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)

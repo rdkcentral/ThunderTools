@@ -840,7 +840,7 @@ class Identifier():
                         # take closest match
                         if isinstance(found, TemplateClass):
                             if isinstance(parent, TemplateClass):
-                                self.type[i] = Type(found.SemiInstantiate(self.type[i + 1], parent))
+                                self.type[i] = Type(found.PartialInstantiate(self.type[i + 1], parent))
                                 del self.type[i + 1]
                             else:
                                 # if we're pointing to a class template, then let's instantiate it!
@@ -1728,7 +1728,7 @@ class InstantiatedTemplateClass(Class):
         return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
 
 
-class SemiInstantiatedTemplateClass(Class):
+class PartialInstantiatedTemplateClass(Class):
     def __init__(self, parent_block, name, params, args):
         Class.__init__(self, parent_block, name)
         self.params = params
@@ -1800,26 +1800,26 @@ class TemplateClass(Class):
                         tc.specializations.append([self, parsed_specialization_arguments])
                         self.meta.decorators.extend(tc.meta.decorators)
 
-    def SemiInstantiate(self, arguments, parent):
+    def PartialInstantiate(self, arguments, parent):
         instance = None
-        str_arg_list = self.ParseArguments(arguments)
+        str_arg_list = self.ParseArguments(arguments) or []
 
         if ((self.parent.name == "Core") and (self.name == "OptionalType")):
             if len(str_arg_list) == 1:
-                instance = Optional(OptionalElement(parent, str_arg_list))
+                instance = Optional(OptionalElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         elif ((self.parent.name == "std") and (self.name == "vector")):
             if len(str_arg_list) == 1:
-                instance = Vector(VectorElement(parent, str_arg_list))
+                instance = Vector(VectorElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         else:
-            instance = SemiInstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
+            instance = PartialInstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
 
         return instance
 
@@ -1873,21 +1873,21 @@ class TemplateClass(Class):
             if a.default:
                 str_arg_list.append(a.default)
             else:
-                raise ParserError("Invalid template arguments to %s (missing argument)" % instance)
+                raise ParserError("invalid template arguments to %s (missing argument)" % instance)
 
         if ((self.parent.name == "Core") and (self.name == "OptionalType")):
             if len(str_arg_list) == 1:
                 instance = Optional(OptionalElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
-                raise ParserError("Invalid template arguments to %s" % instance)
+                raise ParserError("invalid template arguments to %s" % instance)
 
         elif ((self.parent.name == "std") and (self.name == "vector")):
             if len(str_arg_list) == 1:
                 instance = Vector(VectorElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
-                raise ParserError("Invalid template arguments to %s" % instance)
+                raise ParserError("invalid template arguments to %s" % instance)
 
         else:
             instance = InstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
