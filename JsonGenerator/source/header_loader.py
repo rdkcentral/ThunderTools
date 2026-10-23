@@ -1328,7 +1328,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                             if obj["params"] == None or obj["params"]["type"] == "null":
                                 raise CppParseError(value_var, "property setter method must have one input parameter")
                 else:
-                    raise CppParseError(method, "properties must have one parameter, at most one index parameter and at most one rich error parameter")
+                    raise CppParseError(method, "properties must have one parameter and at most one index parameter")
 
             elif not event_params: # method is not related to notifications
                 var_type = ResolveTypedef(method.retval.type)
