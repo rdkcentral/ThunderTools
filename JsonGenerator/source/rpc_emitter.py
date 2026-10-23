@@ -1425,7 +1425,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
             emit.Line()
             emit.Line("if (%s != Core::ERROR_NONE) {" % (error_code.temp_name))
             emit.Indent()
-            emit.Line("%s.Unsubscribe(%s.ChannelId(), %s, %s, _T(\"\"));" % (names.module, names.context, Tstring(method.callback.notification.json_name), param.TempName("_asyncId")))
+            emit.Line("%s.Unsubscribe(%s.ChannelId(), %s, %s, _T(\"\"));" % (names.module, names.context, Tstring(method.callback.notification.json_name), asyncid_param))
             emit.Unindent()
             emit.Line("}")
 
