@@ -2586,7 +2586,7 @@ def Parse(contents,log = None):
                     if cl.name == name:
                         if last_template_def and (len(tokens) >= i + 4) and (tokens[i + 2] == '<'):
                             specialization_arguments = " ".join(tokens[i+2:i+4+tokens[i+3:].index('>')])
-                        elif not cl.methods and not cl.vars and not cl.enums and not cl.typedefs and not cl.classes and not cl.unions:
+                        elif len(tokens) >= i + 2 and tokens[i+2] == ';':
                             new_class = cl
                             # move the class to to bottom
                             current_block[-1].classes.append(new_class)
