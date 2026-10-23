@@ -1779,16 +1779,13 @@ class TemplateClass(Class):
         parsed_specialization_arguments = self.ParseArguments(specialization_arguments)
 
         if parsed_specialization_arguments and str_arg_list:
-            raise ParserError("Invalid template arguments to specialized %s (%s)" % (self, ",".join(str_arg_list)))
+            raise ParserError("invalid template arguments to specialized %s (%s)" % (self, ",".join(str_arg_list)))
 
         if str_arg_list:
             for p in str_arg_list:
                 if "typename" in p or "class" in p:
                     tokens = p.split()
-                    default = None
-                    if len(tokens) == 4 and tokens[2] == '=':
-                        default = tokens[3]
-
+                    default = "".join(tokens[3:]) if len(tokens) > 3 and tokens[2] == '=' else None
                     param = TemplateTypeParameter(self, tokens[1], index=str_arg_list.index(p), default=default)
                 else:
                     param = TemplateNonTypeParameter(self, p.split(), index=str_arg_list.index(p))
