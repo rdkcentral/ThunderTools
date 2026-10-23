@@ -1195,6 +1195,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
                 max_params = 1
                 index_var = None
+                value_var = None
 
                 for idx, var in enumerate(method.vars):
                     var_type = ResolveTypedef(var.type)
@@ -1206,10 +1207,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                     index_var = method.vars[0]
                     value_var = method.vars[1]
                     max_params += 1
-                else:
+                elif method.vars:
                     value_var = method.vars[0]
 
-                assert value_var is not None
+                if not value_var:
+                    raise CppParseError(method, "invalid method for a property")
 
                 if len(method.vars) <= max_params:
                     if index_var is not None:
