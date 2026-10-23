@@ -2998,6 +2998,8 @@ def Parse(contents,log = None):
 
             i += 1
 
+            text_next = None
+
         # Parse constants and member constants
         elif isinstance(current_block[-1], (Namespace, Class)) and (tokens[i] == '=') and (tokens[i - 1] != "operator"):
             if json_next or event_next or omit_next or stub_next or exclude_next:
