@@ -840,6 +840,7 @@ class Identifier():
                         # take closest match
                         if isinstance(found, TemplateClass):
                             if isinstance(parent, TemplateClass):
+                                # todo: this is a short cut, won't work for other type than OptionalType and std::vector
                                 self.type[i] = Type(found.PartialInstantiate(self.type[i + 1], parent))
                                 del self.type[i + 1]
                             else:
@@ -2583,7 +2584,7 @@ def Parse(contents,log = None):
                 # Look up previous classes in case there already was a forward declaration of this class
                 for idx, cl in enumerate(current_block[-1].classes):
                     if cl.name == name:
-                        if not cl.methods and not cl.vars:
+                        if not cl.methods and not cl.vars and not cl.enums and not cl.typedefs and not cl.classes and not cl.unions:
                             new_class = cl
                             # move the class to to bottom
                             current_block[-1].classes.append(new_class)

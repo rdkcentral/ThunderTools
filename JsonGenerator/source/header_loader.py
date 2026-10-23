@@ -990,11 +990,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
             is_richerror = False
 
             if isinstance(var_type.type, CppParser.Optional):
-                resolved = ResolveTypedef(var_type.type.optional.type.type)
+                resolved = ResolveTypedef(var_type.type.optional.type)
                 if isinstance(resolved.type, CppParser.Class):
                     is_richerror = "richerror" in resolved.type.meta.decorators
             else:
-                is_richerror = "richerror" in var.meta.decorators
+                is_richerror =  isinstance(var_type.type, CppParser.Class) and "richerror" in var_type.type.meta.decorators
 
             if not isinstance(var_type.type, CppParser.Optional) and is_richerror:
                 raise CppParseError(var, "rich error parameter must be a Core::OptionalType<T> type")
