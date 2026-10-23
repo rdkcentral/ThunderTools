@@ -327,6 +327,12 @@ class Range():
         return "range[%s]" % str(self)
 
 
+# Namespaces known to be aliases of the framework namespace, set by the generator
+NAMESPACE_ALIASES = set()
+# The concrete namespace those aliases stand for (the framework namespace), set by the generator
+NAMESPACE_ALIAS_TARGET = None
+
+
 def LookupIdentifier(identifier, scope=None):
     def __Search(tree, found, T):
         var_match = [v for v in tree.vars if v.full_name.endswith(T)]
@@ -389,7 +395,58 @@ def LookupIdentifier(identifier, scope=None):
     selected = None
 
     found = []
-    __Search(global_namespace, found, "::" + identifier)
+    alias_lookup = False
+
+    def __Exact(matches, name):
+        full_name = "::" + name
+        return [
+            match for match in matches
+            if getattr(match, "full_name", None) == full_name
+            or (
+                isinstance(match, Enumerator)
+                and match.full_name_scoped == full_name
+            )
+        ]
+
+    # A qualified name may start with a namespace that is an alias of the framework namespace
+    # (e.g. Thunder::Core::X while the type lives in WPEFramework::Core). The generator cannot see
+    # whether a namespace given by --namespace is really an alias or an independent namespace, so a
+    # declaration that really exists under that exact name always wins. Only if there is none, the
+    # alias is replaced by the concrete framework namespace, so the suffix based search cannot match
+    # an unrelated namespace that happens to contain the same name. If the type is still not found,
+    # the name is looked up as written, so unknown names stay undefined.
+    if NAMESPACE_ALIAS_TARGET:
+        _name = identifier.lstrip(":")
+        if "::" in _name and _name.split("::", 1)[0] in NAMESPACE_ALIASES:
+            alias_lookup = True
+
+            # As in C++, a relative name resolves in the current and enclosing scopes first,
+            # e.g. a nested namespace that happens to have the name of an alias.
+            if not identifier.startswith("::") and scope:
+                current = scope.full_name
+                while current and not found:
+                    candidate = (current + "::" + _name).lstrip(":")
+                    __Search(global_namespace, found, "::" + candidate)
+                    found[:] = __Exact(found, candidate)
+                    if found:
+                        identifier = candidate
+                    current = "::".join(current.split("::")[0:-1])
+
+            if not found:
+                __Search(global_namespace, found, "::" + _name)
+                found[:] = __Exact(found, _name)
+                if found:
+                    identifier = _name
+
+            if not found:
+                _resolved = NAMESPACE_ALIAS_TARGET + "::" + _name.split("::", 1)[1]
+                __Search(global_namespace, found, "::" + _resolved)
+                found[:] = __Exact(found, _resolved)
+                if found:
+                    identifier = _resolved
+
+    if not found and not alias_lookup:
+        __Search(global_namespace, found, "::" + identifier)
 
     if scope:
         current = scope.full_name
