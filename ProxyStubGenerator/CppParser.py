@@ -1848,7 +1848,7 @@ class TemplateClass(Class):
                                 resolved = copy.copy(optional.optional)
                                 resolved.type = copy.copy(resolved.type)
                                 resolved.type[i] = str_arg_list[paramDict[v.name].index]
-                                resolved.ResolveIdentifiers(identifier)
+                                resolved.ResolveIdentifiers(instance)
                                 identifier.type.type = Optional(resolved)
                                 break
 
@@ -1861,7 +1861,7 @@ class TemplateClass(Class):
                                 resolved = copy.copy(vector.element)
                                 resolved.type = copy.copy(resolved.type)
                                 resolved.type[i] = str_arg_list[paramDict[v.name].index]
-                                resolved.ResolveIdentifiers(identifier)
+                                resolved.ResolveIdentifiers(instance)
                                 identifier.type.type = Vector(resolved)
                                 break
 
