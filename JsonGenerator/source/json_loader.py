@@ -23,6 +23,7 @@ import posixpath
 import tempfile
 import json
 import hashlib
+from pathlib import Path
 from collections import OrderedDict
 
 try:
@@ -1375,7 +1376,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
                                 if ref_file:
                                     log.Info("including JSON file '%s'..." % rf);
-                                    pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
+                                    pairs[i] = (k, Path(ref_file).resolve().as_uri() + "#" + ref[1])
                                 else:
                                     raise IOError("$ref file '%s' not found in any of the interface paths" % ref[0])
 
@@ -1414,7 +1415,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
                                         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_json_file:
                                             temp_json_file.write(json.dumps(cppif))
-                                            pairs[i] = (k, os.path.normpath("file://" + temp_json_file.name + "#"))
+                                            pairs[i] = (k, Path(temp_json_file.name).resolve().as_uri() + "#")
                                             temp_files.append(temp_json_file.name)
                                 else:
                                     raise IOError("$ref file '%s' not found in any of the interface paths" % v)
