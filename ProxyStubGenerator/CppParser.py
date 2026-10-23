@@ -1868,6 +1868,8 @@ class TemplateClass(Class):
                                 identifier.type.type = Vector(resolved)
                                 break
 
+
+        instance = self
         str_arg_list = self.ParseArguments(arguments) or []
 
         for a in self.arg_list[len(str_arg_list):]:
