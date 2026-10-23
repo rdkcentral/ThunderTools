@@ -742,6 +742,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                                         if BuildResult(im, im.vars)["type"] != "null":
                                             raise CppParseError(im, "async callback method must not return anything")
 
+                                        if BuildRichError(im, im.vars)["type"] != "null":
+                                            raise CppParseError(im, "async callback method must not return a rich error object")
+
                                         if not isinstance(im.retval.Type().type, CppParser.Void):
                                             raise CppParseError(im, "async callback method must have void return value")
                                     else:
@@ -1342,7 +1345,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
                             obj["@async"] = True
 
                     error = BuildRichError(method, method.vars)
-                    if error:
+                    if error and error["type"] != "null":
                         obj["error"] = error
 
                     obj["result"] = BuildResult(method, method.vars)
