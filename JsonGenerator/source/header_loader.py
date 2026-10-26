@@ -197,7 +197,7 @@ def compute_name(log, converter, object, argument_type, relay=None, is_property=
         transformed = overriden if overriden else name
 
         if overriden == name:
-            log.WarnLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
+            log.InfoLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
 
     return transformed
 
