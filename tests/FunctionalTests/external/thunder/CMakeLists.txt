@@ -15,7 +15,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License
 
-set(THUNDER_VERSION "master" CACHE STRING "Thunder git tag/branch/commit to use")
+set(THUNDER_VERSION "development/rich-error-support" CACHE STRING "Thunder git tag/branch/commit to use")
 
 include(FetchContent)
 
