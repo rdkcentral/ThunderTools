@@ -252,6 +252,10 @@ if (TEST_WRAPPED_INTERFACE)
     AddTestInterface("WrappedInterface" COM_RPC JSON_RPC)
 endif()
 
+if (TEST_RICH_ERROR)
+    AddTestInterface("RichError" JSON_RPC)
+endif()
+
 if (TEST_NAMESPACES)
     # One header with interfaces in two top-level namespaces, generated in a single pass.
     # It needs its own generator call, as the other headers use the default namespace only.
