@@ -1879,7 +1879,7 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
         # Emit method prologue
         template_params = [ params.cpp_type, response.cpp_type ]
 
-        register_method = "Register" if richerror.is_void else "RegisterwithError"
+        register_method = "Register" if richerror.is_void else "RegisterWithError"
 
         if not richerror.is_void:
             template_params.append(richerror.cpp_type)
