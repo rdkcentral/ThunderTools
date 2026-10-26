@@ -1923,6 +1923,9 @@ class TemplateClass(Class):
                                 break
 
 
+        if arguments.count('<') > 2:
+            raise ParserError("too complex template nesting: %s" % arguments)
+
         instance = self
         str_arg_list = self.ParseArguments(arguments) or []
 
