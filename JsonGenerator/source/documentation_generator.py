@@ -761,7 +761,7 @@ def Create(log, args, schema, path, indent_size = 4):
                 MdHeader("Rich Error Response", 4)
 
                 try:
-                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "method": "%s"%s }' % (call_method, ", " + ExampleObj("error", props["error"], True)),
+                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("error", props["error"], True),
                                                 object_pairs_hook=OrderedDict), indent=2)
                 except:
                     jsonResponse = jsonError
