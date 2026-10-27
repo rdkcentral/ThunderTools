@@ -210,6 +210,9 @@ class Optional(Intrinsic):
         Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.Proto())
         self.optional = subtype
 
+    def __str__(self):
+        return "Core::OptionalType<%s>" % self.optional.Proto()
+
 
 class Nullptr_t(Fundamental):
     def __init__(self):
@@ -875,9 +878,14 @@ class Identifier():
                     if found:
                         # take closest match
                         if isinstance(found, TemplateClass):
-                            # if we're pointing to a class template, then let's instantiate it!
-                            self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
-                            del self.type[i + 1]
+                            if isinstance(parent, TemplateClass):
+                                # todo: this is a short cut, won't work for other type than OptionalType and std::vector
+                                self.type[i] = Type(found.PartialInstantiate(self.type[i + 1], parent))
+                                del self.type[i + 1]
+                            else:
+                                # if we're pointing to a class template, then let's instantiate it!
+                                self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
+                                del self.type[i + 1]
                         else:
                             self.type[i] = found if isinstance(found, TemplateTypeParameter) else Type(found)
 
@@ -1178,8 +1186,6 @@ class Type:
     def __str__(self):
         return self.Proto()
 
-    def __repr__(self):
-        return "type " + str(self)
 
 
 def TypeStr(s):
@@ -1704,9 +1710,10 @@ class TemplateNonTypeParameter(Variable):
 
 
 class TemplateTypeParameter(Name):
-    def __init__(self, parent_block, string, index):
+    def __init__(self, parent_block, string, index, default=None):
         Name.__init__(self, parent_block, string)
         parent_block.parameters.append(self)
+        self.default = default
         self.index = index
 
     def Proto(self):
@@ -1757,86 +1764,202 @@ class InstantiatedTemplateClass(Class):
         return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
 
 
+class PartialInstantiatedTemplateClass(Class):
+    def __init__(self, parent_block, name, params, args):
+        Class.__init__(self, parent_block, name)
+        self.params = params
+        self.args = args
+        self.resolvedArgs = [Identifier(parent_block, self, [x], []) for x in args]
+        assert len(self.params) == len(self.args)
+
+    def __str__(self):
+        s = []
+        for i, _ in enumerate(self.params):
+            rhs = ("".join(self.resolvedArgs[i].type) if isinstance(self.resolvedArgs[i].type, list) else self.resolvedArgs[i].type.Proto())
+            s.append(self.params[i].name + " = " + rhs)
+        _str = "class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
+        _str += " [with %s]" % (", ".join(s))
+        if self.is_iterator:
+            _str += " [[iterator]]"
+        return _str
+
+    def __repr__(self):
+        s = []
+        for i, _ in enumerate(self.params):
+            s.append(self.params[i].name + " = " + str(self.args[i]))
+        return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
+
+
 class TemplateClass(Class):
     def ParseArguments(self, string):
         # This is greatly simplified!!!
         # Templates with multiple arguments that itself are template with multiple arguments will not work!!!
-        if string.count('<') != string.count('>') and string.count('<') > 0:
-            raise ParserError("unbalanced template angle brackets in <%s>" % string)
-        params = [x.strip() for x in string[string.find('<')+1:string.rfind('>')-1].strip().split(',')]
-        return params
+        if string:
+            if string.count('<') != string.count('>') and string.count('<') > 0:
+                raise ParserError("unbalanced template angle brackets in <%s>" % string)
 
+            stripped = string[string.find('<')+1:string.rfind('>')-1].strip()
+            if stripped:
+                return [x.strip() for x in stripped.split(',')]
 
-    def __init__(self, parent_block, name, params):
+        return None
+
+    def __init__(self, parent_block, name, params, specialization_arguments=None):
         Class.__init__(self, parent_block, name)
         self.parameters = []
         self.arguments = []
-        self.paramList = []
-        paramList = self.ParseArguments(params)
-        for p in paramList:
-            if "typename" in p or "class" in p:
-                param = TemplateTypeParameter(self, p.split()[1], index=paramList.index(p))
-            else:
-                param = TemplateNonTypeParameter(self, p.split(), index=paramList.index(p))
-            self.paramList.append(param)
+        self.arg_list = []
+        self.specializations = []
+        str_arg_list = self.ParseArguments(params)
+        parsed_specialization_arguments = self.ParseArguments(specialization_arguments)
 
-    def Instantiate(self, arguments, parent):
-        def _Substitute(identifier):
-            if isinstance(identifier.type, list):
-                for i, v in enumerate(identifier.type):
-                    if isinstance(v, TemplateTypeParameter):
-                        if v.name in paramDict:
-                            identifier.type[i] = strArgs[paramDict[v.name].index]
-                            identifier.ResolveIdentifiers(instance)
-                            break
-            if (isinstance(identifier, Enumerator) or isinstance(identifier, Variable)) and identifier.value:
-                for i, v in enumerate(identifier.value):
-                    if isinstance(v, TemplateNonTypeParameter):
-                        identifier.value[i] = strArgs[argDict[v.name].index]
-                        identifier.value = Evaluate(identifier.value, scope=parent)
-                        break
+        if parsed_specialization_arguments and str_arg_list:
+            raise ParserError("invalid template arguments to specialized %s (%s)" % (self, ",".join(str_arg_list)))
 
-        strArgs = self.ParseArguments(arguments)
-        paramDict = dict(zip([x.name for x in self.parameters], self.parameters))
-        argDict = dict(zip([x.name for x in self.arguments], self.arguments))
-        instance = InstantiatedTemplateClass(self.parent, self.name, self.paramList, strArgs)
-        instance.ancestors = self.ancestors
-        instance.specifiers = self.specifiers
-        instance.is_json = self.is_json
-        instance.json_version = self.json_version
-        instance.json_prefix = self.json_prefix
-        instance.is_extended = self.is_extended
-        instance.is_collapsed = self.is_collapsed
-        instance.is_compliant = self.is_compliant
-        instance.is_event = self.is_event
-        instance.is_iterator = self.is_iterator
-        instance.meta = self.meta
+        if str_arg_list:
+            for p in str_arg_list:
+                if "typename" in p or "class" in p:
+                    tokens = p.split()
+                    default = "".join(tokens[3:]) if len(tokens) > 3 and tokens[2] == '=' else None
+                    param = TemplateTypeParameter(self, tokens[1], index=str_arg_list.index(p), default=default)
+                else:
+                    param = TemplateNonTypeParameter(self, p.split(), index=str_arg_list.index(p))
+
+                self.arg_list.append(param)
+        else:
+            if isinstance(self.parent, Namespace):
+                for tc in self.parent.classes:
+                    if tc.name == self.name:
+                        tc.specializations.append([self, parsed_specialization_arguments])
+                        self.meta.decorators.extend(tc.meta.decorators)
+
+    def PartialInstantiate(self, arguments, parent):
+        instance = None
+        str_arg_list = self.ParseArguments(arguments) or []
 
         if ((self.parent.name == "Core") and (self.name == "OptionalType")):
-            # take over as Optional if this is OptionalType instance
-            if len(instance.args) == 1:
-                instance = Optional(OptionalElement(parent, instance.args[0].split()))
+            if len(str_arg_list) == 1:
+                instance = Optional(OptionalElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         elif ((self.parent.name == "std") and (self.name == "vector")):
-            if len(instance.args) == 1:
-                instance = Vector(VectorElement(parent, instance.args[0].split()))
+            if len(str_arg_list) == 1:
+                instance = Vector(VectorElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         else:
+            instance = PartialInstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
 
-            for t in self.typedefs:
+        return instance
+
+    def Instantiate(self, arguments, parent):
+        def _Substitute(identifier):
+
+            if isinstance(identifier.type, list):
+                for i, v in enumerate(identifier.type):
+                    if isinstance(v, TemplateTypeParameter):
+                        if v.name in paramDict:
+                            identifier.type[i] = str_arg_list[paramDict[v.name].index]
+                            identifier.ResolveIdentifiers(instance)
+                            break
+
+            if (isinstance(identifier, Enumerator) or isinstance(identifier, Variable)) and identifier.value:
+                for i, v in enumerate(identifier.value):
+                    if isinstance(v, TemplateNonTypeParameter):
+                        identifier.value[i] = str_arg_list[argDict[v.name].index]
+                        identifier.value = Evaluate(identifier.value, scope=parent)
+                        break
+
+            elif isinstance(identifier.type, Type) and isinstance(identifier.type.type, Optional):
+                optional = identifier.type.type
+                if isinstance(optional.optional.type, list):
+                    for i, v in enumerate(optional.optional.type):
+                        if isinstance(v, TemplateTypeParameter):
+                            if v.name in paramDict:
+                                resolved = copy.copy(optional.optional)
+                                resolved.type = copy.copy(resolved.type)
+                                resolved.type[i] = str_arg_list[paramDict[v.name].index]
+                                resolved.ResolveIdentifiers(instance)
+                                identifier.type.type = Optional(resolved)
+                                break
+
+            elif isinstance(identifier.type, Type) and isinstance(identifier.type.type, Vector):
+                vector = identifier.type.type
+                if isinstance(vector.element.type, list):
+                    for i, v in enumerate(vector.element.type):
+                        if isinstance(v, TemplateTypeParameter):
+                            if v.name in paramDict:
+                                resolved = copy.copy(vector.element)
+                                resolved.type = copy.copy(resolved.type)
+                                resolved.type[i] = str_arg_list[paramDict[v.name].index]
+                                resolved.ResolveIdentifiers(instance)
+                                identifier.type.type = Vector(resolved)
+                                break
+
+
+        if arguments.count('<') > 2:
+            raise ParserError("too complex template nesting: %s" % arguments)
+
+        instance = self
+        str_arg_list = self.ParseArguments(arguments) or []
+
+        for a in self.arg_list[len(str_arg_list):]:
+            if a.default:
+                str_arg_list.append(a.default)
+            else:
+                raise ParserError("invalid template arguments to %s (missing argument)" % instance)
+
+        if ((self.parent.name == "Core") and (self.name == "OptionalType")):
+            if len(str_arg_list) == 1:
+                instance = Optional(OptionalElement(parent, str_arg_list[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("invalid template arguments to %s" % instance)
+
+        elif ((self.parent.name == "std") and (self.name == "vector")):
+            if len(str_arg_list) == 1:
+                instance = Vector(VectorElement(parent, str_arg_list[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("invalid template arguments to %s" % instance)
+
+        else:
+            instance = InstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
+
+            paramDict = dict(zip([x.name for x in self.parameters], self.parameters))
+            argDict = dict(zip([x.name for x in self.arguments], self.arguments))
+
+            source = self
+
+            for s in self.specializations:
+                if str_arg_list == s[1]:
+                    source = s[0]
+                    break
+
+            instance.ancestors = source.ancestors
+            instance.specifiers = source.specifiers
+            instance.is_json = source.is_json
+            instance.json_version = source.json_version
+            instance.json_prefix = source.json_prefix
+            instance.is_extended = source.is_extended
+            instance.is_collapsed = source.is_collapsed
+            instance.is_compliant = source.is_compliant
+            instance.is_event = source.is_event
+            instance.is_iterator = source.is_iterator
+            instance.meta = source.meta
+
+            for t in source.typedefs:
                 newTypedef = copy.copy(t)
                 newTypedef.parent = instance
                 newTypedef.type = copy.copy(t.type)
                 _Substitute(newTypedef)
                 instance.typedefs.append(newTypedef)
 
-            for v in self.vars:
+            for v in source.vars:
                 newAttr = copy.copy(v)
                 newAttr.parent = instance
                 newAttr.type = copy.copy(v.type)
@@ -1844,7 +1967,7 @@ class TemplateClass(Class):
                 _Substitute(newAttr)
                 instance.vars.append(newAttr)
 
-            for e in self.enums:
+            for e in source.enums:
                 newEnum = copy.copy(e)
                 newEnum.items = []
                 newEnum.parent = instance
@@ -1857,7 +1980,7 @@ class TemplateClass(Class):
                     newEnum.items.append(newItem)
                 instance.enums.append(newEnum)
 
-            for m in self.methods:
+            for m in source.methods:
                 newMethod = copy.copy(m)
                 newMethod.vars = []
                 newMethod.parent = instance
@@ -1876,13 +1999,13 @@ class TemplateClass(Class):
         return instance
 
     def __str__(self):
-        _str = "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.paramList]))
+        _str = "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.arg_list]))
         if self.is_iterator:
             _str += " [[iterator]]"
         return _str
 
     def __repr__(self):
-        return "template %s<%s>" % (Class.__repr__(self), ", ".join([repr(p) for p in self.paramList]))
+        return "template %s<%s>" % (Class.__repr__(self), ", ".join([repr(p) for p in self.arg_list]))
 
 
 # -------------------------------------------------------------------------
@@ -2099,6 +2222,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@COMPLIANT")
                 if _find("@iterator", token):
                     tagtokens.append("@ITERATOR")
+                if _find("@richerror", token):
+                    tagtokens.append("@RICHERROR")
                 if _find("@encode:bitmask", token) or _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
                 if _find("@end", token):
@@ -2303,6 +2428,7 @@ def Parse(contents,log = None):
     collapsed_next = False
     compliant_next = False
     iterator_next = False
+    richerror_next = False
     wrap_next = False
     sourcelocation_next = False
     text_next = None
@@ -2383,6 +2509,10 @@ def Parse(contents,log = None):
             i += 2
         elif tokens[i] == "@ITERATOR":
             iterator_next = True
+            tokens[i] = ";"
+            i += 1
+        elif tokens[i] == "@RICHERROR":
+            richerror_next = True
             tokens[i] = ";"
             i += 1
 
@@ -2468,21 +2598,26 @@ def Parse(contents,log = None):
                 new_class = Union(current_block[-1], name)
             else:
                 new_class = None
+                specialization_arguments = None
+
                 # Look up previous classes in case there already was a forward declaration of this class
                 for idx, cl in enumerate(current_block[-1].classes):
                     if cl.name == name:
-                        if len(cl.methods) == 0:
+                        if last_template_def and (len(tokens) >= i + 4) and (tokens[i + 2] == '<'):
+                            specialization_arguments = " ".join(tokens[i+2:i+4+tokens[i+3:].index('>')])
+                        elif (len(tokens) >= i + 2 and tokens[i+2] == ';') or (not cl.methods and not cl.vars and not cl.classes and not cl.unions and not cl.typedefs):
                             new_class = cl
                             # move the class to to bottom
                             current_block[-1].classes.append(new_class)
                             del current_block[-1].classes[idx]
                         else:
                             raise ParserError("duplicate class name: " + cl.name)
+
                         break
 
                 if new_class == None:
                     if last_template_def:
-                        new_class = TemplateClass(current_block[-1], name, " ".join(last_template_def))
+                        new_class = TemplateClass(current_block[-1], name, " ".join(last_template_def), specialization_arguments)
                         last_template_def = []
                     else:
                         new_class = Class(current_block[-1], name)
@@ -2518,6 +2653,8 @@ def Parse(contents,log = None):
                 new_class.is_event = True
             if iterator_next:
                 new_class.is_iterator = True
+            if richerror_next:
+                new_class.meta.decorators.append("richerror")
             if sourcelocation_next:
                 new_class.sourcelocation = sourcelocation_next
                 sourcelocation_next = None
@@ -2551,6 +2688,7 @@ def Parse(contents,log = None):
             extended_next = False
             collapsed_next = False
             compliant_next = False
+            richerror_next = False
 
             if new_class.parent.omit:
                 # Inherit omiting...
@@ -2816,6 +2954,8 @@ def Parse(contents,log = None):
                     Variable(current_block[-1], identifier)
 
             i += 1
+
+            text_next = None
 
         # Parse constants and member constants
         elif isinstance(current_block[-1], (Namespace, Class)) and (tokens[i] == '=') and (tokens[i - 1] != "operator"):
