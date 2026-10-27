@@ -90,6 +90,10 @@ if(TEST_WRAPPED_INTERFACE)
     target_sources(JsonRpcFunctionalTests PRIVATE tests/TestWrappedInterfaceJsonRpc.cpp)
 endif()
 
+if(TEST_RICH_ERROR)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestRichErrorJsonRpc.cpp)
+endif()
+
 # TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support
 
 target_link_libraries(JsonRpcFunctionalTests

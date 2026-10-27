@@ -40,6 +40,7 @@ option(TEST_EXTENDED_FORMAT      "Enable @extended format semantics tests"      
 option(TEST_PREFIX_UNDERSCORE    "Enable @prefix with _ separator tests"          ON)
 option(TEST_WRAPPED_INTERFACE    "Enable interface-level @wrapped tests"          ON)
 option(TEST_NAMESPACES           "Enable multiple interface namespaces in one header tests" ON)
+option(TEST_RICH_ERROR           "Enable rich JSON-RPC error tests"                ON)
 
 set(CMAKE_MODULE_PATH "${CMAKE_BINARY_DIR}" CACHE BOOL "" FORCE)
 
