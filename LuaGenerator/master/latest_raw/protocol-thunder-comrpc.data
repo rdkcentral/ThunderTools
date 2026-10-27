@@ -1448,6 +1448,18 @@ METHODS[4752] = {
     [4] = { name = "Sub", signature = "virtual uint32_t Sub(const uint16_t, const uint16_t, uint16_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t" }, { name = "sum", type = Type.UINT16, class = "uint16_t", proto = "uint16_t&" } }, params = { { name = "A", type = Type.UINT16, class = "uint16_t" }, { name = "B", type = Type.UINT16, class = "uint16_t" } } } 
 }
 
+INTERFACES[4753] = "Exchange::IMathExtended"
+METHODS[4753] = {
+    [3] = { name = "Register", signature = "virtual Core::hresult Register(Exchange::IMathExtended::INotification* const) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "notification", type = Type.OBJECT, class = "Exchange::IMathExtended::INotification" } } }, 
+    [4] = { name = "Unregister", signature = "virtual Core::hresult Unregister(const Exchange::IMathExtended::INotification* const) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "notification", type = Type.OBJECT, class = "Exchange::IMathExtended::INotification" } } }, 
+    [5] = { name = "Multiply", signature = "virtual Core::hresult Multiply(const uint16_t, const uint16_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "A", type = Type.UINT16, class = "uint16_t" }, { name = "B", type = Type.UINT16, class = "uint16_t" } } } 
+}
+
+INTERFACES[4754] = "Exchange::IMathExtended::INotification"
+METHODS[4754] = {
+    [3] = { name = "MultiplyResult", signature = "virtual void MultiplyResult(const uint32_t) = 0", params = { { name = "result", type = Type.UINT32, class = "uint32_t" } } } 
+}
+
 --  IMediaPlayer.h
 INTERFACES[4944] = "Exchange::IMediaPlayer"
 METHODS[4944] = {
