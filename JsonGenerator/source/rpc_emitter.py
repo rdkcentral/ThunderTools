@@ -1340,10 +1340,6 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
         # Emit result handling and serialization to JSON data
 
-        if response and not is_json_source:
-            emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
-            emit.Indent()
-
         def EmitResponse(is_richerror=False):
             for _, [param, param_type, param_meta] in sorted_vars:
                 if ("w" not in param_type) or (is_richerror != ("e" in param_type)):
@@ -1497,14 +1493,14 @@ def _EmitRpcCode(root, emit, ns, header_file, source_file, data_emitted):
 
                     emit.ExitBlock(legacy_optional_conditions)
 
-        if response:
+        if response and not is_json_source:
             emit.Line("if (%s == %s) {" % (error_code.temp_name, CoreError("none")))
             emit.Indent()
             EmitResponse()
             emit.Unindent()
             emit.Line("}")
 
-        if richerror:
+        if richerror and not is_json_source:
             if response:
                 emit.Line("else {")
             else:
