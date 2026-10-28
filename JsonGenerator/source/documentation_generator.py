@@ -432,6 +432,9 @@ def Create(log, args, schema, path, indent_size = 4):
                 desc = ReplaceVars(props["description"])
                 MdParagraph(desc)
 
+            if not is_notification and not is_property and "error" in props:
+                MdParagraph("> Upon failure this method may respond with custom error information.")
+
             if "statuslistener" in props:
                 MdParagraph("> This notification may also be triggered by client registration.")
 
@@ -559,6 +562,10 @@ def Create(log, args, schema, path, indent_size = 4):
                 MdHeader("Errors", 3)
                 ErrorTable(props["errors"])
 
+            if not is_notification and not is_property and "error" in props:
+                MdHeader("Rich Error", 3)
+                ParamTable("error", props["error"])
+
             MdHeader("Example", 3)
 
             jsonError = "Failed to generate JSON example for %s" % method
@@ -660,14 +667,28 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 if is_property:
                     MdHeader("Set Response", 4)
+
                     try:
                         jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "result": "null" }',
-                                                    object_pairs_hook=OrderedDict), indent=4)
+                                                    object_pairs_hook=OrderedDict), indent=2)
                     except:
                         jsonResponse = jsonError
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")
+
+            if not is_notification and not is_property and "error" in props:
+                MdHeader("Rich Error Response", 4)
+
+                try:
+                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("error", props["error"], True),
+                                                object_pairs_hook=OrderedDict), indent=2)
+                except:
+                    jsonResponse = jsonError
+                    log.Error(jsonError)
+
+                MdCode(jsonResponse, "json")
+
 
             return props["alt"] if is_alt and not is_notification else ""
 
