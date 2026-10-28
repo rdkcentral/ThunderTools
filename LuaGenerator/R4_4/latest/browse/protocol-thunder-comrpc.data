@@ -1227,6 +1227,18 @@ METHODS[4752] = {
     [4] = { name = "Sub", signature = "virtual uint32_t Sub(const uint16_t, const uint16_t, uint16_t&) const = 0", retvals = { { type = Type.HRESULT, class = "uint32_t" }, { name = "sum", type = Type.UINT16, class = "uint16_t", proto = "uint16_t&" } }, params = { { name = "A", type = Type.UINT16, class = "uint16_t" }, { name = "B", type = Type.UINT16, class = "uint16_t" } } } 
 }
 
+INTERFACES[4753] = "Exchange::IMathExtended"
+METHODS[4753] = {
+    [3] = { name = "Register", signature = "virtual Core::hresult Register(Exchange::IMathExtended::INotification* const) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "notification", type = Type.OBJECT, class = "Exchange::IMathExtended::INotification" } } }, 
+    [4] = { name = "Unregister", signature = "virtual Core::hresult Unregister(const Exchange::IMathExtended::INotification* const) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "notification", type = Type.OBJECT, class = "Exchange::IMathExtended::INotification" } } }, 
+    [5] = { name = "Multiply", signature = "virtual Core::hresult Multiply(const uint16_t, const uint16_t) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" } }, params = { { name = "A", type = Type.UINT16, class = "uint16_t" }, { name = "B", type = Type.UINT16, class = "uint16_t" } } } 
+}
+
+INTERFACES[4754] = "Exchange::IMathExtended::INotification"
+METHODS[4754] = {
+    [3] = { name = "MultiplyResult", signature = "virtual void MultiplyResult(const uint32_t) = 0", params = { { name = "result", type = Type.UINT32, class = "uint32_t" } } } 
+}
+
 --  IMediaPlayer.h
 INTERFACES[4944] = "Exchange::IMediaPlayer"
 METHODS[4944] = {
@@ -1656,6 +1668,13 @@ METHODS[5297] = {
 }
 
 --  ISecureShellServer.h
+--  ISimpleRichError.h
+INTERFACES[5360] = "Exchange::ISimpleRichError"
+METHODS[5360] = {
+    [3] = { name = "Restart", signature = "virtual Core::hresult Restart(Core::OptionalType<Core::ErrorDetails<void>>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "errorDetails", type = Type.POD, class = "Core::ErrorDetails<void>", element = { { name = "code", type = Type.INT32, class = "int32_t", optional = true }, { name = "message", type = Type.STRING16, class = "string", optional = true } }, optional = true } } }, 
+    [4] = { name = "MakeCoffee", signature = "virtual Core::hresult MakeCoffee(const Exchange::ISimpleRichError::coffeetype&, uint16_t&, Core::OptionalType<Exchange::ISimpleRichError::Error>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "duration", type = Type.UINT16, class = "uint16_t", proto = "uint16_t&" }, { name = "errorDetails", type = Type.POD, class = "Core::ErrorDetails<Exchange::ISimpleRichError::Diagnostic>", element = { { name = "code", type = Type.INT32, class = "int32_t", optional = true }, { name = "message", type = Type.STRING16, class = "string", optional = true }, { name = "data", type = Type.POD, class = "Exchange::ISimpleRichError::Diagnostic", element = { { name = "reason", type = Type.ENUMU8, class = "Exchange::ISimpleRichError::Diagnostic::failreason" }, { name = "water_temperature", type = Type.UINT8, class = "uint8_t" }, { name = "water_level", type = Type.UINT8, class = "uint8_t" }, { name = "brew_pressure", type = Type.UINT8, class = "uint8_t" }, { name = "info", type = Type.STRING16, class = "string", optional = true } }, optional = true } }, optional = true } }, params = { { name = "type", type = Type.ENUMU8, class = "Exchange::ISimpleRichError::coffeetype" } } } 
+}
+
 --  IStore.h
 INTERFACES[5184] = "Exchange::IStore"
 METHODS[5184] = {
@@ -2686,6 +2705,22 @@ ENUMS["Exchange::IPower::PCState"] = {
 ENUMS["Exchange::IPower::PCPhase"] = {
     [1] = "Before",
     [2] = "After"
+}
+
+ENUMS["Exchange::ISimpleRichError::coffeetype"] = {
+    [0] = "ESPRESSO",
+    [1] = "CAPPUCCINO",
+    [2] = "LATTE",
+    [3] = "RISTRETTO"
+}
+
+ENUMS["Exchange::ISimpleRichError::Diagnostic::failreason"] = {
+    [0] = "HARDWARE_FAILURE",
+    [1] = "NO_WATER",
+    [2] = "NO_MILK",
+    [3] = "NO_BEANS",
+    [4] = "DRIP_TRAY_FULL",
+    [5] = "GROUNDS_CONTAINER_FULL"
 }
 
 ENUMS["Exchange::IStore2::ScopeType"] = {
