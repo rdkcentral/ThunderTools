@@ -213,7 +213,6 @@ class Optional(Intrinsic):
     def __str__(self):
         return "Core::OptionalType<%s>" % self.optional.Proto()
 
-
 class Nullptr_t(Fundamental):
     def __init__(self):
         Fundamental.__init__(self, "std::nullptr_t")
