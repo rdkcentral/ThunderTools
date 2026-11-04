@@ -1,0 +1,16 @@
+{
+  "$schema": "plugin.schema.json",
+  "info": {
+    "title": "OutOfProcess Plugin",
+    "callsign": "OutOfProcess",
+    "locator": "libThunderOutOfProcess.so",
+    "status": "development",
+    "description": [
+      ""
+    ],
+    "version": "1.0"
+  },
+  "interface": {
+    "$cppref": "{cppinterfacedir}/IBrowser.h"
+  }
+}
