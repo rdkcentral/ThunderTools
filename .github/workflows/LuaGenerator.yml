@@ -339,10 +339,6 @@ jobs:
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
             echo "Updating $BASELINE_BRANCH baseline..."
 
-            # Update Browsable Site
-            mkdir -p "site/$BASELINE_BRANCH/latest"
-            cp -a "site/$RUN_DIR"/* "site/$BASELINE_BRANCH/latest/"
-
             # Update Raw Baseline
             mkdir -p "site/$BASELINE_BRANCH/latest_raw"
             cp -r generated/* "site/$BASELINE_BRANCH/latest_raw/"
@@ -358,6 +354,16 @@ jobs:
           publish_dir: ./site
           destination_dir: LuaGenerator
           keep_files: true
+
+      - name: Deploy latest site (full replace)
+        if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site/${{ env.RUN_DIR }}
+          destination_dir: LuaGenerator/${{ env.BASELINE_BRANCH }}/latest
+          keep_files: false
 
       - name: Deploy raw baseline (full replace)
         if: github.event_name != 'pull_request'

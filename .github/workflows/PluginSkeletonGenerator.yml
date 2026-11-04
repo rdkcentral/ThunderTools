@@ -512,9 +512,6 @@ jobs:
 
           # ----- Branch builds: publish stable baselines (direct from artifacts) -----
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            mkdir -p "site/$BASELINE_BRANCH"
-            cp -a "site/$RUN_DIR" "site/$BASELINE_BRANCH/latest"
-
             # ----- Use original artifacts as the clean 'raw' baseline -----
             mkdir -p "site/$BASELINE_BRANCH/latest_raw"
             
@@ -560,6 +557,16 @@ jobs:
           publish_dir: ./site
           destination_dir: PluginSkeletonGenerator
           keep_files: true
+
+      - name: Deploy latest site (full replace)
+        if: github.event_name != 'pull_request'
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_branch: gh-pages
+          publish_dir: ./site/${{ env.RUN_DIR }}
+          destination_dir: PluginSkeletonGenerator/${{ env.BASELINE_BRANCH }}/latest
+          keep_files: false
 
       - name: Deploy raw baseline (full replace)
         if: github.event_name != 'pull_request'
@@ -630,8 +637,8 @@ jobs:
           }))
           PY
 
-          http_code="$(
-            curl -sS -L \
+          if ! http_code="$(
+            curl -sS -L --connect-timeout 10 --max-time 120 \
               -o resp.json \
               -w '%{http_code}' \
               -H "Accept: application/vnd.github+json" \
@@ -639,26 +646,43 @@ jobs:
               -H "X-GitHub-Api-Version: 2022-11-28" \
               -H "Content-Type: application/json" \
               https://models.github.ai/inference/chat/completions \
-              -d @payload.json || true
-          )"
+              -d @payload.json
+          )"; then
+            echo "::warning::GitHub Models request failed before a complete response was received."
+            echo "summary=AI summary unavailable (request failed). Check workflow logs." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           if [[ "$http_code" != "200" ]]; then
-            echo "GitHub Models call failed: HTTP $http_code" >&2
+            echo "::warning::GitHub Models call failed: HTTP $http_code" >&2
             echo "Response (first 800 chars):" >&2
             head -c 800 resp.json >&2 || true
             echo "summary=AI summary unavailable (HTTP $http_code). Check workflow logs." >> "$GITHUB_OUTPUT"
             exit 0
           fi
 
-          summary="$(python - <<'PY'
-          import json
-          with open("resp.json", "r", encoding="utf-8", errors="ignore") as f:
+          if ! summary="$(python - <<'PY'
+          import json, sys
+          with open("resp.json", "r", encoding="utf-8") as f:
               obj = json.load(f)
-          print(obj["choices"][0]["message"]["content"].strip())
+          if not isinstance(obj, dict):
+              sys.exit("GitHub Models response is not an object.")
+          choices = obj.get("choices")
+          if not isinstance(choices, list) or not choices or not isinstance(choices[0], dict):
+              sys.exit("GitHub Models response has no valid choices.")
+          message = choices[0].get("message")
+          if not isinstance(message, dict) or not isinstance(message.get("content"), str):
+              sys.exit("GitHub Models response has no text content.")
+          print(message["content"].strip())
           PY
-          )"
+          )"; then
+            echo "::warning::GitHub Models returned invalid JSON or an unexpected response (HTTP $http_code)."
+            echo "summary=AI summary unavailable (invalid response). Check workflow logs." >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           if [[ -z "$summary" ]]; then
+            echo "::warning::GitHub Models returned empty summary content."
             echo "summary=AI summary returned empty content." >> "$GITHUB_OUTPUT"
           else
             {
