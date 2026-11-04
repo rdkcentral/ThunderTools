@@ -10,14 +10,14 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    branches: [ master ]
+    branches: [ master, 'R*' ]
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"
       - "tests/**"
       - ".github/workflows/ProxyStubFunctionalTests.yml"
   pull_request:
-    branches: [ master ]
+    branches: [ master, 'R*' ]
     paths:
       - "ProxyStubGenerator/**"
       - "JsonGenerator/**"

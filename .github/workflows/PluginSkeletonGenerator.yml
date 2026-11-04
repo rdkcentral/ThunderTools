@@ -2,13 +2,14 @@ name: Generate plugin skeletons
 
 on:
   workflow_dispatch:
+  create:
   push:
-    branches: [ master ]
+    branches: [ master, 'R*' ]
     paths:
       - "PluginSkeletonGenerator/**"
       - ".github/workflows/PluginSkeletonGenerator.yml"
   pull_request:
-    branches: [ master ]
+    branches: [ master, 'R*' ]
     paths:
       - "PluginSkeletonGenerator/**"
       - ".github/workflows/PluginSkeletonGenerator.yml"
@@ -24,6 +25,9 @@ concurrency:
 
 jobs:
   changes:
+    if: >-
+      github.event_name != 'create' ||
+      github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     outputs:
       relevant: ${{ steps.check.outputs.relevant }}
@@ -31,7 +35,12 @@ jobs:
       - id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          CREATED_REF: ${{ github.event.ref }}
         run: |
+          if [[ "$GITHUB_EVENT_NAME" == "create" && "$CREATED_REF" != R* ]]; then
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.action }}" != "synchronize" ]]; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -45,6 +54,8 @@ jobs:
     needs: [changes]
     if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
+    with:
+      thundertools-repository: ${{ github.repository }}
 
   ThunderInterfaces:
     needs: Thunder
@@ -163,6 +174,20 @@ jobs:
       matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     steps:
+      - name: Resolve release dependency branch
+        id: release
+        shell: bash
+        env:
+          BUILD_BRANCH: ${{ github.base_ref || github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          release_ref=
+          if [[ "$REF_TYPE" == 'branch' && "$BUILD_BRANCH" == R* ]]; then
+            release_ref="refs/heads/$BUILD_BRANCH"
+          fi
+          echo "ref=$release_ref" >> "$GITHUB_OUTPUT"
+          echo "Dependency branch: ${release_ref:-repository default}"
+
       - name: Checkout this repo
         uses: actions/checkout@v5
 
@@ -170,7 +195,14 @@ jobs:
         uses: actions/checkout@v5
         with:
           repository: rdkcentral/ThunderInterfaces
+          ref: ${{ steps.release.outputs.ref }}
           path: ThunderInterfaces
+
+      - name: Log source revisions
+        shell: bash
+        run: |
+          git log -1 --format='ThunderTools: %H'
+          git -C ThunderInterfaces log -1 --format='ThunderInterfaces: %H'
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -211,7 +243,13 @@ jobs:
       cancel-in-progress: false
     needs: [ prepare, generate ]
 
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.ref_type == 'branch' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      ((github.base_ref || github.ref_name) == 'master' || startsWith(github.base_ref || github.ref_name, 'R'))
+
+    env:
+      BASELINE_BRANCH: ${{ github.base_ref || github.ref_name }}
 
     steps:
       - name: Download all generated artifacts
@@ -247,13 +285,14 @@ jobs:
           set -euo pipefail
 
           HAS_DIFF="false"
+          export BASELINE_AVAILABLE="true"
           mkdir -p site
 
           # ----- Set BASE_DIR based on the event type -----
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE_DIR="previews/pr-${{ github.event.pull_request.number }}"
           else
-            BASE_DIR="master"
+            BASE_DIR="$BASELINE_BRANCH"
           fi
 
           # ----- Now define RUN_DIR using the guaranteed-set BASE_DIR -----
@@ -278,9 +317,10 @@ jobs:
 
           # ----- PR-only: diff vs gh-pages baseline -----
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/master/latest_raw"
+            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/${BASELINE_BRANCH}/latest_raw"
             mkdir -p diffs "site/$RUN_DIR/diff"
             > diffs/plugins_with_diffs.txt
+            : > diffs/combined.diff
 
             while read -r name; do
               if [[ -d "${BASELINE_ROOT}/${name}" ]]; then
@@ -291,7 +331,7 @@ jobs:
                 cp -r "${BASELINE_ROOT}/${name}" "baseline_${name}"
                 diff -rN -U5 \
                   "baseline_${name}" "artifacts/PluginSkeleton-${name}" \
-                  > "diffs/${name}.diff" || true
+                  > "diffs/${name}.diff" || [[ $? -eq 1 ]]
 
                 # Strip the differing roots from the diff's ---/+++ file header lines so both sides share an identical path
                 sed -i -E \
@@ -301,23 +341,19 @@ jobs:
                   -e "s#^(\\+\\+\\+ )baseline_${name}/#\\1#" \
                   "diffs/${name}.diff"
 
+                cat "diffs/${name}.diff" >> diffs/combined.diff
+
                 if [[ -s "diffs/${name}.diff" ]]; then
                   npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/${name}.html" -- "diffs/${name}.diff"
                   echo "$name" >> diffs/plugins_with_diffs.txt
                 fi
               else
-                cat > "site/$RUN_DIR/diff/${name}.html" <<HTML
-          <!doctype html>
-          <meta charset="utf-8">
-          <title>${name} diff</title>
-          <p>No baseline found at <code>master/latest_raw/${name}</code> on gh-pages.</p>
-          HTML
-                echo "$name" >> diffs/plugins_with_diffs.txt
+                BASELINE_AVAILABLE="false"
+                echo "::warning::No baseline available for $BASELINE_BRANCH/$name; comparison skipped for this variant."
               fi
             done < variant_names.txt
 
-            cat diffs/*.diff 2>/dev/null > diffs/combined.diff || true
-            head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff 2>/dev/null || true
+            head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff
 
             if [[ -s diffs/plugins_with_diffs.txt ]]; then
               HAS_DIFF="true"
@@ -325,6 +361,7 @@ jobs:
           fi
           
           echo "has_diff=$HAS_DIFF" >> "$GITHUB_OUTPUT"
+          echo "baseline_available=$BASELINE_AVAILABLE" >> "$GITHUB_OUTPUT"
 
           # ----- Copy all generated variants (Browsing copies) -----
           while read -r name; do
@@ -385,8 +422,11 @@ jobs:
           for v in variants:
               items.append(f"<li><a href='./{html.escape(v)}/'>Browse {html.escape(v)}</a></li>")
           if (run_root / "diff").exists():
-              items.append("<li><a href='./diff/'>Diff vs master/latest_raw</a></li>")
+              items.append(f"<li><a href='./diff/'>Diff vs {html.escape(os.environ['BASELINE_BRANCH'])}/latest_raw</a></li>")
           items.append("</ul>")
+          items.append(f"<p>Baseline branch: {html.escape(os.environ['BASELINE_BRANCH'])}</p>")
+          if os.environ["BASELINE_AVAILABLE"] != "true":
+              items.append(f"<p>No baseline available for {html.escape(os.environ['BASELINE_BRANCH'])} for one or more variants. Those comparisons were skipped.</p>")
           (run_root / "index.html").write_text(wrap("Preview", "./", "\n".join(items), css_root), encoding="utf-8")
 
           def rel_home(dir_path: Path) -> str:
@@ -443,8 +483,12 @@ jobs:
                   body = (
                       "<h1>Diff</h1>"
                       f"<p><a href='{home}'>⟵ Back to preview</a></p>"
-                      "<p>No changes detected in any generated plugin.</p>"
+                      + ("<p>No baseline available for one or more variants. Those comparisons were skipped.</p>"
+                         if os.environ["BASELINE_AVAILABLE"] != "true"
+                         else "<p>No changes detected in any generated plugin.</p>")
                   )
+              if plugins_with_diffs and os.environ["BASELINE_AVAILABLE"] != "true":
+                  body += "<p>No baseline available for one or more other variants. Those comparisons were skipped.</p>"
               (diff_dir / "index.html").write_text(wrap("Diff", home, body, css_href), encoding="utf-8")
 
           # ----- Patch diff2html pages -----
@@ -466,25 +510,23 @@ jobs:
               p.write_text(txt, encoding="utf-8")
           PY
 
-          # ----- On master pushes: publish stable baselines (direct from artifacts) -----
+          # ----- Branch builds: publish stable baselines (direct from artifacts) -----
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            rm -rf "site/master/latest"
-            mkdir -p "site/master"
-            cp -a "site/$RUN_DIR" "site/master/latest"
+            mkdir -p "site/$BASELINE_BRANCH"
+            cp -a "site/$RUN_DIR" "site/$BASELINE_BRANCH/latest"
 
             # ----- Use original artifacts as the clean 'raw' baseline -----
-            rm -rf "site/master/latest_raw"
-            mkdir -p "site/master/latest_raw"
+            mkdir -p "site/$BASELINE_BRANCH/latest_raw"
             
             while read -r name; do
-               cp -a "artifacts/PluginSkeleton-${name}" "site/master/latest_raw/${name}"
+               cp -a "artifacts/PluginSkeleton-${name}" "site/$BASELINE_BRANCH/latest_raw/${name}"
             done < variant_names.txt
 
-            cat > "site/master/index.html" <<'HTML'
+            cat > "site/$BASELINE_BRANCH/index.html" <<'HTML'
           <!doctype html>
           <meta charset="utf-8">
           <meta http-equiv="refresh" content="0; url=./latest/">
-          <a href="./latest/">Open latest master baseline</a>
+          <a href="./latest/">Open latest branch baseline</a>
           HTML
           fi
 
@@ -525,8 +567,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: ./site/master/latest_raw
-          destination_dir: PluginSkeletonGenerator/master/latest_raw
+          publish_dir: ./site/${{ env.BASELINE_BRANCH }}/latest_raw
+          destination_dir: PluginSkeletonGenerator/${{ env.BASELINE_BRANCH }}/latest_raw
           keep_files: false
 
       - name: Prepare diff for AI
@@ -536,6 +578,7 @@ jobs:
           set -euo pipefail
           python - <<'PY'
           from pathlib import Path
+          import os
 
           p = Path("diffs/combined_trunc.diff")
           if not p.exists():
@@ -543,7 +586,7 @@ jobs:
               raise SystemExit(0)
 
           text = p.read_text(encoding="utf-8", errors="ignore")
-          text = text.replace("ghpages_baseline/PluginSkeletonGenerator/master/latest_raw/", "baseline/")
+          text = text.replace(f"ghpages_baseline/PluginSkeletonGenerator/{os.environ['BASELINE_BRANCH']}/latest_raw/", "baseline/")
           text = text.replace("artifacts/PluginSkeleton-", "generated/")
           Path("diffs/combined_ai.diff").write_text(text, encoding="utf-8")
           PY
@@ -655,7 +698,11 @@ jobs:
             Plugin skeleton preview (latest run):
             https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/PluginSkeletonGenerator/${{ env.RUN_DIR }}/
 
-            ${{ steps.build_site.outputs.has_diff == 'true' && '**AI summary of generated diff:**' || '**No changes detected** in generated plugin code. The PR changes are internal to the generator or do not affect output.' }}
+            Baseline branch: `${{ env.BASELINE_BRANCH }}`
+
+            ${{ steps.build_site.outputs.baseline_available != 'true' && '**No baseline available for one or more variants. Those comparisons were skipped.**' || (steps.build_site.outputs.has_diff == 'true' && '**Changes detected** in generated plugin code.' || '**No changes detected** in generated plugin code. The PR changes are internal to the generator or do not affect output.') }}
+
+            ${{ steps.build_site.outputs.has_diff == 'true' && '**AI summary of generated diff:**' || '' }}
             ${{ steps.build_site.outputs.has_diff == 'true' && steps.ai.outputs.summary || '' }}
 
   compile_generated_plugins:

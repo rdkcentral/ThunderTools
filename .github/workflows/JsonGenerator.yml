@@ -2,14 +2,15 @@ name: JsonGenerator Checks
 
 on:
   workflow_dispatch:
+  create:
   push:
-    branches: [ master ]
+    branches: [ master, 'R*' ]
     paths:
       - "JsonGenerator/**"
       - "ProxyStubGenerator/**"
       - ".github/workflows/JsonGenerator.yml"
   pull_request:
-    branches: [ master ]
+    branches: [ master, 'R*' ]
     paths:
       - "JsonGenerator/**"
       - "ProxyStubGenerator/**"
@@ -26,6 +27,9 @@ concurrency:
 
 jobs:
   changes:
+    if: >-
+      github.event_name != 'create' ||
+      github.event.ref_type == 'branch'
     runs-on: ubuntu-latest
     outputs:
       relevant: ${{ steps.check.outputs.relevant }}
@@ -33,7 +37,12 @@ jobs:
       - id: check
         env:
           GH_TOKEN: ${{ github.token }}
+          CREATED_REF: ${{ github.event.ref }}
         run: |
+          if [[ "$GITHUB_EVENT_NAME" == "create" && "$CREATED_REF" != R* ]]; then
+            echo "relevant=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           if [[ "${{ github.event_name }}" != "pull_request" || "${{ github.event.action }}" != "synchronize" ]]; then
             echo "relevant=true" >> "$GITHUB_OUTPUT"
             exit 0
@@ -47,6 +56,8 @@ jobs:
     needs: [changes]
     if: needs.changes.outputs.relevant == 'true'
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
+    with:
+      thundertools-repository: ${{ github.repository }}
 
   ThunderInterfaces:
     needs: Thunder
@@ -143,7 +154,13 @@ jobs:
       cancel-in-progress: false
     needs: harvest_generated_code
 
-    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    if: >-
+      github.ref_type == 'branch' &&
+      (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository) &&
+      ((github.base_ref || github.ref_name) == 'master' || startsWith(github.base_ref || github.ref_name, 'R'))
+
+    env:
+      BASELINE_BRANCH: ${{ github.base_ref || github.ref_name }}
 
     steps:
       - name: Download All Generated Variants
@@ -180,12 +197,13 @@ jobs:
           set -euo pipefail
 
           HAS_DIFF="false"
+          export BASELINE_AVAILABLE="false"
           mkdir -p site
 
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
             BASE_DIR="previews/pr-${{ github.event.pull_request.number }}"
           else
-            BASE_DIR="master"
+            BASE_DIR="$BASELINE_BRANCH"
           fi
 
           RUN_DIR="${BASE_DIR}/run-${{ github.run_id }}"
@@ -206,10 +224,11 @@ jobs:
 
           # ----- PR-only: diff vs gh-pages baseline -----
           if [[ "${{ github.event_name }}" == "pull_request" ]]; then
-            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/master/latest_raw"
+            BASELINE_ROOT="${PWD}/ghpages_baseline/${TOOL_NAME}/${BASELINE_BRANCH}/latest_raw"
             mkdir -p diffs "site/$RUN_DIR/diff"
 
             if [[ -d "$BASELINE_ROOT" ]]; then
+               BASELINE_AVAILABLE="true"
                # Copy baseline to a local dir named 'baseline' so diff headers read
                # 'baseline/...' vs 'generated/...' rather than the full absolute path.
                # diff -rN: -r recurses into subdirs, -N treats absent files as empty so
@@ -217,12 +236,10 @@ jobs:
                cp -r "$BASELINE_ROOT" baseline
                diff -rN -U5 \
                   baseline "generated" \
-                  > "diffs/combined.diff" || true
+                  > "diffs/combined.diff" || [[ $? -eq 1 ]]
             else
-               mkdir baseline
-               diff -rN -U5 \
-                  baseline "generated" \
-                  > "diffs/combined.diff" || true
+               echo "::warning::No baseline available for $BASELINE_BRANCH; comparison skipped."
+               : > "diffs/combined.diff"
             fi
 
             # Strip the differing root from the diff's ---/+++ file header lines so both sides share an identical path
@@ -239,13 +256,14 @@ jobs:
 
                npx --yes diff2html-cli@5.2.15 -i file -F "site/$RUN_DIR/diff/index.html" -- "diffs/combined.diff"
                head -c 50000 diffs/combined.diff > diffs/combined_trunc.diff
-            else
+            elif [[ "$BASELINE_AVAILABLE" == "true" ]]; then
                mkdir -p "site/$RUN_DIR/diff"
                echo "<h1>No changes detected</h1>" > "site/$RUN_DIR/diff/index.html"
             fi
           fi
 
           echo "has_diff=$HAS_DIFF" >> "$GITHUB_OUTPUT"
+          echo "baseline_available=$BASELINE_AVAILABLE" >> "$GITHUB_OUTPUT"
 
           # ----- Copy files for browsing -----
           mkdir -p "site/$RUN_DIR/browse"
@@ -325,25 +343,26 @@ jobs:
             <li><a href='./browse/index.html'>Browse Generated JSON</a></li>
           """
           if has_diff:
-              main_body += "<li><a href='./diff/index.html'>View Diff vs Master</a></li>"
+              main_body += f"<li><a href='./diff/index.html'>View Diff vs {html.escape(os.environ['BASELINE_BRANCH'])}</a></li>"
 
           main_body += "</ul>"
+          main_body += f"<p>Baseline branch: {html.escape(os.environ['BASELINE_BRANCH'])}</p>"
+          if os.environ.get("BASELINE_AVAILABLE") != "true" and os.environ["GITHUB_EVENT_NAME"] == "pull_request":
+              main_body += f"<p>No baseline available for {html.escape(os.environ['BASELINE_BRANCH'])}. Comparison skipped.</p>"
           (site_root / "index.html").write_text(wrap_page("JsonGenerator Results", main_body, ""), encoding="utf-8")
           PY
 
-          # ----- Master Push: Update Baseline -----
+          # ----- Branch builds: Update Baseline -----
           if [[ "${{ github.event_name }}" != "pull_request" ]]; then
-            echo "Updating master baseline..."
+            echo "Updating $BASELINE_BRANCH baseline..."
 
             # ----- Update Browsable Site -----
-            rm -rf "site/master/latest"
-            mkdir -p "site/master/latest"
-            cp -a "site/$RUN_DIR"/* "site/master/latest/"
+            mkdir -p "site/$BASELINE_BRANCH/latest"
+            cp -a "site/$RUN_DIR"/* "site/$BASELINE_BRANCH/latest/"
 
             # ----- Update Raw Baseline -----
-            rm -rf "site/master/latest_raw"
-            mkdir -p "site/master/latest_raw"
-            cp -r generated/* "site/master/latest_raw/"
+            mkdir -p "site/$BASELINE_BRANCH/latest_raw"
+            cp -r generated/* "site/$BASELINE_BRANCH/latest_raw/"
 
             echo "Baseline updated."
           fi
@@ -363,8 +382,8 @@ jobs:
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
-          publish_dir: ./site/master/latest_raw
-          destination_dir: JsonGenerator/master/latest_raw
+          publish_dir: ./site/${{ env.BASELINE_BRANCH }}/latest_raw
+          destination_dir: JsonGenerator/${{ env.BASELINE_BRANCH }}/latest_raw
           keep_files: false
 
       - name: AI Summary
@@ -467,6 +486,8 @@ jobs:
 
             [View Results](https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/JsonGenerator/${{ env.RUN_DIR }}/)
 
-            ${{ steps.build_site.outputs.has_diff == 'true' && '**Changes detected.**' || '**No changes detected.**' }}
+            Baseline branch: `${{ env.BASELINE_BRANCH }}`
+
+            ${{ steps.build_site.outputs.baseline_available != 'true' && '**No baseline available for this branch. Comparison skipped.**' || (steps.build_site.outputs.has_diff == 'true' && '**Changes detected.**' || '**No changes detected.**') }}
 
             ${{ steps.build_site.outputs.has_diff == 'true' && steps.ai.outputs.summary || '' }}
