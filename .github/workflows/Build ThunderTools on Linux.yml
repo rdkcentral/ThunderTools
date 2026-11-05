@@ -10,13 +10,15 @@ concurrency:
 on:
   workflow_dispatch:
   push:
-    branches: ["master"]
+    branches: ["master", "R*"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "R*"]
  
 jobs:
   Thunder:
     uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
+    with:
+      thundertools-repository: ${{ github.repository }}
 
   ThunderInterfaces:
     needs: Thunder
