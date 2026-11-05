@@ -19,6 +19,7 @@
 
 #include "InProcess.h"
 #include <interfaces/json/JMath.h>
+#include <interfaces/json/JMathExtended.h>
 
 namespace Thunder {
 namespace Plugin {
@@ -42,11 +43,13 @@ namespace Plugin {
 
         ASSERT(service != nullptr);
         Exchange::JMath::Register(*this, this);
+        Exchange::JMathExtended::Register(*this, this);
         return (message);
     }
 
     void InProcess::Deinitialize(VARIABLE_IS_NOT_USED PluginHost::IShell* service) {
         Exchange::JMath::Unregister(*this);
+        Exchange::JMathExtended::Unregister(*this);
     }
 
     string InProcess::Information() const {
@@ -59,6 +62,45 @@ namespace Plugin {
     uint32_t InProcess::Sub(const uint16_t /* A */, const uint16_t /* B */, uint16_t& /* sum */ /* @out */) const {
         return Core::ERROR_NONE;
     }
+    Core::hresult InProcess::Register(Exchange::IMathExtended::INotification* notification) {
+        ASSERT(notification != nullptr);
 
+        _adminLock.Lock();
+        auto item = std::find(_mathextendedNotification.begin(), _mathextendedNotification.end(), notification);
+        ASSERT(item == _mathextendedNotification.end());
+
+        if (item == _mathextendedNotification.end()) {
+            notification->AddRef();
+            _mathextendedNotification.push_back(notification);
+        }
+
+        _adminLock.Unlock();
+        return Core::ERROR_NONE;
+    }
+    Core::hresult InProcess::Unregister(const Exchange::IMathExtended::INotification* notification) {
+        ASSERT(notification != nullptr);
+
+        _adminLock.Lock();
+        auto item = std::find(_mathextendedNotification.begin(), _mathextendedNotification.end(), notification);
+        ASSERT(item != _mathextendedNotification.end());
+
+        if (item != _mathextendedNotification.end()) {
+            _mathextendedNotification.erase(item);
+            notification->Release();
+        }
+        _adminLock.Unlock();
+        return Core::ERROR_NONE;
+    }
+    Core::hresult InProcess::Multiply(const uint16_t /* A */, const uint16_t /* B */) {
+        return Core::ERROR_NONE;
+    }
+
+    void InProcess::NotifyMultiplyResult(const uint32_t result) const {
+        _adminLock.Lock();
+        for (auto* notification : _mathextendedNotification) {
+            notification->MultiplyResult(result);
+        }
+        _adminLock.Unlock();
+    }
 } // Plugin
 } // Thunder

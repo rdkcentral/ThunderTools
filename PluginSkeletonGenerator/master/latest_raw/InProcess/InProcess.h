@@ -25,7 +25,7 @@
 namespace Thunder {
 namespace Plugin {
 
-    class InProcess : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IMath {
+    class InProcess : public PluginHost::IPlugin, public PluginHost::JSONRPC, public Exchange::IMath, public Exchange::IMathExtended {
     public:
         InProcess(const InProcess&) = delete;
         InProcess& operator=(const InProcess&) = delete;
@@ -36,6 +36,9 @@ namespace Plugin {
             : PluginHost::IPlugin()
             , PluginHost::JSONRPC()
             , Exchange::IMath()
+            , Exchange::IMathExtended()
+            , _adminLock()
+            , _mathextendedNotification()
         {
         }
 
@@ -51,12 +54,28 @@ namespace Plugin {
 
         uint32_t Sub(const uint16_t /* A */, const uint16_t /* B */, uint16_t& /* sum */ /* @out */) const override;
 
+        // IMathExtended methods
+
+        Core::hresult Register(Exchange::IMathExtended::INotification* const /* sink */) override;
+
+        Core::hresult Unregister(const Exchange::IMathExtended::INotification* const /* sink */) override;
+
+        Core::hresult Multiply(const uint16_t /* A */, const uint16_t /* B */) override;
+
         BEGIN_INTERFACE_MAP(InProcess)
             INTERFACE_ENTRY(PluginHost::IPlugin)
             INTERFACE_ENTRY(PluginHost::IDispatcher)
             INTERFACE_ENTRY(Exchange::IMath)
+            INTERFACE_ENTRY(Exchange::IMathExtended)
         END_INTERFACE_MAP
 
+    private:
+        using MathExtendedNotificationContainer = std::vector<Exchange::IMathExtended::INotification*>;
+
+        void NotifyMultiplyResult(const uint32_t /* result */) const;
+
+        mutable Core::CriticalSection _adminLock;
+        MathExtendedNotificationContainer _mathextendedNotification;
     };
 } // Plugin
 } // Thunder
