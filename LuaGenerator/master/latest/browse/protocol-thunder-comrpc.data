@@ -2716,6 +2716,13 @@ METHODS[45090] = {
     [5] = { name = "PinChanged", signature = "virtual void PinChanged(const uint8_t, const bool) = 0", params = { { name = "pin", type = Type.UINT8, class = "uint8_t" }, { name = "high", type = Type.BOOL, class = "bool" } } } 
 }
 
+--  ISimpleRichError.h
+INTERFACES[45136] = "Example::ISimpleRichError"
+METHODS[45136] = {
+    [3] = { name = "Restart", signature = "virtual Core::hresult Restart(Core::OptionalType<Core::ErrorDetails<void>>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "errorDetails", type = Type.POD, class = "Core::ErrorDetails<void>", element = { { name = "code", type = Type.INT32, class = "int32_t", optional = true }, { name = "message", type = Type.STRING16, class = "string", optional = true } }, optional = true } } }, 
+    [4] = { name = "MakeCoffee", signature = "virtual Core::hresult MakeCoffee(const Example::ISimpleRichError::coffeetype&, uint16_t&, Core::OptionalType<Example::ISimpleRichError::Error>&) = 0", retvals = { { type = Type.HRESULT, class = "uint32_t", proto = "Core::hresult" }, { name = "duration", type = Type.UINT16, class = "uint16_t", proto = "uint16_t&" }, { name = "errorDetails", type = Type.POD, class = "Core::ErrorDetails<Example::ISimpleRichError::Diagnostic>", element = { { name = "code", type = Type.INT32, class = "int32_t", optional = true }, { name = "message", type = Type.STRING16, class = "string", optional = true }, { name = "data", type = Type.POD, class = "Example::ISimpleRichError::Diagnostic", element = { { name = "reason", type = Type.ENUMU8, class = "Example::ISimpleRichError::Diagnostic::failreason" }, { name = "water_temperature", type = Type.UINT8, class = "uint8_t" }, { name = "water_level", type = Type.UINT8, class = "uint8_t" }, { name = "brew_pressure", type = Type.UINT8, class = "uint8_t" }, { name = "info", type = Type.STRING16, class = "string", optional = true } }, optional = true } }, optional = true } }, params = { { name = "type", type = Type.ENUMU8, class = "Example::ISimpleRichError::coffeetype" } } } 
+}
+
 -- enums
 ENUMS["PluginHost::ISubSystem::subsystem"] = {
     [0] = "PLATFORM",
@@ -3687,5 +3694,21 @@ ENUMS["Example::ISimpleAsync::state"] = {
 ENUMS["Example::ISimpleInstanceObjects::state"] = {
     [0] = "ENABLED",
     [1] = "DISABLED"
+}
+
+ENUMS["Example::ISimpleRichError::coffeetype"] = {
+    [0] = "ESPRESSO",
+    [1] = "CAPPUCCINO",
+    [2] = "LATTE",
+    [3] = "RISTRETTO"
+}
+
+ENUMS["Example::ISimpleRichError::Diagnostic::failreason"] = {
+    [0] = "HARDWARE_FAILURE",
+    [1] = "NO_WATER",
+    [2] = "NO_MILK",
+    [3] = "NO_BEANS",
+    [4] = "DRIP_TRAY_FULL",
+    [5] = "GROUNDS_CONTAINER_FULL"
 }
 
