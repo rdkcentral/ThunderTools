@@ -16,6 +16,7 @@
 # limitations under the License.
 
 import os
+import sys
 import posixpath
 import argparse
 from enum import Enum
@@ -27,13 +28,11 @@ TYPE_PREFIX = "Core::JSON"
 OBJECT_SUFFIX = "Data"
 COMMON_OBJECT_SUFFIX = "Info"
 ENUM_SUFFIX = "Type"
-IMPL_ENDPOINT_PREFIX = "endpoint_"
-IMPL_EVENT_PREFIX = "event_"
 
 # Configurables
+PROJECT_DIRECTORY = None
 CLASSNAME_FROM_REF = True
 DEFAULT_INT_SIZE = 32
-DOC_ISSUES = True
 DEFAULT_DEFINITIONS_FILE = "../../ProxyStubGenerator/default.h"
 FRAMEWORK_NAMESPACE = "Thunder"
 INTERFACE_NAMESPACES = ["::%s::Exchange::JSONRPC" % FRAMEWORK_NAMESPACE, "::%s::Exchange" % FRAMEWORK_NAMESPACE]
@@ -42,7 +41,8 @@ INTERFACE_SOURCE_LOCATION = None
 INTERFACE_SOURCE_REVISION = None
 NO_INCLUDES = False
 NO_VERSIONING = False
-NO_PUSH_WARNING = False
+PUSH_WARNING = True
+DUPLICATE_OBJ_WARNINGS = False
 DEFAULT_INTERFACE_SOURCE_REVISION = "main"
 GLOBAL_DEFINITIONS = ".." + os.sep + "global.json"
 INDENT_SIZE = 4
@@ -55,6 +55,11 @@ FORCE = False
 GENERATED_JSON = False
 LEGACY_ALT = False
 AUTO_PREFIX = False
+STATS_FOR_NERDS = False
+STRICT_VALIDATION = True
+STRICT_INDEX_VALIDATION = True
+EMIT_RESTRICT_CHECKS = True
+EMIT_OPTIONAL_CHECKS = True
 
 class RpcFormat(Enum):
     COMPLIANT = "compliant"
@@ -73,8 +78,32 @@ IGNORE_SOURCE_CASE_CONVENTION = False
 RPC_FORMAT = RpcFormat.COMPLIANT
 RPC_FORMAT_FORCED = False
 
+# custom BooleanOptional argparse action, so we don't bump Python version requirement
+class BoolAction(argparse.Action):
+    def __init__(self, option_strings, dest, default=None, type=None,
+                 choices=None, required=False, help=None, metavar=None):
+
+        adjusted_options = []
+
+        assert len(option_strings) == 1
+        assert option_strings[0].startswith("--")
+
+        adjusted_options = option_strings
+        option_strings.append("--no-" + option_strings[0][2:])
+
+        adjusted_help = help
+        if default is not None and adjusted_help is not None:
+            adjusted_help += " (default: %s)" % ("yes" if default else "no")
+
+        super().__init__(option_strings=adjusted_options, dest=dest, nargs=0, default=default, type=type, choices=choices, required=required, help=adjusted_help, metavar=metavar)
+
+    def __call__(self, parser, namespace, values, option_string):
+        assert option_string is not None
+        setattr(namespace, self.dest, (not option_string.startswith('--no-')))
+
 
 def Parse(cmdline):
+    global PROJECT_DIRECTORY
     global FRAMEWORK_NAMESPACE
     global DEFAULT_DEFINITIONS_FILE
     global INTERFACE_NAMESPACES
@@ -82,10 +111,9 @@ def Parse(cmdline):
     global CPP_INTERFACE_PATH
     global NO_INCLUDES
     global NO_VERSIONING
-    global NO_PUSH_WARNING
+    global PUSH_WARNING
     global DEFAULT_INT_SIZE
     global INDENT_SIZE
-    global DOC_ISSUES
     global INTERFACE_SOURCE_LOCATION
     global INTERFACE_SOURCE_REVISION
     global INTERFACES_SECTION
@@ -93,7 +121,7 @@ def Parse(cmdline):
     global DUMP_JSON
     global RPC_FORMAT_FORCED
     global RPC_FORMAT
-    global NO_DUP_WARNINGS
+    global DUPLICATE_OBJ_WARNINGS
     global ALWAYS_EMIT_COPY_CTOR
     global KEEP_EMPTY
     global CLASSNAME_FROM_REF
@@ -101,59 +129,75 @@ def Parse(cmdline):
     global AUTO_PREFIX
     global DEFAULT_CASE_CONVENTION
     global IGNORE_SOURCE_CASE_CONVENTION
+    global STATS_FOR_NERDS
+    global STRICT_VALIDATION
+    global STRICT_INDEX_VALIDATION
+    global EMIT_OPTIONAL_CHECKS
+    global EMIT_RESTRICT_CHECKS
 
     argparser = argparse.ArgumentParser(
-        description='Generate JSON C++ classes, stub code and API documentation from JSON definition files and C++ header files',
+        description='Generate JSON C++ classes, JSON-RPC glue code and API documentation from JSON definition files and C++ header files',
         epilog="For information about custom tags supprted in C++ code please see StubGenerator help (--help-tags).",
         formatter_class=argparse.RawTextHelpFormatter)
 
     argparser.add_argument('path',
             nargs="*",
             help="JSON file(s) and/or C++ header files, wildcards are allowed")
-    argparser.add_argument("-d",
-            "--docs",
+    argparser.add_argument("-d", "--docs",
             dest="docs",
             action="store_true",
             default=False,
             help="generate documentation")
-    argparser.add_argument("-c",
-            "--code",
+    argparser.add_argument("-c", "--code",
             dest="code",
             action="store_true",
             default=False,
             help="generate C++ code building JSON classes and complete JSON-RPC functionality (the latter only if applicable)")
-    argparser.add_argument("-s",
-            "--stubs",
-            dest="stubs",
-            action="store_true",
-            default=False,
-            help="generate C++ stub code for JSON-RPC (i.e. J*.j header file to fill in manually)")
-    argparser.add_argument("-o",
-            "--output",
+    argparser.add_argument("-o", "--output-dir",
             dest="output_dir",
             metavar="PATH",
             action="store",
             default=None,
             help="output directory, absolute path or directory relative to output file (default: output in the same directory as the source file)")
+    argparser.add_argument("--output",
+            dest="output_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help=argparse.SUPPRESS) # deprecated
     argparser.add_argument(
-            "--cpp-output",
+            "--cpp-output-dir",
             dest="cpp_output_dir",
             metavar="PATH",
             action="store",
             default=None,
             help="output directory for cpp files, absolute path or directory relative to output file")
     argparser.add_argument(
+            "--cpp-output",
+            dest="cpp_output_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help=argparse.SUPPRESS) # deprecated
+    argparser.add_argument(
+            "--project-dir",
+            dest="project_dir",
+            metavar="PATH",
+            action="store",
+            default=None,
+            help="project directory (where to look for Ids.h and Module.h, default: same location as the source file)")
+    argparser.add_argument(
             "--force",
             dest="force",
             action="store_true",
-            default=False,
+            default=FORCE,
             help= "force code generation even if destination appears up-to-date (default: force disabled)")
     argparser.add_argument(
-            "--no-warnings",
-            dest="no_warnings",
-            action="store_true",
-            default=False,
-            help= "disable all warnings (default: warnings enabled)")
+            "--warnings",
+            dest="warnings",
+            action=BoolAction,
+            default=True,
+            help= "report warnings")
 
     json_group = argparser.add_argument_group("JSON parser arguments (optional)")
     json_group.add_argument("-i",
@@ -162,18 +206,17 @@ def Parse(cmdline):
             action="append",
             type=str,
             default=[],
-            help=
-            "a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
-    json_group.add_argument("--no-ref-names",
-            dest="no_ref_names",
-            action="store_true",
-            default=False,
-            help="do not derive class names from $refs (default: derive class names from $ref)")
+            help="a directory with JSON API interfaces that will substitute the {interfacedir} tag (can be used multiple times)")
+    json_group.add_argument("--ref-names",
+            dest="ref_names",
+            action=BoolAction,
+            default=CLASSNAME_FROM_REF,
+            help="derive class names from $refs")
     json_group.add_argument("--duplicate-obj-warnings",
             dest="duplicate_obj_warnings",
-            action="store_true",
-            default=False,
-            help="enable duplicate object warnings (default: do not show duplicate object warnings)")
+            action=BoolAction,
+            default=DUPLICATE_OBJ_WARNINGS,
+            help="enable duplicate object warnings")
 
     cpp_group = argparser.add_argument_group("C++ parser arguments (optional)")
     cpp_group.add_argument("-j",
@@ -212,14 +255,14 @@ def Parse(cmdline):
     cpp_group.add_argument("--case-convention",
             dest="case_convention",
             type=str,
-            metavar="CONVENTION",
+            choices=["legacy", "legacy_lowercase", "standard", "keep"],
             action="store",
             default=DEFAULT_CASE_CONVENTION.value,
             help="select JSON-RPC case convention (default: %s)" % DEFAULT_CASE_CONVENTION.value)
     cpp_group.add_argument("--ignore-source-case-convention",
             dest="ignore_source_case_convention",
             action="store_true",
-            default=False,
+            default=IGNORE_SOURCE_CASE_CONVENTION,
             help="ignore case convention specified by source header file (default: don't ignore)")
 
     data_group = argparser.add_argument_group("C++ output arguments (optional)")
@@ -243,36 +286,66 @@ def Parse(cmdline):
             "--no-includes",
             dest="no_includes",
             action="store_true",
-            default=False,
+            default=NO_INCLUDES,
             help="do not emit #includes (default: include data and interface headers)")
     data_group.add_argument(
             "--no-versioning",
             dest="no_versioning",
             action="store_true",
-            default=False,
+            default=NO_VERSIONING,
             help= "do not emit versioning information for non-auto JSON interfaces (default: emit versioning header)")
-    data_group.add_argument(
-            "--auto-prefix",
-            dest="auto_prefix",
-            action="store_true",
-            default=False,
-            help= "prefix JSON-RPC endpoints with C++ namespace (default: no prefix)")
     data_group.add_argument("--legacy-alt",
             dest="legacy_alt",
             action="store_true",
-            default=False,
+            default=LEGACY_ALT,
             help="do not use framework's alt support (default: use framework alt support)")
     data_group.add_argument(
-            "--no-push-warning",
-            dest="no_push_warning",
-            action="store_true",
-            default=False,
-            help= "do not use PUSH/POP_WARNING macros in generated code (default: use macros)")
+            "--auto-prefix",
+            dest="auto_prefix",
+            action=BoolAction,
+            default=AUTO_PREFIX,
+            help= "prefix JSON-RPC endpoints with C++ namespace")
+    data_group.add_argument(
+            "--push-warning",
+            dest="push_warning",
+            action=BoolAction,
+            default=PUSH_WARNING,
+            help= "use PUSH/POP_WARNING macros in generated code")
+    data_group.add_argument(
+            "--strict-validation",
+            dest="strict_validation",
+            action=BoolAction,
+            default=STRICT_VALIDATION,
+            help= "enable strict input parameter validation")
+    data_group.add_argument(
+            "--strict-index-validation",
+            dest="strict_index_validation",
+            action=BoolAction,
+            default=None,
+            help= "enable strict index validation (default: follow --strict-validation option)")
+    data_group.add_argument(
+            "--restrict-checks",
+            dest="restrict_checks",
+            action=BoolAction,
+            default=EMIT_RESTRICT_CHECKS,
+            help="emit restrict checks")
+    data_group.add_argument(
+            "--optional-checks",
+            dest="optional_checks",
+            action=BoolAction,
+            default=EMIT_OPTIONAL_CHECKS,
+            help="emit optional checks")
+    data_group.add_argument(
+            "--stats",
+            dest="stats",
+            action=BoolAction,
+            default=STATS_FOR_NERDS,
+            help="register version with additional method count statistics")
     data_group.add_argument("--copy-ctor",
             dest="copy_ctor",
-            action="store_true",
-            default=False,
-            help="always emit a copy constructor and assignment operator (default: emit only when needed)")
+            action=BoolAction,
+            default=ALWAYS_EMIT_COPY_CTOR,
+            help="always emit a copy constructor and assignment operator")
     data_group.add_argument("--def-int-size",
             dest="def_int_size",
             metavar="SIZE",
@@ -295,17 +368,18 @@ def Parse(cmdline):
             default=FRAMEWORK_NAMESPACE,
             help="set framework namespace")
 
+
     doc_group = argparser.add_argument_group("Documentation output arguments (optional)")
-    doc_group.add_argument("--no-style-warnings",
-            dest="no_style_warnings",
-            action="store_true",
-            default=not DOC_ISSUES,
-            help="suppress documentation issues (default: show all documentation issues)")
-    doc_group.add_argument("--no-interfaces-section",
-            dest="no_interfaces_section",
-            action="store_true",
-            default=False,
-            help="do not include 'Interfaces' section (default: include interface section)")
+    doc_group.add_argument("--style-warnings",
+            dest="style_warnings",
+            action=BoolAction,
+            default=True,
+            help="report documentation issues")
+    doc_group.add_argument("--interfaces-section",
+            dest="interfaces_section",
+            action=BoolAction,
+            default=INTERFACES_SECTION,
+            help="include 'Interfaces' section")
     doc_group.add_argument("--source-location",
             dest="source_location",
             metavar="LN",
@@ -330,33 +404,43 @@ def Parse(cmdline):
     ts_group.add_argument("--keep-empty",
             dest="keep_empty",
             action="store_true",
-            default=False,
+            default=KEEP_EMPTY,
             help="keep generated files that have no code")
     ts_group.add_argument("--dump-json",
             dest="dump_json",
             action="store_true",
-            default=False,
+            default=DUMP_JSON,
             help="dump the intermediate JSON file created while parsing a C++ header")
-
 
     args = argparser.parse_args(cmdline[1:])
 
-    DOC_ISSUES = not args.no_style_warnings
-    NO_DUP_WARNINGS = not args.duplicate_obj_warnings
+    DUPLICATE_OBJ_WARNINGS = args.duplicate_obj_warnings
     INDENT_SIZE = args.indent_size
     ALWAYS_EMIT_COPY_CTOR = args.copy_ctor
     KEEP_EMPTY = args.keep_empty
-    CLASSNAME_FROM_REF = not args.no_ref_names
+    CLASSNAME_FROM_REF = args.ref_names
     DEFAULT_INT_SIZE = args.def_int_size
     DUMP_JSON = args.dump_json
     FORCE = args.force
     LEGACY_ALT = args.legacy_alt
     DEFAULT_DEFINITIONS_FILE = args.extra_include
-    INTERFACES_SECTION = not args.no_interfaces_section
+    INTERFACES_SECTION = args.interfaces_section
     INTERFACE_SOURCE_LOCATION = args.source_location
     INTERFACE_SOURCE_REVISION = args.source_revision
     AUTO_PREFIX = args.auto_prefix
     IGNORE_SOURCE_CASE_CONVENTION = args.ignore_source_case_convention
+    EMIT_RESTRICT_CHECKS = args.restrict_checks
+    EMIT_OPTIONAL_CHECKS = args.optional_checks
+    STRICT_VALIDATION = args.strict_validation
+
+    if args.project_dir:
+        if not os.path.isdir(args.project_dir):
+            sys.exit("ERROR: Project path '%s' is not a valid directory" % args.project_dir)
+        else:
+            PROJECT_DIRECTORY = args.project_dir
+
+    # index validation follows parameter validation setting unless it's explicitly set
+    STRICT_INDEX_VALIDATION = args.strict_validation if args.strict_index_validation is None else args.strict_index_validation
 
     if args.case_convention == "standard":
         DEFAULT_CASE_CONVENTION = CaseConvention.STANDARD
@@ -389,9 +473,11 @@ def Parse(cmdline):
     if "force" in args.format:
         RPC_FORMAT_FORCED = True
 
+    STATS_FOR_NERDS = args.stats
+
     NO_INCLUDES = args.no_includes
     NO_VERSIONING = args.no_versioning
-    NO_PUSH_WARNING = args.no_push_warning
+    PUSH_WARNING = args.push_warning
 
     JSON_INTERFACE_PATH = "" if args.if_path == "." else (posixpath.normpath(args.if_path) + os.sep)
     CPP_INTERFACE_PATH = "" if args.cpp_if_path == "." else (posixpath.normpath(args.cpp_if_path) + os.sep)

@@ -19,9 +19,19 @@ To use the `PluginSkeletonGenerator`, follow these steps:
     ```sh
     ./PluginSkeletonGenerator.py
     ```
-    Alternatively, you may pass in a config file through the command line. See Guide for more.
+    Alternatively, you can skip the prompts and provide the same values directly as command line arguments:
     ```sh
-    ./PluginSkeletonGenerator.py --config path/to/config.yaml
+    ./PluginSkeletonGenerator.py \
+      --plugin-name ExamplePlugin \
+      --out-of-process \
+      --plugin-config \
+      --path /home/Thunder/ThunderInterfaces/interfaces/ITest.h \
+      --precondition PLATFORM \
+      --termination TERMINATED \
+      --control TESTING \
+      --select-interface ITest.h:ITest \
+      --location ITest.h:interfaces \
+      --output-dir /tmp
     ```
 ## Guide
 
@@ -37,11 +47,20 @@ You'll be asked to provide the following:
 5. If your header file contains more than one root level interface, you are able to choose which intefaces to use.
 6. Which subfolder of the include path the interfaces your plugin will implement are located (default is interfaces)
 
-### Config File
+### Direct Command Line
 
-The command line option allows you to input a .yaml file.
+The direct command line mode accepts the same data as the interactive prompts:
 
-See the example Config.yaml file [here](Config.yaml)
+- `--plugin-name` / `-n`: plugin name.
+- `--output-dir` / `-o`: directory where the plugin folder should be created. Defaults to the current directory.
+- `--out-of-process`: generate an out-of-process plugin.
+- `--plugin-config`: generate custom plugin configuration support.
+- `--path` / `-p`: full path to an interface header. Use once per header.
+- `--precondition`, `--termination`, `--control`: Thunder subsystems. Use once per value.
+- `--select-interface`: select interfaces from a header with `HEADER:INTERFACE[,INTERFACE]`.
+- `--location`: set the include location for a header with `HEADER:LOCATION`.
+
+`HEADER` can be either the full header path or the header filename.
 
 ### Full manual
 For more extensive documentation and manual see [here](https://rdkcentral.github.io/Thunder/plugin/devtools/pluginskeletongenerator/)

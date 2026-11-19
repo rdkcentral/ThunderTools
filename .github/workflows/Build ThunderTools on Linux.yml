@@ -3,35 +3,47 @@ name: Build ThunderTools on Linux
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 on:
   workflow_dispatch:
   push:
-    branches: ["R5_3"]
+    branches: ["master", "R*"]
   pull_request:
-    branches: ["R5_3"]
+    branches: ["master", "R*"]
  
 jobs:
   Thunder:
-    uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@R5_3
+    uses: rdkcentral/Thunder/.github/workflows/Linux build template.yml@master
     with:
-      thunder_tools_ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || github.sha }}
+      thundertools-repository: ${{ github.repository }}
 
   ThunderInterfaces:
     needs: Thunder
-    uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@R5_3
+    uses: rdkcentral/ThunderInterfaces/.github/workflows/Linux build template.yml@master
 
   ThunderLibraries:
     needs: Thunder
-    uses: WebPlatformForEmbedded/ThunderLibraries/.github/workflows/Linux build template.yml@R5_3
+    uses: WebPlatformForEmbedded/ThunderLibraries/.github/workflows/Linux build template.yml@main
 
+  ThunderPluginActivator:
+    needs: Thunder
+    uses: rdkcentral/ThunderPluginActivator/.github/workflows/Linux build template.yml@main
+    
   ThunderClientLibraries:
     needs: ThunderInterfaces
-    uses: rdkcentral/ThunderClientLibraries/.github/workflows/Linux build template.yml@R5_3
+    uses: rdkcentral/ThunderClientLibraries/.github/workflows/Linux build template.yml@master
+
+  ThunderExtensions:
+    needs: ThunderInterfaces
+    uses: rdkcentral/ThunderExtensions/.github/workflows/Linux build template.yml@main
 
   ThunderNanoServices:
     needs: ThunderInterfaces
-    uses: rdkcentral/ThunderNanoServices/.github/workflows/Linux build template.yml@R5_3
+    uses: rdkcentral/ThunderNanoServices/.github/workflows/Linux build template.yml@master
 
   ThunderNanoServicesRDK:
     needs: ThunderInterfaces
-    uses: WebPlatformForEmbedded/ThunderNanoServicesRDK/.github/workflows/Linux build template.yml@R5_3
+    uses: WebPlatformForEmbedded/ThunderNanoServicesRDK/.github/workflows/Linux build template.yml@master

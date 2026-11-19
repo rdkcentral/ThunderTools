@@ -1,0 +1,115 @@
+# Copyright 2026 Metrological
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+message(STATUS "Configuring JSON-RPC functional tests")
+
+add_executable(JsonRpcFunctionalTests
+    Module.cpp
+    JsonRpcServer.cpp
+    Main.cpp
+)
+
+target_include_directories(JsonRpcFunctionalTests
+    PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+)
+
+if(TEST_ASYNC)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAsyncJsonRpc.cpp)
+endif()
+
+if(TEST_ENUMS)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestEnumsJsonRpc.cpp)
+endif() 
+
+if(TEST_PRIMITIVES)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestPrimitivesJsonRpc.cpp)
+endif()
+
+if(TEST_STRUCTS)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestStructsJsonRpc.cpp)
+endif()
+
+if(TEST_RESTRICTIONS)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestRestrictionsJsonRpc.cpp)
+endif()
+
+if(TEST_ENCODING_MAC)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestEncodingMacJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_SHAPE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonShapeJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_TEXT_KEEP)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonTextKeepJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_TEXT_CASE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonTextCaseJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_COMPLIANT)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonCompliantJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_UNCOMPLIANT_EXT)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantExtendedJsonRpc.cpp)
+endif()
+
+if(TEST_JSON_UNCOMPLIANT_COL)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestJsonUncompliantCollapsedJsonRpc.cpp)
+endif()
+
+if(TEST_ANNOTATIONS)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAnnotationsJsonRpc.cpp)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestAnnotationsEventsJsonRpc.cpp)
+endif()
+
+if(TEST_EXTENDED_FORMAT)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestExtendedFormatJsonRpc.cpp)
+endif()
+
+if(TEST_PREFIX_UNDERSCORE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestPrefixUnderscoreJsonRpc.cpp)
+endif()
+
+if(TEST_WRAPPED_INTERFACE)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestWrappedInterfaceJsonRpc.cpp)
+endif()
+
+if(TEST_RICH_ERROR)
+    target_sources(JsonRpcFunctionalTests PRIVATE tests/TestRichErrorJsonRpc.cpp)
+endif()
+
+# TEST_LENGTH_MODES is COM-RPC only — @length:return uses uint16_t return type which JsonGenerator does not support
+
+target_link_libraries(JsonRpcFunctionalTests
+    PRIVATE
+        thunder_test_support
+        ${NAMESPACE}Core::${NAMESPACE}Core
+        ${NAMESPACE}COM::${NAMESPACE}COM
+        ${NAMESPACE}WebSocket::${NAMESPACE}WebSocket
+        ${NAMESPACE}Cryptalgo::${NAMESPACE}Cryptalgo
+        ${NAMESPACE}Plugins::${NAMESPACE}Plugins
+        GTest::GTest
+        CompileSettingsDebug::CompileSettingsDebug
+        -Wl,--whole-archive FunctionalTestCommon -Wl,--no-whole-archive
+        FunctionalTestJsonSources
+)
+
+add_test(NAME JsonRpcFunctionalTests COMMAND JsonRpcFunctionalTests)
+
+set_tests_properties(JsonRpcFunctionalTests PROPERTIES TIMEOUT 3600)

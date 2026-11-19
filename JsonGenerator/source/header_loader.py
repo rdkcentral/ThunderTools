@@ -31,6 +31,9 @@ sys.path.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pard
 import ProxyStubGenerator.CppParser as CppParser
 import ProxyStubGenerator.Interface as CppInterface
 
+MODULE_FILE = "Module.h"
+IDS_FILE = "Ids.h"
+
 
 class CaseConverter:
     OBJECTS = 0
@@ -60,7 +63,7 @@ class CaseConverter:
             if not string.isupper() and '_' not in string:
                 _pascal = [x[0].upper() + x[1:] for x in _split]
             else:
-                _pascal = [x.capitalize() for x in _split]
+                _pascal = [x.title() for x in _split]
 
             if uppercase:
                 if _split[0].isupper() and not string.isupper() and '_' not in string:
@@ -194,7 +197,7 @@ def compute_name(log, converter, object, argument_type, relay=None, is_property=
         transformed = overriden if overriden else name
 
         if overriden == name:
-            log.WarnLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
+            log.InfoLine(object, "'%s': overriden name is same as default ('%s')" % (overriden, name))
 
     return transformed
 
@@ -321,7 +324,7 @@ def LoadEnumDefinitionsInternal(file, tree, ns, log, scanned, all = False, inclu
         return [], []
 
 
-def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_paths = []):
+def LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths):
 
     def StripInterfaceNamespace(identifier):
         return str(identifier).replace(ns + "::", "")
@@ -353,7 +356,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     is_iterator = isinstance(var_type.type, CppParser.Class) and var_type.type.is_iterator
 
                     if not var.meta.output:
-                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Enum)):
+                        if isinstance(var_type.type, (CppParser.Integer, CppParser.Int24, CppParser.Enum, CppParser.Bool)):
                             if not var.meta.default and not quiet:
                                 log.WarnLine(var, "%s: default value is assumed to be (%s)0 (use @default with @optional)" % (var.name, var.type.TypeName()))
                         elif not isinstance(var_type.type, (CppParser.String, CppParser.Vector, CppParser.Class)) or (var_type.IsPointer() and not is_iterator):
@@ -457,12 +460,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         clash_msg = "JSON-RPC name clash detected"
 
         passed_interfaces = []
-
-        event_interfaces = set()
+        event_interfaces = []
 
         for interface in face.obj.classes:
             if interface.is_event:
-                event_interfaces.add(CppInterface.Interface(interface, 0, file))
+                event_interfaces.append(CppInterface.Interface(interface, 0, file))
 
         def ResolveTypedef(type, parent=type):
             if isinstance(type, str):
@@ -555,7 +557,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     result = ["array", props]
 
                 # C-style buffers converted to JSON array (not char type or fixed array)
-                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
+                elif isinstance(cppType, (CppParser.Class, CppParser.String, CppParser.Bool, CppParser.Integer, CppParser.Int24, CppParser.Float, CppParser.Enum, CppParser.Optional)) and var.array:
                     if encoding:
                         raise CppParseError(var, "'%s': @encode only available for char buffers" % var.name)
 
@@ -580,8 +582,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                     props = {}
 
-                    props["items"] = ConvertParameter(currentMethod.retval, quiet=quiet)
-                    props["@iterator"] = StripInterfaceNamespace(cppType.type)
+                    props["items"] = ConvertParameter(currentMethod.retval, is_member=True, quiet=quiet)
+                    props["@iterator"] = StripFrameworkNamespace(cppType.type)
                     props["@proto"]= var.ProtoFmt()
 
                     if var_type.IsPointerToConst():
@@ -600,9 +602,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 # All other pointer types are not supported
                 else:
                     raise CppParseError(var, "unable to convert C++ type to JSON type: %s (input pointer allowed only on interator or C-style buffer)" % cppType.type)
-
-                if "extract" in meta.decorators:
-                    result[1]["@extract"] = True
 
             elif var_type.IsPointer() and not isinstance(cppType, CppParser.Class) and not no_array and not is_bitmask:
                 raise CppParseError(var, "unable to convert C++ type to JSON type, missing @length?")
@@ -626,6 +625,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         32 if cppType.size == "int" or cppType.size == "long" else 64 if cppType.size == "long long" else 32
 
                     result = [ "integer", { "size": size, "signed": cppType.signed } ]
+
+                # Int24
+                elif isinstance(cppType, CppParser.Int24):
+                    result = [ "integer", { "size": 24, "signed": cppType.signed } ]
 
                 # Instance ID
                 elif isinstance(cppType, CppParser.InstanceId):
@@ -654,9 +657,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 # std::vector
                 elif isinstance(cppType, CppParser.DynamicArray):
                     if isinstance(cppType.element.Type().type, (CppParser.Optional, CppParser.DynamicArray)):
-                        raise CppParseError(var, "usupported type for std::vector element")
+                        raise CppParseError(var, "unsupported type for std::vector element")
 
-                    props = { "items": ConvertParameter(cppType.element, quiet=quiet), "@container": "vector" }
+                    props = { "items": ConvertParameter(cppType.element, is_member=True, quiet=quiet), "@container": "vector" }
 
                     if meta.range:
                         props["range"] = meta.range.as_list
@@ -697,7 +700,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 if p.meta.brief:
                                     properties[p_name]["description"] = p.meta.brief
                             else:
-                                properties[p_name] = ConvertParameter(p, quiet=quiet)
+                                properties[p_name] = ConvertParameter(p, is_member=True, quiet=quiet)
 
                             properties[p_name]["@originalname"] = p.name
 
@@ -736,8 +739,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                         async_method["@originaltype"] = StripFrameworkNamespace(cppType.type)
                                         async_method["params"] = BuildParameters(None, im.vars, rpc_format)
 
-                                        if BuildResult(im.vars)["type"] != "null":
+                                        if BuildResult(im, im.vars)["type"] != "null":
                                             raise CppParseError(im, "async callback method must not return anything")
+
+                                        if BuildRichError(im, im.vars)["type"] != "null":
+                                            raise CppParseError(im, "async callback method must not return a rich error object")
 
                                         if not isinstance(im.retval.Type().type, CppParser.Void):
                                             raise CppParseError(im, "async callback method must have void return value")
@@ -769,6 +775,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     result[1]["@proto"] = var.ProtoFmt()
 
             if result:
+                if "extract" in meta.decorators:
+                    result[1]["@extract"] = True
+
                 if meta.range.is_set:
                     result[1]["range"] = meta.range.as_list
 
@@ -794,16 +803,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
             else:
                 return None
 
-        def ConvertParameter(var, quiet=False, no_array=False):
+        def ConvertParameter(var, quiet=False, no_array=False, is_member=False):
             jsonType, args = ConvertType(var, quiet=quiet, no_array=no_array)
             properties = {"type": jsonType}
 
             if args != None:
                 properties.update(args)
-                try:
-                    properties["@originaltype"] = StripFrameworkNamespace(var.type.Type().full_name)
-                except:
-                    pass
+                if "@originaltype" not in properties:
+                    properties["@originaltype"] = StripFrameworkNamespace(var.type.TypeName())
 
             if var.meta.brief:
                 # Also attempt to craft some description
@@ -816,6 +823,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
             if var.meta.is_deprecated:
                 properties["deprecated"] = True
+
+            if is_member:
+                # Some tags are invalid inside a strcut/array/vector/iterator...
+                if var.meta.output or var.meta.input:
+                    raise CppParseError(var, "@in @out @inout tags are invalid here")
+                if "extract" in var.meta.decorators:
+                    raise CppParseError(var, "@extract tag is invalid here")
 
             return properties
 
@@ -871,12 +885,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     raise CppParseError(var, "type and default value type mismatch (expected %s, got '%s')" % (converted.get("@originaltype"), var.meta.default[0]))
 
 
-        def BuildParameters(obj, vars, rpc_format, is_property=False, test=False):
+        def BuildParameters(obj, vars, rpc_format, is_property=False, is_index=False, test=False):
             params = {"type": "object"}
             properties = OrderedDict()
             required = []
 
             method_asynchronous = False
+            extracted = None
 
             for idx,var in enumerate(vars):
                 if isinstance(var.type, list):
@@ -924,9 +939,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
                         converted["@position"] = vars.index(var)
 
-                        if not handle_optional(var, ResolveTypedef(var.type), converted, test):
-                            required.append(var_name)
-
                         if converted["type"] == "string" and not var.type.IsReference() and not var.type.IsPointer() \
                                 and not "enum" in converted and not "time" in converted:
                             log.WarnLine(var, "'%s': passing input string by value (forgot &?)" % var.name)
@@ -934,7 +946,27 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if converted.get("@optionaltype") and not var.type.IsReference():
                             log.WarnLine(var, "'%s': passing input optional type by value (forgot &?)" % var.name)
 
-                        properties[var_name] = converted
+                        if converted.get("@extract"):
+                            if not extracted:
+                                if converted["type"] == "object":
+                                    if is_property or is_index:
+                                        raise CppParseError(var, "@extract not allowed on this parameter")
+
+                                    properties = converted["properties"]
+                                    params["@originaltype"] = converted["@originaltype"]
+                                    required = converted["required"]
+                                    extracted = var
+                                elif converted["type"] != "array":
+                                    raise CppParseError(var, "@extract not supported for this type")
+                                else:
+                                    properties[var_name] = converted
+                            else:
+                                raise CppParseError(var, "multiple @extract object parameters")
+                        else:
+                            properties[var_name] = converted
+
+                            if not handle_optional(var, ResolveTypedef(var.type), converted, test):
+                                required.append(var_name)
 
 
             params["properties"] = properties
@@ -957,26 +989,54 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 else:
                     return params
 
-        def BuildIndex(var, test=False):
-            return BuildParameters(None, [var], rpc_format.COLLAPSED, True, test)
+        def IsRichError(var, var_type):
+            is_richerror = False
 
-        def BuildResult(vars, is_property=False, test=False, method=None):
+            if isinstance(var_type.type, CppParser.Optional):
+                resolved = ResolveTypedef(var_type.type.optional.type)
+                if isinstance(resolved.type, CppParser.Class):
+                    is_richerror = "richerror" in resolved.type.meta.decorators
+            else:
+                is_richerror =  isinstance(var_type.type, CppParser.Class) and "richerror" in var_type.type.meta.decorators
+
+            if not isinstance(var_type.type, CppParser.Optional) and is_richerror:
+                raise CppParseError(var, "rich error parameter must be a Core::OptionalType<T> type")
+
+            return is_richerror
+
+        def BuildIndex(var, test=False):
+            return BuildParameters(None, [var], rpc_format.COLLAPSED, is_property=False, is_index=True, test=test)
+
+        def BuildResult(method, vars, is_property=False, test=False, error=False):
             params = {"type": "object"}
             properties = OrderedDict()
             required = []
 
-            method_wrapped = method and "wrapped" in method.retval.meta.decorators
+            method_wrapped = not error and method and "wrapped" in method.retval.meta.decorators
+            extracted = None
+            has_richerror = False
 
             for idx,var in enumerate(vars):
                 var_type = ResolveTypedef(var.type)
 
-                if var.meta.output:
+                is_richerror = IsRichError(var, var_type)
+
+                if is_richerror:
+                    if has_richerror:
+                        raise CppParseError(var, "only one rich error parameter is expected")
+
+                    if not var.meta.output or var.meta.input:
+                        raise CppParseError(var, "rich error parameter must be an output parameter")
+
+                    has_richerror = True
+
+                if var.meta.output and (is_richerror == error):
                     var_name = compute_name(log, _case_converter, var, _case_converter.PARAMS, is_property=is_property)
 
                     if var_name.startswith("__anonymous_"):
                         raise CppParseError(var, "unnamed parameter %s (result)" % (idx + 1))
 
-                    properties[var_name] = ConvertParameter(var, quiet=test)
+                    converted = ConvertParameter(var, quiet=test)
 
                     if var_type.IsValue():
                         raise CppParseError(var, "parameter marked with @out tag must be either a reference or a pointer")
@@ -985,12 +1045,30 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         raise CppParseError(var, "parameter marked with @out tag must not be const")
 
                     if not is_property and not var.name.startswith("__anonymous_"):
-                        properties[var_name]["@originalname"] = var.name
+                        converted["@originalname"] = var.name
 
-                    properties[var_name]["@position"] = vars.index(var)
+                    converted["@position"] = vars.index(var)
 
-                    if not handle_optional(var, var_type, properties[var_name], test):
+                    if not handle_optional(var, var_type, converted, test):
                         required.append(var_name)
+
+                    if converted.get("@extract"):
+                        if not extracted:
+                            if converted["type"] == "object":
+                                if is_property:
+                                    raise CppParseError(var, "@extract not allowed on property parameters")
+
+                                properties = converted["properties"]
+                                params["@originaltype"] = converted["@originaltype"]
+                                extracted = var
+                            elif converted["type"] != "array":
+                                raise CppParseError(var, "@extract not supported for this type")
+                            else:
+                                properties[var_name] = converted
+                        else:
+                            raise CppParseError(var, "multiple @extract object parameters")
+                    else:
+                        properties[var_name] = converted
 
             params["properties"] = properties
 
@@ -1001,7 +1079,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 log.WarnLine(method, "%s(): @wrapped has no effect on this method" % method.name)
 
             if len(properties) == 1:
-                if not is_property and (method_wrapped or (wrapped_result and properties[list(properties.keys())[0]]["type"] != "object")):
+                if (method_wrapped or (not is_property and wrapped_result and properties[list(properties.keys())[0]]["type"] != "object")):
                     params["required"] = required
                     return params
                 else:
@@ -1013,6 +1091,9 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 void = {"type": "null"}
                 void["description"] = "Always null"
                 return void
+
+        def BuildRichError(method, vars):
+            return BuildResult(method, vars, error=True)
 
         def compute_prefix(log, converter, obj, suffix=None):
             prefix = ""
@@ -1060,6 +1141,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         mm.retval.meta.alt = method.retval.meta.alt
                         break
 
+            # Copy over decorators the other method of a property
+            if method.retval.meta.decorators and method.retval.meta.is_property:
+                for mm in face.obj.methods:
+                    if mm != method and mm.name == method.name:
+                        mm.retval.meta.decorators = method.retval.meta.decorators
+                        break
+
             method_name = compute_name(log, _case_converter, method.retval, _case_converter.METHODS, relay=method)
 
             if method.retval.meta.alt == method_name:
@@ -1099,9 +1187,6 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 if "async" in method.retval.meta.decorators:
                     raise CppParseError(method, "a property cannot be asynchronous")
 
-                if "wrapped" in method.retval.meta.decorators:
-                    log.WarnLine(method, "%s(): @wrapped is not supported for properties" % method.name)
-
                 try:
                     obj = properties[prefix + method_name]
                 except:
@@ -1111,33 +1196,48 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                 obj["@originalname"] = method.name
                 method.retval.meta.is_property = True
 
-                indexed_property = (len(method.vars) == 2 and method.vars[0].meta.is_index)
+                max_params = 1
+                index_var = None
+                value_var = None
 
-                if len(method.vars) == 1 or (len(method.vars) == 2 and indexed_property):
-                    if indexed_property:
-                        #if method.vars[0].type.IsPointer():
-                        #    raise CppParseError(method.vars[0], "index to a property must not be a pointer")
+                for idx, var in enumerate(method.vars):
+                    var_type = ResolveTypedef(var.type)
 
-                        if not method.vars[0].type.IsConst() and method.vars[0].type.IsReference():
-                            raise CppParseError(method.vars[0], "index to a property must be an const input parameter")
+                    if IsRichError(var, var_type):
+                        raise CppParseError(var, "properties must not have a rich error parameter")
+
+                if (len(method.vars) > 1 and method.vars[0].meta.is_index):
+                    index_var = method.vars[0]
+                    value_var = method.vars[1]
+                    max_params += 1
+                elif method.vars:
+                    value_var = method.vars[0]
+
+                if not value_var:
+                    raise CppParseError(method, "invalid method for a property")
+
+                if len(method.vars) <= max_params:
+                    if index_var is not None:
+                        if not index_var.type.IsConst() and index_var.type.IsReference():
+                            raise CppParseError(index_var, "index to a property must be an const input parameter")
 
                         if "index" not in obj:
                             obj["index"] = [None, None]
 
                         _index_idx = (0 if "const" in method.qualifiers else 1)
 
-                        obj["index"][_index_idx] = BuildIndex(method.vars[0])
+                        obj["index"][_index_idx] = BuildIndex(index_var)
                         _index = obj["index"][_index_idx]
 
                         if _index:
-                            _index["name"] = _case_converter.transform(method.vars[0].name, _case_converter.PARAMS)
-                            _index["@originalname"] = method.vars[0].name
+                            _index["name"] = _case_converter.transform(index_var.name, _case_converter.PARAMS)
+                            _index["@originalname"] = index_var.name
 
                             if "example" not in _index:
                                 # example not specified, let's invent something...
 
-                                if method.vars[0].meta.default:
-                                    _index["example"] = method.vars[0].meta.default[0]
+                                if index_var.meta.default:
+                                    _index["example"] = index_var.meta.default[0]
                                 elif "enum" in _index:
                                     _index["example"] = _index["enum"][0]
                                 else:
@@ -1146,13 +1246,13 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 _index["fake_example"] = True
 
                             if _index["type"] not in ["integer", "string", "boolean"]:
-                                raise CppParseError(method.vars[0], "index to a property must be integer, enum, boolean, string, encoded array of bytes or encoded std::vector of bytes")
+                                raise CppParseError(index_var, "index to a property must be integer, enum, boolean, string, encoded array of bytes or encoded std::vector of bytes")
                         else:
-                            raise CppParseError(method.vars[0], "failed to determine type of index")
+                            raise CppParseError(index_var, "failed to determine type of index")
 
                         if obj["index"][0] and obj["index"][1]:
                             if obj["index"][0]["type"] != obj["index"][1]["type"]:
-                                raise CppParseError(method.vars[0], "setter and getter of the same property must have same index type")
+                                raise CppParseError(index_var, "setter and getter of the same property must have same index type")
 
                             if "description" in obj["index"][0] and "description" not in obj["index"][1]:
                                 obj["index"][1]["description"] = obj["index"][0]["description"]
@@ -1167,16 +1267,12 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 del obj["index"][1]["fake_example"]
 
                         if method.vars[1].meta.is_index:
-                            raise CppParseError(method.vars[0], "index must be the first parameter to property method")
-
-                        value = 1
-                    else:
-                        value = 0 # no index
+                            raise CppParseError(method.vars[1], "index must be the first parameter to property method")
 
                     if "const" in method.qualifiers:
                         # getter
-                        if method.vars[value].type.IsConst():
-                            raise CppParseError(method.vars[value], "property getter method must not use const parameter")
+                        if value_var.type.IsConst():
+                            raise CppParseError(value_var, "property getter method must not use const parameter")
                         else:
                             # These are predefined by JSON-RPC standerd, so do not follow case convention rules
                             if rpc_format == config.RpcFormat.COLLAPSED:
@@ -1190,25 +1286,25 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 obj["readonly"] = True
 
                             if result_name not in obj:
-                                obj[result_name] = BuildResult([method.vars[value]], True, False, method)
+                                obj[result_name] = BuildResult(method, [value_var], is_property=True)
                             else:
-                                test = BuildResult([method.vars[value]], True, True, method)
+                                test = BuildResult(method, [value_var], is_property=True, test=True)
 
                                 if not test:
-                                    raise CppParseError(method.vars[value], "property getter method must have one output parameter")
+                                    raise CppParseError(value_var, "property getter method must have one output parameter")
 
                                 if obj[result_name]["type"] != test["type"]:
-                                    raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*1)")
+                                    raise CppParseError(value_var, "setter and getter of the same property must have same type (*1)")
 
                                 if "@bypointer" in test and test["@bypointer"]:
                                     obj[result_name]["@bypointer"] = True
 
                             if obj[result_name] == None:
-                                raise CppParseError(method.vars[value], "property getter method must have one output parameter")
+                                raise CppParseError(value_var, "property getter method must have one output parameter")
                     else:
                         # setter
-                        if not method.vars[value].type.IsConst():
-                            raise CppParseError(method.vars[value], "property setter method must use a const parameter")
+                        if not value_var.type.IsConst():
+                            raise CppParseError(value_var, "property setter method must use a const parameter")
                         else:
                             if "readonly" in obj:
                                 del obj["readonly"]
@@ -1216,25 +1312,25 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 obj["writeonly"] = True
 
                             if "params" not in obj:
-                                obj["params"] = BuildParameters(None, [method.vars[value]], rpc_format, True, False)
+                                obj["params"] = BuildParameters(None, [value_var], rpc_format, is_property=True)
                             else:
-                                test = BuildParameters(None, [method.vars[value]], rpc_format, True, True)
+                                test = BuildParameters(None, [value_var], rpc_format, is_property=True, test=True)
 
                                 if not test:
-                                    raise CppParseError(method.vars[value], "property setter method must have one input parameter")
+                                    raise CppParseError(value_var, "property setter method must have one input parameter")
 
                                 if obj["params"]["type"] != test["type"]:
-                                    raise CppParseError(method.vars[value], "setter and getter of the same property must have same type (*2)")
+                                    raise CppParseError(value_var, "setter and getter of the same property must have same type (*2)")
 
                                 if "@bypointer" in test and test["@bypointer"]:
                                     obj[result_name]["@bypointer"] = True
 
                             if obj["params"] == None or obj["params"]["type"] == "null":
-                                raise CppParseError(method.vars[value], "property setter method must have one input parameter")
+                                raise CppParseError(value_var, "property setter method must have one input parameter")
                 else:
-                    raise CppParseError(method, "property method must have one parameter")
+                    raise CppParseError(method, "properties must have one parameter and at most one index parameter")
 
-            elif not event_params:
+            elif not event_params: # method is not related to notifications
                 var_type = ResolveTypedef(method.retval.type)
 
                 if var_type and ((isinstance(var_type.Type(), CppParser.Integer) and (var_type.Type().size == "long")) or not verify):
@@ -1248,17 +1344,17 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                         if "async" in method.retval.meta.decorators:
                             obj["@async"] = True
 
-                        #if "properties" in params and params["properties"]:
-                        #    if method.name.lower() in [x.lower() for x in params["required"]]:
-                        #        raise CppParseError(method, "parameters must not use the same name as the method")
+                    error = BuildRichError(method, method.vars)
+                    if error and error["type"] != "null":
+                        obj["error"] = error
 
-
-                    obj["result"] = BuildResult(method.vars, method=method)
+                    obj["result"] = BuildResult(method, method.vars)
                     methods[prefix + method_name] = obj
 
                 else:
                     raise CppParseError(method, "method return type must be uint32_t (error code), i.e. pass other return values by reference parameter")
             else:
+                # See if index is by a Register method
                 for p in method.vars:
                     if p.meta.is_index:
                         index_found = False
@@ -1269,6 +1365,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                         for evmp in evm.vars:
                                             if evmp.name == p.name:
                                                 if "index-by-register" not in evmp.meta.decorators:
+                                                    # If index is also tagged by method the they must not differ in depracation tag
                                                     if "index-deprecated" in p.meta.decorators:
                                                         if "index-deprecated" not in evmp.meta.decorators and evmp.meta.is_index:
                                                             raise CppParseError(evm, "%s: event index depreciation mismatch (expected @index:deprecated)" % evmp.name)
@@ -1277,12 +1374,14 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                                         raise CppParseError(evm, "%s: event index depreciation mismatch (did not expect @index:deprecated)" % evmp.name)
 
                                                     if evmp.meta.is_index:
-                                                        log.WarnLine(evm, "%s: @index is deprecated here, already specified by registration method '%s'" % (evmp.name, evm.full_name))
+                                                        log.WarnLine(evm, "%s: @index is redundant here, already specified by registration method '%s'" % (evmp.name, evm.full_name))
 
                                                     evmp.meta.decorators.append("index-by-register")
                                                     evmp.meta.is_index = True
 
-                                                    if isinstance(p.type.type, CppParser.Optional):
+                                                    # Usually index by Register will be optional, so allow the difference in optionality (but not in the underylying type!)
+                                                    # and the index in method will implicitly also be made optional
+                                                    if isinstance(p.type.type, CppParser.Optional) and not isinstance(evmp.type.type, CppParser.Optional):
                                                         evmp.type.type = CppParser.Optional(CppParser.OptionalElement(evmp, [evmp.type.type.type]))
                                                         evmp.type.ref |= CppParser.Ref.REFERENCE
 
@@ -1292,7 +1391,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                                 index_found = True
 
                         if not index_found:
-                            raise CppParseError(p, "event index '%s' not found in any event methods" % p.name)
+                            raise CppParseError(p, "event index '%s' not found in any of the %s methods" % (p.name, ", ".join([x.full_name for x in event_params])))
 
             if obj:
                 if method.retval.meta.is_deprecated:
@@ -1364,6 +1463,8 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
         for f in event_interfaces:
             rpc_format = _EvaluateRpcFormat(f.obj)
 
+            log.Info("Emitting notification helpers for %s" % f.obj.full_name)
+
             for method in f.obj.methods:
                 EventParameters(method.vars) # just to check for undefined types...
 
@@ -1371,6 +1472,10 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     obj = OrderedDict()
                     obj["@originalname"] = method.name
                     varsidx = 0
+
+                    return_value = ConvertParameter(method.retval)
+                    if return_value["type"] != "null":
+                        raise CppParseError(method, "%s: JSON-RPC notification method must not have a return value" % method.name)
 
                     if len(method.vars) > 0:
                         for v in method.vars[1:]:
@@ -1388,15 +1493,22 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                                 raise CppParseError(method, "%s: index to a notification must be an input parameter" % method.vars[0].name)
 
                             if not "index-by-register" in method.vars[0].meta.decorators:
-                                log.WarnLine(method, "%s: @index is deprecated here, declare in event registration method instead" % method.vars[0].name)
+                                def MaybeWarning():
+                                    for e in interfaces:
+                                        for m in e.obj.methods:
+                                            for p in m.vars:
+                                                if isinstance(p.type.type, CppParser.Class) and p.type.type.is_event and p.type.type.full_name == f.obj.full_name:
+                                                    log.WarnLine(method, "%s: @index is not recommended here, declare in event registration method instead: %s()" % (method.vars[0].name, m.full_name))
+                                                    return
+                                MaybeWarning()
 
-                            obj["id"] = BuildParameters(None, [method.vars[0]], config.RpcFormat.COLLAPSED, True, False)
+                            obj["id"] = BuildIndex(method.vars[0])
 
                             deprecated = "index-deprecated" in method.vars[0].meta.decorators
 
                             if obj["id"]:
                                 obj["id"]["name"] = method.vars[0].name
-                                obj["id"]["@originalname"] = "designatorId_" if deprecated else "index_"
+                                obj["id"]["@originalname"] = "index_"
                                 obj["id"]["@generated"] = True
 
                                 if deprecated:
@@ -1417,11 +1529,11 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if "statuslistener" in method.retval.meta.decorators:
                         obj["statuslistener"] = True
 
-                    params = BuildParameters(None, method.vars[varsidx:], rpc_format, False)
-                    retvals = BuildResult(method.vars[varsidx:], method=method)
+                    params = BuildParameters(None, method.vars[varsidx:], rpc_format)
+                    retvals = BuildResult(method, method.vars[varsidx:])
 
                     if retvals and retvals["type"] != "null":
-                        raise CppParseError(method, "output parameters are invalid for JSON-RPC events")
+                        raise CppParseError(method, "%s: JSON-RPC notification method must not have output parameters" % method.name)
 
                     if method.retval.meta.is_deprecated:
                         obj["deprecated"] = True
@@ -1448,8 +1560,7 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
                     if method.parent.is_event: # excludes .json inlcusion of C++ headers
                         for mm in events:
                             if mm == prefix + method_name:
-                                # raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
-                                method_name += "#"
+                                raise CppParseError(method, "%s ('%s')" % (clash_msg, prefix + method_name))
                             if method.retval.meta.alt and (mm == prefix + method.retval.meta.alt):
                                 raise CppParseError(method, "%s ('%s' alternative)" % (clash_msg, prefix + method_name))
                             if events[mm].get("alt") == method_name:
@@ -1543,14 +1654,27 @@ def LoadInterfaceInternal(file, tree, ns, log, scanned, all = False, include_pat
 
     return schemas, []
 
-def LoadInterface(file, log, all = False, include_paths = []):
+def LoadInterface(file, log, all, include_paths):
     try:
         schemas = []
         includes = []
         scanned = []
 
-        tree = CppParser.ParseFiles([os.path.join(os.path.dirname(os.path.realpath(__file__)),
-                   posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)), file], config.FRAMEWORK_NAMESPACE, include_paths, log)
+        source_path = os.path.dirname(file)
+
+        files = []
+        files.append(os.path.join(os.path.dirname(os.path.realpath(__file__)), posixpath.normpath(config.DEFAULT_DEFINITIONS_FILE)))
+
+        if config.PROJECT_DIRECTORY:
+            files.append("@" + os.path.join(config.PROJECT_DIRECTORY, MODULE_FILE))
+            files.append("@" + os.path.join(config.PROJECT_DIRECTORY, IDS_FILE))
+        else:
+            files.append("@" + os.path.join(source_path, MODULE_FILE))
+            files.append("@" + os.path.join(source_path, IDS_FILE))
+
+        files.append(file)
+
+        tree = CppParser.ParseFiles(files, config.FRAMEWORK_NAMESPACE, include_paths, log)
 
         for ns in config.INTERFACE_NAMESPACES:
             their_schemas, their_includes = LoadInterfaceInternal(file, tree, ns, log, scanned, all, include_paths)
