@@ -1,0 +1,423 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#include <gtest/gtest.h>
+#include "TestHarness.h"
+#include <ITestOptionals.h>
+
+using namespace Thunder;
+using namespace Thunder::FunctionalTest;
+
+class TestOptionals : public Testing::TestHarness<ITestOptionals> {};
+
+// ===== Optional input =====
+
+TEST_F(TestOptionals, Add_BothSet) {
+    uint32_t result = 0;
+    ASSERT_EQ(_proxy->Add(10, Core::OptionalType<uint32_t>(5), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 15u);
+}
+
+TEST_F(TestOptionals, Add_BIsUnset_DefaultsToZero) {
+    uint32_t result = 0;
+    ASSERT_EQ(_proxy->Add(10, Core::OptionalType<uint32_t>(), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 10u);
+}
+
+TEST_F(TestOptionals, Multiply_BothSet) {
+    int32_t result = 0;
+    ASSERT_EQ(_proxy->Multiply(7, Core::OptionalType<int32_t>(3), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 21);
+}
+
+TEST_F(TestOptionals, Multiply_MultiplierUnset_ReturnsValue) {
+    int32_t result = 0;
+    ASSERT_EQ(_proxy->Multiply(7, Core::OptionalType<int32_t>(), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 7);
+}
+
+TEST_F(TestOptionals, Concatenate_BothSet) {
+    string result;
+    ASSERT_EQ(_proxy->Concatenate("Hello", Core::OptionalType<string>(" World"), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "Hello World");
+}
+
+TEST_F(TestOptionals, Concatenate_SecondUnset) {
+    string result;
+    ASSERT_EQ(_proxy->Concatenate("Hello", Core::OptionalType<string>(), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "Hello");
+}
+
+// ===== Optional output =====
+TEST_F(TestOptionals, Divide_WithRemainder) {
+    uint32_t quotient = 0;
+    Core::OptionalType<uint32_t> remainder(0u); // IsSet = true → server fills it
+    ASSERT_EQ(_proxy->Divide(17, 5, quotient, remainder), Core::ERROR_NONE);
+    EXPECT_EQ(quotient, 3u);
+    ASSERT_TRUE(remainder.IsSet());
+    EXPECT_EQ(remainder.Value(), 2u);
+}
+
+TEST_F(TestOptionals, Divide_WithoutRemainder) {
+    uint32_t quotient = 0;
+    Core::OptionalType<uint32_t> remainder; // IsSet = false → server skips it
+    ASSERT_EQ(_proxy->Divide(17, 5, quotient, remainder), Core::ERROR_NONE);
+    EXPECT_EQ(quotient, 3u);
+    EXPECT_FALSE(remainder.IsSet());
+}
+
+TEST_F(TestOptionals, Divide_ByZero) {
+    uint32_t quotient = 0;
+    Core::OptionalType<uint32_t> remainder;
+    EXPECT_EQ(_proxy->Divide(10, 0, quotient, remainder), Core::ERROR_BAD_REQUEST);
+}
+
+TEST_F(TestOptionals, ParseInt_ValidNumber) {
+    int32_t value = 0;
+    Core::OptionalType<bool> success(false);
+    ASSERT_EQ(_proxy->ParseInt("42", value, success), Core::ERROR_NONE);
+    EXPECT_EQ(value, 42);
+    ASSERT_TRUE(success.IsSet());
+    EXPECT_TRUE(success.Value());
+}
+
+TEST_F(TestOptionals, ParseInt_NegativeNumber) {
+    int32_t value = 0;
+    Core::OptionalType<bool> success(false);
+    ASSERT_EQ(_proxy->ParseInt("-100", value, success), Core::ERROR_NONE);
+    EXPECT_EQ(value, -100);
+    EXPECT_TRUE(success.Value());
+}
+
+TEST_F(TestOptionals, ParseInt_InvalidString) {
+    int32_t value = 0;
+    Core::OptionalType<bool> success(true);
+    ASSERT_EQ(_proxy->ParseInt("not_a_number", value, success), Core::ERROR_NONE);
+    ASSERT_TRUE(success.IsSet());
+    EXPECT_FALSE(success.Value());
+}
+
+TEST_F(TestOptionals, ParseInt_SuccessUnset) {
+    int32_t value = 0;
+    Core::OptionalType<bool> success; // don't care about success flag
+    ASSERT_EQ(_proxy->ParseInt("99", value, success), Core::ERROR_NONE);
+    EXPECT_EQ(value, 99);
+    EXPECT_FALSE(success.IsSet()); // server should not set it when caller didn't ask
+}
+
+// ===== Multiple optionals =====
+
+TEST_F(TestOptionals, Format_AllSet) {
+    string result;
+    ASSERT_EQ(_proxy->Format("world",
+        Core::OptionalType<string>("Hello, "),
+        Core::OptionalType<string>("!"),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "Hello, world!");
+}
+
+TEST_F(TestOptionals, Format_NoneSet) {
+    string result;
+    ASSERT_EQ(_proxy->Format("bare",
+        Core::OptionalType<string>(),
+        Core::OptionalType<string>(),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "bare");
+}
+
+TEST_F(TestOptionals, Calculate_BothBounds) {
+    int32_t result = 0;
+    ASSERT_EQ(_proxy->Calculate(50,
+        Core::OptionalType<int32_t>(10),
+        Core::OptionalType<int32_t>(100),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 50);
+}
+
+TEST_F(TestOptionals, Calculate_ClampToMin) {
+    int32_t result = 0;
+    ASSERT_EQ(_proxy->Calculate(5,
+        Core::OptionalType<int32_t>(10),
+        Core::OptionalType<int32_t>(100),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 10);
+}
+
+TEST_F(TestOptionals, Calculate_ClampToMax) {
+    int32_t result = 0;
+    ASSERT_EQ(_proxy->Calculate(200,
+        Core::OptionalType<int32_t>(10),
+        Core::OptionalType<int32_t>(100),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 100);
+}
+
+TEST_F(TestOptionals, Calculate_NoBounds) {
+    int32_t result = 0;
+    ASSERT_EQ(_proxy->Calculate(-9999,
+        Core::OptionalType<int32_t>(),
+        Core::OptionalType<int32_t>(),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, -9999);
+}
+
+// ===== Optional buffer =====
+
+TEST_F(TestOptionals, ProcessOptionalBuffer_WithOutput) {
+    const uint8_t input[]  = {0x01, 0x02, 0x03};
+    uint8_t       output[3] = {};
+    uint16_t written = 0;
+    ASSERT_EQ(_proxy->ProcessOptionalBuffer(input, 3, output, 3, written), Core::ERROR_NONE);
+    EXPECT_EQ(written, 3u);
+    EXPECT_EQ(output[0], static_cast<uint8_t>(~0x01));
+}
+
+TEST_F(TestOptionals, ProcessOptionalBuffer_NoOutput) {
+    const uint8_t input[] = {0xAA, 0xBB};
+    uint8_t dummy[1] = {};
+    uint16_t written = 99;
+    ASSERT_EQ(_proxy->ProcessOptionalBuffer(input, 2, dummy, 0, written), Core::ERROR_NONE);
+    EXPECT_EQ(written, 0u);
+}
+
+// ===== Optional vector =====
+
+TEST_F(TestOptionals, ProcessOptionalVector_Set) {
+    // Set optional vector round trip.
+    std::vector<uint8_t> input{ 1,2,3,4 };
+    Core::OptionalType<std::vector<uint8_t>> optOutput;
+    Core::OptionalType<std::vector<uint8_t>> optInput;
+    optInput = input;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().size(), input.size());
+    if (optOutput.Value().size() == input.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < input.size(); i++) {
+            EXPECT_EQ(optOutput.Value()[i], input[i]*2);
+        }
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalVector_Unset) {
+    // Unset optional vector round trip.
+    Core::OptionalType<std::vector<uint8_t>> optOutput;
+    Core::OptionalType<std::vector<uint8_t>> optInput;
+    ASSERT_EQ(_proxy->ProcessOptionalVector(optInput, optOutput), Core::ERROR_NONE);
+    EXPECT_EQ(optOutput.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector_Set) {
+    // Set optional vector round trip to the same vector parameter.
+    std::vector<uint8_t> data{ 1,2,3,4 };
+    Core::OptionalType<std::vector<uint8_t>> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), true);
+    ASSERT_EQ(optData.Value().size(), data.size());
+    if (optData.Value().size() == data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.size(); i++) {
+            EXPECT_EQ(optData.Value()[i], data[i]*2);
+        }
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector_Unset) {
+    // Unset optional vector round trip to the same vector parameter.
+    Core::OptionalType<std::vector<uint8_t>> optData;
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, false), Core::ERROR_NONE);
+    EXPECT_EQ(optData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVector_SetToUnset) {
+    // Set optional vector change into unset in the same vector parameter.
+    std::vector<uint8_t> data{ 1,2,3,4 };
+    Core::OptionalType<std::vector<uint8_t>> optData;
+    optData = data;
+    ASSERT_EQ(_proxy->ProcessOptionalInlineVector(optData, true  /* change setbit! */), Core::ERROR_NONE);
+    EXPECT_EQ(optData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Set) {
+    // Set optional vector in a struct round trip.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.optionalMagic = "pokus";
+    data.data = { 1,2,3,4 };
+    data.optionalData = { 11,12,13,14 };
+    Core::OptionalType<ITestOptionals::Compound> optOutput;
+    Core::OptionalType<ITestOptionals::Compound> optInput;
+    optInput = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), true);
+    EXPECT_EQ(optOutput.Value().magic, data.magic);
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), true);
+    EXPECT_EQ(optOutput.Value().optionalMagic.Value(), data.optionalMagic.Value());
+    ASSERT_EQ(optOutput.Value().data.size(), data.data.size());
+    if (optOutput.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optOutput.Value().data[i], data.data[i]*2);
+        }
+    }
+    ASSERT_EQ(optOutput.Value().optionalData.IsSet(), true);
+    ASSERT_EQ(optOutput.Value().optionalData.Value().size(), data.optionalData.Value().size());
+    if (optOutput.Value().optionalData.Value().size() == data.optionalData.Value().size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.optionalData.Value().size(); i++) {
+            EXPECT_EQ(optOutput.Value().optionalData.Value()[i], data.optionalData.Value()[i]*2);
+        }
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalVectorInStruct_Unset) {
+    // Unset optional vector in a struct round trip.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.data = { 1,2,3,4 };
+    Core::OptionalType<ITestOptionals::Compound> optOutput;
+    Core::OptionalType<ITestOptionals::Compound> optInput;
+    optInput = data;
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalStruct(optInput, optOutput), Core::ERROR_NONE);
+    ASSERT_EQ(optOutput.IsSet(), true);
+    EXPECT_EQ(optOutput.Value().magic, data.magic);
+    ASSERT_EQ(optOutput.Value().optionalMagic.IsSet(), false);
+    ASSERT_EQ(optOutput.Value().data.size(), data.data.size());
+    if (optOutput.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optOutput.Value().data[i], data.data[i]*2);
+        }
+    }
+    ASSERT_EQ(optOutput.Value().optionalData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Set) {
+    // Set optional vector in a struct round trip to the same vector parameter.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.optionalMagic = "pokus";
+    data.data = { 1,2,3,4 };
+    data.optionalData = { 11,12,13,14 };
+    Core::OptionalType<ITestOptionals::Compound> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, false), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), true);
+    EXPECT_EQ(optData.Value().magic, data.magic);
+    ASSERT_EQ(optData.Value().optionalMagic.IsSet(), true);
+    EXPECT_EQ(optData.Value().optionalMagic.Value(), data.optionalMagic.Value());
+    ASSERT_EQ(optData.Value().data.size(), data.data.size());
+    if (optData.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
+        }
+    }
+    ASSERT_EQ(optData.Value().optionalData.IsSet(), true);
+    ASSERT_EQ(optData.Value().optionalData.Value().size(), data.optionalData.Value().size());
+    if (optData.Value().optionalData.Value().size() == data.optionalData.Value().size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.optionalData.Value().size(); i++) {
+            EXPECT_EQ(optData.Value().optionalData.Value()[i], data.optionalData.Value()[i]*2);
+        }
+    }
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_Unset) {
+    // Unset optional vector in a struct round trip to the same vector parameter.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.data = { 1,2,3,4 };
+    Core::OptionalType<ITestOptionals::Compound> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, false), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), true);
+    EXPECT_EQ(optData.Value().magic, data.magic);
+    ASSERT_EQ(optData.Value().optionalMagic.IsSet(), false);
+    ASSERT_EQ(optData.Value().data.size(), data.data.size());
+    if (optData.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
+        }
+    }
+    ASSERT_EQ(optData.Value().optionalData.IsSet(), false);
+}
+
+TEST_F(TestOptionals, ProcessOptionalInlineVectorInStruct_SetToUnset) {
+    // Set optional vector in a struct change to unset in the same vector parameter.
+    ITestOptionals::Compound data;
+    data.magic = "hokus";
+    data.optionalMagic = "pokus";
+    data.data = { 1,2,3,4 };
+    data.optionalData = { 11,12,13,14 };
+    Core::OptionalType<ITestOptionals::Compound> optData;
+    optData = data; // copy!
+    ASSERT_EQ(_proxy->ProcessOptionalVectorInOptionalInlineStruct(optData, true /* change setbit! */), Core::ERROR_NONE);
+    ASSERT_EQ(optData.IsSet(), true);
+    EXPECT_EQ(optData.Value().magic, data.magic);
+    ASSERT_EQ(optData.Value().optionalMagic.IsSet(), false);
+    ASSERT_EQ(optData.Value().data.size(), data.data.size());
+    if (optData.Value().data.size() == data.data.size()) {
+        // process multiplies by 2
+        for (uint8_t i = 0; i < data.data.size(); i++) {
+            EXPECT_EQ(optData.Value().data[i], data.data[i]*2);
+        }
+    }
+    ASSERT_EQ(optData.Value().optionalData.IsSet(), false);
+}
+
+// ===== AllOptional =====
+
+TEST_F(TestOptionals, AllOptional_AllUnset) {
+    uint32_t result = 99;
+    ASSERT_EQ(_proxy->AllOptional({}, {}, {}, result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 0u);
+}
+
+TEST_F(TestOptionals, AllOptional_AllSet) {
+    uint32_t result = 0;
+    ASSERT_EQ(_proxy->AllOptional(
+        Core::OptionalType<uint32_t>(1),
+        Core::OptionalType<uint32_t>(2),
+        Core::OptionalType<uint32_t>(3),
+        result), Core::ERROR_NONE);
+    EXPECT_EQ(result, 6u);
+}
+
+// ===== WithDefault =====
+
+TEST_F(TestOptionals, WithDefault_NoUppercase) {
+    string result;
+    ASSERT_EQ(_proxy->WithDefault("hello", Core::OptionalType<bool>(), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "hello");
+}
+
+TEST_F(TestOptionals, WithDefault_Uppercase) {
+    string result;
+    ASSERT_EQ(_proxy->WithDefault("hello", Core::OptionalType<bool>(true), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "HELLO");
+}
+
+TEST_F(TestOptionals, WithDefault_ExplicitFalse) {
+    string result;
+    ASSERT_EQ(_proxy->WithDefault("hello", Core::OptionalType<bool>(false), result), Core::ERROR_NONE);
+    EXPECT_EQ(result, "hello");
+}

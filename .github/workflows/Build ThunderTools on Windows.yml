@@ -3,17 +3,20 @@ name: Build ThunderTools on Windows
 permissions:
   contents: read
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
 on:
   workflow_dispatch:
   push:
-    branches: ["master"]
+    branches: ["master", "R*"]
   pull_request:
-    branches: ["master"]
+    branches: ["master", "R*"]
 
 env:
   bridge: Thunder\Source\Thunder\bridge.vcxproj
   commander: ThunderNanoServices\Commander\Commander.vcxproj
-  devEnv: C:\Program Files\Microsoft Visual Studio\2022\Enterprise\Common7\IDE\devenv.com
   deviceInfo: ThunderNanoServicesRDK\DeviceInfo\DeviceInfo.vcxproj
   DHCPServer: ThunderNanoServices\DHCPServer\DHCPServer.vcxproj
   DIALServer: ThunderNanoServices\DIALServer\DIALServer.vcxproj
@@ -46,19 +49,35 @@ jobs:
 # ----- Checkout & DependsOn regex -----
     name: Build type - ${{matrix.type}}${{matrix.version}}
     steps:
+    - name: Resolve release dependency branch
+      id: release
+      shell: bash
+      env:
+        BUILD_BRANCH: ${{ github.base_ref || github.ref_name }}
+        REF_TYPE: ${{ github.ref_type }}
+      run: |
+        release_ref=
+        if [[ "$REF_TYPE" == 'branch' && "$BUILD_BRANCH" == R* ]]; then
+          release_ref="refs/heads/$BUILD_BRANCH"
+        fi
+        echo "ref=$release_ref" >> "$GITHUB_OUTPUT"
+        echo "Dependency branch: ${release_ref:-repository default}"
+
     - name: Checkout ThunderOnWindows
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows
         repository: WebPlatformForEmbedded/ThunderOnWindows
+        ref: ${{ steps.release.outputs.ref }}
 
 # ----- Thunder -----
     - name: Checkout Thunder - default
       if: ${{ !contains(github.event.pull_request.body, '[DependsOn=Thunder:') }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/Thunder
-        repository: ${{github.repository_owner}}/Thunder
+        repository: rdkcentral/Thunder
+        ref: ${{ steps.release.outputs.ref }}
 
     - name: Regex Thunder
       if: contains(github.event.pull_request.body, '[DependsOn=Thunder:')
@@ -71,19 +90,19 @@ jobs:
 
     - name: Checkout Thunder - ${{steps.thunder.outputs.first_match}}
       if: contains(github.event.pull_request.body, '[DependsOn=Thunder:')
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/Thunder
-        repository: ${{github.repository_owner}}/Thunder
+        repository: rdkcentral/Thunder
         ref: ${{steps.thunder.outputs.first_match}}
 
 # ----- ThunderTools -----
     - name: Checkout ThunderTools - default
       if: ${{ !contains(github.event.pull_request.body, '[DependsOn=ThunderTools:') }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderTools
-        repository: ${{github.repository_owner}}/ThunderTools
+        repository: ${{ github.repository }}
 
     - name: Regex ThunderTools
       if: contains(github.event.pull_request.body, '[DependsOn=ThunderTools:')
@@ -96,19 +115,20 @@ jobs:
 
     - name: Checkout ThunderTools - ${{steps.tools.outputs.first_match}}
       if: contains(github.event.pull_request.body, '[DependsOn=ThunderTools:')
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderTools
-        repository: ${{github.repository_owner}}/ThunderTools
+        repository: ${{ github.repository }}
         ref: ${{steps.tools.outputs.first_match}}
 
 # ----- ThunderInterfaces -----
     - name: Checkout ThunderInterfaces - default
       if: ${{ !contains(github.event.pull_request.body, '[DependsOn=ThunderInterfaces:') }}
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderInterfaces
-        repository: ${{github.repository_owner}}/ThunderInterfaces
+        repository: rdkcentral/ThunderInterfaces
+        ref: ${{ steps.release.outputs.ref }}
 
     - name: Regex ThunderInterfaces
       if: contains(github.event.pull_request.body, '[DependsOn=ThunderInterfaces:')
@@ -121,30 +141,48 @@ jobs:
 
     - name: Checkout ThunderInterfaces - ${{steps.thunderinterfaces.outputs.first_match}}
       if: contains(github.event.pull_request.body, '[DependsOn=ThunderInterfaces:')
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderInterfaces
-        repository: ${{github.repository_owner}}/ThunderInterfaces
+        repository: rdkcentral/ThunderInterfaces
         ref: ${{steps.thunderinterfaces.outputs.first_match}}
 
 # ----- Other checkouts -----
     - name: Checkout ThunderClientLibraries
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderClientLibraries
-        repository: ${{github.repository_owner}}/ThunderClientLibraries
+        repository: rdkcentral/ThunderClientLibraries
+        ref: ${{ steps.release.outputs.ref }}
 
     - name: Checkout ThunderNanoServices
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderNanoServices
-        repository: ${{github.repository_owner}}/ThunderNanoServices
+        repository: rdkcentral/ThunderNanoServices
+        ref: ${{ steps.release.outputs.ref }}
 
     - name: Checkout ThunderNanoServicesRDK
-      uses: actions/checkout@v4
+      uses: actions/checkout@v5
       with:
         path: ThunderOnWindows/ThunderNanoServicesRDK
         repository: WebPlatformForEmbedded/ThunderNanoServicesRDK
+        ref: ${{ steps.release.outputs.ref }}
+
+    - name: Log source revisions
+      shell: bash
+      run: |
+        for repository in \
+          ThunderOnWindows \
+          ThunderOnWindows/Thunder \
+          ThunderOnWindows/ThunderTools \
+          ThunderOnWindows/ThunderClientLibraries \
+          ThunderOnWindows/ThunderInterfaces \
+          ThunderOnWindows/ThunderNanoServices \
+          ThunderOnWindows/ThunderNanoServicesRDK
+        do
+          git -C "$repository" log -1 --format="$repository: %H"
+        done
 
 # ----- Install & Build -----
     - name: Install jsonref
@@ -152,28 +190,22 @@ jobs:
 
     - name: Build ThunderTools
       shell: cmd
-      run: >
+      run: |
+        for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.CoreEditor -property productPath`) do set "VS_PATH=%%i"
+        if not defined VS_PATH (echo ERROR: Visual Studio not found && exit /b 1)
+        
+        set "devEnv=%VS_PATH:.exe=.com%"
         cd ThunderOnWindows
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%bridge%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%commander%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%deviceInfo%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%DHCPServer%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%DIALServer%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%dictionary%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%JSONRPCClient%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%JSONRPCPlugin%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%locationSync%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%messenger%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%monitor%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%networkControl%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%openCDMi%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%outOfProcessPlugin%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%remoteControl%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%securityAgent%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%subsystemController%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%svalbard%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%timeSync%"
-        && "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project "%webServer%"
+        
+        for %%P in (
+          "%bridge%" "%commander%" "%deviceInfo%" "%DHCPServer%" "%DIALServer%"
+          "%dictionary%" "%JSONRPCClient%" "%JSONRPCPlugin%" "%locationSync%" "%messenger%"
+          "%monitor%" "%networkControl%" "%openCDMi%" "%outOfProcessPlugin%" "%remoteControl%"
+          "%securityAgent%" "%subsystemController%" "%svalbard%" "%timeSync%" "%webServer%"
+        ) do (
+          "%devEnv%" "%solution%" /Build "${{matrix.type}}|x${{matrix.version}}" /Project %%P
+          if errorlevel 1 exit /b 1
+        )
 
 # ----- Upload artifacts -----
     - name: Tar files

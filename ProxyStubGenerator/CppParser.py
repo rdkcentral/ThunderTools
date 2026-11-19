@@ -215,6 +215,9 @@ class Optional(Intrinsic):
         Intrinsic.__init__(self, "Core::OptionalType<%s>" % subtype.Proto())
         self.optional = subtype
 
+    def __str__(self):
+        return "Core::OptionalType<%s>" % self.optional.Proto()
+
 
 class Nullptr_t(Fundamental):
     def __init__(self):
@@ -230,6 +233,14 @@ class Bool(Fundamental):
     def __init__(self):
         Fundamental.__init__(self, "bool")
 
+class Int24(Fundamental):
+    def __init__(self, signed=False):
+        Fundamental.__init__(self, "Core::SInt24" if signed else "Core::UInt24")
+        self.signed = signed
+        self.fixed = False
+        self.min = -2**23 if signed else 0
+        self.max = 2**23-1 if signed else 2**24-1
+        self.size = "int24"
 
 class Integer(Fundamental):
     def __init__(self, string):
@@ -316,6 +327,12 @@ class Range():
         return "range[%s]" % str(self)
 
 
+# Namespaces known to be aliases of the framework namespace, set by the generator
+NAMESPACE_ALIASES = set()
+# The concrete namespace those aliases stand for (the framework namespace), set by the generator
+NAMESPACE_ALIAS_TARGET = None
+
+
 def LookupIdentifier(identifier, scope=None):
     def __Search(tree, found, T):
         var_match = [v for v in tree.vars if v.full_name.endswith(T)]
@@ -378,7 +395,58 @@ def LookupIdentifier(identifier, scope=None):
     selected = None
 
     found = []
-    __Search(global_namespace, found, "::" + identifier)
+    alias_lookup = False
+
+    def __Exact(matches, name):
+        full_name = "::" + name
+        return [
+            match for match in matches
+            if getattr(match, "full_name", None) == full_name
+            or (
+                isinstance(match, Enumerator)
+                and match.full_name_scoped == full_name
+            )
+        ]
+
+    # A qualified name may start with a namespace that is an alias of the framework namespace
+    # (e.g. Thunder::Core::X while the type lives in WPEFramework::Core). The generator cannot see
+    # whether a namespace given by --namespace is really an alias or an independent namespace, so a
+    # declaration that really exists under that exact name always wins. Only if there is none, the
+    # alias is replaced by the concrete framework namespace, so the suffix based search cannot match
+    # an unrelated namespace that happens to contain the same name. If the type is still not found,
+    # the name is looked up as written, so unknown names stay undefined.
+    if NAMESPACE_ALIAS_TARGET:
+        _name = identifier.lstrip(":")
+        if "::" in _name and _name.split("::", 1)[0] in NAMESPACE_ALIASES:
+            alias_lookup = True
+
+            # As in C++, a relative name resolves in the current and enclosing scopes first,
+            # e.g. a nested namespace that happens to have the name of an alias.
+            if not identifier.startswith("::") and scope:
+                current = scope.full_name
+                while current and not found:
+                    candidate = (current + "::" + _name).lstrip(":")
+                    __Search(global_namespace, found, "::" + candidate)
+                    found[:] = __Exact(found, candidate)
+                    if found:
+                        identifier = candidate
+                    current = "::".join(current.split("::")[0:-1])
+
+            if not found:
+                __Search(global_namespace, found, "::" + _name)
+                found[:] = __Exact(found, _name)
+                if found:
+                    identifier = _name
+
+            if not found:
+                _resolved = NAMESPACE_ALIAS_TARGET + "::" + _name.split("::", 1)[1]
+                __Search(global_namespace, found, "::" + _resolved)
+                found[:] = __Exact(found, _resolved)
+                if found:
+                    identifier = _resolved
+
+    if not found and not alias_lookup:
+        __Search(global_namespace, found, "::" + identifier)
 
     if scope:
         current = scope.full_name
@@ -396,6 +464,16 @@ def LookupIdentifier(identifier, scope=None):
     elif found:
         assert len(found) == 1, "Too many references found, need scope for %s" % identifier
         selected = found[-1]
+
+    if selected:
+        # count references to instantiated template classes, we might not want to emit proxystubs for unused templates
+        if isinstance(selected, InstantiatedTemplateClass):
+            selected.AddRef()
+        elif isinstance(selected, Typedef):
+            resolved = selected.DataType()
+            if not isinstance(resolved, str):
+                if isinstance(resolved.type, InstantiatedTemplateClass):
+                    resolved.type.AddRef()
 
     return selected
 
@@ -549,6 +627,8 @@ class Identifier():
                     self.meta.decorators.append("encode:ip")
                 elif tag == "ENCODEMAC":
                     self.meta.decorators.append("encode:mac")
+                elif tag == "ENCODEARRAY":
+                    self.meta.decorators.append("encode:array")
                 elif tag == "OPTIONAL":
                     self.meta.decorators.append("optional")
                 elif tag == "EXTRACT":
@@ -787,6 +867,10 @@ class Identifier():
                 elif type in ["int", "char", "wchar_t", "char16_t", "char32_t", "short", "long", "signed", "unsigned",
                               "int8_t", "uint8_t", "int16_t", "uint16_t", "int32_t", "uint32_t", "int64_t", "uint64_t"]:
                     self.type[i] = Type(Integer(self.type[i]))
+                elif type == "__stubgen_int24":
+                    self.type[i] = Type(Int24(signed=True))
+                elif type == "__stubgen_uint24":
+                    self.type[i] = Type(Int24())
                 elif type == "bool":
                     self.type[i] = Type(Bool())
                 elif type == "void":
@@ -812,9 +896,14 @@ class Identifier():
                     if found:
                         # take closest match
                         if isinstance(found, TemplateClass):
-                            # if we're pointing to a class template, then let's instantiate it!
-                            self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
-                            del self.type[i + 1]
+                            if isinstance(parent, TemplateClass):
+                                # todo: this is a short cut, won't work for other type than OptionalType and std::vector
+                                self.type[i] = Type(found.PartialInstantiate(self.type[i + 1], parent))
+                                del self.type[i + 1]
+                            else:
+                                # if we're pointing to a class template, then let's instantiate it!
+                                self.type[i] = Type(found.Instantiate(self.type[i + 1], parent))
+                                del self.type[i + 1]
                         else:
                             self.type[i] = found if isinstance(found, TemplateTypeParameter) else Type(found)
 
@@ -850,19 +939,25 @@ class Identifier():
 
     def TypeStrong(self):
         if self.array:
-            return ("%s[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
+            return ("%s[%s]" % (self.type.Proto("noref|noptr"), self.array))
         else:
             return self.Proto()
 
+    def TypeStrongNoCV(self):
+        if self.array:
+            return ("%s[%s]" % (self.type.Proto("noref|noptr|nocv|nopcv"), self.array))
+        else:
+            return self.type.Proto("nocv|nopcv")
+
     def ProtoFmt(self):
         if self.array:
-            return ("%s @[%s]" % (self.type.Proto("nocv|noref|noptr"), self.array))
+            return ("%s @[%s]" % (self.type.Proto("noref|noptr"), self.array))
         else:
             return "%s @" % self.Proto()
 
     def Signature(self, override=None):
         if self.array:
-            return ("%s %s[%s]" % (self.type.Proto("nocv|noref|noptr"), override if override != None else self.name, self.array))
+            return ("%s %s[%s]" % (self.type.Proto("noref|noptr"), override if override != None else self.name, self.array))
         else:
             return (self.Proto() + " " + (override if override != None else self.name))
 
@@ -916,6 +1011,8 @@ def Evaluate(identifiers_, as_identifier=False, scope=None):
     return value
 
 
+ANONYMOUS_PREFIX = "__anonymous"
+
 # Holds a name
 class Name:
     def __init__(self, parent_block, name=""):
@@ -923,7 +1020,7 @@ class Name:
             ASSERT_ISVALID(name)
         self.parent = parent_block
         # come up with an unique name if none given
-        uniqueId = "__anonymous_" + self.__class__.__name__.lower() + "_" + uuid.uuid4().hex[:8]
+        uniqueId = '_'.join([ANONYMOUS_PREFIX, self.__class__.__name__.lower(), uuid.uuid4().hex[:8]])
         parentName = "" if self.parent == None else self.parent.full_name
         self.name = uniqueId if (not name and self.parent != None) else name
         self.full_name = parentName + ("" if not self.name else "::" + self.name)
@@ -1107,8 +1204,6 @@ class Type:
     def __str__(self):
         return self.Proto()
 
-    def __repr__(self):
-        return "type " + str(self)
 
 
 def TypeStr(s):
@@ -1384,13 +1479,20 @@ class Enum(Identifier, Block):
         return None
 
 
+class ReturnValue(Identifier):
+    def __init__(self, parent_block, parent, string, valid_specifiers, tags_allowed=True):
+        Identifier.__init__(self, parent_block, parent, string, valid_specifiers, tags_allowed)
+        self.parser_file = CurrentFile()
+        self.parser_line = CurrentLine()
+
+
 # Holds functions
 class Function(Block, Name):
     def __init__(self, parent_block, name, ret_type, valid_specifiers=["static", "extern", "inline"]):
         self.specifiers = []
         Block.__init__(self, parent_block, name if name else self.name)
         Name.__init__(self, parent_block, self.name)
-        self.retval = Identifier(self, self, ret_type, valid_specifiers, False)
+        self.retval = ReturnValue(self, self, ret_type, valid_specifiers, False)
         self.omit = False
         self.stub = False
         self.is_excluded = False
@@ -1421,6 +1523,7 @@ class Temporary(Identifier, Name):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value) if value else None
+
         if meta:
             self.meta = meta
 
@@ -1456,6 +1559,7 @@ class Variable(Identifier, Name):
         Identifier.__init__(self, parent_block, self, string, valid_specifiers)
         Name.__init__(self, parent_block, self.name)
         self.value = Evaluate(value, scope=parent_block) if value else None
+
         if self.parent:
             self.parent.vars.append(self)
 
@@ -1474,6 +1578,13 @@ class Parameter(Variable):
     def __init__(self, parent_block, string, value=[], valid_specifiers=[]):
         Variable.__init__(self, parent_block, string, None, valid_specifiers)
         self.def_value = Evaluate(value, scope=parent_block.parent) if value else None
+
+        if self.name.startswith(ANONYMOUS_PREFIX):
+            # Correct the random number, for parameter
+            split = self.name.split('_')
+            split[-1] = str(len(self.parent.vars))
+            self.name = "_".join(split)
+
         if self.name in parent_block.retval.meta.param:
             self.meta.brief = parent_block.retval.meta.param[self.name]
 
@@ -1621,9 +1732,10 @@ class TemplateNonTypeParameter(Variable):
 
 
 class TemplateTypeParameter(Name):
-    def __init__(self, parent_block, string, index):
+    def __init__(self, parent_block, string, index, default=None):
         Name.__init__(self, parent_block, string)
         parent_block.parameters.append(self)
+        self.default = default
         self.index = index
 
     def Proto(self):
@@ -1645,6 +1757,10 @@ class InstantiatedTemplateClass(Class):
         self.args = args
         self.resolvedArgs = [Identifier(parent_block, self, [x], []) for x in args]
         self.type = self.TypeName()
+        self.refs = 0
+
+    def AddRef(self):
+        self.refs += 1
 
     def TypeName(self):
         return "%s<%s>" % (self.baseName.full_name, ", ".join([str("".join([str(x) for x in p.type]) if isinstance(p.type, list) else p.type) for p in self.resolvedArgs]))
@@ -1670,89 +1786,205 @@ class InstantiatedTemplateClass(Class):
         return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
 
 
+class PartialInstantiatedTemplateClass(Class):
+    def __init__(self, parent_block, name, params, args):
+        Class.__init__(self, parent_block, name)
+        self.params = params
+        self.args = args
+        self.resolvedArgs = [Identifier(parent_block, self, [x], []) for x in args]
+        assert len(self.params) == len(self.args)
+
+    def __str__(self):
+        s = []
+        for i, _ in enumerate(self.params):
+            rhs = ("".join(self.resolvedArgs[i].type) if isinstance(self.resolvedArgs[i].type, list) else self.resolvedArgs[i].type.Proto())
+            s.append(self.params[i].name + " = " + rhs)
+        _str = "class %s<%s>" % (self.baseName.full_name, ", ".join([str(p) for p in self.params]))
+        _str += " [with %s]" % (", ".join(s))
+        if self.is_iterator:
+            _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
+        return _str
+
+    def __repr__(self):
+        s = []
+        for i, _ in enumerate(self.params):
+            s.append(self.params[i].name + " = " + str(self.args[i]))
+        return "%s [instance of %s [with %s]]" % (Class.__repr__(self), self.TypeName(), ", ".join(s))
+
+
 class TemplateClass(Class):
     def ParseArguments(self, string):
         # This is greatly simplified!!!
         # Templates with multiple arguments that itself are template with multiple arguments will not work!!!
-        if string.count('<') != string.count('>') and string.count('<') > 0:
-            raise ParserError("unbalanced template angle brackets in <%s>" % string)
-        params = [x.strip() for x in string[string.find('<')+1:string.rfind('>')-1].strip().split(',')]
-        return params
+        if string:
+            if string.count('<') != string.count('>') and string.count('<') > 0:
+                raise ParserError("unbalanced template angle brackets in <%s>" % string)
 
+            stripped = string[string.find('<')+1:string.rfind('>')-1].strip()
+            if stripped:
+                return [x.strip() for x in stripped.split(',')]
 
-    def __init__(self, parent_block, name, params):
+        return None
+
+    def __init__(self, parent_block, name, params, specialization_arguments=None):
         Class.__init__(self, parent_block, name)
         self.parameters = []
         self.arguments = []
-        self.paramList = []
-        paramList = self.ParseArguments(params)
-        for p in paramList:
-            if "typename" in p or "class" in p:
-                param = TemplateTypeParameter(self, p.split()[1], index=paramList.index(p))
-            else:
-                param = TemplateNonTypeParameter(self, p.split(), index=paramList.index(p))
-            self.paramList.append(param)
+        self.arg_list = []
+        self.specializations = []
+        str_arg_list = self.ParseArguments(params)
+        parsed_specialization_arguments = self.ParseArguments(specialization_arguments)
 
-    def Instantiate(self, arguments, parent):
-        def _Substitute(identifier):
-            if isinstance(identifier.type, list):
-                for i, v in enumerate(identifier.type):
-                    if isinstance(v, TemplateTypeParameter):
-                        if v.name in paramDict:
-                            identifier.type[i] = strArgs[paramDict[v.name].index]
-                            identifier.ResolveIdentifiers(instance)
-                            break
-            if (isinstance(identifier, Enumerator) or isinstance(identifier, Variable)) and identifier.value:
-                for i, v in enumerate(identifier.value):
-                    if isinstance(v, TemplateNonTypeParameter):
-                        identifier.value[i] = strArgs[argDict[v.name].index]
-                        identifier.value = Evaluate(identifier.value, scope=parent)
-                        break
+        if parsed_specialization_arguments and str_arg_list:
+            raise ParserError("invalid template arguments to specialized %s (%s)" % (self, ",".join(str_arg_list)))
 
-        strArgs = self.ParseArguments(arguments)
-        paramDict = dict(zip([x.name for x in self.parameters], self.parameters))
-        argDict = dict(zip([x.name for x in self.arguments], self.arguments))
-        instance = InstantiatedTemplateClass(self.parent, self.name, self.paramList, strArgs)
-        instance.ancestors = self.ancestors
-        instance.specifiers = self.specifiers
-        instance.is_json = self.is_json
-        instance.is_custom_lookup = self.is_custom_lookup
-        instance.is_auto_lookup = self.is_auto_lookup
-        instance.json_version = self.json_version
-        instance.json_prefix = self.json_prefix
-        instance.is_extended = self.is_extended
-        instance.is_collapsed = self.is_collapsed
-        instance.is_compliant = self.is_compliant
-        instance.is_event = self.is_event
-        instance.is_iterator = self.is_iterator
-        instance.is_force_interface = self.is_force_interface
-        instance.meta = self.meta
+        if str_arg_list:
+            for p in str_arg_list:
+                if "typename" in p or "class" in p:
+                    tokens = p.split()
+                    default = "".join(tokens[3:]) if len(tokens) > 3 and tokens[2] == '=' else None
+                    param = TemplateTypeParameter(self, tokens[1], index=str_arg_list.index(p), default=default)
+                else:
+                    param = TemplateNonTypeParameter(self, p.split(), index=str_arg_list.index(p))
+
+                self.arg_list.append(param)
+        else:
+            if isinstance(self.parent, Namespace):
+                for tc in self.parent.classes:
+                    if tc.name == self.name:
+                        tc.specializations.append([self, parsed_specialization_arguments])
+                        self.meta.decorators.extend(tc.meta.decorators)
+
+    def PartialInstantiate(self, arguments, parent):
+        instance = None
+        str_arg_list = self.ParseArguments(arguments) or []
 
         if ((self.parent.name == "Core") and (self.name == "OptionalType")):
-            # take over as Optional if this is OptionalType instance
-            if len(instance.args) == 1:
-                instance = Optional(OptionalElement(parent, instance.args[0].split()))
+            if len(str_arg_list) == 1:
+                instance = Optional(OptionalElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         elif ((self.parent.name == "std") and (self.name == "vector")):
-            if len(instance.args) == 1:
-                instance = Vector(VectorElement(parent, instance.args[0].split()))
+            if len(str_arg_list) == 1:
+                instance = Vector(VectorElement(parent, str_arg_list[0].split()))
                 instance.meta = self.meta
             else:
                 raise ParserError("Invalid template arguments to %s" % instance)
 
         else:
+            instance = PartialInstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
 
-            for t in self.typedefs:
+        return instance
+
+    def Instantiate(self, arguments, parent):
+        def _Substitute(identifier):
+
+            if isinstance(identifier.type, list):
+                for i, v in enumerate(identifier.type):
+                    if isinstance(v, TemplateTypeParameter):
+                        if v.name in paramDict:
+                            identifier.type[i] = str_arg_list[paramDict[v.name].index]
+                            identifier.ResolveIdentifiers(instance)
+                            break
+
+            if (isinstance(identifier, Enumerator) or isinstance(identifier, Variable)) and identifier.value:
+                for i, v in enumerate(identifier.value):
+                    if isinstance(v, TemplateNonTypeParameter):
+                        identifier.value[i] = str_arg_list[argDict[v.name].index]
+                        identifier.value = Evaluate(identifier.value, scope=parent)
+                        break
+
+            elif isinstance(identifier.type, Type) and isinstance(identifier.type.type, Optional):
+                optional = identifier.type.type
+                if isinstance(optional.optional.type, list):
+                    for i, v in enumerate(optional.optional.type):
+                        if isinstance(v, TemplateTypeParameter):
+                            if v.name in paramDict:
+                                resolved = copy.copy(optional.optional)
+                                resolved.type = copy.copy(resolved.type)
+                                resolved.type[i] = str_arg_list[paramDict[v.name].index]
+                                resolved.ResolveIdentifiers(instance)
+                                identifier.type.type = Optional(resolved)
+                                break
+
+            elif isinstance(identifier.type, Type) and isinstance(identifier.type.type, Vector):
+                vector = identifier.type.type
+                if isinstance(vector.element.type, list):
+                    for i, v in enumerate(vector.element.type):
+                        if isinstance(v, TemplateTypeParameter):
+                            if v.name in paramDict:
+                                resolved = copy.copy(vector.element)
+                                resolved.type = copy.copy(resolved.type)
+                                resolved.type[i] = str_arg_list[paramDict[v.name].index]
+                                resolved.ResolveIdentifiers(instance)
+                                identifier.type.type = Vector(resolved)
+                                break
+
+
+        if arguments.count('<') > 2:
+            raise ParserError("too complex template nesting: %s" % arguments)
+
+        instance = self
+        str_arg_list = self.ParseArguments(arguments) or []
+
+        for a in self.arg_list[len(str_arg_list):]:
+            if a.default:
+                str_arg_list.append(a.default)
+            else:
+                raise ParserError("invalid template arguments to %s (missing argument)" % instance)
+
+        if ((self.parent.name == "Core") and (self.name == "OptionalType")):
+            if len(str_arg_list) == 1:
+                instance = Optional(OptionalElement(parent, str_arg_list[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("invalid template arguments to %s" % instance)
+
+        elif ((self.parent.name == "std") and (self.name == "vector")):
+            if len(str_arg_list) == 1:
+                instance = Vector(VectorElement(parent, str_arg_list[0].split()))
+                instance.meta = self.meta
+            else:
+                raise ParserError("invalid template arguments to %s" % instance)
+
+        else:
+            instance = InstantiatedTemplateClass(self.parent, self.name, self.arg_list, str_arg_list)
+
+            paramDict = dict(zip([x.name for x in self.parameters], self.parameters))
+            argDict = dict(zip([x.name for x in self.arguments], self.arguments))
+
+            source = self
+
+            for s in self.specializations:
+                if str_arg_list == s[1]:
+                    source = s[0]
+                    break
+
+            instance.ancestors = source.ancestors
+            instance.specifiers = source.specifiers
+            instance.is_json = source.is_json
+            instance.is_custom_lookup = source.is_custom_lookup
+            instance.is_auto_lookup = source.is_auto_lookup
+            instance.json_version = source.json_version
+            instance.json_prefix = source.json_prefix
+            instance.is_extended = source.is_extended
+            instance.is_collapsed = source.is_collapsed
+            instance.is_compliant = source.is_compliant
+            instance.is_event = source.is_event
+            instance.is_iterator = source.is_iterator
+            instance.is_force_interface = source.is_force_interface
+            instance.meta = source.meta
+
+            for t in source.typedefs:
                 newTypedef = copy.copy(t)
                 newTypedef.parent = instance
                 newTypedef.type = copy.copy(t.type)
                 _Substitute(newTypedef)
                 instance.typedefs.append(newTypedef)
 
-            for v in self.vars:
+            for v in source.vars:
                 newAttr = copy.copy(v)
                 newAttr.parent = instance
                 newAttr.type = copy.copy(v.type)
@@ -1760,7 +1992,7 @@ class TemplateClass(Class):
                 _Substitute(newAttr)
                 instance.vars.append(newAttr)
 
-            for e in self.enums:
+            for e in source.enums:
                 newEnum = copy.copy(e)
                 newEnum.items = []
                 newEnum.parent = instance
@@ -1773,7 +2005,7 @@ class TemplateClass(Class):
                     newEnum.items.append(newItem)
                 instance.enums.append(newEnum)
 
-            for m in self.methods:
+            for m in source.methods:
                 newMethod = copy.copy(m)
                 newMethod.vars = []
                 newMethod.parent = instance
@@ -1792,13 +2024,13 @@ class TemplateClass(Class):
         return instance
 
     def __str__(self):
-        _str = "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.paramList]))
+        _str = "template class %s<%s>" % (self.full_name, ", ".join([str(p) for p in self.arg_list]))
         if self.is_iterator:
             _str += " [[interface-iterator]]" if self.is_force_interface else " [[iterator]]"
         return _str
 
     def __repr__(self):
-        return "template %s<%s>" % (Class.__repr__(self), ", ".join([repr(p) for p in self.paramList]))
+        return "template %s<%s>" % (Class.__repr__(self), ", ".join([repr(p) for p in self.arg_list]))
 
 
 # -------------------------------------------------------------------------
@@ -1819,10 +2051,10 @@ def __Tokenize(contents,log = None):
     inComment = 0
     for token in tokens:
         if token.startswith("// @_file:"):
-            line = 1
+            line = int(token[11:].split(',')[1])
             eoltokens.append(token)
         else:
-            if not inComment:
+            if not inComment and token.strip() and not token.lstrip().startswith("//"):
                 eoltokens.append("// @_line:" + str(line) + " ")
 
             if (len(eoltokens) > 1) and eoltokens[-2].endswith("\\"):
@@ -1831,7 +2063,8 @@ def __Tokenize(contents,log = None):
             else:
                 eoltokens.append(token)
 
-            line += 1
+            if not token.startswith("// @_"):
+                line += 1
 
             inComment += eoltokens[-1].count("/*") - eoltokens[-1].count("*/")
 
@@ -1877,7 +2110,7 @@ def __Tokenize(contents,log = None):
             if skipmode:
                 if "@_file" in token:
                     skipmode = False
-                else:
+                elif token not in ['}', '{', ';'] and not token.startswith("// @_"):
                     continue
 
             def __ParseParameterValue(string, tag, mandatory=True, append=True, relay=None):
@@ -2020,6 +2253,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@COMPLIANT")
                 if _find("@iterator", token):
                     tagtokens.append("@ITERATOR")
+                if _find("@richerror", token):
+                    tagtokens.append("@RICHERROR")
                 if _find("@encode:bitmask", token) or _find("@bitmask", token):
                     tagtokens.append("@BITMASK")
                 if _find("@end", token):
@@ -2056,6 +2291,8 @@ def __Tokenize(contents,log = None):
                     tagtokens.append("@ENCODEIP")
                 elif _find("@encode:mac", token):
                     tagtokens.append("@ENCODEMAC")
+                elif _find("@encode:array", token):
+                    tagtokens.append("@ENCODEARRAY")
 
                 if _find("@length", token):
                     tagtokens.append(__ParseParameterValue(token, "@length"))
@@ -2116,8 +2353,9 @@ def __Tokenize(contents,log = None):
 
                 if _find("@_file", token):
                     idx = token.index("@_file:") + 7
-                    tagtokens.append("@FILE:" + token[idx:])
-                    current_file = token[idx:]
+                    _current_file = token[idx:].split(',')[0]
+                    tagtokens.append("@FILE:" + _current_file)
+                    current_file = _current_file
                 if _find("@_line", token):
                     idx = token.index("@_line:") + 7
                     if len(tagtokens) and not isinstance(tagtokens[-1],list) and tagtokens[-1].startswith("@LINE:"):
@@ -2170,6 +2408,7 @@ def CurrentLine():
 
 # Builds a syntax tree (data structures only) of C++ source code
 def Parse(contents,log = None):
+
     # Start in global namespace.
     global global_namespace
     global current_file
@@ -2194,14 +2433,11 @@ def Parse(contents,log = None):
             current_line = int(token[6:].split()[0])
         elif isinstance(token, str) and token.startswith("@FILE:"):
             current_file = token[6:]
-            tokens.append("@GLOBAL")
-            line_numbers.append(current_line)
             files.append(current_file)
         else:
             tokens.append(token)
             line_numbers.append(current_line)
             files.append(current_file)
-
 
     global_namespace = Namespace(None)
 
@@ -2224,6 +2460,8 @@ def Parse(contents,log = None):
     collapsed_next = False
     compliant_next = False
     iterator_next = False
+    richerror_next = False
+    wrap_next = False
     sourcelocation_next = False
     text_next = None
     in_typedef = False
@@ -2313,30 +2551,8 @@ def Parse(contents,log = None):
             iterator_next = True
             tokens[i] = ";"
             i += 1
-        elif tokens[i] == "@GLOBAL":
-            current_block = [global_namespace]
-            next_block = None
-            last_template_def = []
-            min_index = 0
-            omit_mode = False
-            omit_next = False
-            stub_next = False
-            json_next = False
-            object_next = False
-            autoobject_next = False
-            encode_enum_next = False
-            wrap_next = False
-            json_version = ""
-            prefix_next = False
-            prefix_string = ""
-            event_next = False
-            extended_next = False
-            collapsed_next = False
-            compliant_next = False
-            iterator_next = False
-            sourcelocation_next = False
-            text_next = None
-            in_typedef = False
+        elif tokens[i] == "@RICHERROR":
+            richerror_next = True
             tokens[i] = ";"
             i += 1
 
@@ -2422,21 +2638,26 @@ def Parse(contents,log = None):
                 new_class = Union(current_block[-1], name)
             else:
                 new_class = None
+                specialization_arguments = None
+
                 # Look up previous classes in case there already was a forward declaration of this class
                 for idx, cl in enumerate(current_block[-1].classes):
                     if cl.name == name:
-                        if len(cl.methods) == 0:
+                        if last_template_def and (len(tokens) >= i + 4) and (tokens[i + 2] == '<'):
+                            specialization_arguments = " ".join(tokens[i+2:i+4+tokens[i+3:].index('>')])
+                        elif (len(tokens) >= i + 2 and tokens[i+2] == ';') or (not cl.methods and not cl.vars and not cl.classes and not cl.unions and not cl.typedefs):
                             new_class = cl
                             # move the class to to bottom
                             current_block[-1].classes.append(new_class)
                             del current_block[-1].classes[idx]
                         else:
                             raise ParserError("duplicate class name: " + cl.name)
+
                         break
 
                 if new_class == None:
                     if last_template_def:
-                        new_class = TemplateClass(current_block[-1], name, " ".join(last_template_def))
+                        new_class = TemplateClass(current_block[-1], name, " ".join(last_template_def), specialization_arguments)
                         last_template_def = []
                     else:
                         new_class = Class(current_block[-1], name)
@@ -2476,6 +2697,8 @@ def Parse(contents,log = None):
                 new_class.is_event = True
             if iterator_next:
                 new_class.is_iterator = True
+            if richerror_next:
+                new_class.meta.decorators.append("richerror")
             if sourcelocation_next:
                 new_class.sourcelocation = sourcelocation_next
                 sourcelocation_next = None
@@ -2510,6 +2733,7 @@ def Parse(contents,log = None):
             extended_next = False
             collapsed_next = False
             compliant_next = False
+            richerror_next = False
 
             if new_class.parent.omit:
                 # Inherit omiting...
@@ -2591,6 +2815,8 @@ def Parse(contents,log = None):
             if encode_enum_next:
                 new_enum.meta.decorators.append("encode:text")
                 encode_enum_next = False
+
+            text_next = None
 
         # Parse class access specifier...
         elif isinstance(current_block[-1], Class) and tokens[i] == ':':
@@ -2775,6 +3001,8 @@ def Parse(contents,log = None):
 
             i += 1
 
+            text_next = None
+
         # Parse constants and member constants
         elif isinstance(current_block[-1], (Namespace, Class)) and (tokens[i] == '=') and (tokens[i - 1] != "operator"):
             if json_next or event_next or omit_next or stub_next or exclude_next:
@@ -2820,6 +3048,11 @@ def Parse(contents,log = None):
                         value = entry[where + 1:]
                         del entry[where:]
 
+                    if text_next:
+                        # handle case when @text precedes the first enumerator
+                        entry = entry + ["@TEXT", [text_next]]
+                        text_next = None
+
                     Enumerator(enum, entry, value, enum.type)
                     if tokens[i + 1] == '}':
                         i += 1 # handle ,} situation
@@ -2828,6 +3061,7 @@ def Parse(contents,log = None):
                         break
                     else:
                         j = i + 1
+
                 i += 1
 
             if in_typedef:
@@ -2841,77 +3075,77 @@ def Parse(contents,log = None):
 
 # -------------------------------------------------------------------------
 
-
-def ReadFile(source_file, includePaths, quiet=False, initial="", omit=False):
+def ReadFile(source_file, include_paths, parent_file="", index=0, inclusions=None, quiet=False, omit=False, use_includes=False):
     contents = ""
-    global current_file
+    file_path = None
+
+    if inclusions is None:
+        inclusions = []
+
+    if source_file[0] == '@':
+        quiet = True
+        source_file = source_file[1:]
+
+    if not parent_file:
+        parent_file = source_file
+
     abs_source_file = os.path.abspath(source_file)
 
-    if abs_source_file not in initial:
-        try:
-            with open(source_file) as file:
-                file_content = file.read()
-                pos = 0
-                while True:
-                    idx = file_content.find("@stubgen:include", pos)
-                    if idx == -1:
-                        idx = file_content.find("@insert", pos)
+    if os.path.isfile(abs_source_file):
+        file_path = abs_source_file
 
-                    if idx != -1:
-                        pos = idx + 1
-                        line = file_content[idx:].split("\n", 1)[0]
-                        match = re.search(r' \"(.+?)\"', line)
+    elif not os.path.isabs(source_file) and use_includes:
+        for path in include_paths:
+            abs_source_file = os.path.abspath(os.path.join(path, source_file))
+            if os.path.isfile(abs_source_file):
+                file_path = abs_source_file
+                break
 
-                        if match:
-                            if match.group(1) != os.path.basename(os.path.realpath(source_file)):
-                                tryPath = os.path.join(os.path.dirname(os.path.realpath(source_file)), match.group(1))
+    if file_path in inclusions:
+        pass
 
-                                if os.path.isfile(tryPath):
-                                    prev = current_file
-                                    current_file = source_file
-                                    contents += ReadFile(tryPath, includePaths, False, contents, True)
-                                    current_file = prev
-                                else:
-                                    raise LoaderError(source_file, "can't include '%s', file does not exist" % tryPath)
-                            else:
-                                raise LoaderError(source_file, "can't recursively include self")
-                        else:
-                            match = re.search(r' <(.+?)>', line)
+    elif file_path:
+        inclusions.append(file_path)
 
-                            if match:
-                                found = False
-                                for ipath in includePaths:
-                                    tryPath = os.path.join(ipath, match.group(1))
-
-                                    if os.path.isfile(tryPath):
-                                        prev = current_file
-                                        current_file = source_file
-                                        contents += ReadFile(tryPath, includePaths, True, contents, True)
-                                        current_file = prev
-                                        found = True
-                                if not found:
-                                    raise LoaderError(source_file, "can't find '%s' in any of the include paths" % match.group(1))
-                            else:
-                                raise LoaderError(source_file, "syntax error at '%s'" % source_file)
-                    else:
-                        break
-
-                contents += "// @_file:%s\n" % abs_source_file
-
-                if omit:
-                    contents += "// @_omit_start\n"
-                    contents += file_content
-                    contents += "// @_omit_end\n"
+        with open(file_path) as file:
+            file_content = file.readlines()
+            for i,line in enumerate(file_content):
+                match = re.search(r'@(?:insert|stubgen:include)\s*"([^"]+)"', line)
+                if match:
+                    included_file = os.path.join(os.path.dirname(os.path.realpath(file_path)), match.group(1))
+                    included_content = ReadFile(included_file, include_paths, file_path, (i + 2), inclusions, quiet=False, omit=True, use_includes=False)
+                    file_content[i] = included_content
                 else:
-                    contents += file_content
+                    match = re.search(r'@(?:insert|stubgen:include)\s*<([^>]+)>', line)
+                    if match:
+                        included_content = ReadFile(match.group(1), include_paths, file_path, (i + 2), inclusions, quiet=False, omit=True, use_includes=True)
+                        file_content[i] = included_content
+                    else:
+                        match = re.search(r'@insert:weak\s*<([^>]+)>', line)
+                        if match:
+                            included_content = ReadFile(match.group(1), include_paths, file_path, (i + 2), inclusions, quiet=True, omit=True, use_includes=True)
+                            file_content[i] = included_content
 
-                return contents
+            contents = "// @_file:%s,1\n" % (file_path)
 
-        except FileNotFoundError:
-            if not quiet:
-                raise LoaderError(source_file, "failed to open file")
+            if omit:
+                contents += "// @_omit_start\n"
 
-    return ""
+            contents += "".join(file_content)
+
+            if omit:
+                contents += "// @_omit_end\n"
+
+            if index:
+                contents += "// @_file:%s,%i\n" % (parent_file,index)
+
+    elif not quiet:
+        if use_includes:
+            raise LoaderError(parent_file, "can't find '%s' in any of the include paths" % source_file)
+        else:
+            raise LoaderError(parent_file, "failed to open file %s" % source_file)
+
+    return contents
 
 
 def Locate(block_name, tree=None):
@@ -2942,10 +3176,10 @@ def ParseFile(source_file, includePaths = []):
 
 def ParseFiles(source_files, framework_namespace, includePaths = [], log = None):
     contents = ""
+
     for source_file in source_files:
         if source_file:
-            quiet = (source_file[0] == "@")
-            contents += ReadFile((source_file[1:] if quiet else source_file), includePaths, quiet, "")
+            contents += ReadFile(source_file, includePaths, inclusions=[])
             contents = contents.replace("__FRAMEWORK_NAMESPACE__", framework_namespace)
 
     return Parse(contents, log)

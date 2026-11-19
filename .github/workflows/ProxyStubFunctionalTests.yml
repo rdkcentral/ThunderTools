@@ -1,0 +1,92 @@
+name: ProxyStub & JSON-RPC Generator Functional Tests
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/master' }}
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ master, 'R*' ]
+    paths:
+      - "ProxyStubGenerator/**"
+      - "JsonGenerator/**"
+      - "tests/**"
+      - ".github/workflows/ProxyStubFunctionalTests.yml"
+  pull_request:
+    branches: [ master, 'R*' ]
+    paths:
+      - "ProxyStubGenerator/**"
+      - "JsonGenerator/**"
+      - "tests/**"
+      - ".github/workflows/ProxyStubFunctionalTests.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-24.04
+    name: Build type - ${{ matrix.architecture == '32' && 'x86' || 'x86_64' }}
+    strategy:
+      matrix:
+        architecture: [32, 64]
+
+    steps:
+      - name: Resolve Thunder dependency version
+        id: thunder
+        shell: bash
+        env:
+          BUILD_BRANCH: ${{ github.base_ref || github.ref_name }}
+          REF_TYPE: ${{ github.ref_type }}
+        run: |
+          thunder_version=refs/remotes/origin/master
+          if [[ "$REF_TYPE" == 'branch' && "$BUILD_BRANCH" == R* ]]; then
+            thunder_version="refs/remotes/origin/$BUILD_BRANCH"
+          fi
+          echo "version=$thunder_version" >> "$GITHUB_OUTPUT"
+          echo "Thunder dependency version: $thunder_version"
+
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Install system dependencies
+        uses: ./.github/actions/apt-dependencies
+        with:
+          architecture: ${{ matrix.architecture }}
+
+      - name: Set up Python environment
+        run: |
+          python3 -m venv venv
+          source venv/bin/activate
+          pip install --upgrade pip
+          pip install jsonref
+
+      - name: Build Functional Tests
+        env:
+          THUNDER_VERSION: ${{ steps.thunder.outputs.version }}
+        run: |
+          source venv/bin/activate
+          cmake \
+            -G Ninja \
+            -S . \
+            -B Build/ThunderTools \
+            -DCMAKE_BUILD_TYPE=Release \
+            -DCMAKE_MESSAGE_LOG_LEVEL=VERBOSE \
+            -DCMAKE_VERBOSE_MAKEFILE=ON \
+            -DENABLE_TESTING=ON \
+            -DFUNCTIONAL_TESTS=ON \
+            -DENABLE_TEST_RUNTIME=ON \
+            -DTHUNDER_VERSION="$THUNDER_VERSION" \
+            -DPROXYSTUB_GENERATOR=$(pwd)/ProxyStubGenerator/StubGenerator.py \
+            -DJSON_GENERATOR=$(pwd)/JsonGenerator/JsonGenerator.py
+          git -C Build/ThunderTools/_deps/thunder-src log -1 --format='Thunder: %H'
+          cmake \
+            --build Build/ThunderTools \
+            --target JsonRpcFunctionalTests ComRpcFunctionalTests
+
+      - name: Run ProxyStub Functional Tests
+        run: Build/ThunderTools/tests/FunctionalTests/comrpc/ComRpcFunctionalTests
+
+      - name: Run JSON-RPC Functional Tests
+        run: Build/ThunderTools/tests/FunctionalTests/jsonrpc/JsonRpcFunctionalTests

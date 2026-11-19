@@ -1,0 +1,64 @@
+/*
+ * If not stated otherwise in this file or this component's LICENSE file the
+ * following copyright and licenses apply:
+ *
+ * Copyright 2026 Metrological
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ * http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+#pragma once
+
+#include <cstdint>
+
+namespace Thunder {
+    namespace FunctionalTest {
+
+    constexpr uint32_t ID_INTERFACE_OFFSET = 0xA000; // Base offset for test interface IDs
+    
+    enum IDs : uint32_t {
+        ID_TEST_PRIMITIVES              = ID_INTERFACE_OFFSET + 0x001,
+        ID_TEST_BUFFERS                 = ID_INTERFACE_OFFSET + 0x002,
+        ID_TEST_OPTIONALS               = ID_INTERFACE_OFFSET + 0x003,
+        ID_TEST_ENUMS                   = ID_INTERFACE_OFFSET + 0x004,
+        ID_TEST_STRUCTS                 = ID_INTERFACE_OFFSET + 0x005,
+        ID_TEST_INTERFACE_POINTERS      = ID_INTERFACE_OFFSET + 0x006,
+        ID_TEST_ITERATORS               = ID_INTERFACE_OFFSET + 0x007,
+        ID_TEST_EVENTS                  = ID_INTERFACE_OFFSET + 0x008,
+        ID_TEST_EVENTS_NOTIFICATION     = ID_INTERFACE_OFFSET + 0x009,
+        ID_TEST_RESTRICTIONS            = ID_INTERFACE_OFFSET + 0x00A,
+        ID_TEST_ASYNC                   = ID_INTERFACE_OFFSET + 0x00B,
+        ID_TEST_ASYNC_CALLBACK          = ID_INTERFACE_OFFSET + 0x00C,
+        ID_TEST_JSON_SHAPE              = ID_INTERFACE_OFFSET + 0x00D,
+        ID_TEST_JSON_TEXT_KEEP          = ID_INTERFACE_OFFSET + 0x00E,
+        ID_TEST_JSON_TEXT_CASE          = ID_INTERFACE_OFFSET + 0x00F,
+        ID_TEST_JSON_COMPLIANT          = ID_INTERFACE_OFFSET + 0x010,
+        ID_TEST_JSON_UNCOMPLIANT_EXT    = ID_INTERFACE_OFFSET + 0x011,
+        ID_TEST_JSON_UNCOMPLIANT_COL    = ID_INTERFACE_OFFSET + 0x012,
+        ID_TEST_ENCODING_MAC            = ID_INTERFACE_OFFSET + 0x013,
+        ID_TEST_LENGTH_MODES            = ID_INTERFACE_OFFSET + 0x014,
+        ID_TEST_ANNOTATIONS              = ID_INTERFACE_OFFSET + 0x015,
+        ID_TEST_ANNOTATIONS_NOTIFICATION = ID_INTERFACE_OFFSET + 0x016,
+        ID_TEST_EXTENDED_FORMAT         = ID_INTERFACE_OFFSET + 0x017,
+        ID_TEST_ANNOTATION_EVENTS        = ID_INTERFACE_OFFSET + 0x018,
+        ID_TEST_ANNOTATION_EVENTS_NOTIFICATION = ID_INTERFACE_OFFSET + 0x019,
+        ID_TEST_PREFIX_UNDERSCORE        = ID_INTERFACE_OFFSET + 0x01A,
+        ID_TEST_WRAPPED_INTERFACE        = ID_INTERFACE_OFFSET + 0x01B,
+        ID_TEST_VECTORS                  = ID_INTERFACE_OFFSET + 0x01C,
+        ID_TEST_NAMESPACES_PRIMARY       = ID_INTERFACE_OFFSET + 0x01D,
+        ID_TEST_NAMESPACES_LEGACY        = ID_INTERFACE_OFFSET + 0x01E,
+        ID_TEST_RICH_ERROR               = ID_INTERFACE_OFFSET + 0x01F,
+    };
+
+} // namespace FunctionalTest
+} // namespace Thunder

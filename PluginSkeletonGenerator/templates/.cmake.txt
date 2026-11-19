@@ -19,7 +19,7 @@ project({{PLUGIN_NAME}})
 
 cmake_minimum_required(VERSION 3.15)
 
-find_package(Thunder)
+find_package({{FRAMEWORK_CMAKE_PACKAGE}})
 
 project_version(1.0.0)
 
@@ -51,7 +51,7 @@ add_library(${MODULE_NAME} SHARED
 
 set_target_properties(${MODULE_NAME} PROPERTIES
 ~INDENT_INCREASE~
-    CXX_STANDARD 11
+    CXX_STANDARD ${CXX_STD}
     CXX_STANDARD_REQUIRED YES)
 ~INDENT_DECREASE~
 

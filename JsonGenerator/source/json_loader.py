@@ -22,6 +22,8 @@ import copy
 import posixpath
 import tempfile
 import json
+import hashlib
+from pathlib import Path
 from collections import OrderedDict
 
 try:
@@ -34,6 +36,8 @@ import config
 import header_loader
 import trackers
 
+
+RESERVED_NAMES = ["exists", "versions", "register", "unregister"]
 
 log = None
 def SetLogger(logger):
@@ -242,6 +246,10 @@ class JsonType():
         return self.cpp_type.replace("%s::%s::" % (config.DATA_NAMESPACE, self.root.cpp_class), "")
 
     @property
+    def typed_print_name(self):
+        return self.print_name
+
+    @property
     def cpp_class(self): # C++ class type of the object
         raise RuntimeError("Can't instantiate '%s'" % self.print_name)
 
@@ -253,6 +261,8 @@ class JsonType():
     def cpp_native_type_cv(self):
         if self.schema.get("@cv"):
             return self.schema.get("@cv") + " " + self.cpp_native_type
+        else:
+            return self.cpp_native_type
 
     @property
     def cpp_native_type_opt(self):
@@ -291,8 +301,10 @@ class JsonType():
 
     @property
     def local_proto(self):
-        assert self.schema.get("@proto")
-        return self.cpp_native_type_proto.replace('@', self.local_name)
+        if "@proto" in self.schema:
+            return self.cpp_native_type_proto.replace('@', self.local_name)
+        else:
+            return "%s %s" % (self.cpp_native_type_opt_cv, self.local_name)
 
     @property
     def cpp_concrete_type(self):
@@ -349,12 +361,16 @@ class JsonInteger(JsonNative, JsonFundamental, JsonType):
         JsonType.__init__(self, name, parent, schema)
         self.size = schema["size"] if "size" in schema else size
 
-        if self.size != 8 and self.size != 16 and self.size != 32 and self.size != 64:
+        if self.size != 8 and self.size != 16 and self.size != 24 and self.size != 32 and self.size != 64:
             raise JsonParseError("Invalid integer number size: '%s'" % self.print_name)
 
         self.signed = schema["signed"] if "signed" in schema else signed
-        self.__cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size))
-        self.__cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
+        self.__cpp_class = CoreJson("Dec%sInt%i" % ("S" if self.signed else "U", self.size if self.size != 24 else 32))
+
+        if self.size == 24:
+            self.__cpp_native_type = "Core::SInt24" if self.signed else "Core::UInt24"
+        else:
+            self.__cpp_native_type = "%sint%i_t" % ("" if self.signed else "u", self.size)
 
     @property
     def cpp_class(self):
@@ -436,7 +452,6 @@ class JsonRefCounted():
 
     def RefCount(self):
         return len(self.refs)
-
 
 class JsonTime(JsonNative, JsonType):
     def __init__(self, name, parent, schema, time_type):
@@ -714,7 +729,16 @@ class JsonObject(JsonRefCounted, JsonType):
                 else:
                     # Make the name out of properties, but not for params/result types
                     if self.original_type:
-                        classonly = self.original_type.split("::")[-1]
+                        template_begin = self.original_type.find('<')
+
+                        if template_begin != -1:
+                            template_end = self.original_type.rfind('>')
+                            template_name = self.original_type[:template_begin]
+                            arguments = self.original_type[template_begin+1:template_end]
+                            classonly = template_name.split("::")[-1] + "Instance" + hashlib.sha256(arguments.encode('utf-8')).hexdigest()[:16]
+                        else:
+                            classonly = self.original_type.split("::")[-1]
+
                         classname = MakeObject(classonly[0].upper() + classonly[1:])
                     elif len(self.properties) == 1 and not isinstance(self.parent, JsonMethod):
                         classname = MakeObject(self.properties[0].cpp_name)
@@ -851,6 +875,7 @@ class JsonMethod(JsonObject):
         props = OrderedDict()
         props["params"] = schema["params"] if "params" in schema else {"type": "null"}
         props["result"] = schema["result"] if "result" in schema else {"type": "null"}
+        props["error"] = schema["error"] if "error" in schema else {"type": "null"}
         method_schema = {"type": "object", "properties": props}
 
         if "@originalname" in schema:
@@ -878,7 +903,7 @@ class JsonMethod(JsonObject):
         if not self.summary and "#" not in self.print_name:
             log.DocIssue("'%s': method is missing summary" % self.print_name)
 
-        self.endpoint_name = (config.IMPL_ENDPOINT_PREFIX + super().json_name)
+        self._Check()
 
         if (self.rpc_format == config.RpcFormat.COMPLIANT) and not isinstance(self.params, (JsonObject, JsonNull)):
             raise JsonParseError("With 'compliant' format parameters to a method or event need to be an object: '%s'" % self.print_name)
@@ -901,6 +926,10 @@ class JsonMethod(JsonObject):
 
                         event = JsonNotification(self.json_name, self.parent, prop.schema["@async"], included)
                         self.callback = JsonCallback(self.json_name, self.parent, event, prop.schema["@async"], included)
+
+    def _Check(self):
+        if self.name.lower() in RESERVED_NAMES:
+            raise JsonParseError("Method/property name '%s' is reserved and cannot be used in a JSON-RPC interface" % self.name)
 
     @property
     def rpc_format(self):
@@ -936,6 +965,10 @@ class JsonMethod(JsonObject):
 
         return (_name[0].upper() + _name[1:])
 
+    @property
+    def typed_print_name(self):
+        return "method " + super().print_name
+
     def Headline(self):
         return "'%s'%s%s" % (self.json_name, (" - " + self.summary.split(".", 1)[0]) if self.summary else "",
                            " (DEPRECATED)" if self.deprecated else " (OBSOLETE)" if self.obsolete else "")
@@ -952,12 +985,17 @@ class JsonNotification(JsonMethod):
         self.sendif_deprecated = schema["id"].get("deprecated") if "id" in schema else False
         self.is_status_listener = schema.get("statuslistener")
 
-        self.endpoint_name = (config.IMPL_EVENT_PREFIX + self.json_name)
-
         for param in self.params.properties:
             if not isinstance(param,JsonNative) and param.do_create:
                 log.Info("'%s': notification parameter '%s' refers to generated JSON objects" % (name, param.name))
                 break
+
+    @property
+    def typed_print_name(self):
+        return "event " + super().print_name
+
+    def _Check(self):
+        pass
 
 class JsonCallback(JsonMethod):
     def __init__(self, name, parent, notification, schema, included=None):
@@ -965,6 +1003,11 @@ class JsonCallback(JsonMethod):
         self.notification = notification
         self.notification.sendif_type = JsonItem("id", self, { "type": "string", "@originalname": "index_", "@generated": True})
         self.notification.sendif_deprecated = False
+
+    @property
+    def typed_print_name(self):
+        return "callback " + super().print_name
+
 
 class JsonProperty(JsonMethod):
     def __init__(self, name, parent, schema, included=None):
@@ -993,8 +1036,9 @@ class JsonProperty(JsonMethod):
         else:
             self.index = None
 
-        self.endpoint_set_name = (config.IMPL_ENDPOINT_PREFIX + "set_" + self.json_name)
-        self.endpoint_get_name = (config.IMPL_ENDPOINT_PREFIX + "get_" + self.json_name)
+    @property
+    def typed_print_name(self):
+        return "property " + super().print_name
 
 
 class JsonRpcSchema(JsonType):
@@ -1063,7 +1107,7 @@ class JsonRpcSchema(JsonType):
         _AddMethods("events", schema, lambda name, obj, method: JsonNotification(name, obj, method))
 
         if not self.methods:
-            raise JsonParseError("no methods, properties or events defined in %s" % self.schema["@fullname"] if "@fullname" in self.schema else self.name)
+            raise JsonParseError("no methods, properties or events defined in %s" % (self.schema["@fullname"] if "@fullname" in self.schema else self.name))
 
     @property
     def root(self):
@@ -1332,7 +1376,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
                                 if ref_file:
                                     log.Info("including JSON file '%s'..." % rf);
-                                    pairs[i] = (k, os.path.normpath("file://" + ref_file + "#" + ref[1]))
+                                    pairs[i] = (k, Path(ref_file).resolve().as_uri() + "#" + ref[1])
                                 else:
                                     raise IOError("$ref file '%s' not found in any of the interface paths" % ref[0])
 
@@ -1371,7 +1415,7 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
                                         with tempfile.NamedTemporaryFile(mode="w", delete=False) as temp_json_file:
                                             temp_json_file.write(json.dumps(cppif))
-                                            pairs[i] = (k, os.path.normpath("file://" + temp_json_file.name + "#"))
+                                            pairs[i] = (k, Path(temp_json_file.name).resolve().as_uri() + "#")
                                             temp_files.append(temp_json_file.name)
                                 else:
                                     raise IOError("$ref file '%s' not found in any of the interface paths" % v)
@@ -1397,7 +1441,17 @@ def LoadSchema(file, include_paths, cpp_include_paths, header_include_paths):
 
     return [], [], temp_files
 
-def Load(log, path, if_dirs = [], cpp_if_dirs = [], include_paths = []):
+def Load(log, path, if_dirs=None, cpp_if_dirs=None, include_paths=None):
+
+    if if_dirs is None:
+        if_dirs = []
+
+    if cpp_if_dirs is None:
+        cpp_if_dirs = []
+
+    if include_paths is None:
+        include_paths = []
+
     temp_files = []
 
     if path.endswith(".h"):

@@ -33,12 +33,15 @@ THUNDER_DIR="${1:-../../Thunder}"
 INTERFACES_DIR="${2:-../../ThunderInterfaces}"
 
 files="$THUNDER_DIR/Source/com/ICOM.h"
-files="$files $THUNDER_DIR/Source/plugins/IController.h $ $THUNDER_DIR/Source/plugins/IPlugin.h $THUNDER_DIR/Source/plugins/IShell.h $THUNDER_DIR/Source/plugins/IStateControl.h $THUNDER_DIR/Source/plugins/ISubSystem.h $THUNDER_DIR/Source/plugins/IDispatcher.h"
+files="$files $THUNDER_DIR/Source/plugins/I*.h"
 files="$files $INTERFACES_DIR/interfaces/I*.h"
+files="$files $INTERFACES_DIR/qa_interfaces/I*.h"
+files="$files $INTERFACES_DIR/example_interfaces/I*.h"
 # add more interface files if needed..
 
 echo "Generating lua data file..."
+echo $files
 
-../ProxyStubGenerator/StubGenerator.py --lua-code $files --outdir . -I $THUNDER_DIR/Source -i $THUNDER_DIR/Source/com/Ids.h --verbose
+../ProxyStubGenerator/StubGenerator.py --lua-code $files --outdir . -I $THUNDER_DIR/Source --verbose
 
 echo "Complete."

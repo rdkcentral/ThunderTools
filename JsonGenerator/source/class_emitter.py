@@ -105,17 +105,21 @@ class Restrictions:
         elif isinstance(argument, JsonArray):
             self.__cond.insert(pos if pos else len(self.__cond), "%s != nullptr" % name)
 
-    def append(self, argument, relay=None, override=None, test_set=None, json=True):
-        if test_set == None:
+    def append(self, argument, relay=None, override=None, test_set=None, json=None):
+        if test_set is None:
             test_set = self.__test_set
 
-        if not relay:
+        if json is None:
+            json = self.__json
+
+        if relay is None:
             relay = argument
 
         name = override if override else (relay.original_name if self.__original_name else relay.temp_name)
+        value = "%s%s" % (name, (".Value()" if json else ""))
 
-        if isinstance(relay, JsonObject) and self.__json and json:
-            if test_set:
+        if isinstance(relay, JsonObject) and json:
+            if test_set and config.EMIT_OPTIONAL_CHECKS:
                 if IsObjectOptional(relay):
                     if self.__reverse:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == true)" % (name, name))
@@ -126,13 +130,15 @@ class Restrictions:
                         self.__cond.append("(%s.IsSet() == true) && (%s.IsDataValid() == true)" % (name, name))
                     else:
                         self.__cond.append("(%s.IsSet() == false) || (%s.IsDataValid() == false)" % (name, name))
-            else:
+
+            elif config.EMIT_OPTIONAL_CHECKS or config.EMIT_RESTRICT_CHECKS:
+                # if both checks are disabled then there is no reason to call IsDataValid further (they will always return true)
                 if self.__reverse:
                     self.__cond.append("%s.IsDataValid() == true" % name)
                 else:
                     self.__cond.append("%s.IsDataValid() == false" % name)
 
-        elif IsObjectRestricted(relay):
+        elif IsObjectRestricted(relay) and config.EMIT_RESTRICT_CHECKS:
             tests = []
 
             range = relay.schema.get("range")
@@ -140,12 +146,12 @@ class Restrictions:
             if range:
                 if isinstance(relay, (JsonInteger, JsonNumber)):
                     if range[0]:
-                        tests.append("%s.Value() %s %s" % (name, self.__comp[0], range[0]))
+                        tests.append("%s %s %s" % (value, self.__comp[0], range[0]))
                     if range[1]:
-                        tests.append("%s.Value() %s %s" % (name, self.__comp[1], range[1]))
+                        tests.append("%s %s %s" % (value, self.__comp[1], range[1]))
 
                 elif isinstance(relay, (JsonString, JsonMacAddress)):
-                    if ("@arraysize" not in relay.schema and not isinstance(relay, JsonMacAddress)) or self.__json:
+                    if ("@arraysize" not in relay.schema and not isinstance(relay, JsonMacAddress)) or json:
                         if isinstance(relay, JsonMacAddress):
                             encode = "mac"
                         else:
@@ -163,42 +169,42 @@ class Restrictions:
                             elif encode == "base64":
                                 adjusted[0] = (math.ceil(range[0]/3))*4
                                 adjusted[1] = (math.ceil(range[1]/3))*4
+                            elif encode == "ip":
+                                # take min/max, can't predict exact length
+                                adjusted[0] = (range[0]*2 - 1) if range[0] else 0
+                                adjusted[1] = (range[1]*4 - 1) if range[1] else 0
                         else:
                             adjusted = range
 
                         size_method = "size"
 
                         if adjusted[0]:
-                            tests.append("%s%s.%s() %s %s" % (name, (".Value()" if self.__json and json else ""), size_method, self.__comp[0], adjusted[0]))
+                            tests.append("%s.%s() %s %s" % (value, size_method, self.__comp[0], adjusted[0]))
 
                         if adjusted[1]:
-                            tests.append("%s%s.%s() %s %s" % (name, (".Value()" if self.__json and json else ""), size_method, self.__comp[1], adjusted[1]))
+                            tests.append("%s.%s() %s %s" % (value, size_method, self.__comp[1], adjusted[1]))
 
                 elif isinstance(relay, JsonArray):
-                    if self.__json:
-                        if range[0]:
-                            tests.append("%s.Length() %s %s" % (name, self.__comp[0], range[0]))
-
-                        if range[1]:
-                            tests.append("%s.Length() %s %s" % (name, self.__comp[1], range[1]))
+                    if json:
+                        size_method = "Length"
+                    elif "@container" in relay.schema:
+                        size_method = "size"
+                    elif "@iterator" in relay.schema:
+                        size_method = "Count"
                     else:
-                        if "@container" in relay.schema:
-                            if range[0]:
-                                tests.append("%s.size() %s %s" % (name, self.__comp[0], range[0]))
+                        assert False, "invalid array type"
 
-                            if range[1]:
-                                tests.append("%s.size() %s %s" % (name, self.__comp[1], range[1]))
+                    if range[0]:
+                        tests.append("%s.%s() %s %s" % (name, size_method, self.__comp[0], range[0]))
 
-                        elif "@iterator" in relay.schema:
-                            if range[0]:
-                                tests.append("%s.Count() %s %s" % (name, self.__comp[0], range[0]))
-
-                            if range[1]:
-                                tests.append("%s.Count() %s %s" % (name, self.__comp[1], range[1]))
+                    if range[1]:
+                        tests.append("%s.%s() %s %s" % (name, size_method, self.__comp[1], range[1]))
 
             if tests:
-                if test_set and self.__json and json:
-                    if IsObjectOptional(argument):
+                if test_set and json:
+                    # since the element is restricted still have to check optionality even if EMIT_OPTIONAL_CHECKS is unset
+                    # so it does not check restrict range on an unset element
+                    if IsObjectOptional(relay):
                         if self.__reverse:
                             self.__cond.append("(%s.IsSet() == false) || (%s)" % (name, " && ".join(tests)))
                         else:
@@ -211,7 +217,7 @@ class Restrictions:
                 else:
                     self.__cond.extend(tests)
 
-        elif test_set and self.__json and json and not IsObjectOptional(relay):
+        elif test_set and json and not IsObjectOptional(relay) and config.EMIT_OPTIONAL_CHECKS:
             self.__cond.append("%s.IsSet() == %s" % (name, self.__comp[2]))
 
 def ProcessEnums(log, action=None):
@@ -227,6 +233,8 @@ def ProcessEnums(log, action=None):
     return count
 
 def EmitEnumRegs(log, root, emit, header_file, if_file):
+    log.Info("Emitting enum conversion tables... ")
+
     def _EmitEnumRegistration(log, enum):
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
 
@@ -274,6 +282,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
     emittedItems = 0
 
     def _EmitEnumConversionHandler(root, enum):
+        log.Info("Emitting enum conversion handler for '{}'".format(enum.cpp_class))
         name = enum.original_type if enum.original_type else (Scoped(root, enum) + enum.cpp_class)
         emit.Line("ENUM_CONVERSION_HANDLER(%s)" % name)
 
@@ -649,7 +658,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
 
     def _EmitNoPushWarnings(prologue = True):
         if prologue:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("PUSH_WARNING(DISABLE_WARNING_TYPE_LIMITS)")
                 emit.Line()
             else:
@@ -658,7 +667,7 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                 emit.Line("#endif")
                 emit.Line()
         else:
-            if not config.NO_PUSH_WARNING:
+            if config.PUSH_WARNING:
                 emit.Line("POP_WARNING()")
                 emit.Line()
 
@@ -705,11 +714,12 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Indent()
         emit.Line()
 
-        if emitCommon and trackers.enum_tracker.CommonObjects():
+        if emitCommon and trackers.enum_tracker.common_objects:
             log.Info("Emitting common enums...")
             emittedPrologue = False
-            for obj in trackers.enum_tracker.CommonObjects():
-                if obj.do_create and not obj.is_duplicate and not obj.included_from:
+            for obj in trackers.enum_tracker.common_objects:
+                if obj.do_create and not obj.included_from:
+                    assert not obj.is_duplicate
                     if not emittedPrologue:
                         emit.Line("// Common enums")
                         emit.Line("//")
@@ -717,11 +727,12 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
                         emittedPrologue = True
                     _EmitEnum(obj)
 
-        if emitCommon and trackers.object_tracker.CommonObjects():
+        if emitCommon and trackers.object_tracker.common_objects:
             log.Info("Emitting common classes...")
             emittedPrologue = False
-            for obj in trackers.object_tracker.CommonObjects():
+            for obj in trackers.object_tracker.common_objects:
                 if not obj.included_from:
+                    assert not obj.is_duplicate
                     if not emittedPrologue:
                         emit.Line("// Common classes")
                         emit.Line("//")
@@ -751,16 +762,19 @@ def EmitObjects(log, root, emit, if_file, additional_includes, emitCommon = Fals
         emit.Line("} // namespace %s" % config.DATA_NAMESPACE)
         emit.Line()
 
-    emittedPrologue = False
 
-    for obj in trackers.enum_tracker.objects:
-        if not obj.is_duplicate and not obj.included_from:
-            if not emittedPrologue:
-                emit.Line("// Enum conversion handlers")
-                emittedPrologue = True
+    log.Info("Emitting enum conversion handlers...")
+    if trackers.enum_tracker.objects:
+        emittedPrologue = False
+        for obj in trackers.enum_tracker.objects:
+            if not obj.is_duplicate and not obj.included_from:
+                assert not obj.is_duplicate
+                if not emittedPrologue:
+                    emit.Line("// Enum conversion handlers")
+                    emittedPrologue = True
 
-            _EmitEnumConversionHandler(root, obj)
-            emittedItems += 1
+                _EmitEnumConversionHandler(root, obj)
+                emittedItems += 1
 
     emit.Line()
     emit.Line("}")

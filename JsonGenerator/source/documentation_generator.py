@@ -102,9 +102,9 @@ def Create(log, args, schema, path, indent_size = 4):
 
             def _TableObj(name, obj, parentName="", parent=None, prefix="", parentOptional=False):
                 # determine if the attribute is optional
-                optional = parentOptional or (obj["optional"] if "optional" in obj else False)
-                deprecated = obj["deprecated"] if "deprecated" in obj else False
-                obsolete = obj["obsolete"] if "obsolete" in obj else False
+                optional = parentOptional or obj.get("optional") or obj.get("@optionaltype")
+                deprecated = obj.get("deprecated")
+                obsolete = obj.get("obsolete")
                 restricted = obj.get("range")
 
                 name = name.replace(' ','-')
@@ -123,7 +123,7 @@ def Create(log, args, schema, path, indent_size = 4):
                     endmarker = obj.get("@endmarker")
                     for i,e in enumerate(obj["ids"]):
                         if e == endmarker:
-                            break;
+                            break
                         enums.append(str(obj["enum"][i]))
                         if "default" in obj and e == obj["default"]:
                             default_enum = enums[-1]
@@ -237,10 +237,15 @@ def Create(log, args, schema, path, indent_size = 4):
                     if obj.get("@async"):
                         if row:
                             row += "<br>"
-
                         obj_type = "string (async ID)"
+                    elif obj.get("opaque"):
+                        obj_type = "opaque object"
+                    elif obj.get("encode"):
+                        obj_type = "string (%s)" % obj.get("encode")
+                    elif obj.get("time"):
+                        obj_type = "string (%s time)" % obj.get("time").upper()
                     else:
-                        obj_type = "opaque object" if obj.get("opaque") else ("string (%s)" % obj.get("encode")) if obj.get("encode") else obj["type"]
+                        obj_type = obj["type"]
 
                     if obj.get("@lookup"):
                         if row == "...":
@@ -260,7 +265,7 @@ def Create(log, args, schema, path, indent_size = 4):
                         _TableObj(pname, props, parentName + "/" + name, obj, prefix, False)
 
                 elif obj["type"] == "array":
-                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", False)
+                    _TableObj("", obj["items"], parentName + "/" + name, obj, (prefix + "[#]") if name else "", optional)
 
             _TableObj(name, object, "")
             MdBr()
@@ -452,6 +457,9 @@ def Create(log, args, schema, path, indent_size = 4):
                 desc = ReplaceVars(props["description"])
                 MdParagraph(desc)
 
+            if not is_notification and not is_property and "error" in props:
+                MdParagraph("> Upon failure this method may respond with custom error information.")
+
             if "statuslistener" in props:
                 MdParagraph("> This notification may also be triggered by client registration.")
 
@@ -486,8 +494,8 @@ def Create(log, args, schema, path, indent_size = 4):
                         _registrant2 += "@" + (props["id"]["example"] if "example" in props["id"] else "?")
 
 
-                generic_method = "%s.1.%s" % (classname, _registrant)
-                call_method ="%s.1.%s" % (classname, _registrant2)
+                generic_method = "%s.%s" % (classname, _registrant)
+                call_method ="%s.%s" % (classname, _registrant2)
             else:
                 if "@lookup" in props:
                     _obj_prefix = props["@lookup"]["prefix"].lower()
@@ -498,11 +506,12 @@ def Create(log, args, schema, path, indent_size = 4):
                     _example_callee = method
                     _callee = method
 
-                generic_method = "%s.1.%s" % (classname, _callee)
-                call_method = "%s.1.%s" % (classname, _example_callee)
+                generic_method = "%s.%s" % (classname, _callee)
+                call_method = "%s.%s" % (classname, _example_callee)
 
                 if is_property and "index" in props:
-                    call_method += ("@" + str(props["index"][0]["example"]) if "example" in props["index"][0] else "?")
+                    idx = props["index"][0] if props["index"][0] else props["index"][1]
+                    call_method += (("@" + str(idx["example"]).strip('"')) if "example" in idx else "?")
                     generic_method += "@<index>"
 
                 if "@async" in props:
@@ -511,16 +520,15 @@ def Create(log, args, schema, path, indent_size = 4):
 
             if is_property:
                 if "index" in props:
-                    if "name" not in props["index"][0] or "example" not in props["index"][0]:
-                        raise DocumentationError("'%s': index field requires 'name' and 'example' properties" % method)
+                    idx = props["index"][0] if props["index"][0] else props["index"][1]
 
-                    if "type" not in props["index"][0]:
+                    if props["index"][0]  and "type" not in props["index"][0]:
                         props["index"][0]["type"] = "string"
                     if props["index"][1] and ("type" not in props["index"][1]):
                         props["index"][1]["type"] = "string"
 
                     extra_paragraph = "> The *%s* parameter shall be passed as the index to the property, i.e. ``%s@<%s>``." % (
-                        props["index"][0]["name"].lower(), method, props["index"][0]["name"].lower().replace(' ', '-'))
+                        idx["name"].lower(), method, idx["name"].lower().replace(' ', '-'))
 
                     if props["index"][0] and props["index"][0].get("optional") and props["index"][1] and props["index"][1].get("optional"):
                         extra_paragraph += " The index is optional."
@@ -608,6 +616,10 @@ def Create(log, args, schema, path, indent_size = 4):
             if not is_notification and "errors" in props:
                 MdHeader("Errors", 3)
                 ErrorTable(props["errors"])
+
+            if not is_notification and not is_property and "error" in props:
+                MdHeader("Rich Error", 3)
+                ParamTable("error", props["error"])
 
             if "@async" in props and "params" in props:
                 MdHeader("Asynchronous Result", 3)
@@ -735,14 +747,28 @@ def Create(log, args, schema, path, indent_size = 4):
 
                 if is_property:
                     MdHeader("Set Response", 4)
+
                     try:
                         jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, "result": "null" }',
-                                                    object_pairs_hook=OrderedDict), indent=4)
+                                                    object_pairs_hook=OrderedDict), indent=2)
                     except:
                         jsonResponse = jsonError
                         log.Error(jsonError)
 
                     MdCode(jsonResponse, "json")
+
+            if not is_notification and not is_property and "error" in props:
+                MdHeader("Rich Error Response", 4)
+
+                try:
+                    jsonResponse = json.dumps(json.loads('{ "jsonrpc": "2.0", "id": 42, %s }' % ExampleObj("error", props["error"], True),
+                                                object_pairs_hook=OrderedDict), indent=2)
+                except:
+                    jsonResponse = jsonError
+                    log.Error(jsonError)
+
+                MdCode(jsonResponse, "json")
+
 
             return props["alt"] if is_alt and not is_notification else ""
 
@@ -803,15 +829,36 @@ def Create(log, args, schema, path, indent_size = 4):
         property_count = 0
         event_count = 0
 
+        all_methods = []
+        all_events = []
+
         for face in interfaces:
             if "methods" in face:
                 method_count += len(face["methods"])
+                all_methods.extend(face["methods"])
+                all_events.extend([face["methods"][x].get("alt") for x in face["methods"]])
 
             if "properties" in face:
                 property_count += len(face["properties"])
+                all_methods.extend(face["properties"])
+                all_events.extend([face["properties"][x].get("alt") for x in face["properties"]])
 
             if "events" in face:
                 event_count += len(face["events"])
+                all_events.extend(face["events"])
+                all_events.extend([face["events"][x].get("alt") for x in face["events"]])
+
+        all_methods = [x for x in all_methods if x is not None]
+        all_events = [x for x in all_events if x is not None]
+
+        duplicate_methods = [x for x in set(all_methods) if all_methods.count(x) > 1]
+        duplicate_events = [x for x in set(all_events) if all_events.count(x) > 1]
+
+        if duplicate_methods:
+            log.Warn("CONFLICT DETECTED: Duplicate method/property names in plugin API: %s" %", ".join(duplicate_methods))
+
+        if duplicate_events:
+            log.Warn("CONFLICT DETECTED: Duplicate event names in plugin API: %s" % ", ".join(duplicate_events))
 
         status = info["status"] if "status" in info else "alpha"
 

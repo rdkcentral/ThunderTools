@@ -19,7 +19,6 @@ import os
 
 import config
 import trackers
-import stub_emitter
 import rpc_emitter
 import class_emitter
 
@@ -30,6 +29,7 @@ def CreateApiHeader(log, source_name, path, headers):
     assert(headers)
 
     header_file = os.path.join(path, "json_" + source_name + ".h")
+
     with Emitter(header_file, config.INDENT_SIZE) as emitter:
         emitter.Line("// %s API" % os.path.basename(source_name))
         emitter.Line("// Generated automatically. DO NOT EDIT.")
@@ -37,15 +37,17 @@ def CreateApiHeader(log, source_name, path, headers):
         emitter.Line("#pragma once")
         emitter.Line()
 
-        sorted = [_h for _h in headers if config.DATA_NAMESPACE in _h]
-        sorted.extend([_h for _h in headers if config.DATA_NAMESPACE not in _h])
+        sorted = [header for header in headers if config.DATA_NAMESPACE in header]
+        sorted.extend([header for header in headers if config.DATA_NAMESPACE not in header])
 
-        for h in sorted:
-            emitter.Line("#include \"%s\"" % os.path.basename(h))
+        for header in sorted:
+            emitter.Line("#include \"%s\"" % os.path.basename(header))
 
         log.Success("JSON-RPC API header generated in %s" % (os.path.basename(emitter.FileName())))
 
-def Create(log, schema, source_file, path, additional_includes, generate_classes, generate_stubs, generate_rpc):
+
+def Create(log, schema, source_file, h_output_path, cpp_output_path, additional_includes, generate_classes, generate_rpc):
+
     def _ParseJsonRpcSchema(schema):
         if "interface" in schema:
             schema = schema["interface"]
@@ -63,25 +65,22 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
 
     headers = []
 
-    directory = path[0]
-    cpp_directory = path[1]
-
     filename = (schema["info"]["namespace"]) if "info" in schema and "namespace" in schema["info"] else ""
     filename += (schema["info"]["class"]) if "info" in schema and "class" in schema["info"] else ""
 
-    if len(filename) == 0:
+    if not filename:
         filename = os.path.basename(source_file.replace("Plugin", "").replace(".json", "").replace(".h", ""))
 
     rpcObj = _ParseJsonRpcSchema(schema)
     if rpcObj:
-        header_file = os.path.join(directory, config.DATA_NAMESPACE + "_" + filename + ".h")
-        enum_file = os.path.join(cpp_directory, "JsonEnum_" + filename + ".cpp")
-
+        source_time = os.path.getmtime(source_file)
         data_emitted = 0
 
         if generate_classes:
-            # Generate classes...
-            if not config.FORCE and (os.path.exists(header_file) and (os.path.getmtime(source_file) < os.path.getmtime(header_file))):
+            # 1. Generate classes...
+            header_file = os.path.join(h_output_path, (config.DATA_NAMESPACE + "_" + filename + ".h"))
+
+            if not config.FORCE and (os.path.exists(header_file) and (source_time < os.path.getmtime(header_file))):
                 log.Success("skipping file %s, up-to-date" % os.path.basename(header_file))
                 data_emitted = 1
             else:
@@ -100,8 +99,10 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
                     except:
                         pass
 
-            # Generate enum registrations...
-            if not config.FORCE and (os.path.exists(enum_file) and (os.path.getmtime(source_file) < os.path.getmtime(enum_file))):
+            # 2. Generate enum registrations...
+            enum_file = os.path.join(cpp_output_path, ("JsonEnum_" + filename + ".cpp"))
+
+            if not config.FORCE and (os.path.exists(enum_file) and (source_time < os.path.getmtime(enum_file))):
                 log.Success("skipping file %s, up-to-date" % os.path.basename(enum_file))
                 class_emitter.ProcessEnums(log)
             else:
@@ -121,39 +122,31 @@ def Create(log, schema, source_file, path, additional_includes, generate_classes
                     except:
                         pass
 
-            # Also emit version if source was json meta file in manual mode
-            if rpcObj.schema.get("mode") != "auto" and not rpcObj.schema.get("@enumsonly") and not config.NO_VERSIONING:
-                output_filename = os.path.join(directory, "J" + filename + ".h")
+            # 3. Emit version if source was json meta file in manual mode
+            version_file = os.path.join(h_output_path, ("J" + filename + ".h"))
 
-                if not config.FORCE and (os.path.exists(output_filename) and (os.path.getmtime(source_file) < os.path.getmtime(output_filename))):
-                    log.Success("skipping file %s, up-to-date" % os.path.basename(output_filename))
+            if rpcObj.schema.get("mode") != "auto" and not rpcObj.schema.get("@enumsonly") and not config.NO_VERSIONING:
+                if not config.FORCE and (os.path.exists(version_file) and (source_time < os.path.getmtime(version_file))):
+                    log.Success("skipping file %s, up-to-date" % os.path.basename(version_file))
                 else:
-                    with Emitter(output_filename, config.INDENT_SIZE) as emitter:
+                    with Emitter(version_file, config.INDENT_SIZE) as emitter:
                         rpc_emitter.EmitRpcVersionCode(rpcObj, emitter, filename, os.path.basename(source_file), data_emitted)
                         log.Success("JSON-RPC version information generated in %s" % os.path.basename(emitter.FileName()))
-                        headers.append(output_filename)
+                        headers.append(version_file)
 
-
-        # Generate manual stub code...
-        if generate_stubs:
-            with Emitter(os.path.join(cpp_directory, filename + "JsonRpc.cpp"), config.INDENT_SIZE) as emitter:
-                stub_emitter.EmitHelperCode(log, rpcObj, emitter, os.path.basename(header_file))
-                log.Success("JSON-RPC stubs generated in %s" % os.path.basename(emitter.FileName()))
-
-        # Generate full or semi automatic RPC code
+        # Generate full JSON-RPC code
         if generate_rpc and (rpcObj.schema.get("mode") == "auto"):
-            output_filename = os.path.join(directory, "J" + filename + ".h")
+            rpc_file = os.path.join(h_output_path, ("J" + filename + ".h"))
 
-            if not config.FORCE and (os.path.exists(output_filename) and (os.path.getmtime(source_file) < os.path.getmtime(output_filename))):
-               log.Success("skipping file %s, up-to-date" % os.path.basename(output_filename))
+            if not config.FORCE and (os.path.exists(rpc_file) and (os.path.getmtime(source_file) < os.path.getmtime(rpc_file))):
+               log.Success("skipping file %s, up-to-date" % os.path.basename(rpc_file))
             else:
-                with Emitter(output_filename, config.INDENT_SIZE) as emitter:
+                with Emitter(rpc_file, config.INDENT_SIZE) as emitter:
                     rpc_emitter.EmitRpcCode(rpcObj, emitter, filename, os.path.basename(source_file), data_emitted)
                     log.Success("JSON-RPC implementation generated in %s" % os.path.basename(emitter.FileName()))
-                    headers.append(output_filename)
+                    headers.append(rpc_file)
 
     else:
         log.Info("No code to generate.")
 
     return headers
-
