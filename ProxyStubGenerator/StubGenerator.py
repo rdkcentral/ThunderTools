@@ -871,7 +871,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     else:
                         type_ = undefined
                 else:
-                    type_ = copy.deepcopy(identifier.type)
+                    type_ = copy.copy(identifier.type)
 
                 no_length_warnings = isinstance(self, EmitLength)
                 is_return_value = isinstance(self, EmitRetVal) or (parent and parent.is_return_value)

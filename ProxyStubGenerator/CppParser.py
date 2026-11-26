@@ -1170,7 +1170,7 @@ class Type:
             if isinstance(type, Type):
                 type = type.Resolve()
         else:
-            type = copy.deepcopy(self)
+            type = copy.copy(self)
             type.ref |= ref
         return type
 
@@ -1232,7 +1232,7 @@ class Typedef(Identifier, Name):
             if isinstance(self.type, list):
                 type = self.type[0]
             else:
-                type = copy.deepcopy(self.type)
+                type = copy.copy(self.type)
                 type.ref |= ref
         return type
 
