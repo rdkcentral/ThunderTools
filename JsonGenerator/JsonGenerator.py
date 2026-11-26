@@ -67,7 +67,8 @@ if __name__ == "__main__":
             try:
                 log.Header(path)
 
-                schemas, additional_includes, temp_files = json_loader.Load(log, path, args.if_dirs, args.cpp_if_dirs, args.include_paths)
+                schemas, additional_includes, input_temp_files = json_loader.Load(log, path, args.if_dirs, args.cpp_if_dirs, args.include_paths)
+                temp_files.extend(input_temp_files)
 
                 joint_headers = {}
 
