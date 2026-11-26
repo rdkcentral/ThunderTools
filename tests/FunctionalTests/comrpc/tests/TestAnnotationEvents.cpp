@@ -29,6 +29,7 @@
  */
 
 #include <algorithm>
+#include <mutex>
 #include <gtest/gtest.h>
 #include "TestHarness.h"
 #include <ITestAnnotationEvents.h>
@@ -64,9 +65,11 @@ public:
 
     void Reset()
     {
+        std::lock_guard<std::mutex> lock(_lock);
         _portEvents.clear();
         _capsEvents.clear();
         _statusMessages.clear();
+        _legacyEvents.clear();
         _notifCount.store(0);
         _notifEvent.ResetEvent();
     }
@@ -87,31 +90,45 @@ public:
     }
 
     // INotification
+    // The implementation delivers each event from its own thread, so callbacks may run
+    // concurrently and in any order.
     void OnPortStateChanged(const uint8_t port, const ITestAnnotationEvents::State state) override
     {
-        _portEvents.push_back({port, state});
-        _notifCount++;
+        {
+            std::lock_guard<std::mutex> lock(_lock);
+            _portEvents.push_back({port, state});
+            _notifCount++;
+        }
         _notifEvent.SetEvent();
     }
 
     void OnCapsChanged(const ITestAnnotationEvents::Caps caps) override
     {
-        _capsEvents.push_back(caps);
-        _notifCount++;
+        {
+            std::lock_guard<std::mutex> lock(_lock);
+            _capsEvents.push_back(caps);
+            _notifCount++;
+        }
         _notifEvent.SetEvent();
     }
 
     void OnStatusUpdate(const string& message) override
     {
-        _statusMessages.push_back(message);
-        _notifCount++;
+        {
+            std::lock_guard<std::mutex> lock(_lock);
+            _statusMessages.push_back(message);
+            _notifCount++;
+        }
         _notifEvent.SetEvent();
     }
 
     void OnLegacyChannelEvent(const uint8_t channel, const uint32_t level) override
     {
-        _legacyEvents.push_back({channel, level});
-        _notifCount++;
+        {
+            std::lock_guard<std::mutex> lock(_lock);
+            _legacyEvents.push_back({channel, level});
+            _notifCount++;
+        }
         _notifEvent.SetEvent();
     }
 
@@ -135,6 +152,7 @@ public:
     END_INTERFACE_MAP
 
 private:
+    std::mutex _lock;
     mutable uint32_t _refCount { 1 };
     std::atomic<uint32_t> _notifCount { 0 };
     Core::Event _notifEvent;
@@ -221,6 +239,9 @@ TEST_F(TestAnnotationEvents, IndexedEvent_PortState_MultiplePorts) {
     ASSERT_EQ(_proxy->TriggerPortState(2, ITestAnnotationEvents::CONNECTED), Core::ERROR_NONE);
 
     ASSERT_TRUE(_sink->WaitForCount(3));
+    ASSERT_EQ(_sink->_portEvents.size(), 3u);
+    std::sort(_sink->_portEvents.begin(), _sink->_portEvents.end(),
+        [](const AnnotationEventSink::PortEvent& a, const AnnotationEventSink::PortEvent& b) { return a.port < b.port; });
     EXPECT_EQ(_sink->_portEvents[0].port, 0u);
     EXPECT_EQ(_sink->_portEvents[0].state, ITestAnnotationEvents::DISCONNECTED);
     EXPECT_EQ(_sink->_portEvents[1].port, 1u);
@@ -321,6 +342,8 @@ TEST_F(TestAnnotationEvents, IndexDeprecated_BroadcastAndPayload) {
     // regardless of channel value (deprecated index = broadcast)
     ASSERT_TRUE(_sink->WaitForCount(3));
     ASSERT_GE(_sink->_legacyEvents.size(), 3u);
+    std::sort(_sink->_legacyEvents.begin(), _sink->_legacyEvents.end(),
+        [](const AnnotationEventSink::LegacyEvent& a, const AnnotationEventSink::LegacyEvent& b) { return a.channel < b.channel; });
 
     // Verify channel values are passed through in the payload
     EXPECT_EQ(_sink->_legacyEvents[0].channel, 1u);
