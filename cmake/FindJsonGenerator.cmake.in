@@ -250,12 +250,13 @@ function(JsonGenerator)
         list(APPEND _execute_command  "-I" "${_include_path}")
     endforeach(_include_path)
 
-    foreach(_input ${Argument_INPUT})
-        execute_process(COMMAND ${PYTHON_EXECUTABLE} ${_execute_command} ${_input} RESULT_VARIABLE rv)
+    # Process all inputs in one run to avoid paying the interpreter start-up cost per file
+    if(Argument_INPUT)
+        execute_process(COMMAND ${PYTHON_EXECUTABLE} ${_execute_command} ${Argument_INPUT} RESULT_VARIABLE rv)
         if(NOT ${rv} EQUAL 0)
             message(FATAL_ERROR "JsonGenerator generator failed.")
         endif()
-    endforeach(_input)
+    endif()
 endfunction(JsonGenerator)
 
 message(VERBOSE "JsonGenerator ready ${JSON_GENERATOR}")

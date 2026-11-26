@@ -871,7 +871,7 @@ def GenerateStubs2(output_file, source_file, tree, ns, scan_only=False):
                     else:
                         type_ = undefined
                 else:
-                    type_ = copy.deepcopy(identifier.type)
+                    type_ = copy.copy(identifier.type)
 
                 no_length_warnings = isinstance(self, EmitLength)
                 is_return_value = isinstance(self, EmitRetVal) or (parent and parent.is_return_value)
@@ -3184,6 +3184,22 @@ if __name__ == "__main__":
                     print("\nInterface dump:")
 
                 sorted_faces = sorted(faces, key=lambda x: str(x.id))
+                # The same interface is seen once per input file that includes it, and a template instance
+                # may get a different name depending on how its arguments are spelled, so compare template
+                # instances by base name and typedef-resolved arguments
+                def _OwnerKey(obj):
+                    if isinstance(obj, CppParser.InstantiatedTemplateClass):
+                        args = []
+
+                        for arg in obj.resolvedArgs:
+                            arg_type = arg.type.Resolve() if isinstance(arg.type, CppParser.Type) else arg.type
+                            args.append("".join([str(x) for x in arg_type]) if isinstance(arg_type, list) else str(arg_type))
+
+                        return (obj.baseName.full_name, tuple(args))
+                    else:
+                        return obj.full_name
+
+                id_owners = {}
                 for i, f in enumerate(sorted_faces):
                     if isinstance(f.id, int):
                         if scan_only:
@@ -3192,9 +3208,12 @@ if __name__ == "__main__":
 
                             print("%s (%s) - '%s'" % (hex(f.id) if isinstance(f.id, int) else "?", str(f.id), f.obj.full_name))
 
-                        if i and sorted_faces[i - 1].id == f.id:
-                            log.Warn("duplicate interface ID %s (%s) of %s" % \
-                                (hex(f.id) if isinstance(f.id, int) else "?", f.id, f.obj.full_name))
+                        owners = id_owners.setdefault(f.id, set())
+                        key = _OwnerKey(f.obj)
+                        if owners and key not in owners:
+                            log.Warn("duplicate interface ID %s (%s) of %s (%s)" % \
+                                (hex(f.id) if isinstance(f.id, int) else "?", f.id, f.obj.full_name, os.path.basename(f.file)))
+                        owners.add(key)
                     else:
                         log.Info("can't evaluate interface ID '%s' of %s" % (f.id, f.obj.full_name))
 
