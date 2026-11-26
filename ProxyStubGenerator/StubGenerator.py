@@ -3184,6 +3184,9 @@ if __name__ == "__main__":
                     print("\nInterface dump:")
 
                 sorted_faces = sorted(faces, key=lambda x: str(x.id))
+                # The same interface is seen once per input file that includes it, and template instances
+                # may get a different name for the same type, so compare by base name and method signatures
+                id_owners = {}
                 for i, f in enumerate(sorted_faces):
                     if isinstance(f.id, int):
                         if scan_only:
@@ -3192,9 +3195,13 @@ if __name__ == "__main__":
 
                             print("%s (%s) - '%s'" % (hex(f.id) if isinstance(f.id, int) else "?", str(f.id), f.obj.full_name))
 
-                        if i and sorted_faces[i - 1].id == f.id:
-                            log.Warn("duplicate interface ID %s (%s) of %s" % \
-                                (hex(f.id) if isinstance(f.id, int) else "?", f.id, f.obj.full_name))
+                        owners = id_owners.setdefault(f.id, set())
+                        base = f.obj.baseName if isinstance(f.obj, CppParser.InstantiatedTemplateClass) else f.obj
+                        key = (base.full_name, tuple(m.Proto() for m in f.obj.methods))
+                        if owners and key not in owners:
+                            log.Warn("duplicate interface ID %s (%s) of %s (%s)" % \
+                                (hex(f.id) if isinstance(f.id, int) else "?", f.id, f.obj.full_name, os.path.basename(f.file)))
+                        owners.add(key)
                     else:
                         log.Info("can't evaluate interface ID '%s' of %s" % (f.id, f.obj.full_name))
 
